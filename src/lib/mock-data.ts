@@ -1,6 +1,22 @@
 export type QuoteStatus = "pending" | "accepted" | "paid" | "overdue";
 export type PaymentMethod = "card" | "bank" | "cash";
 export type PaymentRequestType = "deposit" | "full" | "custom";
+export type JobStatus = "scheduled" | "in_progress" | "complete";
+
+export type ScheduledJob = {
+  id: string;
+  quote_id: string;
+  /** ISO datetime, e.g. "2026-05-19T09:00:00.000Z" */
+  starts_at: string;
+  duration_minutes: number;
+  status: JobStatus;
+  /** Indexes of quote.line_items the tradesperson has loaded into the van */
+  materials_checked: number[];
+  /** ISO date for the 11-month-out annual service reminder, if set */
+  annual_reminder_at?: string;
+  notes?: string;
+  created_at: string;
+};
 
 export type LineItem = {
   description: string;
