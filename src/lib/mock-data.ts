@@ -100,14 +100,10 @@ export const mockProfile = {
   card_fee_pct: 3.5,
 };
 
-export const mockClients: Client[] = [
-  { id: "c1", name: "James Thornton",  phone: "07712 345678", email: "james.thornton@gmail.com",   address: "42 Birchwood Avenue, Manchester M14 5QR", property_type: "Homeowner — Victorian terrace",   notes: "Annual boiler service every November.", created_at: "2025-11-04" },
-  { id: "c2", name: "Sarah Mitchell",  phone: "07801 234567", email: "sarah.mitchell@hotmail.com", address: "8 Elm Grove, Stockport SK4 2AB",         property_type: "Homeowner — semi-detached",       notes: "Prefers morning appointments.",          created_at: "2025-09-22" },
-  { id: "c3", name: "Robert Okafor",   phone: "07956 112233", email: "r.okafor@gmail.com",         address: "15 Chestnut Road, Salford M6 7TY",       property_type: "Homeowner — 1930s semi",          created_at: "2026-01-12" },
-  { id: "c4", name: "Linda Patterson", phone: "07444 887766", email: "linda.p@yahoo.co.uk",        address: "3 Maple Close, Didsbury M20 2NP",        property_type: "Landlord — owns 3 properties",    notes: "Needs landlord Gas Safe certificates for all properties.", created_at: "2025-08-03" },
-  { id: "c5", name: "David Chen",      phone: "07523 998877", email: "dchen@chenenterprises.co.uk", address: "102 High Street, Manchester M1 4AB",    property_type: "Commercial — small business",     notes: "Invoice via accounts: accounts@chenenterprises.co.uk", created_at: "2025-10-18" },
-  { id: "c6", name: "Karen Walsh",     phone: "07689 334455", email: "k.walsh@outlook.com",        address: "27 Oak Lane, Cheadle SK8 1QR",           property_type: "Homeowner — detached",            created_at: "2026-02-28" },
-];
+// Clients are loaded from Lovable Cloud on app startup via hydrateUserData().
+// This array is mutated in place so the rest of the codebase can read it
+// synchronously; components call useDataVersion() to re-render on changes.
+export const mockClients: Client[] = [];
 
 // --- Quote builder helper (keeps VAT maths consistent) ----------------------
 const VAT_RATE = 0.20;
