@@ -165,7 +165,7 @@ export async function hydrateUserData() {
   mockClients.length = 0;
   (clientsRes.data ?? []).forEach((c) => mockClients.push(rowToClient(c as DbClient)));
   mockQuotes.length = 0;
-  (quotesRes.data ?? []).forEach((q) => mockQuotes.push(rowToQuote(q as DbQuote)));
+  (quotesRes.data ?? []).forEach((q) => mockQuotes.push(rowToQuote(q as unknown as DbQuote)));
   bumpVersion();
 }
 
