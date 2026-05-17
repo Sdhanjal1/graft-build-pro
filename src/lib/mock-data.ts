@@ -103,14 +103,79 @@ export const mockProfile = {
   card_fee_pct: 3.5,
 };
 
-export const mockClients: Client[] = [
-  { id: "c1", name: "James Thornton",  phone: "07712 345678", email: "james.thornton@gmail.com",   address: "42 Birchwood Avenue, Manchester M14 5QR", property_type: "Homeowner — Victorian terrace",   notes: "Annual boiler service every November.", created_at: "2025-11-04" },
-  { id: "c2", name: "Sarah Mitchell",  phone: "07801 234567", email: "sarah.mitchell@hotmail.com", address: "8 Elm Grove, Stockport SK4 2AB",         property_type: "Homeowner — semi-detached",       notes: "Prefers morning appointments.",          created_at: "2025-09-22" },
-  { id: "c3", name: "Robert Okafor",   phone: "07956 112233", email: "r.okafor@gmail.com",         address: "15 Chestnut Road, Salford M6 7TY",       property_type: "Homeowner — 1930s semi",          created_at: "2026-01-12" },
-  { id: "c4", name: "Linda Patterson", phone: "07444 887766", email: "linda.p@yahoo.co.uk",        address: "3 Maple Close, Didsbury M20 2NP",        property_type: "Landlord — owns 3 properties",    notes: "Needs landlord Gas Safe certificates for all properties.", created_at: "2025-08-03" },
-  { id: "c5", name: "David Chen",      phone: "07523 998877", email: "dchen@chenenterprises.co.uk", address: "102 High Street, Manchester M1 4AB",    property_type: "Commercial — small business",     notes: "Invoice via accounts: accounts@chenenterprises.co.uk", created_at: "2025-10-18" },
-  { id: "c6", name: "Karen Walsh",     phone: "07689 334455", email: "k.walsh@outlook.com",        address: "27 Oak Lane, Cheadle SK8 1QR",           property_type: "Homeowner — detached",            created_at: "2026-02-28" },
-];
+export const mockClients: Client[] = [];
+
+// ---------- Reactive version (bumps re-render of consumers after async writes) ----------
+let _dataVersion = 0;
+const _versionListeners = new Set<() => void>();
+const bumpVersion = () => { _dataVersion++; _versionListeners.forEach((cb) => cb()); };
+
+export function useDataVersion() {
+  const [v, setV] = useState(_dataVersion);
+  useEffect(() => {
+    const cb = () => setV(_dataVersion);
+    _versionListeners.add(cb);
+    return () => { _versionListeners.delete(cb); };
+  }, []);
+  return v;
+}
+
+// ---------- Hydration from Lovable Cloud ----------
+type DbClient = {
+  id: string; name: string; phone: string | null; email: string | null;
+  address: string | null; property_type: string | null; notes: string | null;
+  created_at: string;
+};
+type DbQuote = {
+  id: string; ref: string | null; client_id: string | null; title: string;
+  job_description: string | null; line_items: LineItem[]; subtotal: number;
+  vat_amount: number; total: number; status: QuoteStatus; due_date: string | null;
+  notes: string | null; created_at: string; payment_method: PaymentMethod | null;
+  paid_via: PaymentMethod | null; payment_request: PaymentRequest | null;
+  invoiced_at: string | null; invoice_due_date: string | null;
+};
+
+const rowToClient = (r: DbClient): Client => ({
+  id: r.id, name: r.name, phone: r.phone ?? "", email: r.email ?? "",
+  address: r.address ?? "", property_type: r.property_type ?? "Homeowner",
+  notes: r.notes ?? undefined, created_at: r.created_at.slice(0, 10),
+});
+
+const rowToQuote = (r: DbQuote): Quote => ({
+  id: r.id, ref: r.ref ?? "", client_id: r.client_id ?? "",
+  title: r.title, job_description: r.job_description ?? "",
+  line_items: Array.isArray(r.line_items) ? r.line_items : [],
+  subtotal: Number(r.subtotal), vat_amount: Number(r.vat_amount), total: Number(r.total),
+  status: r.status, due_date: r.due_date ?? undefined, notes: r.notes ?? undefined,
+  created_at: r.created_at.slice(0, 10),
+  payment_method: r.payment_method ?? undefined,
+  paid_via: r.paid_via ?? undefined,
+  payment_request: r.payment_request ?? undefined,
+  invoiced_at: r.invoiced_at ?? undefined,
+  invoice_due_date: r.invoice_due_date ?? undefined,
+});
+
+export async function hydrateUserData() {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return;
+  const [clientsRes, quotesRes] = await Promise.all([
+    supabase.from("clients").select("*").order("created_at", { ascending: false }),
+    supabase.from("quotes").select("*").order("created_at", { ascending: false }),
+  ]);
+  mockClients.length = 0;
+  (clientsRes.data ?? []).forEach((c) => mockClients.push(rowToClient(c as DbClient)));
+  mockQuotes.length = 0;
+  (quotesRes.data ?? []).forEach((q) => mockQuotes.push(rowToQuote(q as DbQuote)));
+  bumpVersion();
+}
+
+export function clearUserData() {
+  mockClients.length = 0;
+  mockQuotes.length = 0;
+  mockJobs.length = 0;
+  mockChases.length = 0;
+  bumpVersion();
+}
 
 // --- Quote builder helper (keeps VAT maths consistent) ----------------------
 const VAT_RATE = 0.20;
