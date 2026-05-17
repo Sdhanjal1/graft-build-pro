@@ -655,16 +655,24 @@ export const skipChase = (chaseId: string) => {
 
 // ---------- Quote → invoice split ----------
 
-/** Mark a quote as invoiced (issues a formal invoice). */
-export const markInvoiced = (quoteId: string): Quote | null => {
+/** Mark a quote as invoiced (issues a formal invoice), persisted to Lovable Cloud. */
+export const markInvoiced = async (quoteId: string): Promise<Quote | null> => {
   const q = getQuote(quoteId);
   if (!q) return null;
+  if (q.invoiced_at) return q;
   const today = new Date();
   const due = new Date(); due.setDate(due.getDate() + 14);
-  q.invoiced_at = today.toISOString();
-  q.invoice_due_date = due.toISOString().slice(0, 10);
-  // Promote to overdue tracking if not already paid; chase scheduler will pick up
+  const invoiced_at = today.toISOString();
+  const invoice_due_date = due.toISOString().slice(0, 10);
+  const { error } = await supabase
+    .from("quotes")
+    .update({ invoiced_at, invoice_due_date })
+    .eq("id", quoteId);
+  if (error) throw error;
+  q.invoiced_at = invoiced_at;
+  q.invoice_due_date = invoice_due_date;
   ensureChasesFor(q);
+  bumpVersion();
   return q;
 };
 
