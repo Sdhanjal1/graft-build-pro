@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import logo from "@/assets/quottr-logo.png";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -13,10 +14,7 @@ function AuthPage() {
     <div className="min-h-screen bg-ink text-paper flex flex-col">
       <div className="flex-1 flex flex-col justify-center px-6 max-w-md mx-auto w-full">
         <div className="mb-10">
-          <div className="inline-flex h-12 w-12 rounded-2xl bg-lime items-center justify-center mb-5">
-            <span className="font-display text-3xl text-ink leading-none">G</span>
-          </div>
-          <h1 className="text-5xl leading-none">Graft</h1>
+          <img src={logo} alt="Quottr" className="h-16 w-auto mb-5" />
           <p className="text-paper/70 mt-2 text-sm">Quote in seconds. Get paid faster.</p>
         </div>
 
