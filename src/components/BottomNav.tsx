@@ -20,22 +20,24 @@ export function BottomNav() {
     <nav className="fixed bottom-0 inset-x-0 z-40 safe-bottom">
       <div className="mx-auto max-w-md px-3 pb-3 pt-2">
         <div className="relative bg-ink rounded-full shadow-[0_8px_24px_-8px_rgba(0,0,0,0.4)] flex items-center justify-around h-16 px-1.5">
-          {items.slice(0, 3).map((it) => (
+          {items.slice(0, 2).map((it) => (
             <NavItem key={it.to} {...it} active={isActive(it.to)} />
           ))}
-
-          {/* centre + */}
-          <Link
-            to="/quotes/new"
-            aria-label="New quote"
-            className="relative -mt-10 h-14 w-14 rounded-full bg-lime flex items-center justify-center shadow-[0_10px_24px_-6px_rgba(200,224,74,0.6)] ring-4 ring-paper active:scale-95 transition shrink-0"
-          >
-            <Plus className="h-6 w-6 text-ink" strokeWidth={3} />
-          </Link>
-
+          <NavItem {...items[2]} active={isActive(items[2].to)} />
+          {/* spacer to reserve room for the centred + button */}
+          <div className="flex-1 shrink-0" aria-hidden />
           {items.slice(3).map((it) => (
             <NavItem key={it.to} {...it} active={isActive(it.to)} />
           ))}
+
+          {/* centre + (absolutely centred over the pill) */}
+          <Link
+            to="/quotes/new"
+            aria-label="New quote"
+            className="absolute left-1/2 -translate-x-1/2 -top-5 h-14 w-14 rounded-full bg-lime flex items-center justify-center shadow-[0_10px_24px_-6px_rgba(200,224,74,0.6)] ring-4 ring-paper active:scale-95 transition"
+          >
+            <Plus className="h-6 w-6 text-ink" strokeWidth={3} />
+          </Link>
         </div>
       </div>
     </nav>
