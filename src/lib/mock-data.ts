@@ -555,26 +555,35 @@ export const calcCardFee = (amount: number) => {
 
 // ---------- Quote duplication ----------
 
-/** Duplicate a quote with a fresh QTR ref, today's date, status reset to pending. */
-export const duplicateQuote = (quoteId: string): Quote | null => {
+/** Duplicate a quote with a fresh QTR ref, persisted to Lovable Cloud. */
+export const duplicateQuote = async (quoteId: string): Promise<Quote | null> => {
   const src = getQuote(quoteId);
   if (!src) return null;
-  const today = new Date();
   const due = new Date(); due.setDate(due.getDate() + 14);
-  const copy: Quote = {
-    ...src,
-    id: `q_${Date.now()}`,
+  const user_id = await requireUserId();
+  const insertPayload = {
+    user_id,
     ref: nextQuoteRef(),
-    status: "pending",
-    created_at: today.toISOString().slice(0, 10),
+    client_id: src.client_id,
+    title: src.title,
+    job_description: src.job_description,
+    line_items: src.line_items.map((li) => ({ ...li })) as unknown as Record<string, unknown>,
+    subtotal: src.subtotal,
+    vat_amount: src.vat_amount,
+    total: src.total,
+    status: "pending" as QuoteStatus,
     due_date: due.toISOString().slice(0, 10),
-    line_items: src.line_items.map((li) => ({ ...li })),
-    payment_request: undefined,
-    paid_via: undefined,
-    invoiced_at: undefined,
-    invoice_due_date: undefined,
+    payment_method: src.payment_method ?? "card",
   };
+  const { data, error } = await supabase
+    .from("quotes")
+    .insert(insertPayload as never)
+    .select("*")
+    .single();
+  if (error) throw error;
+  const copy = rowToQuote(data as unknown as DbQuote);
   mockQuotes.unshift(copy);
+  bumpVersion();
   return copy;
 };
 
