@@ -115,7 +115,10 @@ function QuoteDetail() {
       <div className="bg-ink text-paper px-5 pt-6 pb-5 flex items-center gap-3">
         <QuottrLogo className="h-7 w-auto" />
         <div className="h-6 w-px bg-paper/20" />
-        <p className="text-xs text-paper/70 truncate">{mockProfile.business_name}</p>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-paper truncate">{mockProfile.business_name}</p>
+          <p className="text-[10px] text-paper/60 truncate">{mockProfile.registration_number} · VAT {mockProfile.vat_number}</p>
+        </div>
       </div>
       <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" right={<StatusBadge status={status} />} />
 
