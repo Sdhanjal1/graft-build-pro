@@ -38,6 +38,77 @@ function ChaserPage() {
         </div>
       </section>
 
+      {/* Auto-chase queue */}
+      {(due.length > 0 || upcoming.length > 0) && (
+        <section className="px-5 mt-5">
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="h-4 w-4 text-ink" />
+            <h2 className="text-lg">Auto-chase queue</h2>
+          </div>
+
+          {due.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {due.map(({ chase, quote }) => {
+                const c = getClient(quote.client_id);
+                const first = c?.name.split(" ")[0] ?? "there";
+                const msg = encodeURIComponent(buildChaserMessage(quote, first));
+                const digits = c?.phone.replace(/\D/g, "");
+                const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${msg}`;
+                return (
+                  <div key={chase.id} className="rounded-2xl bg-lime/15 border border-lime/40 p-3.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase tracking-widest font-bold bg-lime text-ink rounded-full px-2 py-0.5">
+                        Day {chase.day_offset} · due now
+                      </span>
+                      <p className="text-xs font-semibold text-ink truncate">{quote.ref} · {c?.name}</p>
+                    </div>
+                    <p className="text-xs text-ink/70 truncate mt-1">{quote.title} · {formatGBP(quote.total)}</p>
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      <a
+                        href={wa}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={() => { markChaseSent(chase.id); force((n) => n + 1); }}
+                        className="bg-ink text-paper rounded-full py-2 text-xs font-bold inline-flex items-center justify-center gap-1.5"
+                      >
+                        <Check className="h-3.5 w-3.5" /> Send chase
+                      </a>
+                      <button
+                        onClick={() => { skipChase(chase.id); force((n) => n + 1); }}
+                        className="bg-card border border-border text-ink rounded-full py-2 text-xs font-bold inline-flex items-center justify-center gap-1.5"
+                      >
+                        <XIcon className="h-3.5 w-3.5" /> Skip
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {upcoming.length > 0 && (
+            <div className="card-surface divide-y divide-border">
+              {upcoming.map(({ chase, quote }) => {
+                const c = getClient(quote.client_id);
+                const when = new Date(chase.due_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+                return (
+                  <div key={chase.id} className="px-4 py-2.5 flex items-center gap-3">
+                    <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground w-12 shrink-0">
+                      Day {chase.day_offset}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate">{quote.ref} · {c?.name}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">Auto on {when}</p>
+                    </div>
+                    <span className="num text-sm text-ink">{formatGBP(quote.total)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="px-5 mt-5 space-y-3">
         {overdue.map((q) => {
           const c = getClient(q.client_id);
