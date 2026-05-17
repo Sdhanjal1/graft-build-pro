@@ -8,7 +8,7 @@ export const Route = createFileRoute("/")({
   component: HomePage,
   head: () => ({
     meta: [
-      { title: "Graft — Home" },
+      { title: "Quottr — Home" },
       { name: "description", content: "Your quotes, clients and overdue invoices at a glance." },
     ],
   }),

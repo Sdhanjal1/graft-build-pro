@@ -29,7 +29,7 @@ function ChaserPage() {
         {overdue.map((q) => {
           const c = getClient(q.client_id);
           const chase = encodeURIComponent(
-            `Hi ${c?.name.split(" ")[0]}, friendly reminder that quote ${q.ref} for "${q.title}" (${formatGBP(q.total)}) is now overdue. Could you confirm when payment will be made? Many thanks, ${mockProfile.full_name}.`,
+            `Hi ${c?.name.split(" ")[0]}, friendly reminder that quote ${q.ref} for "${q.title}" (${formatGBP(q.total)}) is now overdue. Could you confirm when payment will be made? Many thanks, ${mockProfile.full_name}.\n\nSent via Quottr.`,
           );
           const digits = c?.phone.replace(/\D/g, "");
           const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${chase}`;

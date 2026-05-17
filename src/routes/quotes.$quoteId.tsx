@@ -16,7 +16,7 @@ function QuoteDetail() {
   const client = getClient(quote.client_id);
 
   const whatsappBody = encodeURIComponent(
-    `Hi ${client?.name.split(" ")[0]}, here's your quote ${quote.ref} for "${quote.title}" — total ${formatGBP(quote.total)}. Reply to accept. Thanks, ${mockProfile.full_name} (${mockProfile.business_name}).`,
+    `Hi ${client?.name.split(" ")[0]}, here's your quote ${quote.ref} for "${quote.title}" — total ${formatGBP(quote.total)}. Reply to accept. Thanks, ${mockProfile.full_name} (${mockProfile.business_name}).\n\nSent via Quottr.`,
   );
   const phoneDigits = client?.phone.replace(/\D/g, "");
   const waHref = `https://wa.me/${phoneDigits ? "44" + phoneDigits.replace(/^0/, "") : ""}?text=${whatsappBody}`;
