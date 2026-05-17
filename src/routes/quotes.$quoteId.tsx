@@ -39,6 +39,10 @@ function QuoteDetail() {
   const [error, setError] = useState<string | null>(null);
   const [scheduling, setScheduling] = useState(false);
   const [job, setJob] = useState(() => getJobByQuote(quote.id));
+  const [askDeposit, setAskDeposit] = useState(false);
+  const [askInvoice, setAskInvoice] = useState(false);
+  const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
+  const navigate = useNavigate();
   const defaultSchedule = useMemo(() => {
     const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0);
     // Format for <input type="datetime-local">: yyyy-MM-ddTHH:mm
@@ -54,7 +58,8 @@ function QuoteDetail() {
   const acceptQuote = () => {
     quote.status = "accepted";
     setStatusState("accepted");
-    setScheduling(true);
+    // Trigger deposit prompt first; scheduling moves to a follow-up after.
+    setAskDeposit(true);
   };
   const confirmSchedule = () => {
     const iso = new Date(schedAt).toISOString();
@@ -66,6 +71,32 @@ function QuoteDetail() {
   const markPaid = (m: PaymentMethod) => {
     quote.paid_via = m; quote.status = "paid";
     setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
+    setAskInvoice(true);
+  };
+  const duplicate = () => {
+    const copy = duplicateQuote(quote.id);
+    if (!copy) return;
+    toast.success(`Quote duplicated as ${copy.ref}`);
+    navigate({ to: "/quotes/$quoteId", params: { quoteId: copy.id } });
+  };
+  const sendDepositRequest = () => {
+    const firstName = client?.name.split(" ")[0] ?? "there";
+    const { message } = buildDepositOnAcceptMessage(quote, firstName);
+    const text = encodeURIComponent(message);
+    const digits = client?.phone.replace(/\D/g, "");
+    const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${text}`;
+    window.open(wa, "_blank");
+    setAskDeposit(false);
+    setScheduling(true);
+  };
+  const issueInvoice = () => {
+    const inv = markInvoiced(quote.id);
+    if (inv) {
+      setInvoicedAt(inv.invoiced_at);
+      ensureChasesFor(inv);
+    }
+    setAskInvoice(false);
+    navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
   };
   const createPaymentRequest = async (type: PaymentRequestType, amount?: number) => {
     setCreating(true);
