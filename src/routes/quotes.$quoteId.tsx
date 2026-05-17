@@ -162,10 +162,20 @@ function QuoteDetail() {
           <div className="px-5 py-4 border-t border-border bg-secondary/40 space-y-1.5">
             <Row label="Subtotal" value={formatGBP(quote.subtotal)} />
             {mockProfile.vat_registered && <Row label="VAT (20%)" value={formatGBP(quote.vat_amount)} />}
+            {method === "card" && (
+              <Row label="Card processing fee (3.5%)" value={formatGBP(quote.total * 0.035)} />
+            )}
             <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
-              <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
-              <span className="num text-3xl text-ink">{formatGBP(quote.total)}</span>
+              <span className="text-sm uppercase tracking-widest font-semibold">
+                {method === "card" ? "Total with card fee" : "Total"}
+              </span>
+              <span className="num text-3xl text-ink">
+                {formatGBP(method === "card" ? quote.total * 1.035 : quote.total)}
+              </span>
             </div>
+            {method !== "card" && (
+              <p className="text-[10px] text-muted-foreground pt-1">No fees for bank transfer or cash.</p>
+            )}
           </div>
         </div>
       </section>
