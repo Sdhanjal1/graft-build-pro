@@ -11,8 +11,9 @@ import {
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
 } from "@/lib/mock-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2 } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
+import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/quotes/$quoteId")({
@@ -362,13 +363,28 @@ function QuoteDetail() {
           </Link>
         )}
 
-        {/* Duplicate (always available) */}
-        <button
-          onClick={duplicate}
-          className="w-full bg-secondary text-ink rounded-full py-3.5 font-semibold inline-flex items-center justify-center gap-2 text-sm"
-        >
-          <Copy className="h-4 w-4" /> Duplicate quote
-        </button>
+        {/* Share PDF + Duplicate */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <button
+            onClick={async () => {
+              try {
+                const r = await downloadOrShareQuotePdf(liveQuote, client, "quote");
+                if (!r.shared && !r.cancelled) toast.success("Quote PDF downloaded");
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Could not generate PDF");
+              }
+            }}
+            className="bg-card border-2 border-ink text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
+          >
+            <Share2 className="h-4 w-4" /> Share PDF
+          </button>
+          <button
+            onClick={duplicate}
+            className="bg-secondary text-ink rounded-full py-3.5 font-semibold inline-flex items-center justify-center gap-2 text-sm"
+          >
+            <Copy className="h-4 w-4" /> Duplicate
+          </button>
+        </div>
       </section>
 
       {/* Bottom sheet: how did the customer pay? */}
