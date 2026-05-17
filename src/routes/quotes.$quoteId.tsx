@@ -31,20 +31,52 @@ function QuoteDetail() {
   const [requesting, setRequesting] = useState(false);
   const [customAmt, setCustomAmt] = useState("");
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | undefined>(quote.payment_request);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const createCheckout = useServerFn(createInvoiceCheckout);
 
   const setMethod = (m: PaymentMethod) => { quote.payment_method = m; setMethodState(m); };
   const markPaid = (m: PaymentMethod) => {
     quote.paid_via = m; quote.status = "paid";
     setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
   };
-  const createPaymentRequest = (type: PaymentRequestType, amount?: number) => {
-    const pr = buildPaymentRequest(quote, type, amount);
-    quote.payment_request = pr;
-    quote.payment_method = "card";
-    setPaymentRequest(pr);
-    setMethodState("card");
-    setRequesting(false);
-    setCustomAmt("");
+  const createPaymentRequest = async (type: PaymentRequestType, amount?: number) => {
+    setCreating(true);
+    setError(null);
+    try {
+      const amt =
+        type === "deposit" ? quote.total * 0.5 :
+        type === "full" ? quote.total :
+        (amount ?? 0);
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const result = await createCheckout({
+        data: {
+          quoteId: quote.id,
+          quoteRef: quote.ref,
+          title: quote.title,
+          amount: amt,
+          currency: "gbp",
+          requestType: type,
+          customerEmail: client?.email,
+          successUrl: `${origin}/quotes/${quote.id}?paid=1`,
+          cancelUrl: `${origin}/quotes/${quote.id}?cancelled=1`,
+        },
+      });
+      const pr = buildPaymentRequest(quote, type, amount);
+      pr.link = result.url;
+      quote.payment_request = pr;
+      quote.payment_method = "card";
+      setPaymentRequest(pr);
+      setMethodState("card");
+      setRequesting(false);
+      setCustomAmt("");
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message ?? "Could not create Stripe payment link");
+    } finally {
+      setCreating(false);
+    }
   };
 
   const liveQuote: Quote = { ...quote, payment_method: method, status, paid_via: paidVia, payment_request: paymentRequest };
