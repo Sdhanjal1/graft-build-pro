@@ -227,11 +227,6 @@ function NewQuotePage() {
         return;
       }
 
-      if (blob.size < 200) {
-        setVoiceError("Didn't catch any audio — hold the button a moment longer and speak clearly.");
-        return;
-      }
-
       setTranscribing(true);
       try {
         const audioBase64 = await blobToBase64(blob);
