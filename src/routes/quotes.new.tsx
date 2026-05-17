@@ -113,14 +113,35 @@ function NewQuotePage() {
   }, []);
 
   const stopRecording = () => {
+    const recognition = speechRecognitionRef.current;
+    if (recognition) {
+      try { recognition.stop(); } catch (err) { console.warn(err); }
+      speechRecognitionRef.current = null;
+    }
     const mr = mediaRecorderRef.current;
     if (mr && mr.state !== "inactive") {
       mr.stop();
     }
   };
 
+  const appendTranscript = (text: string) => {
+    const clean = text.trim();
+    if (!clean) return;
+    setDesc((prev) => (prev ? `${prev.trim()} ${clean}` : clean));
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (el) {
+        el.focus();
+        const end = el.value.length;
+        el.setSelectionRange(end, end);
+        el.scrollTop = el.scrollHeight;
+      }
+    });
+  };
+
   const startRecording = async () => {
     setVoiceError(null);
+    liveTranscriptRef.current = "";
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
       return;
@@ -153,6 +174,28 @@ function NewQuotePage() {
     }
     mediaRecorderRef.current = mr;
     chunksRef.current = [];
+
+    const SpeechRecognition = getSpeechRecognition();
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "en-GB";
+        recognition.onresult = (event) => {
+          liveTranscriptRef.current = Array.from(event.results)
+            .map((result) => result[0]?.transcript || "")
+            .join(" ")
+            .trim();
+        };
+        recognition.onerror = (event) => console.warn("Speech recognition error", event.error);
+        recognition.start();
+        speechRecognitionRef.current = recognition;
+      } catch (err) {
+        console.warn(err);
+        speechRecognitionRef.current = null;
+      }
+    }
 
     mr.ondataavailable = (e) => {
       if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
