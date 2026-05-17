@@ -241,10 +241,10 @@ function SettingsPage() {
       </section>
 
       <section className="px-5 mt-5 mb-6">
-        <Link to="/auth" className="card-surface p-4 flex items-center gap-3 text-status-overdue font-semibold">
+        <button onClick={handleSignOut} className="card-surface p-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left">
           <LogOut className="h-5 w-5" />
           Sign out
-        </Link>
+        </button>
       </section>
     </AppShell>
   );
