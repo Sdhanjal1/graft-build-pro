@@ -213,7 +213,68 @@ function QuoteDetail() {
           </div>
         </div>
       )}
+
+      {/* Bottom sheet: request payment via Stripe */}
+      {requesting && (
+        <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setRequesting(false)}>
+          <div className="w-full bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+            <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
+            <h3 className="text-2xl">Request payment</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Generates a Stripe payment link and adds it to the WhatsApp & email message.
+            </p>
+            <div className="space-y-2">
+              <RequestOption
+                label="Deposit (50%)"
+                amount={formatGBP(quote.total * 0.5)}
+                onClick={() => createPaymentRequest("deposit")}
+              />
+              <RequestOption
+                label="Full payment"
+                amount={formatGBP(quote.total)}
+                onClick={() => createPaymentRequest("full")}
+              />
+              <div className="bg-ink text-paper rounded-2xl p-4">
+                <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold mb-2">Custom amount</p>
+                <div className="flex gap-2">
+                  <div className="flex-1 flex items-center bg-paper/10 rounded-2xl px-4">
+                    <span className="text-lime font-bold mr-1">£</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      value={customAmt}
+                      onChange={(e) => setCustomAmt(e.target.value)}
+                      className="flex-1 bg-transparent py-3 text-sm text-paper placeholder:text-paper/40 outline-none"
+                    />
+                  </div>
+                  <button
+                    disabled={!customAmt || Number(customAmt) <= 0}
+                    onClick={() => createPaymentRequest("custom", Number(customAmt))}
+                    className="bg-lime text-ink rounded-full px-5 font-bold text-sm disabled:opacity-40"
+                  >
+                    Create
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button onClick={() => setRequesting(false)} className="w-full mt-3 text-sm text-muted-foreground py-2">Cancel</button>
+          </div>
+        </div>
+      )}
     </AppShell>
+  );
+}
+
+function RequestOption({ label, amount, onClick }: { label: string; amount: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full bg-ink text-paper rounded-2xl py-4 px-5 flex items-center justify-between"
+    >
+      <span className="font-bold text-sm">{label}</span>
+      <span className="num text-2xl text-lime">{amount}</span>
+    </button>
   );
 }
 
