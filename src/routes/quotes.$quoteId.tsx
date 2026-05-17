@@ -26,14 +26,26 @@ function QuoteDetail() {
   const [status, setStatusState] = useState(quote.status);
   const [paidVia, setPaidViaState] = useState(quote.paid_via);
   const [askingPaid, setAskingPaid] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+  const [customAmt, setCustomAmt] = useState("");
+  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | undefined>(quote.payment_request);
 
   const setMethod = (m: PaymentMethod) => { quote.payment_method = m; setMethodState(m); };
   const markPaid = (m: PaymentMethod) => {
     quote.paid_via = m; quote.status = "paid";
     setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
   };
+  const createPaymentRequest = (type: PaymentRequestType, amount?: number) => {
+    const pr = buildPaymentRequest(quote, type, amount);
+    quote.payment_request = pr;
+    quote.payment_method = "card";
+    setPaymentRequest(pr);
+    setMethodState("card");
+    setRequesting(false);
+    setCustomAmt("");
+  };
 
-  const liveQuote: Quote = { ...quote, payment_method: method, status, paid_via: paidVia };
+  const liveQuote: Quote = { ...quote, payment_method: method, status, paid_via: paidVia, payment_request: paymentRequest };
   const messageBody = buildInvoiceMessage(liveQuote, client?.name.split(" ")[0] ?? "there");
   const encoded = encodeURIComponent(messageBody);
   const phoneDigits = client?.phone.replace(/\D/g, "");
