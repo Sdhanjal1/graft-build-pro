@@ -60,33 +60,132 @@ function NewQuotePage() {
   const [clientName, setClientName] = useState("");
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
+  const [transcribing, setTranscribing] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const generateFn = useServerFn(generateAIQuote);
+  const transcribeFn = useServerFn(transcribeAudio);
 
-  // --- Voice recording (mock) ----
-  const toggleRecord = () => {
-    if (recording) {
-      setRecording(false);
-      const snippets = [
-        "Customer wants the old combi boiler replaced with a new Worcester Bosch 30i. Includes power flush and magnetic filter.",
-        "Replace two radiators in living room and bedroom and fit new TRVs throughout the house.",
-        "Strip out existing bathroom and fit new bath, basin, WC and walk-in shower with tiling.",
-        "Annual boiler service and Gas Safe certificate for landlord.",
-      ];
-      const pick = snippets[Math.floor(Math.random() * snippets.length)];
-      setDesc((d) => (d ? `${d.trim()} ${pick}` : pick));
-    } else {
-      setRecording(true);
-      setRecordSeconds(0);
-      const tick = setInterval(() => {
-        setRecordSeconds((s) => {
-          if (s >= 6) { clearInterval(tick); setRecording(false); return s; }
-          return s + 1;
-        });
-      }, 1000);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (tickRef.current) clearInterval(tickRef.current);
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
+
+  const stopRecording = () => {
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== "inactive") {
+      mr.stop();
     }
+  };
+
+  const startRecording = async () => {
+    setVoiceError(null);
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      setVoiceError("Microphone not supported on this device.");
+      return;
+    }
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      setVoiceError("Microphone permission denied. Enable it in your browser settings.");
+      return;
+    }
+    streamRef.current = stream;
+
+    const mimeType = pickMimeType();
+    let mr: MediaRecorder;
+    try {
+      mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    } catch (err) {
+      console.error(err);
+      stream.getTracks().forEach((t) => t.stop());
+      setVoiceError("Could not start recorder on this browser.");
+      return;
+    }
+    mediaRecorderRef.current = mr;
+    chunksRef.current = [];
+
+    mr.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+    };
+
+    mr.onstop = async () => {
+      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+      setRecording(false);
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+
+      const blobType = mr.mimeType || mimeType || "audio/webm";
+      const blob = new Blob(chunksRef.current, { type: blobType });
+      chunksRef.current = [];
+
+      if (blob.size < 1000) {
+        setVoiceError("Recording too short — please try again.");
+        return;
+      }
+
+      setTranscribing(true);
+      try {
+        const audioBase64 = await blobToBase64(blob);
+        const { text } = await transcribeFn({ data: { audioBase64, mimeType: blobType } });
+        const next = desc ? `${desc.trim()} ${text}` : text;
+        setDesc(next);
+        // Focus + place cursor at end
+        requestAnimationFrame(() => {
+          const el = textareaRef.current;
+          if (el) {
+            el.focus();
+            const end = el.value.length;
+            el.setSelectionRange(end, end);
+            el.scrollTop = el.scrollHeight;
+          }
+        });
+      } catch (err) {
+        console.error(err);
+        setVoiceError("Could not transcribe — please try again or type the job description.");
+      } finally {
+        setTranscribing(false);
+      }
+    };
+
+    // Start with timeslice so chunks accumulate progressively (helps iOS Safari)
+    mr.start(1000);
+    setRecording(true);
+    setRecordSeconds(0);
+    tickRef.current = setInterval(() => {
+      setRecordSeconds((s) => {
+        const next = s + 1;
+        if (next >= MAX_RECORD_SECONDS) {
+          stopRecording();
+          return MAX_RECORD_SECONDS;
+        }
+        return next;
+      });
+    }, 1000);
+  };
+
+  const toggleRecord = () => {
+    if (transcribing) return;
+    if (recording) stopRecording();
+    else startRecording();
   };
 
   const generate = async () => {
