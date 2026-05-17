@@ -1,5 +1,6 @@
 export type QuoteStatus = "pending" | "accepted" | "paid" | "overdue";
 export type PaymentMethod = "card" | "bank" | "cash";
+export type PaymentRequestType = "deposit" | "full" | "custom";
 
 export type LineItem = {
   description: string;
@@ -15,6 +16,18 @@ export type Client = {
   address: string;
   property_type: string;
   notes?: string;
+  created_at: string;
+};
+
+export type PaymentRequest = {
+  id: string;
+  quote_id: string;
+  type: PaymentRequestType;
+  /** Label used in the customer message: "deposit", "balance" or "amount" */
+  label: string;
+  amount: number;
+  link: string;
+  status: "open" | "paid";
   created_at: string;
 };
 
@@ -36,6 +49,8 @@ export type Quote = {
   payment_method?: PaymentMethod;
   /** How the customer actually paid (set when marked paid) */
   paid_via?: PaymentMethod;
+  /** Latest payment request generated for this quote */
+  payment_request?: PaymentRequest;
 };
 
 export const mockProfile = {
@@ -47,13 +62,17 @@ export const mockProfile = {
   registration_number: "Gas Safe 558294",
   vat_number: "GB 384 7291 02",
   vat_registered: true,
-  // Payment details
+  // Bank transfer details
   bank_account_name: "T Hendricks Plumbing Ltd",
   bank_name: "Lloyds Bank",
   sort_code: "30-92-14",
   account_number: "28475193",
   payment_reference_note: "Please use the quote reference (e.g. QTR-0142) as the payment reference.",
-  stripe_connected: false, // becomes true once Stripe Connect is wired
+  // Stripe
+  stripe_publishable_key: "",
+  stripe_secret_key: "",
+  stripe_connected: false,
+  payment_terms: "Payment due within 14 days of invoice date.",
 };
 
 export const mockClients: Client[] = [
@@ -113,12 +132,79 @@ export const getClient = (id: string) => mockClients.find((c) => c.id === id);
 export const getQuote = (id: string) => mockQuotes.find((q) => q.id === id);
 export const quotesForClient = (id: string) => mockQuotes.filter((q) => q.client_id === id);
 
-/** Mock Stripe payment link — replace with a real Stripe Connect link once wired. */
-export const stripePaymentLink = (quote: Quote) =>
-  `https://buy.stripe.com/test_${quote.ref.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
+/** Mock Stripe payment link — replace with a real Stripe Checkout Session once API keys are added. */
+export const stripePaymentLink = (quote: Quote, amount?: number) => {
+  const slug = quote.ref.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const amt = (amount ?? quote.total).toFixed(2).replace(".", "");
+  return `https://buy.stripe.com/test_${slug}_${amt}`;
+};
+
+/** Mock transaction log — in production this is fed by the Stripe webhook. */
+export type Transaction = {
+  id: string;
+  quote_ref: string;
+  client_name: string;
+  method: PaymentMethod;
+  amount: number;
+  date: string;
+};
+
+export const mockTransactions: Transaction[] = [
+  { id: "t1", quote_ref: "QTR-0140", client_name: "Priya Shah",   method: "card", amount: 1942.8, date: "2026-05-09" },
+  { id: "t2", quote_ref: "QTR-0138", client_name: "Sarah Mitchell", method: "cash", amount: 164.4,  date: "2026-04-28" },
+  { id: "t3", quote_ref: "QTR-0137", client_name: "James O'Connor", method: "card", amount: 480.0,  date: "2026-04-22" },
+  { id: "t4", quote_ref: "QTR-0136", client_name: "Marcus Bell",    method: "bank", amount: 720.0,  date: "2026-04-15" },
+];
+
+/** Build a payment request (deposit / full / custom). Returns the link + label. */
+export const buildPaymentRequest = (
+  quote: Quote,
+  type: PaymentRequestType,
+  customAmount?: number,
+): PaymentRequest => {
+  const amount =
+    type === "deposit" ? +(quote.total * 0.5).toFixed(2)
+    : type === "full" ? quote.total
+    : Math.max(0, +(customAmount ?? 0).toFixed(2));
+  const label = type === "deposit" ? "deposit" : type === "full" ? "balance" : "amount";
+  return {
+    id: `pr_${Date.now()}`,
+    quote_id: quote.id,
+    type,
+    label,
+    amount,
+    link: stripePaymentLink(quote, amount),
+    status: "open",
+    created_at: new Date().toISOString(),
+  };
+};
+
+/** WhatsApp / email message for a Stripe payment request. */
+export const buildPaymentRequestMessage = (
+  quote: Quote,
+  pr: PaymentRequest,
+  clientFirstName: string,
+) => {
+  return [
+    `Hi ${clientFirstName}, please find your invoice from Quottr attached.`,
+    "",
+    `To pay your ${pr.label} of ${formatGBP(pr.amount)} securely by card tap here:`,
+    pr.link,
+    "",
+    `Payment terms: ${mockProfile.payment_terms}`,
+    "",
+    `Thank you — ${mockProfile.business_name}`,
+    "",
+    "Sent via Quottr.",
+  ].join("\n");
+};
 
 /** Build the body for an outbound quote/invoice message (WhatsApp / email). */
 export const buildInvoiceMessage = (quote: Quote, clientFirstName: string) => {
+  // If a Stripe payment request exists, prefer the dedicated request copy.
+  if (quote.payment_method === "card" && quote.payment_request) {
+    return buildPaymentRequestMessage(quote, quote.payment_request, clientFirstName);
+  }
   const lines: string[] = [
     `Hi ${clientFirstName}, here's your invoice ${quote.ref} for "${quote.title}" — total ${formatGBP(quote.total)}.`,
     "",
@@ -137,7 +223,14 @@ export const buildInvoiceMessage = (quote: Quote, clientFirstName: string) => {
   } else if (quote.payment_method === "cash") {
     lines.push("Payment method: Cash on completion — please have cash ready on the day.");
   }
-  lines.push("", `Thanks, ${mockProfile.full_name} (${mockProfile.business_name}).`, "", "Sent via Quottr.");
+  lines.push(
+    "",
+    `Payment terms: ${mockProfile.payment_terms}`,
+    "",
+    `Thanks, ${mockProfile.full_name} (${mockProfile.business_name}).`,
+    "",
+    "Sent via Quottr.",
+  );
   return lines.join("\n");
 };
 
@@ -154,6 +247,15 @@ export const stats = () => {
     .reduce((s, q) => s + q.total, 0);
   const byMethod = (m: PaymentMethod) =>
     paidQuotes.filter((q) => q.paid_via === m).reduce((s, q) => s + q.total, 0);
+  // "This month" — current calendar month (or fall back to most recent for mock data)
+  const now = new Date();
+  const collectedThisMonth = mockTransactions
+    .filter((t) => {
+      const d = new Date(t.date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    })
+    .reduce((s, t) => s + t.amount, 0)
+    || mockTransactions.reduce((s, t) => s + t.amount, 0); // fallback so mock data shows
   return {
     totalQuoted,
     clientCount: mockClients.length,
@@ -165,6 +267,7 @@ export const stats = () => {
     paidByBank: byMethod("bank"),
     paidByCash: byMethod("cash"),
     avgQuote: totalQuoted / mockQuotes.length,
+    collectedThisMonth,
   };
 };
 

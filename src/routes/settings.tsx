@@ -30,6 +30,19 @@ function SettingsPage() {
     mockProfile.account_number = next.account_number;
     mockProfile.payment_reference_note = next.payment_reference_note;
   };
+  const [stripe, setStripe] = useState({
+    publishable: mockProfile.stripe_publishable_key,
+    secret: mockProfile.stripe_secret_key,
+  });
+  const saveStripe = (patch: Partial<typeof stripe>) => {
+    const next = { ...stripe, ...patch };
+    setStripe(next);
+    mockProfile.stripe_publishable_key = next.publishable;
+    mockProfile.stripe_secret_key = next.secret;
+    mockProfile.stripe_connected = !!(next.publishable && next.secret);
+  };
+  const [terms, setTerms] = useState(mockProfile.payment_terms);
+  const saveTerms = (v: string) => { setTerms(v); mockProfile.payment_terms = v; };
 
   return (
     <AppShell>
@@ -64,19 +77,48 @@ function SettingsPage() {
         <h2 className="text-xl mb-2.5">Payment details</h2>
         <div className="card-surface p-5 space-y-4">
           {/* Stripe */}
-          <div className="rounded-2xl bg-ink text-paper p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-lime text-ink flex items-center justify-center">
-              <CreditCard className="h-4 w-4" />
+          <div className="rounded-2xl bg-ink text-paper p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-lime text-ink flex items-center justify-center">
+                <CreditCard className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold">Stripe — card payments</p>
+                <p className="text-[11px] text-paper/60">
+                  {mockProfile.stripe_connected ? "Connected — live links" : "Add keys to generate live payment links"}
+                </p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold">Stripe — card payments</p>
-              <p className="text-[11px] text-paper/60">
-                {mockProfile.stripe_connected ? "Connected" : "Not connected — using test links for now"}
-              </p>
-            </div>
-            <span className="text-xs font-semibold bg-lime text-ink px-3 py-1.5 rounded-full">
-              {mockProfile.stripe_connected ? "Manage" : "Connect"}
-            </span>
+            <DarkInput
+              label="Publishable key"
+              placeholder="pk_live_…"
+              value={stripe.publishable}
+              onChange={(v) => saveStripe({ publishable: v })}
+            />
+            <DarkInput
+              label="Secret key"
+              placeholder="sk_live_…"
+              value={stripe.secret}
+              onChange={(v) => saveStripe({ secret: v })}
+              type="password"
+            />
+            <a
+              href="https://stripe.com/docs/connect/onboarding"
+              target="_blank"
+              rel="noreferrer"
+              className="block text-center w-full bg-lime text-ink rounded-full py-3 text-sm font-bold"
+            >
+              Connect Stripe account
+            </a>
+          </div>
+
+          {/* Payment terms */}
+          <div>
+            <Input
+              label="Payment terms (shown on every invoice)"
+              value={terms}
+              onChange={saveTerms}
+            />
           </div>
 
           {/* Bank */}
@@ -168,6 +210,23 @@ function Input({ label, value, onChange }: { label: string; value: string; onCha
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+      />
+    </label>
+  );
+}
+
+function DarkInput({
+  label, value, onChange, placeholder, type = "text",
+}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
+  return (
+    <label className="block">
+      <span className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">{label}</span>
+      <input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full bg-paper/10 text-paper placeholder:text-paper/40 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
       />
     </label>
   );

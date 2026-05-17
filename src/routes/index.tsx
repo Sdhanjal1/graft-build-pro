@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
-import { mockClients, mockQuotes, mockProfile, stats, formatGBP, getClient } from "@/lib/mock-data";
-import { AlertTriangle, ArrowRight, BarChart3, Mic } from "lucide-react";
+import { mockClients, mockQuotes, mockProfile, mockTransactions, stats, formatGBP, getClient } from "@/lib/mock-data";
+import { AlertTriangle, ArrowRight, BarChart3, Mic, CreditCard, Landmark, Banknote } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -135,18 +135,49 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Profit teaser */}
+      {/* Payments */}
       <section className="px-5 mt-6">
-        <Link to="/quotes" className="card-surface p-5 flex items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-ink flex items-center justify-center">
-            <BarChart3 className="h-6 w-6 text-lime" />
+        <div className="mb-2.5 flex items-center justify-between">
+          <h2 className="text-xl">Payments</h2>
+          <Link to="/settings" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Settings
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-lime text-ink p-4">
+            <p className="text-[10px] uppercase tracking-widest font-semibold opacity-70">Collected this month</p>
+            <p className="num text-2xl mt-1 leading-none">{formatGBP(s.collectedThisMonth)}</p>
           </div>
-          <div className="flex-1">
-            <p className="font-semibold text-sm">Profit tracker</p>
-            <p className="text-xs text-muted-foreground">Quote breakdown & top jobs</p>
+          <div className="rounded-2xl bg-ink text-paper p-4">
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-paper/60">Outstanding</p>
+            <p className="num text-2xl mt-1 leading-none text-lime">{formatGBP(s.outstanding)}</p>
           </div>
-          <ArrowRight className="h-5 w-5" />
-        </Link>
+        </div>
+
+        <div className="card-surface mt-3 divide-y divide-border">
+          <div className="px-5 py-3 flex items-center justify-between">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Recent transactions</p>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </div>
+          {mockTransactions.slice(0, 4).map((t) => {
+            const Icon = t.method === "card" ? CreditCard : t.method === "bank" ? Landmark : Banknote;
+            return (
+              <div key={t.id} className="px-5 py-3 flex items-center gap-3">
+                <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{t.client_name}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {t.quote_ref} · {new Date(t.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                  </p>
+                </div>
+                <p className="num text-lg text-ink">{formatGBP(t.amount)}</p>
+              </div>
+            );
+          })}
+        </div>
       </section>
     </AppShell>
   );

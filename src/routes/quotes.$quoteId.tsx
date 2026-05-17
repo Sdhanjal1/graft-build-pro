@@ -4,10 +4,10 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getQuote, getClient, mockProfile, formatGBP,
-  buildInvoiceMessage, stripePaymentLink,
-  type PaymentMethod, type Quote,
+  buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
+  type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
 } from "@/lib/mock-data";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2 } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
@@ -26,14 +26,26 @@ function QuoteDetail() {
   const [status, setStatusState] = useState(quote.status);
   const [paidVia, setPaidViaState] = useState(quote.paid_via);
   const [askingPaid, setAskingPaid] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+  const [customAmt, setCustomAmt] = useState("");
+  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | undefined>(quote.payment_request);
 
   const setMethod = (m: PaymentMethod) => { quote.payment_method = m; setMethodState(m); };
   const markPaid = (m: PaymentMethod) => {
     quote.paid_via = m; quote.status = "paid";
     setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
   };
+  const createPaymentRequest = (type: PaymentRequestType, amount?: number) => {
+    const pr = buildPaymentRequest(quote, type, amount);
+    quote.payment_request = pr;
+    quote.payment_method = "card";
+    setPaymentRequest(pr);
+    setMethodState("card");
+    setRequesting(false);
+    setCustomAmt("");
+  };
 
-  const liveQuote: Quote = { ...quote, payment_method: method, status, paid_via: paidVia };
+  const liveQuote: Quote = { ...quote, payment_method: method, status, paid_via: paidVia, payment_request: paymentRequest };
   const messageBody = buildInvoiceMessage(liveQuote, client?.name.split(" ")[0] ?? "there");
   const encoded = encodeURIComponent(messageBody);
   const phoneDigits = client?.phone.replace(/\D/g, "");
@@ -114,9 +126,19 @@ function QuoteDetail() {
         </div>
 
         {method === "card" && (
-          <div className="mt-3 rounded-2xl bg-ink text-paper p-4">
-            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">Stripe payment link</p>
-            <p className="text-xs mt-1 break-all text-lime">{stripePaymentLink(liveQuote)}</p>
+          <div className="mt-3 rounded-2xl bg-ink text-paper p-4 space-y-2">
+            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+              Stripe payment link {paymentRequest ? `· ${paymentRequest.label}` : ""}
+            </p>
+            <p className="text-xs break-all text-lime">
+              {paymentRequest ? paymentRequest.link : stripePaymentLink(liveQuote)}
+            </p>
+            {paymentRequest && (
+              <p className="num text-2xl text-paper">{formatGBP(paymentRequest.amount)}</p>
+            )}
+            {!mockProfile.stripe_connected && (
+              <p className="text-[10px] text-paper/50">Test link — add your Stripe keys in Settings to go live.</p>
+            )}
           </div>
         )}
         {method === "bank" && (
@@ -151,6 +173,15 @@ function QuoteDetail() {
           </a>
         </div>
 
+        {status !== "paid" && status === "accepted" && (
+          <button
+            onClick={() => setRequesting(true)}
+            className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
+          >
+            <Zap className="h-4 w-4" /> Request payment
+          </button>
+        )}
+
         {status !== "paid" ? (
           <button
             onClick={() => setAskingPaid(true)}
@@ -182,7 +213,68 @@ function QuoteDetail() {
           </div>
         </div>
       )}
+
+      {/* Bottom sheet: request payment via Stripe */}
+      {requesting && (
+        <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setRequesting(false)}>
+          <div className="w-full bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+            <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
+            <h3 className="text-2xl">Request payment</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Generates a Stripe payment link and adds it to the WhatsApp & email message.
+            </p>
+            <div className="space-y-2">
+              <RequestOption
+                label="Deposit (50%)"
+                amount={formatGBP(quote.total * 0.5)}
+                onClick={() => createPaymentRequest("deposit")}
+              />
+              <RequestOption
+                label="Full payment"
+                amount={formatGBP(quote.total)}
+                onClick={() => createPaymentRequest("full")}
+              />
+              <div className="bg-ink text-paper rounded-2xl p-4">
+                <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold mb-2">Custom amount</p>
+                <div className="flex gap-2">
+                  <div className="flex-1 flex items-center bg-paper/10 rounded-2xl px-4">
+                    <span className="text-lime font-bold mr-1">£</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      value={customAmt}
+                      onChange={(e) => setCustomAmt(e.target.value)}
+                      className="flex-1 bg-transparent py-3 text-sm text-paper placeholder:text-paper/40 outline-none"
+                    />
+                  </div>
+                  <button
+                    disabled={!customAmt || Number(customAmt) <= 0}
+                    onClick={() => createPaymentRequest("custom", Number(customAmt))}
+                    className="bg-lime text-ink rounded-full px-5 font-bold text-sm disabled:opacity-40"
+                  >
+                    Create
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button onClick={() => setRequesting(false)} className="w-full mt-3 text-sm text-muted-foreground py-2">Cancel</button>
+          </div>
+        </div>
+      )}
     </AppShell>
+  );
+}
+
+function RequestOption({ label, amount, onClick }: { label: string; amount: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full bg-ink text-paper rounded-2xl py-4 px-5 flex items-center justify-between"
+    >
+      <span className="font-bold text-sm">{label}</span>
+      <span className="num text-2xl text-lime">{amount}</span>
+    </button>
   );
 }
 
