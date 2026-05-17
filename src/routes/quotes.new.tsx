@@ -167,8 +167,8 @@ function NewQuotePage() {
       }
     };
 
-    // Start with timeslice so chunks accumulate progressively (helps iOS Safari)
-    mr.start(1000);
+    // No timeslice — one final ondataavailable fires on stop with the full recording.
+    mr.start();
     setRecording(true);
     setRecordSeconds(0);
     tickRef.current = setInterval(() => {
