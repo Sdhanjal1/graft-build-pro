@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { mockProfile, stats, formatGBP, TRADE_TYPES, clearUserData } from "@/lib/mock-data";
+import { mockProfile, stats, formatGBP, TRADE_TYPES, clearUserData, saveProfileToCloud } from "@/lib/mock-data";
 import { signOut } from "@/lib/auth";
 import {
   Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut, BarChart3,
