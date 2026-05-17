@@ -306,16 +306,24 @@ function NewQuotePage() {
   const vatAmt = vat ? +(subtotal * 0.2).toFixed(2) : 0;
   const total = +(subtotal + vatAmt).toFixed(2);
 
-  const save = () => {
-    if (!draft) return;
-    const q = saveGeneratedQuote({
-      clientName: clientName || "New client",
-      description: desc.trim(),
-      title: draft.title,
-      line_items: draft.line_items,
-      vatRegistered: vat,
-    });
-    navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id } });
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    if (!draft || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const q = await saveGeneratedQuote({
+        clientName: clientName || "New client",
+        description: desc.trim(),
+        title: draft.title,
+        line_items: draft.line_items,
+        vatRegistered: vat,
+      });
+      navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id } });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save quote");
+      setSaving(false);
+    }
   };
 
   return (
