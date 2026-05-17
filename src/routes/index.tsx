@@ -22,12 +22,21 @@ function HomePage() {
   const s = stats();
   const recentQuotes = mockQuotes.slice(0, 3);
   const recentClients = mockClients.slice(0, 3);
+  const today = todaysJobs();
+  const reminders = annualRemindersDue(30);
 
   return (
     <AppShell>
       <header className="px-5 pt-6 pb-5">
         <div className="flex items-center justify-between mb-5">
           <QuottrLogo className="h-7 w-auto" />
+          <Link
+            to="/search"
+            aria-label="Search"
+            className="h-10 w-10 rounded-full bg-card border border-border flex items-center justify-center"
+          >
+            <Search className="h-4 w-4" />
+          </Link>
         </div>
         <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">
           Good morning
