@@ -77,19 +77,48 @@ function SettingsPage() {
         <h2 className="text-xl mb-2.5">Payment details</h2>
         <div className="card-surface p-5 space-y-4">
           {/* Stripe */}
-          <div className="rounded-2xl bg-ink text-paper p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-lime text-ink flex items-center justify-center">
-              <CreditCard className="h-4 w-4" />
+          <div className="rounded-2xl bg-ink text-paper p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-lime text-ink flex items-center justify-center">
+                <CreditCard className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold">Stripe — card payments</p>
+                <p className="text-[11px] text-paper/60">
+                  {mockProfile.stripe_connected ? "Connected — live links" : "Add keys to generate live payment links"}
+                </p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold">Stripe — card payments</p>
-              <p className="text-[11px] text-paper/60">
-                {mockProfile.stripe_connected ? "Connected" : "Not connected — using test links for now"}
-              </p>
-            </div>
-            <span className="text-xs font-semibold bg-lime text-ink px-3 py-1.5 rounded-full">
-              {mockProfile.stripe_connected ? "Manage" : "Connect"}
-            </span>
+            <DarkInput
+              label="Publishable key"
+              placeholder="pk_live_…"
+              value={stripe.publishable}
+              onChange={(v) => saveStripe({ publishable: v })}
+            />
+            <DarkInput
+              label="Secret key"
+              placeholder="sk_live_…"
+              value={stripe.secret}
+              onChange={(v) => saveStripe({ secret: v })}
+              type="password"
+            />
+            <a
+              href="https://stripe.com/docs/connect/onboarding"
+              target="_blank"
+              rel="noreferrer"
+              className="block text-center w-full bg-lime text-ink rounded-full py-3 text-sm font-bold"
+            >
+              Connect Stripe account
+            </a>
+          </div>
+
+          {/* Payment terms */}
+          <div>
+            <Input
+              label="Payment terms (shown on every invoice)"
+              value={terms}
+              onChange={saveTerms}
+            />
           </div>
 
           {/* Bank */}
