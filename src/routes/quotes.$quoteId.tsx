@@ -230,6 +230,44 @@ function QuoteDetail() {
           </a>
         </div>
 
+        {/* Accept (pending) */}
+        {status === "pending" && (
+          <button
+            onClick={acceptQuote}
+            className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
+          >
+            <ThumbsUp className="h-4 w-4" /> Mark as accepted
+          </button>
+        )}
+
+        {/* Scheduled summary or schedule prompt */}
+        {status === "accepted" && (
+          job ? (
+            <Link
+              to="/calendar"
+              className="w-full bg-card border border-border rounded-2xl py-3 px-4 flex items-center gap-3 text-sm font-semibold"
+            >
+              <Calendar className="h-4 w-4 text-lime" />
+              <span className="flex-1 truncate">
+                Scheduled · {formatDayLabel(new Date(job.starts_at))} at {formatTime(job.starts_at)}
+              </span>
+              <button
+                onClick={(e) => { e.preventDefault(); setScheduling(true); }}
+                className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground"
+              >
+                Change
+              </button>
+            </Link>
+          ) : (
+            <button
+              onClick={() => setScheduling(true)}
+              className="w-full bg-card border-2 border-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
+            >
+              <Calendar className="h-4 w-4" /> Schedule this job
+            </button>
+          )
+        )}
+
         {status !== "paid" && status === "accepted" && (
           <button
             onClick={() => setRequesting(true)}
