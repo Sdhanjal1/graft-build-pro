@@ -137,8 +137,8 @@ function NewQuotePage() {
       const blob = new Blob(chunksRef.current, { type: blobType });
       chunksRef.current = [];
 
-      if (blob.size < 1000) {
-        setVoiceError("Recording too short — please try again.");
+      if (blob.size < 200) {
+        setVoiceError("Didn't catch any audio — check your mic and try again.");
         return;
       }
 
