@@ -173,6 +173,15 @@ function QuoteDetail() {
           </a>
         </div>
 
+        {status !== "paid" && status === "accepted" && (
+          <button
+            onClick={() => setRequesting(true)}
+            className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
+          >
+            <Zap className="h-4 w-4" /> Request payment
+          </button>
+        )}
+
         {status !== "paid" ? (
           <button
             onClick={() => setAskingPaid(true)}
