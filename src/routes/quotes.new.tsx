@@ -217,9 +217,11 @@ function NewQuotePage() {
             <button
               type="button"
               onClick={generate}
-              className="bg-card border border-border text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
+              disabled={loading}
+              className="bg-card border border-border text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-60"
             >
-              <RefreshCw className="h-4 w-4" /> Regenerate
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {loading ? "Generating…" : "Regenerate"}
             </button>
             <button
               type="button"
