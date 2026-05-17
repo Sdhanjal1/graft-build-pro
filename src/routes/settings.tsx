@@ -215,6 +215,23 @@ function Input({ label, value, onChange }: { label: string; value: string; onCha
   );
 }
 
+function DarkInput({
+  label, value, onChange, placeholder, type = "text",
+}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
+  return (
+    <label className="block">
+      <span className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">{label}</span>
+      <input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full bg-paper/10 text-paper placeholder:text-paper/40 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+      />
+    </label>
+  );
+}
+
 function BigStat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div className={`rounded-2xl p-4 ${accent ? "bg-lime text-ink" : "bg-secondary"}`}>
