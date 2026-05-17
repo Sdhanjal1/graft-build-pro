@@ -60,6 +60,21 @@ export type Quote = {
   payment_method?: PaymentMethod;
   paid_via?: PaymentMethod;
   payment_request?: PaymentRequest;
+  /** Set once a formal INVOICE has been issued (separate from quote) */
+  invoiced_at?: string;
+  /** ISO date the customer is asked to pay by on the invoice */
+  invoice_due_date?: string;
+};
+
+export type ChaseStatus = "scheduled" | "sent" | "skipped";
+
+export type ScheduledChase = {
+  id: string;
+  quote_id: string;
+  /** 7 / 14 / 21 — days after due date */
+  day_offset: number;
+  due_at: string; // ISO
+  status: ChaseStatus;
 };
 
 export const mockProfile = {
