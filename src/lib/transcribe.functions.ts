@@ -38,6 +38,9 @@ export const transcribeAudio = createServerFn({ method: "POST" })
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
       console.error("OpenAI Whisper error", res.status, errText);
+      if (res.status === 429 && errText.includes("insufficient_quota")) {
+        throw new Error("OpenAI quota is exhausted. Update the OpenAI key or billing, or use a browser that supports live voice typing.");
+      }
       throw new Error(`Transcription failed (${res.status})`);
     }
 
