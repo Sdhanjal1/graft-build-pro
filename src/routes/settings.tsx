@@ -211,7 +211,7 @@ function SettingsPage() {
             <input
               type="checkbox"
               checked={vatRegistered}
-              onChange={(e) => { setVatRegistered(e.target.checked); mockProfile.vat_registered = e.target.checked; }}
+              onChange={(e) => setVatRegistered(e.target.checked)}
               className="h-6 w-11 appearance-none rounded-full bg-secondary checked:bg-lime relative cursor-pointer transition
                 before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:h-5 before:w-5 before:rounded-full before:bg-white before:transition
                 checked:before:translate-x-5"
