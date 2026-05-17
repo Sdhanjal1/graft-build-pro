@@ -39,6 +39,11 @@ export const transcribeAudio = createServerFn({ method: "POST" })
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
       console.error("ElevenLabs STT error", res.status, errText);
+      if (res.status === 401 && errText.includes("detected_unusual_activity")) {
+        throw new Error(
+          "Transcription unavailable: ElevenLabs free tier is blocked on server infrastructure. Upgrade to any paid ElevenLabs plan to enable voice-to-text.",
+        );
+      }
       throw new Error(`Transcription failed (${res.status})`);
     }
 
