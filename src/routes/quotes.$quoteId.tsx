@@ -321,14 +321,32 @@ function QuoteDetail() {
           </a>
         </div>
 
-        {/* Accept (pending) */}
-        {status === "pending" && (
-          <button
-            onClick={acceptQuote}
-            className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
-          >
-            <ThumbsUp className="h-4 w-4" /> Mark as accepted
-          </button>
+        {/* Quote workflow buttons */}
+        {(status === "pending" || status === "sent") && (
+          <>
+            <button
+              onClick={acceptQuote}
+              className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
+            >
+              <ThumbsUp className="h-4 w-4" /> Mark as accepted
+            </button>
+            <div className="grid grid-cols-2 gap-2.5">
+              {status === "pending" && (
+                <button
+                  onClick={markSent}
+                  className="bg-card border border-border text-ink rounded-full py-3 font-semibold inline-flex items-center justify-center gap-2 text-sm"
+                >
+                  <Send className="h-4 w-4" /> Mark as sent
+                </button>
+              )}
+              <button
+                onClick={declineQuote}
+                className={`${status === "sent" ? "col-span-2" : ""} bg-card border border-border text-muted-foreground rounded-full py-3 font-semibold inline-flex items-center justify-center gap-2 text-sm`}
+              >
+                <XCircle className="h-4 w-4" /> Decline
+              </button>
+            </div>
+          </>
         )}
 
         {/* Scheduled summary or schedule prompt */}
