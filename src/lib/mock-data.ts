@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
 export type QuoteStatus = "pending" | "accepted" | "paid" | "overdue";
 export type PaymentMethod = "card" | "bank" | "cash";
 export type PaymentRequestType = "deposit" | "full" | "custom";
@@ -123,7 +126,6 @@ const makeQuote = (
 };
 
 export const mockQuotes: Quote[] = [
-  // --- PAID -----------------------------------------------------------------
   makeQuote({
     id: "q1", ref: "QTR-001", client_id: "c1",
     title: "Annual boiler service & safety check",
@@ -133,7 +135,7 @@ export const mockQuotes: Quote[] = [
       { description: "Gas Safe landlord/homeowner certificate", qty: 1, unit_price: 55 },
     ],
     status: "paid", due_date: "2025-11-25", created_at: "2025-11-11",
-    payment_method: "bank", paid_via: "bank", vat: false, // gas service below VAT threshold simple line
+    payment_method: "bank", paid_via: "bank", vat: false,
   }),
   makeQuote({
     id: "q2", ref: "QTR-002", client_id: "c2",
@@ -169,8 +171,6 @@ export const mockQuotes: Quote[] = [
     status: "paid", due_date: "2026-04-20", created_at: "2026-04-06",
     payment_method: "bank", paid_via: "bank", vat: false,
   }),
-
-  // --- ACCEPTED -------------------------------------------------------------
   makeQuote({
     id: "q5", ref: "QTR-005", client_id: "c5",
     title: "Commercial washroom service",
@@ -199,8 +199,6 @@ export const mockQuotes: Quote[] = [
     status: "accepted", due_date: "2026-05-30", created_at: "2026-05-10",
     payment_method: "card", vat: true,
   }),
-
-  // --- PENDING --------------------------------------------------------------
   makeQuote({
     id: "q7", ref: "QTR-007", client_id: "c6",
     title: "Full bathroom suite — supply & fit",
@@ -229,8 +227,6 @@ export const mockQuotes: Quote[] = [
     status: "pending", due_date: "2026-06-02", created_at: "2026-05-15",
     payment_method: "bank", vat: false,
   }),
-
-  // --- OVERDUE --------------------------------------------------------------
   makeQuote({
     id: "q9", ref: "QTR-009", client_id: "c4",
     title: "Emergency call out — burst pipe repair",
