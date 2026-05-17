@@ -9,38 +9,167 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ChaserRouteImport } from './routes/chaser'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as QuotesIndexRouteImport } from './routes/quotes.index'
+import { Route as ClientsIndexRouteImport } from './routes/clients.index'
+import { Route as QuotesNewRouteImport } from './routes/quotes.new'
+import { Route as QuotesQuoteIdRouteImport } from './routes/quotes.$quoteId'
+import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChaserRoute = ChaserRouteImport.update({
+  id: '/chaser',
+  path: '/chaser',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QuotesIndexRoute = QuotesIndexRouteImport.update({
+  id: '/quotes/',
+  path: '/quotes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientsIndexRoute = ClientsIndexRouteImport.update({
+  id: '/clients/',
+  path: '/clients/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuotesNewRoute = QuotesNewRouteImport.update({
+  id: '/quotes/new',
+  path: '/quotes/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuotesQuoteIdRoute = QuotesQuoteIdRouteImport.update({
+  id: '/quotes/$quoteId',
+  path: '/quotes/$quoteId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientsClientIdRoute = ClientsClientIdRouteImport.update({
+  id: '/clients/$clientId',
+  path: '/clients/$clientId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/chaser': typeof ChaserRoute
+  '/settings': typeof SettingsRoute
+  '/clients/$clientId': typeof ClientsClientIdRoute
+  '/quotes/$quoteId': typeof QuotesQuoteIdRoute
+  '/quotes/new': typeof QuotesNewRoute
+  '/clients/': typeof ClientsIndexRoute
+  '/quotes/': typeof QuotesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/chaser': typeof ChaserRoute
+  '/settings': typeof SettingsRoute
+  '/clients/$clientId': typeof ClientsClientIdRoute
+  '/quotes/$quoteId': typeof QuotesQuoteIdRoute
+  '/quotes/new': typeof QuotesNewRoute
+  '/clients': typeof ClientsIndexRoute
+  '/quotes': typeof QuotesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/chaser': typeof ChaserRoute
+  '/settings': typeof SettingsRoute
+  '/clients/$clientId': typeof ClientsClientIdRoute
+  '/quotes/$quoteId': typeof QuotesQuoteIdRoute
+  '/quotes/new': typeof QuotesNewRoute
+  '/clients/': typeof ClientsIndexRoute
+  '/quotes/': typeof QuotesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/chaser'
+    | '/settings'
+    | '/clients/$clientId'
+    | '/quotes/$quoteId'
+    | '/quotes/new'
+    | '/clients/'
+    | '/quotes/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/chaser'
+    | '/settings'
+    | '/clients/$clientId'
+    | '/quotes/$quoteId'
+    | '/quotes/new'
+    | '/clients'
+    | '/quotes'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/chaser'
+    | '/settings'
+    | '/clients/$clientId'
+    | '/quotes/$quoteId'
+    | '/quotes/new'
+    | '/clients/'
+    | '/quotes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
+  ChaserRoute: typeof ChaserRoute
+  SettingsRoute: typeof SettingsRoute
+  ClientsClientIdRoute: typeof ClientsClientIdRoute
+  QuotesQuoteIdRoute: typeof QuotesQuoteIdRoute
+  QuotesNewRoute: typeof QuotesNewRoute
+  ClientsIndexRoute: typeof ClientsIndexRoute
+  QuotesIndexRoute: typeof QuotesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chaser': {
+      id: '/chaser'
+      path: '/chaser'
+      fullPath: '/chaser'
+      preLoaderRoute: typeof ChaserRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +177,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/quotes/': {
+      id: '/quotes/'
+      path: '/quotes'
+      fullPath: '/quotes/'
+      preLoaderRoute: typeof QuotesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clients/': {
+      id: '/clients/'
+      path: '/clients'
+      fullPath: '/clients/'
+      preLoaderRoute: typeof ClientsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quotes/new': {
+      id: '/quotes/new'
+      path: '/quotes/new'
+      fullPath: '/quotes/new'
+      preLoaderRoute: typeof QuotesNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quotes/$quoteId': {
+      id: '/quotes/$quoteId'
+      path: '/quotes/$quoteId'
+      fullPath: '/quotes/$quoteId'
+      preLoaderRoute: typeof QuotesQuoteIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clients/$clientId': {
+      id: '/clients/$clientId'
+      path: '/clients/$clientId'
+      fullPath: '/clients/$clientId'
+      preLoaderRoute: typeof ClientsClientIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
+  ChaserRoute: ChaserRoute,
+  SettingsRoute: SettingsRoute,
+  ClientsClientIdRoute: ClientsClientIdRoute,
+  QuotesQuoteIdRoute: QuotesQuoteIdRoute,
+  QuotesNewRoute: QuotesNewRoute,
+  ClientsIndexRoute: ClientsIndexRoute,
+  QuotesIndexRoute: QuotesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
