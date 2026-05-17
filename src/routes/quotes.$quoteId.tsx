@@ -478,6 +478,54 @@ function QuoteDetail() {
           </div>
         </div>
       )}
+
+      {/* Bottom sheet: deposit on acceptance */}
+      {askDeposit && (
+        <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setAskDeposit(false)}>
+          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+            <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
+            <h3 className="text-2xl">Quote accepted 🎉</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Request 50% deposit now? We'll send {client?.name.split(" ")[0] ?? "the customer"} a WhatsApp with the payment options.
+            </p>
+            <div className="mt-4 rounded-2xl bg-ink text-paper p-4 flex items-baseline justify-between">
+              <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">Deposit (50%)</span>
+              <span className="num text-3xl text-lime">{formatGBP(quote.total * 0.5)}</span>
+            </div>
+            <button
+              onClick={sendDepositRequest}
+              className="w-full mt-4 bg-lime text-ink rounded-full py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2"
+            >
+              <MessageCircle className="h-4 w-4" /> Yes — send deposit request
+            </button>
+            <button onClick={() => { setAskDeposit(false); setScheduling(true); }} className="w-full mt-2 text-sm text-muted-foreground py-2">
+              No — skip for now
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom sheet: send final invoice */}
+      {askInvoice && (
+        <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setAskInvoice(false)}>
+          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+            <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
+            <h3 className="text-2xl">Ready to send final invoice?</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              We'll generate a clean INVOICE document with the bank details and payment link at the top, and set a 14-day payment due date.
+            </p>
+            <button
+              onClick={issueInvoice}
+              className="w-full mt-4 bg-lime text-ink rounded-full py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2"
+            >
+              <FileText className="h-4 w-4" /> Generate invoice
+            </button>
+            <button onClick={() => setAskInvoice(false)} className="w-full mt-2 text-sm text-muted-foreground py-2">
+              Not yet
+            </button>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
