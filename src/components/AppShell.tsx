@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
+import { QuottrWordmark } from "@/components/QuottrLogo";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -25,22 +26,27 @@ export function PageHeader({
   const backTo = typeof back === "string" ? back : "/";
 
   return (
-    <header className="px-5 pt-6 pb-4 flex items-start gap-3">
-      {showBack && (
-        <Link
-          to={backTo}
-          className="h-10 w-10 -ml-1 mt-1 rounded-full bg-card border border-border flex items-center justify-center"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Link>
-      )}
-      <div className="flex-1 min-w-0">
-        {subtitle && (
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">{subtitle}</p>
-        )}
-        <h1 className="text-3xl leading-none mt-1 truncate">{title}</h1>
+    <header className="bg-ink text-paper rounded-b-3xl px-5 pt-5 pb-5">
+      <div className="flex items-center justify-between mb-4">
+        <QuottrWordmark className="text-2xl" />
       </div>
-      {right}
+      <div className="flex items-start gap-3">
+        {showBack && (
+          <Link
+            to={backTo}
+            className="h-10 w-10 -ml-1 mt-1 rounded-full bg-paper/10 border border-paper/15 flex items-center justify-center"
+          >
+            <ChevronLeft className="h-5 w-5 text-paper" />
+          </Link>
+        )}
+        <div className="flex-1 min-w-0">
+          {subtitle && (
+            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">{subtitle}</p>
+          )}
+          <h1 className="text-3xl leading-none mt-1 truncate text-paper">{title}</h1>
+        </div>
+        {right}
+      </div>
     </header>
   );
 }

@@ -26,7 +26,7 @@ function AuthPage() {
           className="space-y-3"
         >
           {mode === "signup" && (
-            <Input label="Full name" placeholder="Tom Hendricks" />
+            <Input label="Full name" placeholder="Nav Dhanjal" />
           )}
           <Input label="Email" type="email" placeholder="you@trade.co.uk" />
           <Input label="Password" type="password" placeholder="••••••••" />
