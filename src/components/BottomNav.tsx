@@ -22,10 +22,9 @@ export function BottomNav() {
           {items.slice(0, 2).map((it) => (
             <NavItem key={it.to} {...it} active={isActive(it.to)} />
           ))}
-          <NavItem {...items[2]} active={isActive(items[2].to)} />
           {/* spacer to reserve room for the centred + button */}
-          <div className="flex-1 shrink-0" aria-hidden />
-          {items.slice(3).map((it) => (
+          <div className="w-14 shrink-0" aria-hidden />
+          {items.slice(2).map((it) => (
             <NavItem key={it.to} {...it} active={isActive(it.to)} />
           ))}
 
