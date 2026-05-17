@@ -46,28 +46,39 @@ function SettingsPage() {
     account_number: mockProfile.account_number,
     payment_reference_note: mockProfile.payment_reference_note,
   });
-  const saveBank = (patch: Partial<typeof bank>) => {
-    const next = { ...bank, ...patch };
-    setBank(next);
-    mockProfile.bank_account_name = next.account_name;
-    mockProfile.bank_name = next.bank_name;
-    mockProfile.sort_code = next.sort_code;
-    mockProfile.account_number = next.account_number;
-    mockProfile.payment_reference_note = next.payment_reference_note;
-  };
   const [stripe, setStripe] = useState({
     publishable: mockProfile.stripe_publishable_key,
     secret: mockProfile.stripe_secret_key,
   });
-  const saveStripe = (patch: Partial<typeof stripe>) => {
-    const next = { ...stripe, ...patch };
-    setStripe(next);
-    mockProfile.stripe_publishable_key = next.publishable;
-    mockProfile.stripe_secret_key = next.secret;
-    mockProfile.stripe_connected = !!(next.publishable && next.secret);
-  };
   const [terms, setTerms] = useState(mockProfile.payment_terms);
-  const saveTerms = (v: string) => { setTerms(v); mockProfile.payment_terms = v; };
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  // Debounced cloud-save: any change to profile fields triggers one upsert after 600ms idle.
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      void saveProfileToCloud({
+        ...profile,
+        vat_registered: vatRegistered,
+        bank_account_name: bank.account_name,
+        bank_name: bank.bank_name,
+        sort_code: bank.sort_code,
+        account_number: bank.account_number,
+        payment_reference_note: bank.payment_reference_note,
+        stripe_publishable_key: stripe.publishable,
+        stripe_secret_key: stripe.secret,
+        stripe_connected: !!(stripe.publishable && stripe.secret),
+        payment_terms: terms,
+      }).then(() => setSavedAt(Date.now()));
+    }, 600);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile, vatRegistered, bank, stripe, terms]);
+
+  const saveBank = (patch: Partial<typeof bank>) => setBank((b) => ({ ...b, ...patch }));
+  const saveStripe = (patch: Partial<typeof stripe>) => setStripe((s) => ({ ...s, ...patch }));
+  const saveTerms = (v: string) => setTerms(v);
 
   const topMax = s.topJobs[0]?.total ?? 1;
 
