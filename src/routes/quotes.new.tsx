@@ -12,7 +12,7 @@ import {
 } from "@/lib/mock-data";
 import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { transcribeAudio } from "@/lib/transcribe.functions";
-import { Mic, Sparkles, Square, Save, RefreshCw, Loader2 } from "lucide-react";
+import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2 } from "lucide-react";
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
@@ -466,33 +466,102 @@ function NewQuotePage() {
           </p>
         )}
 
-        {/* Quote preview */}
+        {/* Editable quote preview */}
         {draft && (
           <div className="card-surface overflow-hidden">
             <div className="bg-ink text-paper p-4">
-              <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview</p>
+              <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
               <p className="font-bold mt-0.5">{mockProfile.business_name}</p>
               <p className="text-[10px] text-paper/60">
                 {mockProfile.registration_number} · VAT {mockProfile.vat_number}
               </p>
-              <h3 className="text-2xl mt-3 leading-tight">{draft.title}</h3>
+              <input
+                value={draft.title}
+                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+                className="mt-3 w-full bg-transparent outline-none text-2xl leading-tight font-medium placeholder:text-paper/40"
+                placeholder="Quote title"
+              />
             </div>
             <ul>
               {draft.line_items.map((li, i) => (
                 <li
                   key={i}
-                  className="px-4 py-3 flex items-start gap-3 border-t border-border first:border-t-0"
+                  className="px-4 py-3 border-t border-border first:border-t-0 space-y-2"
                 >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{li.description}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {li.qty} × {formatGBP(li.unit_price)}
-                    </p>
+                  <div className="flex items-start gap-2">
+                    <textarea
+                      value={li.description}
+                      onChange={(e) => {
+                        const next = [...draft.line_items];
+                        next[i] = { ...li, description: e.target.value };
+                        setDraft({ ...draft, line_items: next });
+                      }}
+                      rows={1}
+                      className="flex-1 bg-transparent outline-none text-sm font-medium resize-none placeholder:text-muted-foreground"
+                      placeholder="Item description"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = draft.line_items.filter((_, idx) => idx !== i);
+                        setDraft({ ...draft, line_items: next.length ? next : [{ description: "", qty: 1, unit_price: 0 }] });
+                      }}
+                      className="text-muted-foreground hover:text-status-overdue p-1 -mr-1 shrink-0"
+                      aria-label="Remove line item"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                  <p className="num text-base">{formatGBP(li.qty * li.unit_price)}</p>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      Qty
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="0.1"
+                        value={li.qty}
+                        onChange={(e) => {
+                          const next = [...draft.line_items];
+                          next[i] = { ...li, qty: parseFloat(e.target.value) || 0 };
+                          setDraft({ ...draft, line_items: next });
+                        }}
+                        className="w-16 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
+                      />
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      £
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="0.01"
+                        value={li.unit_price}
+                        onChange={(e) => {
+                          const next = [...draft.line_items];
+                          next[i] = { ...li, unit_price: parseFloat(e.target.value) || 0 };
+                          setDraft({ ...draft, line_items: next });
+                        }}
+                        className="w-24 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
+                      />
+                    </label>
+                    <p className="num text-sm ml-auto font-semibold">{formatGBP(li.qty * li.unit_price)}</p>
+                  </div>
                 </li>
               ))}
             </ul>
+            <button
+              type="button"
+              onClick={() =>
+                setDraft({
+                  ...draft,
+                  line_items: [...draft.line_items, { description: "", qty: 1, unit_price: 0 }],
+                })
+              }
+              className="w-full px-4 py-3 border-t border-border text-xs font-semibold text-muted-foreground hover:text-ink inline-flex items-center justify-center gap-1.5"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add line item
+            </button>
             <div className="px-4 py-3 border-t border-border bg-secondary/40 space-y-1.5">
               <Row label="Subtotal" value={formatGBP(subtotal)} />
               {vat && <Row label="VAT (20%)" value={formatGBP(vatAmt)} />}
