@@ -25,12 +25,14 @@ function NewQuotePage() {
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [draft, setDraft] = useState<Draft>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const generateFn = useServerFn(generateAIQuote);
 
   // --- Voice recording (mock) ----
   const toggleRecord = () => {
     if (recording) {
       setRecording(false);
-      // Append a realistic transcript snippet (simulated)
       const snippets = [
         "Customer wants the old combi boiler replaced with a new Worcester Bosch 30i. Includes power flush and magnetic filter.",
         "Replace two radiators in living room and bedroom and fit new TRVs throughout the house.",
@@ -51,10 +53,23 @@ function NewQuotePage() {
     }
   };
 
-  const generate = () => {
-    const text = desc.trim() || "Plumbing call out";
-    const g = generateFallbackQuote(text, vat);
-    setDraft(g);
+  const generate = async () => {
+    const text = desc.trim();
+    if (!text) {
+      setError("Please describe the job before generating a quote.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      const g = await generateFn({ data: { description: text, trade, vatRegistered: vat } });
+      setDraft(g);
+    } catch (e) {
+      console.error(e);
+      setError(e instanceof Error ? e.message : "Failed to generate quote");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const subtotal = draft ? draft.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0) : 0;
