@@ -536,7 +536,7 @@ export const saveGeneratedQuote = async (input: {
   };
   const { data, error } = await supabase
     .from("quotes")
-    .insert(insertPayload)
+    .insert(insertPayload as never)
     .select("*")
     .single();
   if (error) throw error;
