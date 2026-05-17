@@ -14,6 +14,12 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const s = stats();
+  const navigate = useNavigate();
+  const handleSignOut = async () => {
+    await signOut();
+    clearUserData();
+    navigate({ to: "/auth" });
+  };
 
   // --- Business profile (editable) ---
   const [profile, setProfile] = useState({
