@@ -1,7 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { mockProfile, stats, mockQuotes, formatGBP } from "@/lib/mock-data";
-import { Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut, BarChart3 } from "lucide-react";
+import { mockProfile, stats, formatGBP } from "@/lib/mock-data";
+import {
+  Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut, BarChart3,
+  CreditCard, Landmark, Banknote, Wallet,
+} from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -9,8 +13,23 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const s = stats();
-  const topJobs = [...mockQuotes].sort((a, b) => b.total - a.total).slice(0, 5);
-  const max = Math.max(...topJobs.map((q) => q.total));
+  const [vatRegistered, setVatRegistered] = useState(mockProfile.vat_registered);
+  const [bank, setBank] = useState({
+    account_name: mockProfile.bank_account_name,
+    bank_name: mockProfile.bank_name,
+    sort_code: mockProfile.sort_code,
+    account_number: mockProfile.account_number,
+    payment_reference_note: mockProfile.payment_reference_note,
+  });
+  const saveBank = (patch: Partial<typeof bank>) => {
+    const next = { ...bank, ...patch };
+    setBank(next);
+    mockProfile.bank_account_name = next.account_name;
+    mockProfile.bank_name = next.bank_name;
+    mockProfile.sort_code = next.sort_code;
+    mockProfile.account_number = next.account_number;
+    mockProfile.payment_reference_note = next.payment_reference_note;
+  };
 
   return (
     <AppShell>
@@ -19,34 +38,78 @@ function SettingsPage() {
       {/* Profit tracker */}
       <section className="px-5">
         <div className="card-surface p-5">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="h-4 w-4" />
             <p className="text-sm font-semibold">Profit tracker</p>
           </div>
-          <div className="grid grid-cols-3 gap-3 mb-5">
-            <Mini label="Pending" value={formatGBP(s.pending)} />
-            <Mini label="Accepted" value={formatGBP(s.accepted)} />
-            <Mini label="Paid" value={formatGBP(s.paid)} accent />
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <BigStat label="Received" value={formatGBP(s.paid)} accent />
+            <BigStat label="Outstanding" value={formatGBP(s.outstanding)} />
           </div>
+
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
-            Top jobs by value
+            Received by method
           </p>
           <div className="space-y-2">
-            {topJobs.map((q) => (
-              <div key={q.id}>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="truncate pr-2">{q.title}</span>
-                  <span className="num">{formatGBP(q.total)}</span>
-                </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-lime rounded-full"
-                    style={{ width: `${(q.total / max) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+            <MethodBar icon={CreditCard} label="Card" value={s.paidByCard} total={s.paid} />
+            <MethodBar icon={Landmark} label="Bank transfer" value={s.paidByBank} total={s.paid} />
+            <MethodBar icon={Banknote} label="Cash" value={s.paidByCash} total={s.paid} />
           </div>
+        </div>
+      </section>
+
+      {/* Payment details */}
+      <section className="px-5 mt-5">
+        <h2 className="text-xl mb-2.5">Payment details</h2>
+        <div className="card-surface p-5 space-y-4">
+          {/* Stripe */}
+          <div className="rounded-2xl bg-ink text-paper p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-lime text-ink flex items-center justify-center">
+              <CreditCard className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold">Stripe — card payments</p>
+              <p className="text-[11px] text-paper/60">
+                {mockProfile.stripe_connected ? "Connected" : "Not connected — using test links for now"}
+              </p>
+            </div>
+            <span className="text-xs font-semibold bg-lime text-ink px-3 py-1.5 rounded-full">
+              {mockProfile.stripe_connected ? "Manage" : "Connect"}
+            </span>
+          </div>
+
+          {/* Bank */}
+          <div className="space-y-2.5">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Bank transfer details</p>
+            <Input label="Account name" value={bank.account_name} onChange={(v) => saveBank({ account_name: v })} />
+            <Input label="Bank name" value={bank.bank_name} onChange={(v) => saveBank({ bank_name: v })} />
+            <div className="grid grid-cols-2 gap-2.5">
+              <Input label="Sort code" value={bank.sort_code} onChange={(v) => saveBank({ sort_code: v })} />
+              <Input label="Account number" value={bank.account_number} onChange={(v) => saveBank({ account_number: v })} />
+            </div>
+            <Input
+              label="Payment reference instructions"
+              value={bank.payment_reference_note}
+              onChange={(v) => saveBank({ payment_reference_note: v })}
+            />
+          </div>
+
+          {/* VAT toggle */}
+          <label className="flex items-center justify-between cursor-pointer pt-2 border-t border-border">
+            <div>
+              <p className="font-semibold text-sm">VAT registered</p>
+              <p className="text-xs text-muted-foreground">Adds 20% VAT to every quote</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={vatRegistered}
+              onChange={(e) => { setVatRegistered(e.target.checked); mockProfile.vat_registered = e.target.checked; }}
+              className="h-6 w-11 appearance-none rounded-full bg-secondary checked:bg-lime relative cursor-pointer transition
+                before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:h-5 before:w-5 before:rounded-full before:bg-white before:transition
+                checked:before:translate-x-5"
+            />
+          </label>
         </div>
       </section>
 
@@ -64,20 +127,17 @@ function SettingsPage() {
         </div>
       </section>
 
-      {/* API keys */}
       <section className="px-5 mt-5">
         <h2 className="text-xl mb-2.5">Integrations</h2>
         <div className="card-surface divide-y divide-border">
+          <SettingRow icon={Wallet} label="Stripe Connect" status={mockProfile.stripe_connected ? "Connected" : "Add to take card payments"} />
           <SettingRow icon={Key} label="Claude API key" status="Add to enable AI quotes" />
           <SettingRow icon={Key} label="OpenAI Whisper key" status="Add to enable voice-to-text" />
         </div>
       </section>
 
       <section className="px-5 mt-5 mb-6">
-        <Link
-          to="/auth"
-          className="card-surface p-4 flex items-center gap-3 text-status-overdue font-semibold"
-        >
+        <Link to="/auth" className="card-surface p-4 flex items-center gap-3 text-status-overdue font-semibold">
           <LogOut className="h-5 w-5" />
           Sign out
         </Link>
@@ -86,15 +146,7 @@ function SettingsPage() {
   );
 }
 
-function Field({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-}) {
+function Field({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
   return (
     <div className="flex items-start gap-3">
       <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
@@ -108,24 +160,49 @@ function Field({
   );
 }
 
-function Mini({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function Input({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
-    <div>
-      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</p>
-      <p className={`num text-lg mt-0.5 ${accent ? "text-ink" : ""}`}>{value}</p>
+    <label className="block">
+      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+      />
+    </label>
+  );
+}
+
+function BigStat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className={`rounded-2xl p-4 ${accent ? "bg-lime text-ink" : "bg-secondary"}`}>
+      <p className="text-[10px] uppercase tracking-widest font-semibold opacity-70">{label}</p>
+      <p className="num text-2xl mt-1">{value}</p>
     </div>
   );
 }
 
-function SettingRow({
-  icon: Icon,
-  label,
-  status,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  status: string;
-}) {
+function MethodBar({
+  icon: Icon, label, value, total,
+}: { icon: React.ComponentType<{ className?: string }>; label: string; value: number; total: number }) {
+  const pct = total > 0 ? (value / total) * 100 : 0;
+  return (
+    <div>
+      <div className="flex items-center justify-between text-xs mb-1">
+        <span className="inline-flex items-center gap-1.5">
+          <Icon className="h-3.5 w-3.5" />
+          {label}
+        </span>
+        <span className="num font-semibold">{formatGBP(value)}</span>
+      </div>
+      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+        <div className="h-full bg-lime rounded-full" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function SettingRow({ icon: Icon, label, status }: { icon: React.ComponentType<{ className?: string }>; label: string; status: string }) {
   return (
     <div className="px-5 py-4 flex items-center gap-3">
       <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center">

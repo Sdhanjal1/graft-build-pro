@@ -1,4 +1,5 @@
 export type QuoteStatus = "pending" | "accepted" | "paid" | "overdue";
+export type PaymentMethod = "card" | "bank" | "cash";
 
 export type LineItem = {
   description: string;
@@ -31,6 +32,10 @@ export type Quote = {
   due_date?: string;
   notes?: string;
   created_at: string;
+  /** Payment method offered to the client on the invoice */
+  payment_method?: PaymentMethod;
+  /** How the customer actually paid (set when marked paid) */
+  paid_via?: PaymentMethod;
 };
 
 export const mockProfile = {
@@ -42,56 +47,24 @@ export const mockProfile = {
   registration_number: "Gas Safe 558294",
   vat_number: "GB 384 7291 02",
   vat_registered: true,
+  // Payment details
+  bank_account_name: "T Hendricks Plumbing Ltd",
+  bank_name: "Lloyds Bank",
+  sort_code: "30-92-14",
+  account_number: "28475193",
+  payment_reference_note: "Please use the quote reference (e.g. QTR-0142) as the payment reference.",
+  stripe_connected: false, // becomes true once Stripe Connect is wired
 };
 
 export const mockClients: Client[] = [
-  {
-    id: "c1",
-    name: "Sarah Mitchell",
-    phone: "07712 345678",
-    email: "sarah.m@gmail.com",
-    address: "14 Elm Grove, London SW19 4DH",
-    property_type: "Victorian terrace",
-    notes: "Side gate code 4421. Dog in kitchen.",
-    created_at: "2026-04-12",
-  },
-  {
-    id: "c2",
-    name: "James O'Connor",
-    phone: "07801 234567",
-    email: "j.oconnor@outlook.com",
-    address: "27 Park Road, Richmond TW10 6NS",
-    property_type: "Semi-detached",
-    created_at: "2026-03-28",
-  },
-  {
-    id: "c3",
-    name: "Priya Shah",
-    phone: "07956 112233",
-    email: "priya@shahfamily.co.uk",
-    address: "8 Linden Court, Kingston KT2 7QA",
-    property_type: "Modern flat",
-    notes: "Concierge access. Prefers WhatsApp.",
-    created_at: "2026-02-14",
-  },
-  {
-    id: "c4",
-    name: "Marcus Bell",
-    phone: "07444 887766",
-    email: "marcus.bell@bellco.uk",
-    address: "Bell & Co Offices, 102 High St, Wimbledon",
-    property_type: "Commercial",
-    created_at: "2026-01-30",
-  },
+  { id: "c1", name: "Sarah Mitchell", phone: "07712 345678", email: "sarah.m@gmail.com", address: "14 Elm Grove, London SW19 4DH", property_type: "Victorian terrace", notes: "Side gate code 4421. Dog in kitchen.", created_at: "2026-04-12" },
+  { id: "c2", name: "James O'Connor", phone: "07801 234567", email: "j.oconnor@outlook.com", address: "27 Park Road, Richmond TW10 6NS", property_type: "Semi-detached", created_at: "2026-03-28" },
+  { id: "c3", name: "Priya Shah", phone: "07956 112233", email: "priya@shahfamily.co.uk", address: "8 Linden Court, Kingston KT2 7QA", property_type: "Modern flat", notes: "Concierge access. Prefers WhatsApp.", created_at: "2026-02-14" },
+  { id: "c4", name: "Marcus Bell", phone: "07444 887766", email: "marcus.bell@bellco.uk", address: "Bell & Co Offices, 102 High St, Wimbledon", property_type: "Commercial", created_at: "2026-01-30" },
 ];
 
 export const mockQuotes: Quote[] = [
-  {
-    id: "q1",
-    ref: "GRF-0142",
-    client_id: "c1",
-    title: "Combi boiler installation",
-    job_description: "Replace ageing Worcester 28i with new Worcester Greenstar 30Si. Includes magnetic filter, flush and 10yr warranty.",
+  { id: "q1", ref: "QTR-0142", client_id: "c1", title: "Combi boiler installation", job_description: "Replace ageing Worcester 28i with new Worcester Greenstar 30Si. Includes magnetic filter, flush and 10yr warranty.",
     line_items: [
       { description: "Worcester Greenstar 30Si combi boiler", qty: 1, unit_price: 1480 },
       { description: "Magnetic system filter", qty: 1, unit_price: 145 },
@@ -99,19 +72,8 @@ export const mockQuotes: Quote[] = [
       { description: "Labour — 2 engineers, 1.5 days", qty: 3, unit_price: 245 },
       { description: "Sundries & fittings", qty: 1, unit_price: 95 },
     ],
-    subtotal: 2835,
-    vat_amount: 567,
-    total: 3402,
-    status: "pending",
-    due_date: "2026-05-30",
-    created_at: "2026-05-12",
-  },
-  {
-    id: "q2",
-    ref: "GRF-0141",
-    client_id: "c2",
-    title: "Bathroom full refit",
-    job_description: "Strip out and full refit of family bathroom. Walk-in shower, vanity unit, heated towel rail, tiled walls and floor.",
+    subtotal: 2835, vat_amount: 567, total: 3402, status: "pending", due_date: "2026-05-30", created_at: "2026-05-12", payment_method: "card" },
+  { id: "q2", ref: "QTR-0141", client_id: "c2", title: "Bathroom full refit", job_description: "Strip out and full refit of family bathroom. Walk-in shower, vanity unit, heated towel rail, tiled walls and floor.",
     line_items: [
       { description: "Strip out and disposal", qty: 1, unit_price: 420 },
       { description: "First fix plumbing", qty: 1, unit_price: 680 },
@@ -119,98 +81,89 @@ export const mockQuotes: Quote[] = [
       { description: "Tiling — walls & floor", qty: 1, unit_price: 1840 },
       { description: "Labour — 6 days", qty: 6, unit_price: 485 },
     ],
-    subtotal: 8000,
-    vat_amount: 1600,
-    total: 9600,
-    status: "accepted",
-    due_date: "2026-06-14",
-    created_at: "2026-05-08",
-  },
-  {
-    id: "q3",
-    ref: "GRF-0140",
-    client_id: "c3",
-    title: "Radiator replacement x3",
-    job_description: "Replace three radiators in living room, hallway and bedroom with vertical designer rads.",
+    subtotal: 8000, vat_amount: 1600, total: 9600, status: "accepted", due_date: "2026-06-14", created_at: "2026-05-08", payment_method: "bank" },
+  { id: "q3", ref: "QTR-0140", client_id: "c3", title: "Radiator replacement x3", job_description: "Replace three radiators in living room, hallway and bedroom with vertical designer rads.",
     line_items: [
       { description: "Designer vertical radiator (1800mm)", qty: 3, unit_price: 340 },
       { description: "TRVs and lockshields", qty: 3, unit_price: 38 },
       { description: "Labour — 1 day", qty: 1, unit_price: 485 },
     ],
-    subtotal: 1619,
-    vat_amount: 323.8,
-    total: 1942.8,
-    status: "paid",
-    due_date: "2026-04-30",
-    created_at: "2026-04-02",
-  },
-  {
-    id: "q4",
-    ref: "GRF-0139",
-    client_id: "c4",
-    title: "Office washroom service",
-    job_description: "Annual service of 4 commercial WCs, 2 urinals and main feed. Replace dosing unit.",
+    subtotal: 1619, vat_amount: 323.8, total: 1942.8, status: "paid", due_date: "2026-04-30", created_at: "2026-04-02", payment_method: "card", paid_via: "card" },
+  { id: "q4", ref: "QTR-0139", client_id: "c4", title: "Office washroom service", job_description: "Annual service of 4 commercial WCs, 2 urinals and main feed. Replace dosing unit.",
     line_items: [
       { description: "Annual service visit", qty: 1, unit_price: 380 },
       { description: "Urinal dosing unit", qty: 1, unit_price: 215 },
       { description: "Cistern parts & sundries", qty: 1, unit_price: 88 },
     ],
-    subtotal: 683,
-    vat_amount: 136.6,
-    total: 819.6,
-    status: "overdue",
-    due_date: "2026-04-20",
-    created_at: "2026-03-30",
-  },
-  {
-    id: "q5",
-    ref: "GRF-0138",
-    client_id: "c1",
-    title: "Leaking kitchen tap",
-    job_description: "Replace mixer cartridge, check stop cocks.",
+    subtotal: 683, vat_amount: 136.6, total: 819.6, status: "overdue", due_date: "2026-04-20", created_at: "2026-03-30", payment_method: "bank" },
+  { id: "q5", ref: "QTR-0138", client_id: "c1", title: "Leaking kitchen tap", job_description: "Replace mixer cartridge, check stop cocks.",
     line_items: [
       { description: "Mixer cartridge", qty: 1, unit_price: 42 },
       { description: "Call out & labour (1hr)", qty: 1, unit_price: 95 },
     ],
-    subtotal: 137,
-    vat_amount: 27.4,
-    total: 164.4,
-    status: "overdue",
-    due_date: "2026-04-10",
-    created_at: "2026-03-25",
-  },
+    subtotal: 137, vat_amount: 27.4, total: 164.4, status: "paid", due_date: "2026-04-10", created_at: "2026-03-25", payment_method: "cash", paid_via: "cash" },
 ];
 
 export const TRADE_TYPES = [
-  "Plumber / Heating Engineer",
-  "Electrician",
-  "Builder / General Contractor",
-  "Carpenter / Joiner",
-  "Roofer",
-  "Decorator",
-  "Tiler",
+  "Plumber / Heating Engineer", "Electrician", "Builder / General Contractor",
+  "Carpenter / Joiner", "Roofer", "Decorator", "Tiler",
 ];
 
 export const getClient = (id: string) => mockClients.find((c) => c.id === id);
 export const getQuote = (id: string) => mockQuotes.find((q) => q.id === id);
 export const quotesForClient = (id: string) => mockQuotes.filter((q) => q.client_id === id);
 
+/** Mock Stripe payment link — replace with a real Stripe Connect link once wired. */
+export const stripePaymentLink = (quote: Quote) =>
+  `https://buy.stripe.com/test_${quote.ref.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
+
+/** Build the body for an outbound quote/invoice message (WhatsApp / email). */
+export const buildInvoiceMessage = (quote: Quote, clientFirstName: string) => {
+  const lines: string[] = [
+    `Hi ${clientFirstName}, here's your invoice ${quote.ref} for "${quote.title}" — total ${formatGBP(quote.total)}.`,
+    "",
+  ];
+  if (quote.payment_method === "card") {
+    lines.push(`Pay by card: ${stripePaymentLink(quote)}`);
+  } else if (quote.payment_method === "bank") {
+    lines.push(
+      "Pay by bank transfer:",
+      `  Account name: ${mockProfile.bank_account_name}`,
+      `  Bank: ${mockProfile.bank_name}`,
+      `  Sort code: ${mockProfile.sort_code}`,
+      `  Account number: ${mockProfile.account_number}`,
+      `  Reference: ${quote.ref}`,
+    );
+  } else if (quote.payment_method === "cash") {
+    lines.push("Payment method: Cash on completion — please have cash ready on the day.");
+  }
+  lines.push("", `Thanks, ${mockProfile.full_name} (${mockProfile.business_name}).`, "", "Sent via Quottr.");
+  return lines.join("\n");
+};
+
 export const stats = () => {
   const totalQuoted = mockQuotes.reduce((s, q) => s + q.total, 0);
   const overdue = mockQuotes.filter((q) => q.status === "overdue");
   const overdueAmount = overdue.reduce((s, q) => s + q.total, 0);
-  const paid = mockQuotes.filter((q) => q.status === "paid").reduce((s, q) => s + q.total, 0);
+  const paidQuotes = mockQuotes.filter((q) => q.status === "paid");
+  const paid = paidQuotes.reduce((s, q) => s + q.total, 0);
   const pending = mockQuotes.filter((q) => q.status === "pending").reduce((s, q) => s + q.total, 0);
   const accepted = mockQuotes.filter((q) => q.status === "accepted").reduce((s, q) => s + q.total, 0);
+  const outstanding = mockQuotes
+    .filter((q) => q.status === "accepted" || q.status === "overdue" || q.status === "pending")
+    .reduce((s, q) => s + q.total, 0);
+  const byMethod = (m: PaymentMethod) =>
+    paidQuotes.filter((q) => q.paid_via === m).reduce((s, q) => s + q.total, 0);
   return {
     totalQuoted,
     clientCount: mockClients.length,
     quoteCount: mockQuotes.length,
     overdueCount: overdue.length,
     overdueAmount,
-    paid,
-    pending,
-    accepted,
+    paid, pending, accepted, outstanding,
+    paidByCard: byMethod("card"),
+    paidByBank: byMethod("bank"),
+    paidByCash: byMethod("cash"),
     avgQuote: totalQuoted / mockQuotes.length,
   };
 };
