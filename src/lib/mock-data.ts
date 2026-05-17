@@ -217,22 +217,8 @@ export type Transaction = {
   date: string;
 };
 
-// Mix of "this month" payments from the paid quotes + a handful of historical
-// jobs so the profit tracker breakdown reflects six months of trading.
-export const mockTransactions: Transaction[] = [
-  // This-month / recent
-  { id: "t1", quote_ref: "QTR-001", client_name: "James Thornton",  method: "bank", amount: 180,  date: "2025-11-24" },
-  { id: "t2", quote_ref: "QTR-002", client_name: "Sarah Mitchell",  method: "card", amount: 245,  date: "2026-02-06" },
-  { id: "t3", quote_ref: "QTR-003", client_name: "Robert Okafor",   method: "card", amount: 320,  date: "2026-03-16" },
-  { id: "t4", quote_ref: "QTR-004", client_name: "Linda Patterson", method: "bank", amount: 270,  date: "2026-04-18" },
-  // Historical jobs (not in current quote list, kept for tracker realism)
-  { id: "t5",  quote_ref: "QTR-H12", client_name: "Sarah Mitchell",  method: "cash", amount: 240,  date: "2026-05-02" },
-  { id: "t6",  quote_ref: "QTR-H11", client_name: "Karen Walsh",     method: "card", amount: 1280, date: "2026-05-05" },
-  { id: "t7",  quote_ref: "QTR-H10", client_name: "James Thornton",  method: "bank", amount: 1640, date: "2026-04-29" },
-  { id: "t8",  quote_ref: "QTR-H09", client_name: "Linda Patterson", method: "bank", amount: 1600, date: "2026-04-15" },
-  { id: "t9",  quote_ref: "QTR-H08", client_name: "Robert Okafor",   method: "card", amount: 1355, date: "2026-04-10" },
-  { id: "t10", quote_ref: "QTR-H07", client_name: "David Chen",      method: "cash", amount: 960,  date: "2026-03-28" },
-];
+// Out of scope for now — populated once payments persistence lands.
+export const mockTransactions: Transaction[] = [];
 
 /** Build a payment request (deposit / full / custom). */
 export const buildPaymentRequest = (
