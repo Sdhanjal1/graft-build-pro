@@ -4,8 +4,10 @@ import {
   getQuote, getClient, mockProfile, formatGBP,
   invoiceRef, buildFinalInvoiceMessage, stripePaymentLink, markInvoiced,
 } from "@/lib/mock-data";
-import { MessageCircle, Mail, CreditCard, Landmark } from "lucide-react";
+import { MessageCircle, Mail, CreditCard, Landmark, Share2 } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
+import { downloadOrShareQuotePdf } from "@/lib/pdf";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/invoices/$quoteId")({
   component: InvoicePage,
