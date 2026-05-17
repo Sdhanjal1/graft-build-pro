@@ -525,7 +525,7 @@ export const saveGeneratedQuote = async (input: {
     client_id: client.id,
     title: input.title,
     job_description: input.description,
-    line_items: input.line_items as unknown as object[],
+    line_items: input.line_items as unknown as Record<string, unknown>,
     subtotal,
     vat_amount,
     total,
