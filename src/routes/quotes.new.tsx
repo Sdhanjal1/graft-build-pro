@@ -89,6 +89,16 @@ function NewQuotePage() {
   const [trade, setTrade] = useState(mockProfile.trade_type);
   const [vat, setVat] = useState(mockProfile.vat_registered);
   const [clientName, setClientName] = useState("");
+  const [clientOpen, setClientOpen] = useState(false);
+  const clientMatches = (() => {
+    const q = clientName.trim().toLowerCase();
+    const list = q
+      ? mockClients.filter((c) =>
+          `${c.name} ${c.address}`.toLowerCase().includes(q) && c.name.toLowerCase() !== q,
+        )
+      : mockClients;
+    return list.slice(0, 6);
+  })();
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [transcribing, setTranscribing] = useState(false);
