@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
 export type QuoteStatus = "pending" | "accepted" | "paid" | "overdue";
 export type PaymentMethod = "card" | "bank" | "cash";
 export type PaymentRequestType = "deposit" | "full" | "custom";
