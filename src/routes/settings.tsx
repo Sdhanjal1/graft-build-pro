@@ -1,7 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { mockProfile, stats, formatGBP, TRADE_TYPES } from "@/lib/mock-data";
+import { mockProfile, stats, formatGBP, TRADE_TYPES, clearUserData } from "@/lib/mock-data";
+import { signOut } from "@/lib/auth";
 import {
   Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut, BarChart3,
   CreditCard, Landmark, Banknote, Wallet, Trophy, MapPin, Gift, Share2,
@@ -13,6 +14,12 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const s = stats();
+  const navigate = useNavigate();
+  const handleSignOut = async () => {
+    await signOut();
+    clearUserData();
+    navigate({ to: "/auth" });
+  };
 
   // --- Business profile (editable) ---
   const [profile, setProfile] = useState({
@@ -234,10 +241,10 @@ function SettingsPage() {
       </section>
 
       <section className="px-5 mt-5 mb-6">
-        <Link to="/auth" className="card-surface p-4 flex items-center gap-3 text-status-overdue font-semibold">
+        <button onClick={handleSignOut} className="card-surface p-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left">
           <LogOut className="h-5 w-5" />
           Sign out
-        </Link>
+        </button>
       </section>
     </AppShell>
   );
