@@ -126,9 +126,19 @@ function QuoteDetail() {
         </div>
 
         {method === "card" && (
-          <div className="mt-3 rounded-2xl bg-ink text-paper p-4">
-            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">Stripe payment link</p>
-            <p className="text-xs mt-1 break-all text-lime">{stripePaymentLink(liveQuote)}</p>
+          <div className="mt-3 rounded-2xl bg-ink text-paper p-4 space-y-2">
+            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+              Stripe payment link {paymentRequest ? `· ${paymentRequest.label}` : ""}
+            </p>
+            <p className="text-xs break-all text-lime">
+              {paymentRequest ? paymentRequest.link : stripePaymentLink(liveQuote)}
+            </p>
+            {paymentRequest && (
+              <p className="num text-2xl text-paper">{formatGBP(paymentRequest.amount)}</p>
+            )}
+            {!mockProfile.stripe_connected && (
+              <p className="text-[10px] text-paper/50">Test link — add your Stripe keys in Settings to go live.</p>
+            )}
           </div>
         )}
         {method === "bank" && (
