@@ -14,16 +14,22 @@ import {
 
 export const Route = createFileRoute("/calendar")({
   component: CalendarPage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    jobId: typeof s.jobId === "string" ? s.jobId : undefined,
+  }),
 });
 
 type View = "week" | "month" | "day";
 
 function CalendarPage() {
+  const { jobId: initialJobId } = Route.useSearch();
   const [view, setView] = useState<View>("week");
+  const initialJob = initialJobId ? mockJobs.find((j) => j.id === initialJobId) : null;
   const [anchor, setAnchor] = useState<Date>(() => {
+    if (initialJob) { const d = new Date(initialJob.starts_at); d.setHours(0,0,0,0); return d; }
     const d = new Date(); d.setHours(0, 0, 0, 0); return d;
   });
-  const [openJobId, setOpenJobId] = useState<string | null>(null);
+  const [openJobId, setOpenJobId] = useState<string | null>(initialJobId ?? null);
   // Force re-render when mock state changes from inside the sheet.
   const [, bump] = useState(0);
   const refresh = () => bump((n) => n + 1);
