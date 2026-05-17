@@ -8,6 +8,7 @@ import {
   mockClients,
   saveGeneratedQuote,
   formatGBP,
+  QUOTE_TEMPLATES,
   type LineItem,
 } from "@/lib/mock-data";
 import { generateAIQuote } from "@/lib/ai-quote.functions";
