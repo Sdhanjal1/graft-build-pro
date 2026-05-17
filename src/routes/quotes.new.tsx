@@ -1,12 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   TRADE_TYPES, mockProfile, mockClients,
-  generateFallbackQuote, saveGeneratedQuote, formatGBP,
+  saveGeneratedQuote, formatGBP,
   type LineItem,
 } from "@/lib/mock-data";
-import { Mic, Sparkles, Square, Save, RefreshCw } from "lucide-react";
+import { generateAIQuote } from "@/lib/ai-quote.functions";
+import { Mic, Sparkles, Square, Save, RefreshCw, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/quotes/new")({
   component: NewQuotePage,
