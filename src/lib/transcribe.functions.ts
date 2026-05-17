@@ -9,7 +9,7 @@ const InputSchema = z.object({
 export const transcribeAudio = createServerFn({ method: "POST" })
   .inputValidator((input) => InputSchema.parse(input))
   .handler(async ({ data }) => {
-    const apiKey = process.env.ELEVENLABS_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       throw new Error("Transcription is not configured (missing API key).");
     }
@@ -21,29 +21,23 @@ export const transcribeAudio = createServerFn({ method: "POST" })
       data.mimeType.includes("webm") ? "webm" :
       data.mimeType.includes("mp4") || data.mimeType.includes("mp4a") ? "mp4" :
       data.mimeType.includes("ogg") ? "ogg" :
-      data.mimeType.includes("wav") ? "wav" : "audio";
+      data.mimeType.includes("wav") ? "wav" : "webm";
 
     const form = new FormData();
     form.append("file", blob, `recording.${ext}`);
-    form.append("model_id", "scribe_v2");
-    form.append("language_code", "eng");
-    form.append("tag_audio_events", "false");
-    form.append("diarize", "false");
+    form.append("model", "whisper-1");
+    form.append("language", "en");
+    form.append("response_format", "json");
 
-    const res = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
+    const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST",
-      headers: { "xi-api-key": apiKey },
+      headers: { Authorization: `Bearer ${apiKey}` },
       body: form,
     });
 
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
-      console.error("ElevenLabs STT error", res.status, errText);
-      if (res.status === 401 && errText.includes("detected_unusual_activity")) {
-        throw new Error(
-          "Transcription unavailable: ElevenLabs free tier is blocked on server infrastructure. Upgrade to any paid ElevenLabs plan to enable voice-to-text.",
-        );
-      }
+      console.error("OpenAI Whisper error", res.status, errText);
       throw new Error(`Transcription failed (${res.status})`);
     }
 
