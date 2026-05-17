@@ -149,6 +149,19 @@ function InvoicePage() {
         <a href={mail} className="w-full bg-ink text-paper rounded-full py-3.5 font-semibold inline-flex items-center justify-center gap-2 text-sm">
           <Mail className="h-4 w-4" /> Email invoice
         </a>
+        <button
+          onClick={async () => {
+            try {
+              const r = await downloadOrShareQuotePdf(quote, client, "invoice");
+              if (!r.shared && !r.cancelled) toast.success("Invoice PDF downloaded");
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "Could not generate PDF");
+            }
+          }}
+          className="w-full bg-card border-2 border-ink text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
+        >
+          <Share2 className="h-4 w-4" /> Download / share PDF
+        </button>
       </section>
     </AppShell>
   );
