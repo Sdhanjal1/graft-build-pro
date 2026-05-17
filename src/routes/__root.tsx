@@ -108,10 +108,32 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <Splash />
-      <Outlet />
-      <BottomNav />
-      <PWAInstallBanner />
+      <AuthGate>
+        <Splash />
+        <Outlet />
+        <BottomNav />
+        <PWAInstallBanner />
+      </AuthGate>
     </QueryClientProvider>
   );
+}
+
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { session, loading } = useSession();
+  const router = useRouter();
+  const path = router.state.location.pathname;
+  const onAuthRoute = path === "/auth";
+
+  React.useEffect(() => {
+    if (loading) return;
+    if (!session && !onAuthRoute) {
+      router.navigate({ to: "/auth" });
+    } else if (session) {
+      void hydrateUserData();
+    }
+  }, [session, loading, onAuthRoute, router]);
+
+  if (loading) return null;
+  if (!session && !onAuthRoute) return null;
+  return <>{children}</>;
 }
