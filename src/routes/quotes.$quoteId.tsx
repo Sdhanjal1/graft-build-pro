@@ -362,6 +362,51 @@ function QuoteDetail() {
           </div>
         </div>
       )}
+
+      {/* Bottom sheet: schedule this job */}
+      {scheduling && (
+        <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setScheduling(false)}>
+          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+            <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
+            <h3 className="text-2xl">Schedule this job?</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Pop it in your calendar so you don't forget. We'll remind you the day before.
+            </p>
+            <div className="space-y-3">
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Date & time</span>
+                <input
+                  type="datetime-local"
+                  value={schedAt}
+                  onChange={(e) => setSchedAt(e.target.value)}
+                  className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Estimated duration (hours)</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0.5"
+                  step="0.5"
+                  value={schedHrs}
+                  onChange={(e) => setSchedHrs(e.target.value)}
+                  className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium num"
+                />
+              </label>
+            </div>
+            <button
+              onClick={confirmSchedule}
+              className="w-full mt-4 bg-lime text-ink rounded-full py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2"
+            >
+              <Calendar className="h-4 w-4" /> Add to calendar
+            </button>
+            <button onClick={() => setScheduling(false)} className="w-full mt-2 text-sm text-muted-foreground py-2">
+              Not now
+            </button>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
