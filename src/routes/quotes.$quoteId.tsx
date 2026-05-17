@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
@@ -7,7 +8,8 @@ import {
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
 } from "@/lib/mock-data";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap } from "lucide-react";
+import { createInvoiceCheckout } from "@/lib/payments.functions";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
@@ -29,20 +31,52 @@ function QuoteDetail() {
   const [requesting, setRequesting] = useState(false);
   const [customAmt, setCustomAmt] = useState("");
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | undefined>(quote.payment_request);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const createCheckout = useServerFn(createInvoiceCheckout);
 
   const setMethod = (m: PaymentMethod) => { quote.payment_method = m; setMethodState(m); };
   const markPaid = (m: PaymentMethod) => {
     quote.paid_via = m; quote.status = "paid";
     setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
   };
-  const createPaymentRequest = (type: PaymentRequestType, amount?: number) => {
-    const pr = buildPaymentRequest(quote, type, amount);
-    quote.payment_request = pr;
-    quote.payment_method = "card";
-    setPaymentRequest(pr);
-    setMethodState("card");
-    setRequesting(false);
-    setCustomAmt("");
+  const createPaymentRequest = async (type: PaymentRequestType, amount?: number) => {
+    setCreating(true);
+    setError(null);
+    try {
+      const amt =
+        type === "deposit" ? quote.total * 0.5 :
+        type === "full" ? quote.total :
+        (amount ?? 0);
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const result = await createCheckout({
+        data: {
+          quoteId: quote.id,
+          quoteRef: quote.ref,
+          title: quote.title,
+          amount: amt,
+          currency: "gbp",
+          requestType: type,
+          customerEmail: client?.email,
+          successUrl: `${origin}/quotes/${quote.id}?paid=1`,
+          cancelUrl: `${origin}/quotes/${quote.id}?cancelled=1`,
+        },
+      });
+      const pr = buildPaymentRequest(quote, type, amount);
+      pr.link = result.url;
+      quote.payment_request = pr;
+      quote.payment_method = "card";
+      setPaymentRequest(pr);
+      setMethodState("card");
+      setRequesting(false);
+      setCustomAmt("");
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message ?? "Could not create Stripe payment link");
+    } finally {
+      setCreating(false);
+    }
   };
 
   const liveQuote: Quote = { ...quote, payment_method: method, status, paid_via: paidVia, payment_request: paymentRequest };
@@ -221,9 +255,12 @@ function QuoteDetail() {
             <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
             <h3 className="text-2xl">Request payment</h3>
             <p className="text-xs text-muted-foreground mb-4">
-              Generates a Stripe payment link and adds it to the WhatsApp & email message.
+              Generates a real Stripe Checkout link and adds it to the WhatsApp & email message.
             </p>
-            <div className="space-y-2">
+            {error && (
+              <p className="text-xs text-status-overdue bg-status-overdue/10 rounded-xl px-3 py-2 mb-3">{error}</p>
+            )}
+            <fieldset disabled={creating} className="space-y-2 disabled:opacity-60">
               <RequestOption
                 label="Deposit (50%)"
                 amount={formatGBP(quote.total * 0.5)}
@@ -249,16 +286,18 @@ function QuoteDetail() {
                     />
                   </div>
                   <button
-                    disabled={!customAmt || Number(customAmt) <= 0}
+                    disabled={!customAmt || Number(customAmt) <= 0 || creating}
                     onClick={() => createPaymentRequest("custom", Number(customAmt))}
                     className="bg-lime text-ink rounded-full px-5 font-bold text-sm disabled:opacity-40"
                   >
-                    Create
+                    {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
                   </button>
                 </div>
               </div>
-            </div>
-            <button onClick={() => setRequesting(false)} className="w-full mt-3 text-sm text-muted-foreground py-2">Cancel</button>
+            </fieldset>
+            <button onClick={() => setRequesting(false)} className="w-full mt-3 text-sm text-muted-foreground py-2">
+              {creating ? "Working…" : "Cancel"}
+            </button>
           </div>
         </div>
       )}
