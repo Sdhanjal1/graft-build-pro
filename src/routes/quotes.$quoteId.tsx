@@ -73,11 +73,15 @@ function QuoteDetail() {
     setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
     setAskInvoice(true);
   };
-  const duplicate = () => {
-    const copy = duplicateQuote(quote.id);
-    if (!copy) return;
-    toast.success(`Quote duplicated as ${copy.ref}`);
-    navigate({ to: "/quotes/$quoteId", params: { quoteId: copy.id } });
+  const duplicate = async () => {
+    try {
+      const copy = await duplicateQuote(quote.id);
+      if (!copy) return;
+      toast.success(`Quote duplicated as ${copy.ref}`);
+      navigate({ to: "/quotes/$quoteId", params: { quoteId: copy.id } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not duplicate quote");
+    }
   };
   const sendDepositRequest = () => {
     const firstName = client?.name.split(" ")[0] ?? "there";
@@ -89,14 +93,18 @@ function QuoteDetail() {
     setAskDeposit(false);
     setScheduling(true);
   };
-  const issueInvoice = () => {
-    const inv = markInvoiced(quote.id);
-    if (inv) {
-      setInvoicedAt(inv.invoiced_at);
-      ensureChasesFor(inv);
+  const issueInvoice = async () => {
+    try {
+      const inv = await markInvoiced(quote.id);
+      if (inv) {
+        setInvoicedAt(inv.invoiced_at);
+        ensureChasesFor(inv);
+      }
+      setAskInvoice(false);
+      navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not issue invoice");
     }
-    setAskInvoice(false);
-    navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
   };
   const createPaymentRequest = async (type: PaymentRequestType, amount?: number) => {
     setCreating(true);
