@@ -8,6 +8,7 @@ import {
   mockClients,
   saveGeneratedQuote,
   formatGBP,
+  QUOTE_TEMPLATES,
   type LineItem,
 } from "@/lib/mock-data";
 import { generateAIQuote } from "@/lib/ai-quote.functions";
@@ -360,6 +361,25 @@ function NewQuotePage() {
             rows={5}
             className="mt-2 w-full bg-transparent outline-none text-sm resize-none placeholder:text-muted-foreground"
           />
+          {(QUOTE_TEMPLATES[trade]?.length ?? 0) > 0 && (
+            <div className="mt-2 -mx-4 px-4 overflow-x-auto">
+              <div className="flex items-center gap-1.5 pb-1">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold shrink-0 mr-1">
+                  Templates
+                </span>
+                {QUOTE_TEMPLATES[trade].map((t) => (
+                  <button
+                    key={t.label}
+                    type="button"
+                    onClick={() => { setDesc(t.prompt); setDraft(null); textareaRef.current?.focus(); }}
+                    className="shrink-0 rounded-full bg-secondary text-ink text-[11px] font-semibold px-3 py-1.5 hover:bg-ink hover:text-paper transition"
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="mt-2 flex items-center gap-3 flex-wrap">
             <button
               type="button"
