@@ -60,6 +60,21 @@ export type Quote = {
   payment_method?: PaymentMethod;
   paid_via?: PaymentMethod;
   payment_request?: PaymentRequest;
+  /** Set once a formal INVOICE has been issued (separate from quote) */
+  invoiced_at?: string;
+  /** ISO date the customer is asked to pay by on the invoice */
+  invoice_due_date?: string;
+};
+
+export type ChaseStatus = "scheduled" | "sent" | "skipped";
+
+export type ScheduledChase = {
+  id: string;
+  quote_id: string;
+  /** 7 / 14 / 21 — days after due date */
+  day_offset: number;
+  due_at: string; // ISO
+  status: ChaseStatus;
 };
 
 export const mockProfile = {
@@ -709,3 +724,286 @@ export const calcCardFee = (amount: number) => {
   const fee = +(amount * (pct / 100)).toFixed(2);
   return { pct, fee, net: +(amount - fee).toFixed(2) };
 };
+
+// ---------- Quote duplication ----------
+
+/** Duplicate a quote with a fresh QTR ref, today's date, status reset to pending. */
+export const duplicateQuote = (quoteId: string): Quote | null => {
+  const src = getQuote(quoteId);
+  if (!src) return null;
+  const today = new Date();
+  const due = new Date(); due.setDate(due.getDate() + 14);
+  const copy: Quote = {
+    ...src,
+    id: `q_${Date.now()}`,
+    ref: nextQuoteRef(),
+    status: "pending",
+    created_at: today.toISOString().slice(0, 10),
+    due_date: due.toISOString().slice(0, 10),
+    line_items: src.line_items.map((li) => ({ ...li })),
+    payment_request: undefined,
+    paid_via: undefined,
+    invoiced_at: undefined,
+    invoice_due_date: undefined,
+  };
+  mockQuotes.unshift(copy);
+  return copy;
+};
+
+// ---------- Auto-chase scheduler ----------
+
+const CHASE_OFFSETS = [7, 14, 21];
+
+export const mockChases: ScheduledChase[] = [];
+
+/** Ensure day 7/14/21 chases exist for an overdue/accepted invoice. */
+export const ensureChasesFor = (quote: Quote) => {
+  if (!quote.due_date) return;
+  const dueMs = new Date(quote.due_date).getTime();
+  CHASE_OFFSETS.forEach((d) => {
+    const exists = mockChases.find((c) => c.quote_id === quote.id && c.day_offset === d);
+    if (exists) return;
+    mockChases.push({
+      id: `ch_${quote.id}_${d}`,
+      quote_id: quote.id,
+      day_offset: d,
+      due_at: new Date(dueMs + d * 86400000).toISOString(),
+      status: "scheduled",
+    });
+  });
+};
+
+/** Seed chases for every overdue quote on load. */
+export const seedChases = () => {
+  mockQuotes
+    .filter((q) => q.status === "overdue")
+    .forEach((q) => ensureChasesFor(q));
+  // Mark past-due scheduled chases as still scheduled (the UI surfaces "due now").
+};
+
+seedChases();
+
+export const chasesForQuote = (quoteId: string) =>
+  mockChases
+    .filter((c) => c.quote_id === quoteId)
+    .sort((a, b) => a.day_offset - b.day_offset);
+
+/** Chases due now (scheduled and past due_at) across all overdue invoices. */
+export const chasesDueNow = () => {
+  const now = Date.now();
+  return mockChases
+    .filter((c) => c.status === "scheduled" && new Date(c.due_at).getTime() <= now)
+    .map((c) => ({ chase: c, quote: getQuote(c.quote_id) }))
+    .filter((x): x is { chase: ScheduledChase; quote: Quote } => !!x.quote);
+};
+
+export const upcomingChases = () => {
+  const now = Date.now();
+  return mockChases
+    .filter((c) => c.status === "scheduled" && new Date(c.due_at).getTime() > now)
+    .sort((a, b) => +new Date(a.due_at) - +new Date(b.due_at))
+    .map((c) => ({ chase: c, quote: getQuote(c.quote_id) }))
+    .filter((x): x is { chase: ScheduledChase; quote: Quote } => !!x.quote);
+};
+
+export const markChaseSent = (chaseId: string) => {
+  const c = mockChases.find((x) => x.id === chaseId);
+  if (c) c.status = "sent";
+};
+
+export const skipChase = (chaseId: string) => {
+  const c = mockChases.find((x) => x.id === chaseId);
+  if (c) c.status = "skipped";
+};
+
+// ---------- Quote → invoice split ----------
+
+/** Mark a quote as invoiced (issues a formal invoice). */
+export const markInvoiced = (quoteId: string): Quote | null => {
+  const q = getQuote(quoteId);
+  if (!q) return null;
+  const today = new Date();
+  const due = new Date(); due.setDate(due.getDate() + 14);
+  q.invoiced_at = today.toISOString();
+  q.invoice_due_date = due.toISOString().slice(0, 10);
+  // Promote to overdue tracking if not already paid; chase scheduler will pick up
+  ensureChasesFor(q);
+  return q;
+};
+
+export const invoiceRef = (q: Quote) => q.ref.replace(/^QTR/i, "INV");
+
+export const buildFinalInvoiceMessage = (quote: Quote, clientFirstName: string) => {
+  const ref = invoiceRef(quote);
+  const due = quote.invoice_due_date ?? "";
+  const lines = [
+    `Hi ${clientFirstName}, please find your INVOICE ${ref} from ${mockProfile.business_name}.`,
+    "",
+    `Job: ${quote.title}`,
+    `Amount due: ${formatGBP(quote.total)}`,
+    due ? `Payment due by: ${new Date(due).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}` : "",
+    "",
+  ];
+  if (quote.payment_method === "card" && quote.payment_request) {
+    lines.push(`Pay by card (tap to pay): ${quote.payment_request.link}`);
+  } else if (quote.payment_method === "card") {
+    lines.push(`Pay by card (tap to pay): ${stripePaymentLink(quote)}`);
+  }
+  lines.push(
+    `Or by bank transfer:`,
+    `  ${mockProfile.bank_account_name}`,
+    `  ${mockProfile.bank_name} · sort ${mockProfile.sort_code} · ${mockProfile.account_number}`,
+    `  Reference: ${ref}`,
+    "",
+    `${mockProfile.payment_terms}`,
+    "",
+    `Thanks, ${mockProfile.full_name.split(" ")[0]} — ${mockProfile.business_name}`,
+    "",
+    "Sent via Quottr.",
+  );
+  return lines.filter(Boolean).join("\n");
+};
+
+// ---------- Deposit on acceptance ----------
+
+/** Build the WhatsApp-ready deposit request message immediately after a quote is accepted. */
+export const buildDepositOnAcceptMessage = (quote: Quote, clientFirstName: string) => {
+  const amount = +(quote.total * 0.5).toFixed(2);
+  const link = stripePaymentLink(quote, amount);
+  const method = quote.payment_method ?? "card";
+  const lines = [
+    `Hi ${clientFirstName}, thanks for accepting your quote ${quote.ref} from ${mockProfile.business_name}!`,
+    "",
+    `To get you booked in, please pay a 50% deposit of ${formatGBP(amount)}.`,
+    "",
+  ];
+  if (method === "card") {
+    lines.push(`Pay by card here: ${link}`);
+  } else if (method === "bank") {
+    lines.push(
+      "Bank transfer:",
+      `  ${mockProfile.bank_account_name}`,
+      `  ${mockProfile.bank_name} · sort ${mockProfile.sort_code} · ${mockProfile.account_number}`,
+      `  Reference: ${quote.ref}`,
+    );
+  } else {
+    lines.push("Cash deposit accepted — please drop off or pay on first visit.");
+  }
+  lines.push(
+    "",
+    `Once received I'll confirm your booking date. Any questions just shout.`,
+    "",
+    `Thanks, ${mockProfile.full_name.split(" ")[0]}`,
+    "",
+    "Sent via Quottr.",
+  );
+  return { amount, link, message: lines.join("\n") };
+};
+
+// ---------- Today / upcoming reminders / search ----------
+
+export const todaysJobs = () => jobsForDay(new Date());
+
+/** Annual reminders falling within the next 30 days. */
+export const annualRemindersDue = (withinDays = 30) => {
+  const now = Date.now();
+  const cutoff = now + withinDays * 86400000;
+  return mockJobs
+    .filter((j) => j.annual_reminder_at)
+    .map((j) => ({ job: j, quote: getQuote(j.quote_id) }))
+    .filter((x): x is { job: ScheduledJob; quote: Quote } => !!x.quote)
+    .map(({ job, quote }) => ({ job, quote, client: getClient(quote.client_id), due: new Date(job.annual_reminder_at!).getTime() }))
+    .filter(({ due }) => due >= now && due <= cutoff)
+    .sort((a, b) => a.due - b.due);
+};
+
+export const buildAnnualReminderMessage = (clientFirstName: string) => {
+  return [
+    `Hi ${clientFirstName}, it's ${mockProfile.full_name.split(" ")[0]} from ${mockProfile.business_name}.`,
+    "",
+    "Your annual boiler service is due next month. Would you like to book in?",
+    "Just reply YES and I'll get you booked.",
+    "",
+    `Many thanks, ${mockProfile.full_name.split(" ")[0]}`,
+    "",
+    "Sent via Quottr.",
+  ].join("\n");
+};
+
+export type SearchResult =
+  | { kind: "client"; id: string; title: string; subtitle: string }
+  | { kind: "quote"; id: string; title: string; subtitle: string }
+  | { kind: "job"; id: string; title: string; subtitle: string; quoteId: string };
+
+export const globalSearch = (query: string): SearchResult[] => {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const results: SearchResult[] = [];
+  mockClients.forEach((c) => {
+    const blob = `${c.name} ${c.address} ${c.phone} ${c.email}`.toLowerCase();
+    if (blob.includes(q)) results.push({ kind: "client", id: c.id, title: c.name, subtitle: c.address });
+  });
+  mockQuotes.forEach((qq) => {
+    const blob = `${qq.ref} ${qq.title} ${qq.job_description} ${qq.total}`.toLowerCase();
+    if (blob.includes(q)) {
+      const cl = getClient(qq.client_id);
+      results.push({ kind: "quote", id: qq.id, title: `${qq.ref} · ${qq.title}`, subtitle: `${cl?.name ?? ""} · ${formatGBP(qq.total)}` });
+    }
+  });
+  mockJobs.forEach((j) => {
+    const qq = getQuote(j.quote_id);
+    if (!qq) return;
+    const cl = getClient(qq.client_id);
+    const blob = `${qq.title} ${cl?.name ?? ""} ${cl?.address ?? ""}`.toLowerCase();
+    if (blob.includes(q)) {
+      results.push({
+        kind: "job", id: j.id, quoteId: qq.id,
+        title: `${qq.title}`,
+        subtitle: `${cl?.name ?? ""} · ${new Date(j.starts_at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} ${formatTime(j.starts_at)}`,
+      });
+    }
+  });
+  return results;
+};
+
+// Seed: give James Thornton an annual service reminder ~25 days out so the
+// Upcoming reminders widget has real content on first load.
+(() => {
+  const jamesService = mockJobs.find((j) => j.quote_id === "q1");
+  if (jamesService && !jamesService.annual_reminder_at) {
+    const d = new Date(); d.setDate(d.getDate() + 25);
+    jamesService.annual_reminder_at = d.toISOString();
+  } else {
+    // No q1 job seeded — synthesise one so the reminder shows.
+    const q = getQuote("q1");
+    if (q) {
+      const d = new Date(); d.setDate(d.getDate() + 25);
+      mockJobs.push({
+        id: "j_seed_james",
+        quote_id: "q1",
+        starts_at: new Date(Date.now() - 86400000 * 200).toISOString(),
+        duration_minutes: 90,
+        status: "complete",
+        materials_checked: [],
+        annual_reminder_at: d.toISOString(),
+        created_at: new Date(Date.now() - 86400000 * 200).toISOString(),
+      });
+    }
+  }
+  // Add a second reminder ~12 days out for Sarah Mitchell (q2)
+  const sarah = mockJobs.find((j) => j.quote_id === "q2");
+  if (!sarah) {
+    const d = new Date(); d.setDate(d.getDate() + 12);
+    const past = new Date(Date.now() - 86400000 * 100).toISOString();
+    mockJobs.push({
+      id: "j_seed_sarah",
+      quote_id: "q2",
+      starts_at: past,
+      duration_minutes: 90,
+      status: "complete",
+      materials_checked: [],
+      annual_reminder_at: d.toISOString(),
+      created_at: past,
+    });
+  }
+})();

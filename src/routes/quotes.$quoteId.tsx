@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
@@ -7,11 +7,13 @@ import {
   getQuote, getClient, mockProfile, formatGBP,
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   scheduleJob, getJobByQuote, formatDayLabel, formatTime,
+  duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
 } from "@/lib/mock-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
@@ -37,6 +39,10 @@ function QuoteDetail() {
   const [error, setError] = useState<string | null>(null);
   const [scheduling, setScheduling] = useState(false);
   const [job, setJob] = useState(() => getJobByQuote(quote.id));
+  const [askDeposit, setAskDeposit] = useState(false);
+  const [askInvoice, setAskInvoice] = useState(false);
+  const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
+  const navigate = useNavigate();
   const defaultSchedule = useMemo(() => {
     const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0);
     // Format for <input type="datetime-local">: yyyy-MM-ddTHH:mm
@@ -52,7 +58,8 @@ function QuoteDetail() {
   const acceptQuote = () => {
     quote.status = "accepted";
     setStatusState("accepted");
-    setScheduling(true);
+    // Trigger deposit prompt first; scheduling moves to a follow-up after.
+    setAskDeposit(true);
   };
   const confirmSchedule = () => {
     const iso = new Date(schedAt).toISOString();
@@ -64,6 +71,32 @@ function QuoteDetail() {
   const markPaid = (m: PaymentMethod) => {
     quote.paid_via = m; quote.status = "paid";
     setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
+    setAskInvoice(true);
+  };
+  const duplicate = () => {
+    const copy = duplicateQuote(quote.id);
+    if (!copy) return;
+    toast.success(`Quote duplicated as ${copy.ref}`);
+    navigate({ to: "/quotes/$quoteId", params: { quoteId: copy.id } });
+  };
+  const sendDepositRequest = () => {
+    const firstName = client?.name.split(" ")[0] ?? "there";
+    const { message } = buildDepositOnAcceptMessage(quote, firstName);
+    const text = encodeURIComponent(message);
+    const digits = client?.phone.replace(/\D/g, "");
+    const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${text}`;
+    window.open(wa, "_blank");
+    setAskDeposit(false);
+    setScheduling(true);
+  };
+  const issueInvoice = () => {
+    const inv = markInvoiced(quote.id);
+    if (inv) {
+      setInvoicedAt(inv.invoiced_at);
+      ensureChasesFor(inv);
+    }
+    setAskInvoice(false);
+    navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
   };
   const createPaymentRequest = async (type: PaymentRequestType, amount?: number) => {
     setCreating(true);
@@ -309,6 +342,25 @@ function QuoteDetail() {
             Paid via {paidVia === "card" ? "card" : paidVia === "bank" ? "bank transfer" : "cash"}
           </div>
         )}
+
+        {/* Final invoice link (once issued) */}
+        {invoicedAt && (
+          <Link
+            to="/invoices/$quoteId"
+            params={{ quoteId: quote.id }}
+            className="w-full bg-ink text-paper rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
+          >
+            <FileText className="h-4 w-4" /> View final invoice
+          </Link>
+        )}
+
+        {/* Duplicate (always available) */}
+        <button
+          onClick={duplicate}
+          className="w-full bg-secondary text-ink rounded-full py-3.5 font-semibold inline-flex items-center justify-center gap-2 text-sm"
+        >
+          <Copy className="h-4 w-4" /> Duplicate quote
+        </button>
       </section>
 
       {/* Bottom sheet: how did the customer pay? */}
@@ -422,6 +474,54 @@ function QuoteDetail() {
             </button>
             <button onClick={() => setScheduling(false)} className="w-full mt-2 text-sm text-muted-foreground py-2">
               Not now
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom sheet: deposit on acceptance */}
+      {askDeposit && (
+        <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setAskDeposit(false)}>
+          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+            <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
+            <h3 className="text-2xl">Quote accepted 🎉</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Request 50% deposit now? We'll send {client?.name.split(" ")[0] ?? "the customer"} a WhatsApp with the payment options.
+            </p>
+            <div className="mt-4 rounded-2xl bg-ink text-paper p-4 flex items-baseline justify-between">
+              <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">Deposit (50%)</span>
+              <span className="num text-3xl text-lime">{formatGBP(quote.total * 0.5)}</span>
+            </div>
+            <button
+              onClick={sendDepositRequest}
+              className="w-full mt-4 bg-lime text-ink rounded-full py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2"
+            >
+              <MessageCircle className="h-4 w-4" /> Yes — send deposit request
+            </button>
+            <button onClick={() => { setAskDeposit(false); setScheduling(true); }} className="w-full mt-2 text-sm text-muted-foreground py-2">
+              No — skip for now
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom sheet: send final invoice */}
+      {askInvoice && (
+        <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setAskInvoice(false)}>
+          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+            <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
+            <h3 className="text-2xl">Ready to send final invoice?</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              We'll generate a clean INVOICE document with the bank details and payment link at the top, and set a 14-day payment due date.
+            </p>
+            <button
+              onClick={issueInvoice}
+              className="w-full mt-4 bg-lime text-ink rounded-full py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2"
+            >
+              <FileText className="h-4 w-4" /> Generate invoice
+            </button>
+            <button onClick={() => setAskInvoice(false)} className="w-full mt-2 text-sm text-muted-foreground py-2">
+              Not yet
             </button>
           </div>
         </div>
