@@ -369,18 +369,7 @@ const _weekday = (dayOffset: number, hour: number, minute = 0) => {
   return d.toISOString();
 };
 
-export const mockJobs: ScheduledJob[] = [
-  // Monday — James Thornton boiler install (in progress today)
-  { id: "j1", quote_id: "q6", starts_at: _weekday(0, 8, 0),  duration_minutes: 540, status: "in_progress", materials_checked: [0, 1, 2], created_at: _weekday(-3, 12) },
-  // Tuesday — David Chen commercial washroom
-  { id: "j2", quote_id: "q5", starts_at: _weekday(1, 9, 0),  duration_minutes: 240, status: "scheduled",   materials_checked: [], created_at: _weekday(-2, 9) },
-  // Wednesday — Karen Walsh bathroom day 1
-  { id: "j3", quote_id: "q7", starts_at: _weekday(2, 8, 0),  duration_minutes: 540, status: "scheduled",   materials_checked: [], notes: "Day 1 of 2 — strip out & first fix", created_at: _weekday(-2, 11) },
-  // Thursday — Karen Walsh bathroom day 2
-  { id: "j4", quote_id: "q7", starts_at: _weekday(3, 8, 0),  duration_minutes: 540, status: "scheduled",   materials_checked: [], notes: "Day 2 of 2 — second fix, tile & commission", created_at: _weekday(-2, 11) },
-  // Friday — Sarah Mitchell radiator replacement
-  { id: "j5", quote_id: "q8", starts_at: _weekday(4, 10, 0), duration_minutes: 360, status: "scheduled",   materials_checked: [], created_at: _weekday(-1, 16) },
-];
+export const mockJobs: ScheduledJob[] = [];
 
 export const getJob = (id: string) => mockJobs.find((j) => j.id === id);
 export const getJobByQuote = (quoteId: string) =>
