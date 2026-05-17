@@ -204,6 +204,8 @@ function NewQuotePage() {
     mr.onstop = async () => {
       if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
       setRecording(false);
+      const liveTranscript = liveTranscriptRef.current.trim();
+      speechRecognitionRef.current = null;
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
 
@@ -211,6 +213,19 @@ function NewQuotePage() {
       const blob = new Blob(chunksRef.current, { type: blobType });
       console.log("[voice] stop", { chunks: chunksRef.current.length, size: blob.size, type: blobType });
       chunksRef.current = [];
+
+      if (blob.size < 200) {
+        if (liveTranscript) appendTranscript(liveTranscript);
+        else setVoiceError("Didn't catch any audio — hold the button a moment longer and speak clearly.");
+        liveTranscriptRef.current = "";
+        return;
+      }
+
+      if (liveTranscript) {
+        appendTranscript(liveTranscript);
+        liveTranscriptRef.current = "";
+        return;
+      }
 
       if (blob.size < 200) {
         setVoiceError("Didn't catch any audio — hold the button a moment longer and speak clearly.");
@@ -221,21 +236,10 @@ function NewQuotePage() {
       try {
         const audioBase64 = await blobToBase64(blob);
         const { text } = await transcribeFn({ data: { audioBase64, mimeType: blobType } });
-        const next = desc ? `${desc.trim()} ${text}` : text;
-        setDesc(next);
-        // Focus + place cursor at end
-        requestAnimationFrame(() => {
-          const el = textareaRef.current;
-          if (el) {
-            el.focus();
-            const end = el.value.length;
-            el.setSelectionRange(end, end);
-            el.scrollTop = el.scrollHeight;
-          }
-        });
+        appendTranscript(text);
       } catch (err) {
         console.error(err);
-        setVoiceError("Could not transcribe — please try again or type the job description.");
+        setVoiceError(err instanceof Error ? err.message : "Could not transcribe — please try again or type the job description.");
       } finally {
         setTranscribing(false);
       }
