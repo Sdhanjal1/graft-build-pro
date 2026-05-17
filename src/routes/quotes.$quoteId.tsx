@@ -8,10 +8,11 @@ import {
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   scheduleJob, getJobByQuote, formatDayLabel, formatTime,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
+  setQuoteStatus,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
 } from "@/lib/mock-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2 } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2, Send, XCircle } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
@@ -56,11 +57,32 @@ function QuoteDetail() {
   const createCheckout = useServerFn(createInvoiceCheckout);
 
   const setMethod = (m: PaymentMethod) => { quote.payment_method = m; setMethodState(m); };
-  const acceptQuote = () => {
-    quote.status = "accepted";
-    setStatusState("accepted");
-    // Trigger deposit prompt first; scheduling moves to a follow-up after.
-    setAskDeposit(true);
+  const acceptQuote = async () => {
+    try {
+      await setQuoteStatus(quote.id, "accepted");
+      setStatusState("accepted");
+      setAskDeposit(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update status");
+    }
+  };
+  const markSent = async () => {
+    try {
+      await setQuoteStatus(quote.id, "sent");
+      setStatusState("sent");
+      toast.success("Marked as sent");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update status");
+    }
+  };
+  const declineQuote = async () => {
+    try {
+      await setQuoteStatus(quote.id, "declined");
+      setStatusState("declined");
+      toast.success("Quote declined");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update status");
+    }
   };
   const confirmSchedule = () => {
     const iso = new Date(schedAt).toISOString();
@@ -162,7 +184,15 @@ function QuoteDetail() {
           <p className="text-[10px] text-paper/60 truncate">{mockProfile.registration_number} · VAT {mockProfile.vat_number}</p>
         </div>
       </div>
-      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" right={<StatusBadge status={status} />} />
+      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
+
+      {status === "declined" && (
+        <section className="px-5 mt-3">
+          <div className="card-surface p-3 text-center text-sm text-muted-foreground">
+            Customer declined this quote. <button onClick={async () => { try { await setQuoteStatus(quote.id, "pending"); setStatusState("pending"); } catch (e) { toast.error(e instanceof Error ? e.message : "Could not reopen"); } }} className="underline font-semibold text-ink ml-1">Reopen</button>
+          </div>
+        </section>
+      )}
 
       {client && (
         <section className="px-5">
@@ -291,14 +321,32 @@ function QuoteDetail() {
           </a>
         </div>
 
-        {/* Accept (pending) */}
-        {status === "pending" && (
-          <button
-            onClick={acceptQuote}
-            className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
-          >
-            <ThumbsUp className="h-4 w-4" /> Mark as accepted
-          </button>
+        {/* Quote workflow buttons */}
+        {(status === "pending" || status === "sent") && (
+          <>
+            <button
+              onClick={acceptQuote}
+              className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
+            >
+              <ThumbsUp className="h-4 w-4" /> Mark as accepted
+            </button>
+            <div className="grid grid-cols-2 gap-2.5">
+              {status === "pending" && (
+                <button
+                  onClick={markSent}
+                  className="bg-card border border-border text-ink rounded-full py-3 font-semibold inline-flex items-center justify-center gap-2 text-sm"
+                >
+                  <Send className="h-4 w-4" /> Mark as sent
+                </button>
+              )}
+              <button
+                onClick={declineQuote}
+                className={`${status === "sent" ? "col-span-2" : ""} bg-card border border-border text-muted-foreground rounded-full py-3 font-semibold inline-flex items-center justify-center gap-2 text-sm`}
+              >
+                <XCircle className="h-4 w-4" /> Decline
+              </button>
+            </div>
+          </>
         )}
 
         {/* Scheduled summary or schedule prompt */}

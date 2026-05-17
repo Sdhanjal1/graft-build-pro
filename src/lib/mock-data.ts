@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export type QuoteStatus = "pending" | "accepted" | "paid" | "overdue";
+export type QuoteStatus = "pending" | "sent" | "accepted" | "declined" | "paid" | "overdue";
 export type PaymentMethod = "card" | "bank" | "cash";
 export type PaymentRequestType = "deposit" | "full" | "custom";
 export type JobStatus = "scheduled" | "in_progress" | "complete";
@@ -672,6 +672,23 @@ export const markInvoiced = async (quoteId: string): Promise<Quote | null> => {
   q.invoiced_at = invoiced_at;
   q.invoice_due_date = invoice_due_date;
   ensureChasesFor(q);
+  bumpVersion();
+  return q;
+};
+
+/** Persist a quote status change to Lovable Cloud. */
+export const setQuoteStatus = async (
+  quoteId: string,
+  status: QuoteStatus,
+): Promise<Quote | null> => {
+  const q = getQuote(quoteId);
+  if (!q) return null;
+  const { error } = await supabase
+    .from("quotes")
+    .update({ status })
+    .eq("id", quoteId);
+  if (error) throw error;
+  q.status = status;
   bumpVersion();
   return q;
 };
