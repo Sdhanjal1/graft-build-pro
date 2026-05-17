@@ -460,68 +460,89 @@ export const formatDayLabel = (d: Date) =>
 
 // ---------- New quote ----------
 
-/** Find existing client by name (case-insensitive) or create a new mock one. */
-export const findOrCreateClient = (name: string, opts?: Partial<Client>): Client => {
-  const trimmed = name.trim();
-  if (!trimmed) {
-    return mockClients[0];
-  }
+async function requireUserId(): Promise<string> {
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) throw new Error("Not signed in");
+  return data.user.id;
+}
+
+/** Find existing client by name (case-insensitive) or create a new one (persisted). */
+export const findOrCreateClient = async (
+  name: string,
+  opts?: Partial<Client>,
+): Promise<Client> => {
+  const trimmed = name.trim() || "New client";
   const existing = mockClients.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
   if (existing) return existing;
-  const c: Client = {
-    id: `c_${Date.now()}`,
+  const user_id = await requireUserId();
+  const insertPayload = {
+    user_id,
     name: trimmed,
-    phone: opts?.phone ?? "",
-    email: opts?.email ?? "",
-    address: opts?.address ?? "",
-    property_type: opts?.property_type ?? "Homeowner",
-    notes: opts?.notes,
-    created_at: new Date().toISOString().slice(0, 10),
+    phone: opts?.phone || null,
+    email: opts?.email || null,
+    address: opts?.address || null,
+    property_type: opts?.property_type || "Homeowner",
+    notes: opts?.notes || null,
   };
-  mockClients.unshift(c);
-  return c;
+  const { data, error } = await supabase
+    .from("clients")
+    .insert(insertPayload)
+    .select("*")
+    .single();
+  if (error) throw error;
+  const client = rowToClient(data as DbClient);
+  mockClients.unshift(client);
+  bumpVersion();
+  return client;
 };
 
 /** Compute next QTR reference (zero-padded 3 digits). */
 export const nextQuoteRef = () => {
   const nums = mockQuotes
-    .map((q) => Number(q.ref.replace(/[^0-9]/g, "")))
-    .filter((n) => Number.isFinite(n));
+    .map((q) => Number((q.ref || "").replace(/[^0-9]/g, "")))
+    .filter((n) => Number.isFinite(n) && n > 0);
   const next = (nums.length ? Math.max(...nums) : 0) + 1;
   return `QTR-${String(next).padStart(3, "0")}`;
 };
 
-// Quote generation is now handled by Claude AI via src/lib/ai-quote.functions.ts
-
-/** Save a generated quote into the mock store and return it. */
-export const saveGeneratedQuote = (input: {
+/** Save a generated quote to Lovable Cloud and return it. */
+export const saveGeneratedQuote = async (input: {
   clientName: string;
   description: string;
   title: string;
   line_items: LineItem[];
   vatRegistered: boolean;
-}): Quote => {
-  const client = findOrCreateClient(input.clientName || "New client");
+}): Promise<Quote> => {
+  const client = await findOrCreateClient(input.clientName || "New client");
   const subtotal = +input.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
   const vat_amount = input.vatRegistered ? +(subtotal * VAT_RATE).toFixed(2) : 0;
   const total = +(subtotal + vat_amount).toFixed(2);
   const due = new Date(); due.setDate(due.getDate() + 14);
-  const quote: Quote = {
-    id: `q_${Date.now()}`,
+  const user_id = await requireUserId();
+  const insertPayload = {
+    user_id,
     ref: nextQuoteRef(),
     client_id: client.id,
     title: input.title,
     job_description: input.description,
-    line_items: input.line_items,
+    line_items: input.line_items as unknown as object[],
     subtotal,
     vat_amount,
     total,
-    status: "pending",
+    vat_registered: input.vatRegistered,
+    status: "pending" as QuoteStatus,
     due_date: due.toISOString().slice(0, 10),
-    created_at: new Date().toISOString().slice(0, 10),
-    payment_method: "card",
+    payment_method: "card" as PaymentMethod,
   };
+  const { data, error } = await supabase
+    .from("quotes")
+    .insert(insertPayload)
+    .select("*")
+    .single();
+  if (error) throw error;
+  const quote = rowToQuote(data as unknown as DbQuote);
   mockQuotes.unshift(quote);
+  bumpVersion();
   return quote;
 };
 
