@@ -4,10 +4,10 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getQuote, getClient, mockProfile, formatGBP,
-  buildInvoiceMessage, stripePaymentLink,
-  type PaymentMethod, type Quote,
+  buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
+  type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
 } from "@/lib/mock-data";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2 } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
