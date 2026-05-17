@@ -255,9 +255,12 @@ function QuoteDetail() {
             <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
             <h3 className="text-2xl">Request payment</h3>
             <p className="text-xs text-muted-foreground mb-4">
-              Generates a Stripe payment link and adds it to the WhatsApp & email message.
+              Generates a real Stripe Checkout link and adds it to the WhatsApp & email message.
             </p>
-            <div className="space-y-2">
+            {error && (
+              <p className="text-xs text-status-overdue bg-status-overdue/10 rounded-xl px-3 py-2 mb-3">{error}</p>
+            )}
+            <fieldset disabled={creating} className="space-y-2 disabled:opacity-60">
               <RequestOption
                 label="Deposit (50%)"
                 amount={formatGBP(quote.total * 0.5)}
@@ -283,16 +286,18 @@ function QuoteDetail() {
                     />
                   </div>
                   <button
-                    disabled={!customAmt || Number(customAmt) <= 0}
+                    disabled={!customAmt || Number(customAmt) <= 0 || creating}
                     onClick={() => createPaymentRequest("custom", Number(customAmt))}
                     className="bg-lime text-ink rounded-full px-5 font-bold text-sm disabled:opacity-40"
                   >
-                    Create
+                    {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
                   </button>
                 </div>
               </div>
-            </div>
-            <button onClick={() => setRequesting(false)} className="w-full mt-3 text-sm text-muted-foreground py-2">Cancel</button>
+            </fieldset>
+            <button onClick={() => setRequesting(false)} className="w-full mt-3 text-sm text-muted-foreground py-2">
+              {creating ? "Working…" : "Cancel"}
+            </button>
           </div>
         </div>
       )}
