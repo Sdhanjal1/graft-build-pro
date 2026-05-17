@@ -421,24 +421,35 @@ function NewQuotePage() {
           />
         </label>
 
-        <div className="card-surface p-4 bg-ink text-paper">
+        <div className="card-surface p-4 bg-ink text-paper relative">
           <label className="text-xs uppercase tracking-widest text-paper/60 font-semibold">
             Client
           </label>
           <input
             value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
-            list="client-list"
-            placeholder="Client name or pick existing"
+            onChange={(e) => { setClientName(e.target.value); setClientOpen(true); }}
+            onFocus={() => setClientOpen(true)}
+            onBlur={() => setTimeout(() => setClientOpen(false), 150)}
+            placeholder="Type to search or add new"
             className="mt-2 w-full bg-transparent outline-none text-sm placeholder:text-paper/40"
           />
-          <datalist id="client-list">
-            {mockClients.map((c) => (
-              <option key={c.id} value={c.name}>
-                {c.address}
-              </option>
-            ))}
-          </datalist>
+          {clientOpen && clientMatches.length > 0 && (
+            <ul className="absolute left-3 right-3 top-full mt-1 z-20 bg-paper text-ink rounded-2xl shadow-elegant border border-border max-h-64 overflow-auto">
+              {clientMatches.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { setClientName(c.name); setClientOpen(false); }}
+                    className="w-full text-left px-4 py-2.5 hover:bg-secondary flex flex-col gap-0.5"
+                  >
+                    <span className="text-sm font-semibold">{c.name}</span>
+                    {c.address && <span className="text-[11px] text-muted-foreground truncate">{c.address}</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {!draft && (
