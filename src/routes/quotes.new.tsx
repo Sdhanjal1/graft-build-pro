@@ -13,6 +13,29 @@ import { Mic, Sparkles, Square, Save, RefreshCw, Loader2 } from "lucide-react";
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionEventLike = {
+  results: ArrayLike<{ isFinal: boolean; 0?: { transcript?: string } }>;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+declare global {
+  interface Window {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  }
+}
+
 function formatMMSS(s: number) {
   const m = Math.floor(s / 60);
   const sec = s % 60;
@@ -33,6 +56,11 @@ function pickMimeType(): string {
     if (MediaRecorder.isTypeSupported(t)) return t;
   }
   return "";
+}
+
+function getSpeechRecognition(): SpeechRecognitionConstructor | null {
+  if (typeof window === "undefined") return null;
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {
