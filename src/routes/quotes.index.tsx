@@ -9,7 +9,7 @@ export const Route = createFileRoute("/quotes/")({
   component: QuotesPage,
 });
 
-const FILTERS: ("all" | QuoteStatus)[] = ["all", "pending", "accepted", "paid", "overdue"];
+const FILTERS: ("all" | QuoteStatus)[] = ["all", "pending", "sent", "accepted", "declined", "paid", "overdue"];
 
 function QuotesPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
