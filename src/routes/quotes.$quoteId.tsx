@@ -342,6 +342,25 @@ function QuoteDetail() {
             Paid via {paidVia === "card" ? "card" : paidVia === "bank" ? "bank transfer" : "cash"}
           </div>
         )}
+
+        {/* Final invoice link (once issued) */}
+        {invoicedAt && (
+          <Link
+            to="/invoices/$quoteId"
+            params={{ quoteId: quote.id }}
+            className="w-full bg-ink text-paper rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
+          >
+            <FileText className="h-4 w-4" /> View final invoice
+          </Link>
+        )}
+
+        {/* Duplicate (always available) */}
+        <button
+          onClick={duplicate}
+          className="w-full bg-secondary text-ink rounded-full py-3.5 font-semibold inline-flex items-center justify-center gap-2 text-sm"
+        >
+          <Copy className="h-4 w-4" /> Duplicate quote
+        </button>
       </section>
 
       {/* Bottom sheet: how did the customer pay? */}
