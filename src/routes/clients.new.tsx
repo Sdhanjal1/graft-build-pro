@@ -17,17 +17,26 @@ function NewClientPage() {
   const [propertyType, setPropertyType] = useState("Homeowner");
   const [notes, setNotes] = useState("");
 
-  const save = (e: React.FormEvent) => {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    const c = findOrCreateClient(name, {
-      phone: phone.trim(),
-      email: email.trim(),
-      address: address.trim(),
-      property_type: propertyType,
-      notes: notes.trim() || undefined,
-    });
-    navigate({ to: "/clients/$clientId", params: { clientId: c.id } });
+    if (!name.trim() || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const c = await findOrCreateClient(name, {
+        phone: phone.trim(),
+        email: email.trim(),
+        address: address.trim(),
+        property_type: propertyType,
+        notes: notes.trim() || undefined,
+      });
+      navigate({ to: "/clients/$clientId", params: { clientId: c.id } });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save client");
+      setSaving(false);
+    }
   };
 
   return (
