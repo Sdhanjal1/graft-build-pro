@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
@@ -8,7 +8,43 @@ import {
   type LineItem,
 } from "@/lib/mock-data";
 import { generateAIQuote } from "@/lib/ai-quote.functions";
+import { transcribeAudio } from "@/lib/transcribe.functions";
 import { Mic, Sparkles, Square, Save, RefreshCw, Loader2 } from "lucide-react";
+
+const MAX_RECORD_SECONDS = 180; // 3 minutes
+
+function formatMMSS(s: number) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+}
+
+function pickMimeType(): string {
+  if (typeof MediaRecorder === "undefined") return "";
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4;codecs=mp4a.40.2",
+    "audio/mp4",
+    "audio/ogg;codecs=opus",
+    "audio/ogg",
+  ];
+  for (const t of candidates) {
+    if (MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return "";
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  const buf = await blob.arrayBuffer();
+  let binary = "";
+  const bytes = new Uint8Array(buf);
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
+  }
+  return btoa(binary);
+}
 
 export const Route = createFileRoute("/quotes/new")({
   component: NewQuotePage,
@@ -24,33 +60,132 @@ function NewQuotePage() {
   const [clientName, setClientName] = useState("");
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
+  const [transcribing, setTranscribing] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const generateFn = useServerFn(generateAIQuote);
+  const transcribeFn = useServerFn(transcribeAudio);
 
-  // --- Voice recording (mock) ----
-  const toggleRecord = () => {
-    if (recording) {
-      setRecording(false);
-      const snippets = [
-        "Customer wants the old combi boiler replaced with a new Worcester Bosch 30i. Includes power flush and magnetic filter.",
-        "Replace two radiators in living room and bedroom and fit new TRVs throughout the house.",
-        "Strip out existing bathroom and fit new bath, basin, WC and walk-in shower with tiling.",
-        "Annual boiler service and Gas Safe certificate for landlord.",
-      ];
-      const pick = snippets[Math.floor(Math.random() * snippets.length)];
-      setDesc((d) => (d ? `${d.trim()} ${pick}` : pick));
-    } else {
-      setRecording(true);
-      setRecordSeconds(0);
-      const tick = setInterval(() => {
-        setRecordSeconds((s) => {
-          if (s >= 6) { clearInterval(tick); setRecording(false); return s; }
-          return s + 1;
-        });
-      }, 1000);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (tickRef.current) clearInterval(tickRef.current);
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
+
+  const stopRecording = () => {
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== "inactive") {
+      mr.stop();
     }
+  };
+
+  const startRecording = async () => {
+    setVoiceError(null);
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      setVoiceError("Microphone not supported on this device.");
+      return;
+    }
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      setVoiceError("Microphone permission denied. Enable it in your browser settings.");
+      return;
+    }
+    streamRef.current = stream;
+
+    const mimeType = pickMimeType();
+    let mr: MediaRecorder;
+    try {
+      mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    } catch (err) {
+      console.error(err);
+      stream.getTracks().forEach((t) => t.stop());
+      setVoiceError("Could not start recorder on this browser.");
+      return;
+    }
+    mediaRecorderRef.current = mr;
+    chunksRef.current = [];
+
+    mr.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+    };
+
+    mr.onstop = async () => {
+      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+      setRecording(false);
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+
+      const blobType = mr.mimeType || mimeType || "audio/webm";
+      const blob = new Blob(chunksRef.current, { type: blobType });
+      chunksRef.current = [];
+
+      if (blob.size < 1000) {
+        setVoiceError("Recording too short — please try again.");
+        return;
+      }
+
+      setTranscribing(true);
+      try {
+        const audioBase64 = await blobToBase64(blob);
+        const { text } = await transcribeFn({ data: { audioBase64, mimeType: blobType } });
+        const next = desc ? `${desc.trim()} ${text}` : text;
+        setDesc(next);
+        // Focus + place cursor at end
+        requestAnimationFrame(() => {
+          const el = textareaRef.current;
+          if (el) {
+            el.focus();
+            const end = el.value.length;
+            el.setSelectionRange(end, end);
+            el.scrollTop = el.scrollHeight;
+          }
+        });
+      } catch (err) {
+        console.error(err);
+        setVoiceError("Could not transcribe — please try again or type the job description.");
+      } finally {
+        setTranscribing(false);
+      }
+    };
+
+    // Start with timeslice so chunks accumulate progressively (helps iOS Safari)
+    mr.start(1000);
+    setRecording(true);
+    setRecordSeconds(0);
+    tickRef.current = setInterval(() => {
+      setRecordSeconds((s) => {
+        const next = s + 1;
+        if (next >= MAX_RECORD_SECONDS) {
+          stopRecording();
+          return MAX_RECORD_SECONDS;
+        }
+        return next;
+      });
+    }, 1000);
+  };
+
+  const toggleRecord = () => {
+    if (transcribing) return;
+    if (recording) stopRecording();
+    else startRecording();
   };
 
   const generate = async () => {
@@ -98,22 +233,52 @@ function NewQuotePage() {
             Describe the job
           </label>
           <textarea
+            ref={textareaRef}
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
             placeholder="e.g. Replace 28kw combi boiler with new Worcester Greenstar, fit magnetic filter, power flush system…"
             rows={5}
             className="mt-2 w-full bg-transparent outline-none text-sm resize-none placeholder:text-muted-foreground"
           />
-          <button
-            type="button"
-            onClick={toggleRecord}
-            className={`mt-2 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold transition ${
-              recording ? "bg-status-overdue text-white animate-pulse" : "bg-secondary text-ink"
-            }`}
-          >
-            {recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            {recording ? `Recording… ${recordSeconds}s` : "Voice to text"}
-          </button>
+          <div className="mt-2 flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={toggleRecord}
+              disabled={transcribing}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold transition disabled:opacity-60 ${
+                recording ? "bg-status-overdue text-white" : "bg-secondary text-ink"
+              }`}
+            >
+              {transcribing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Transcribing your voice note…
+                </>
+              ) : recording ? (
+                <>
+                  <span className="relative inline-flex h-2.5 w-2.5">
+                    <span className="absolute inset-0 rounded-full bg-white opacity-75 animate-ping" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-white" />
+                  </span>
+                  <Square className="h-4 w-4" />
+                  Stop · {formatMMSS(recordSeconds)}
+                </>
+              ) : (
+                <>
+                  <Mic className="h-4 w-4" />
+                  Voice to text
+                </>
+              )}
+            </button>
+            {recording && (
+              <span className="text-[11px] text-muted-foreground">
+                Max {formatMMSS(MAX_RECORD_SECONDS)} · tap stop when done
+              </span>
+            )}
+          </div>
+          {voiceError && (
+            <p className="mt-2 text-[12px] text-status-overdue font-medium">{voiceError}</p>
+          )}
         </div>
 
         <div className="card-surface p-4">
