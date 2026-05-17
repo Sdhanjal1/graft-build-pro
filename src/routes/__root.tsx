@@ -104,6 +104,7 @@ function RootComponent() {
       <Splash />
       <Outlet />
       <BottomNav />
+      <PWAInstallBanner />
     </QueryClientProvider>
   );
 }
