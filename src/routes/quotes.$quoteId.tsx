@@ -34,10 +34,32 @@ function QuoteDetail() {
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | undefined>(quote.payment_request);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scheduling, setScheduling] = useState(false);
+  const [job, setJob] = useState(() => getJobByQuote(quote.id));
+  const defaultSchedule = useMemo(() => {
+    const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0);
+    // Format for <input type="datetime-local">: yyyy-MM-ddTHH:mm
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }, []);
+  const [schedAt, setSchedAt] = useState(defaultSchedule);
+  const [schedHrs, setSchedHrs] = useState("4");
 
   const createCheckout = useServerFn(createInvoiceCheckout);
 
   const setMethod = (m: PaymentMethod) => { quote.payment_method = m; setMethodState(m); };
+  const acceptQuote = () => {
+    quote.status = "accepted";
+    setStatusState("accepted");
+    setScheduling(true);
+  };
+  const confirmSchedule = () => {
+    const iso = new Date(schedAt).toISOString();
+    const hours = Math.max(0.5, Number(schedHrs) || 4);
+    const j = scheduleJob(quote.id, iso, Math.round(hours * 60));
+    setJob(j);
+    setScheduling(false);
+  };
   const markPaid = (m: PaymentMethod) => {
     quote.paid_via = m; quote.status = "paid";
     setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
