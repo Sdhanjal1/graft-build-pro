@@ -6,10 +6,11 @@ import { StatusBadge } from "@/components/StatusBadge";
 import {
   getQuote, getClient, mockProfile, formatGBP,
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
+  scheduleJob, getJobByQuote, formatDayLabel, formatTime,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
 } from "@/lib/mock-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2 } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp } from "lucide-react";
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
