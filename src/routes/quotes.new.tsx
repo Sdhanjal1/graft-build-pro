@@ -3,8 +3,11 @@ import { useState, useRef, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
-  TRADE_TYPES, mockProfile, mockClients,
-  saveGeneratedQuote, formatGBP,
+  TRADE_TYPES,
+  mockProfile,
+  mockClients,
+  saveGeneratedQuote,
+  formatGBP,
   type LineItem,
 } from "@/lib/mock-data";
 import { generateAIQuote } from "@/lib/ai-quote.functions";
@@ -12,6 +15,29 @@ import { transcribeAudio } from "@/lib/transcribe.functions";
 import { Mic, Sparkles, Square, Save, RefreshCw, Loader2 } from "lucide-react";
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
+
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionEventLike = {
+  results: ArrayLike<{ isFinal: boolean; 0?: { transcript?: string } }>;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+declare global {
+  interface Window {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  }
+}
 
 function formatMMSS(s: number) {
   const m = Math.floor(s / 60);
@@ -33,6 +59,11 @@ function pickMimeType(): string {
     if (MediaRecorder.isTypeSupported(t)) return t;
   }
   return "";
+}
+
+function getSpeechRecognition(): SpeechRecognitionConstructor | null {
+  if (typeof window === "undefined") return null;
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {
@@ -69,6 +100,8 @@ function NewQuotePage() {
   const transcribeFn = useServerFn(transcribeAudio);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const liveTranscriptRef = useRef("");
   const chunksRef = useRef<BlobPart[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -77,19 +110,45 @@ function NewQuotePage() {
   useEffect(() => {
     return () => {
       if (tickRef.current) clearInterval(tickRef.current);
+      speechRecognitionRef.current?.stop();
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
 
   const stopRecording = () => {
+    const recognition = speechRecognitionRef.current;
+    if (recognition) {
+      try {
+        recognition.stop();
+      } catch (err) {
+        console.warn(err);
+      }
+      speechRecognitionRef.current = null;
+    }
     const mr = mediaRecorderRef.current;
     if (mr && mr.state !== "inactive") {
       mr.stop();
     }
   };
 
+  const appendTranscript = (text: string) => {
+    const clean = text.trim();
+    if (!clean) return;
+    setDesc((prev) => (prev ? `${prev.trim()} ${clean}` : clean));
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (el) {
+        el.focus();
+        const end = el.value.length;
+        el.setSelectionRange(end, end);
+        el.scrollTop = el.scrollHeight;
+      }
+    });
+  };
+
   const startRecording = async () => {
     setVoiceError(null);
+    liveTranscriptRef.current = "";
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
       return;
@@ -123,23 +182,65 @@ function NewQuotePage() {
     mediaRecorderRef.current = mr;
     chunksRef.current = [];
 
+    const SpeechRecognition = getSpeechRecognition();
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "en-GB";
+        recognition.onresult = (event) => {
+          liveTranscriptRef.current = Array.from(event.results)
+            .map((result) => result[0]?.transcript || "")
+            .join(" ")
+            .trim();
+        };
+        recognition.onerror = (event) => console.warn("Speech recognition error", event.error);
+        recognition.start();
+        speechRecognitionRef.current = recognition;
+      } catch (err) {
+        console.warn(err);
+        speechRecognitionRef.current = null;
+      }
+    }
+
     mr.ondataavailable = (e) => {
       if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
     };
 
     mr.onstop = async () => {
-      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+      if (tickRef.current) {
+        clearInterval(tickRef.current);
+        tickRef.current = null;
+      }
       setRecording(false);
+      const liveTranscript = liveTranscriptRef.current.trim();
+      speechRecognitionRef.current = null;
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
 
       const blobType = mr.mimeType || mimeType || "audio/webm";
       const blob = new Blob(chunksRef.current, { type: blobType });
-      console.log("[voice] stop", { chunks: chunksRef.current.length, size: blob.size, type: blobType });
+      console.log("[voice] stop", {
+        chunks: chunksRef.current.length,
+        size: blob.size,
+        type: blobType,
+      });
       chunksRef.current = [];
 
       if (blob.size < 200) {
-        setVoiceError("Didn't catch any audio — hold the button a moment longer and speak clearly.");
+        if (liveTranscript) appendTranscript(liveTranscript);
+        else
+          setVoiceError(
+            "Didn't catch any audio — hold the button a moment longer and speak clearly.",
+          );
+        liveTranscriptRef.current = "";
+        return;
+      }
+
+      if (liveTranscript) {
+        appendTranscript(liveTranscript);
+        liveTranscriptRef.current = "";
         return;
       }
 
@@ -147,21 +248,14 @@ function NewQuotePage() {
       try {
         const audioBase64 = await blobToBase64(blob);
         const { text } = await transcribeFn({ data: { audioBase64, mimeType: blobType } });
-        const next = desc ? `${desc.trim()} ${text}` : text;
-        setDesc(next);
-        // Focus + place cursor at end
-        requestAnimationFrame(() => {
-          const el = textareaRef.current;
-          if (el) {
-            el.focus();
-            const end = el.value.length;
-            el.setSelectionRange(end, end);
-            el.scrollTop = el.scrollHeight;
-          }
-        });
+        appendTranscript(text);
       } catch (err) {
         console.error(err);
-        setVoiceError("Could not transcribe — please try again or type the job description.");
+        setVoiceError(
+          err instanceof Error
+            ? err.message
+            : "Could not transcribe — please try again or type the job description.",
+        );
       } finally {
         setTranscribing(false);
       }
@@ -228,7 +322,14 @@ function NewQuotePage() {
     <AppShell>
       <PageHeader title="New quote" subtitle="AI generator" back="/" />
 
-      <form className="px-5 space-y-4" onSubmit={(e) => { e.preventDefault(); if (draft) save(); else generate(); }}>
+      <form
+        className="px-5 space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (draft) save();
+          else generate();
+        }}
+      >
         <div className="card-surface p-4">
           <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
             Describe the job
@@ -313,7 +414,9 @@ function NewQuotePage() {
         </label>
 
         <div className="card-surface p-4 bg-ink text-paper">
-          <label className="text-xs uppercase tracking-widest text-paper/60 font-semibold">Client</label>
+          <label className="text-xs uppercase tracking-widest text-paper/60 font-semibold">
+            Client
+          </label>
           <input
             value={clientName}
             onChange={(e) => setClientName(e.target.value)}
@@ -322,7 +425,11 @@ function NewQuotePage() {
             className="mt-2 w-full bg-transparent outline-none text-sm placeholder:text-paper/40"
           />
           <datalist id="client-list">
-            {mockClients.map((c) => <option key={c.id} value={c.name}>{c.address}</option>)}
+            {mockClients.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.address}
+              </option>
+            ))}
           </datalist>
         </div>
 
@@ -332,7 +439,11 @@ function NewQuotePage() {
             disabled={loading}
             className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition disabled:opacity-60"
           >
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Sparkles className="h-5 w-5" />
+            )}
             {loading ? "Generating with Claude…" : "Generate quote"}
           </button>
         )}
@@ -353,15 +464,22 @@ function NewQuotePage() {
             <div className="bg-ink text-paper p-4">
               <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview</p>
               <p className="font-bold mt-0.5">{mockProfile.business_name}</p>
-              <p className="text-[10px] text-paper/60">{mockProfile.registration_number} · VAT {mockProfile.vat_number}</p>
+              <p className="text-[10px] text-paper/60">
+                {mockProfile.registration_number} · VAT {mockProfile.vat_number}
+              </p>
               <h3 className="text-2xl mt-3 leading-tight">{draft.title}</h3>
             </div>
             <ul>
               {draft.line_items.map((li, i) => (
-                <li key={i} className="px-4 py-3 flex items-start gap-3 border-t border-border first:border-t-0">
+                <li
+                  key={i}
+                  className="px-4 py-3 flex items-start gap-3 border-t border-border first:border-t-0"
+                >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{li.description}</p>
-                    <p className="text-xs text-muted-foreground">{li.qty} × {formatGBP(li.unit_price)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {li.qty} × {formatGBP(li.unit_price)}
+                    </p>
                   </div>
                   <p className="num text-base">{formatGBP(li.qty * li.unit_price)}</p>
                 </li>
@@ -386,7 +504,11 @@ function NewQuotePage() {
               disabled={loading}
               className="bg-card border border-border text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-60"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
               {loading ? "Generating…" : "Regenerate"}
             </button>
             <button
