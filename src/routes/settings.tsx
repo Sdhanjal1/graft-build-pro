@@ -32,11 +32,8 @@ function SettingsPage() {
     registration_number: mockProfile.registration_number,
     vat_number: mockProfile.vat_number,
   });
-  const saveProfile = (patch: Partial<typeof profile>) => {
-    const next = { ...profile, ...patch };
-    setProfile(next);
-    Object.assign(mockProfile, next);
-  };
+  const saveProfile = (patch: Partial<typeof profile>) => setProfile((p) => ({ ...p, ...patch }));
+
 
   const [vatRegistered, setVatRegistered] = useState(mockProfile.vat_registered);
   const [bank, setBank] = useState({
