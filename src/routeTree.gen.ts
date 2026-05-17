@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as ChaserRouteImport } from './routes/chaser'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -26,6 +27,11 @@ import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/publi
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChaserRoute = ChaserRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/search'
     | '/settings'
     | '/clients/$clientId'
     | '/clients/new'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/search'
     | '/settings'
     | '/clients/$clientId'
     | '/clients/new'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/search'
     | '/settings'
     | '/clients/$clientId'
     | '/clients/new'
@@ -189,6 +201,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CalendarRoute: typeof CalendarRoute
   ChaserRoute: typeof ChaserRoute
+  SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   ClientsClientIdRoute: typeof ClientsClientIdRoute
   ClientsNewRoute: typeof ClientsNewRoute
@@ -207,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chaser': {
@@ -301,6 +321,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CalendarRoute: CalendarRoute,
   ChaserRoute: ChaserRoute,
+  SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   ClientsClientIdRoute: ClientsClientIdRoute,
   ClientsNewRoute: ClientsNewRoute,
@@ -314,3 +335,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
