@@ -354,6 +354,7 @@ function QuoteDetail() {
           job ? (
             <Link
               to="/calendar"
+              search={{ jobId: job.id }}
               className="w-full bg-card border border-border rounded-2xl py-3 px-4 flex items-center gap-3 text-sm font-semibold"
             >
               <Calendar className="h-4 w-4 text-lime" />
