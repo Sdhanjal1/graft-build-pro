@@ -20,6 +20,9 @@ function daysOverdue(due?: string) {
 function ChaserPage() {
   const overdue = mockQuotes.filter((q) => q.status === "overdue");
   const total = overdue.reduce((s, q) => s + q.total, 0);
+  const [, force] = useState(0);
+  const due = chasesDueNow();
+  const upcoming = upcomingChases().slice(0, 4);
 
   return (
     <AppShell>
