@@ -163,16 +163,21 @@ function NewQuotePage() {
         {!draft && (
           <button
             type="submit"
-            className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition"
+            disabled={loading}
+            className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition disabled:opacity-60"
           >
-            <Sparkles className="h-5 w-5" />
-            Generate quote
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+            {loading ? "Generating with Claude…" : "Generate quote"}
           </button>
         )}
 
-        {!draft && (
+        {error && (
+          <p className="text-[12px] text-center text-status-overdue font-medium">{error}</p>
+        )}
+
+        {!draft && !error && (
           <p className="text-[11px] text-center text-muted-foreground">
-            Uses 2026 UK plumbing & heating pricing. Add your Claude API key in Settings for more detail.
+            Powered by Claude AI · realistic 2026 UK trade pricing.
           </p>
         )}
 
