@@ -1,11 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import {
-  mockQuotes, getClient, mockProfile, formatGBP, buildChaserMessage,
-  chasesDueNow, upcomingChases, markChaseSent, skipChase,
-} from "@/lib/mock-data";
-import { MessageCircle, Phone, Mail, Clock, Send, X } from "lucide-react";
-import { useState } from "react";
+import { mockQuotes, getClient, mockProfile, formatGBP, buildChaserMessage } from "@/lib/mock-data";
+import { MessageCircle, Phone, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/chaser")({
   component: ChaserPage,
