@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Users, Plus, FileText, Settings, Calendar } from "lucide-react";
+import { Home, Plus, FileText, Settings, Calendar } from "lucide-react";
 
 const items = [
   { to: "/", label: "Home", icon: Home },
