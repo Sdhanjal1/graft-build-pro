@@ -11,6 +11,7 @@ import {
 } from "@/lib/mock-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
 import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp } from "lucide-react";
+import { QuottrLogo } from "@/components/QuottrLogo";
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
@@ -111,6 +112,11 @@ function QuoteDetail() {
 
   return (
     <AppShell>
+      <div className="bg-ink text-paper px-5 pt-6 pb-5 flex items-center gap-3">
+        <QuottrLogo className="h-7 w-auto" />
+        <div className="h-6 w-px bg-paper/20" />
+        <p className="text-xs text-paper/70 truncate">{mockProfile.business_name}</p>
+      </div>
       <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" right={<StatusBadge status={status} />} />
 
       {client && (
