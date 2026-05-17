@@ -233,22 +233,52 @@ function NewQuotePage() {
             Describe the job
           </label>
           <textarea
+            ref={textareaRef}
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
             placeholder="e.g. Replace 28kw combi boiler with new Worcester Greenstar, fit magnetic filter, power flush system…"
             rows={5}
             className="mt-2 w-full bg-transparent outline-none text-sm resize-none placeholder:text-muted-foreground"
           />
-          <button
-            type="button"
-            onClick={toggleRecord}
-            className={`mt-2 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold transition ${
-              recording ? "bg-status-overdue text-white animate-pulse" : "bg-secondary text-ink"
-            }`}
-          >
-            {recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            {recording ? `Recording… ${recordSeconds}s` : "Voice to text"}
-          </button>
+          <div className="mt-2 flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={toggleRecord}
+              disabled={transcribing}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold transition disabled:opacity-60 ${
+                recording ? "bg-status-overdue text-white" : "bg-secondary text-ink"
+              }`}
+            >
+              {transcribing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Transcribing your voice note…
+                </>
+              ) : recording ? (
+                <>
+                  <span className="relative inline-flex h-2.5 w-2.5">
+                    <span className="absolute inset-0 rounded-full bg-white opacity-75 animate-ping" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-white" />
+                  </span>
+                  <Square className="h-4 w-4" />
+                  Stop · {formatMMSS(recordSeconds)}
+                </>
+              ) : (
+                <>
+                  <Mic className="h-4 w-4" />
+                  Voice to text
+                </>
+              )}
+            </button>
+            {recording && (
+              <span className="text-[11px] text-muted-foreground">
+                Max {formatMMSS(MAX_RECORD_SECONDS)} · tap stop when done
+              </span>
+            )}
+          </div>
+          {voiceError && (
+            <p className="mt-2 text-[12px] text-status-overdue font-medium">{voiceError}</p>
+          )}
         </div>
 
         <div className="card-surface p-4">
