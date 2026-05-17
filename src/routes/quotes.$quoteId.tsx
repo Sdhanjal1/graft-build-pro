@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
@@ -7,11 +7,13 @@ import {
   getQuote, getClient, mockProfile, formatGBP,
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   scheduleJob, getJobByQuote, formatDayLabel, formatTime,
+  duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
 } from "@/lib/mock-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
