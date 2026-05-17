@@ -1,12 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   TRADE_TYPES, mockProfile, mockClients,
-  generateFallbackQuote, saveGeneratedQuote, formatGBP,
+  saveGeneratedQuote, formatGBP,
   type LineItem,
 } from "@/lib/mock-data";
-import { Mic, Sparkles, Square, Save, RefreshCw } from "lucide-react";
+import { generateAIQuote } from "@/lib/ai-quote.functions";
+import { Mic, Sparkles, Square, Save, RefreshCw, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/quotes/new")({
   component: NewQuotePage,
@@ -23,12 +25,14 @@ function NewQuotePage() {
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [draft, setDraft] = useState<Draft>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const generateFn = useServerFn(generateAIQuote);
 
   // --- Voice recording (mock) ----
   const toggleRecord = () => {
     if (recording) {
       setRecording(false);
-      // Append a realistic transcript snippet (simulated)
       const snippets = [
         "Customer wants the old combi boiler replaced with a new Worcester Bosch 30i. Includes power flush and magnetic filter.",
         "Replace two radiators in living room and bedroom and fit new TRVs throughout the house.",
@@ -49,10 +53,23 @@ function NewQuotePage() {
     }
   };
 
-  const generate = () => {
-    const text = desc.trim() || "Plumbing call out";
-    const g = generateFallbackQuote(text, vat);
-    setDraft(g);
+  const generate = async () => {
+    const text = desc.trim();
+    if (!text) {
+      setError("Please describe the job before generating a quote.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      const g = await generateFn({ data: { description: text, trade, vatRegistered: vat } });
+      setDraft(g);
+    } catch (e) {
+      console.error(e);
+      setError(e instanceof Error ? e.message : "Failed to generate quote");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const subtotal = draft ? draft.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0) : 0;
@@ -146,16 +163,21 @@ function NewQuotePage() {
         {!draft && (
           <button
             type="submit"
-            className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition"
+            disabled={loading}
+            className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition disabled:opacity-60"
           >
-            <Sparkles className="h-5 w-5" />
-            Generate quote
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+            {loading ? "Generating with Claude…" : "Generate quote"}
           </button>
         )}
 
-        {!draft && (
+        {error && (
+          <p className="text-[12px] text-center text-status-overdue font-medium">{error}</p>
+        )}
+
+        {!draft && !error && (
           <p className="text-[11px] text-center text-muted-foreground">
-            Uses 2026 UK plumbing & heating pricing. Add your Claude API key in Settings for more detail.
+            Powered by Claude AI · realistic 2026 UK trade pricing.
           </p>
         )}
 
@@ -195,9 +217,11 @@ function NewQuotePage() {
             <button
               type="button"
               onClick={generate}
-              className="bg-card border border-border text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
+              disabled={loading}
+              className="bg-card border border-border text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-60"
             >
-              <RefreshCw className="h-4 w-4" /> Regenerate
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {loading ? "Generating…" : "Regenerate"}
             </button>
             <button
               type="button"
