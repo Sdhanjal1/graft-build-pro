@@ -4,7 +4,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { mockProfile, stats, formatGBP, TRADE_TYPES } from "@/lib/mock-data";
 import {
   Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut, BarChart3,
-  CreditCard, Landmark, Banknote, Wallet, Trophy, MapPin,
+  CreditCard, Landmark, Banknote, Wallet, Trophy, MapPin, Gift, Share2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
