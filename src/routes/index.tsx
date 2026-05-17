@@ -27,23 +27,24 @@ function HomePage() {
 
   return (
     <AppShell>
-      <header className="px-5 pt-6 pb-5">
+      <header className="bg-ink text-paper rounded-b-3xl px-5 pt-6 pb-6">
         <div className="flex items-center justify-between mb-5">
-          <QuottrLogo className="h-7 w-auto" />
+          <QuottrWordmark className="text-3xl" />
           <Link
             to="/search"
             aria-label="Search"
-            className="h-10 w-10 rounded-full bg-card border border-border flex items-center justify-center"
+            className="h-10 w-10 rounded-full bg-paper/10 border border-paper/15 flex items-center justify-center"
           >
-            <Search className="h-4 w-4" />
+            <Search className="h-4 w-4 text-paper" />
           </Link>
         </div>
-        <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">
+        <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
           Good morning
         </p>
-        <h1 className="text-4xl leading-none mt-1">{mockProfile.full_name.split(" ")[0]}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{mockProfile.business_name}</p>
+        <h1 className="text-4xl leading-none mt-1 text-paper">{mockProfile.full_name.split(" ")[0]}</h1>
+        <p className="mt-2 text-sm text-paper/70">{mockProfile.business_name}</p>
       </header>
+      <div className="h-4" />
 
       {/* Hero stat */}
       <section className="px-5">
