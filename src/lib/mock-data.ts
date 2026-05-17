@@ -158,14 +158,69 @@ const rowToQuote = (r: DbQuote): Quote => ({
 export async function hydrateUserData() {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return;
-  const [clientsRes, quotesRes] = await Promise.all([
+  const [clientsRes, quotesRes, profileRes] = await Promise.all([
     supabase.from("clients").select("*").order("created_at", { ascending: false }),
     supabase.from("quotes").select("*").order("created_at", { ascending: false }),
+    supabase.from("profiles").select("*").eq("id", userData.user.id).maybeSingle(),
   ]);
   mockClients.length = 0;
   (clientsRes.data ?? []).forEach((c) => mockClients.push(rowToClient(c as DbClient)));
   mockQuotes.length = 0;
   (quotesRes.data ?? []).forEach((q) => mockQuotes.push(rowToQuote(q as unknown as DbQuote)));
+  const p = profileRes.data as Record<string, unknown> | null;
+  if (p) {
+    const set = (k: keyof typeof mockProfile, v: unknown) => {
+      if (v !== null && v !== undefined && v !== "") (mockProfile as Record<string, unknown>)[k as string] = v;
+    };
+    set("business_name", p.business_name);
+    set("full_name", p.full_name);
+    set("phone", p.phone);
+    set("email", p.email ?? userData.user.email);
+    set("town", p.town);
+    set("trade_type", p.trade_type);
+    set("registration_number", p.registration_number);
+    set("vat_number", p.vat_number);
+    if (typeof p.vat_registered === "boolean") mockProfile.vat_registered = p.vat_registered;
+    set("bank_account_name", p.bank_account_name);
+    set("bank_name", p.bank_name);
+    set("sort_code", p.sort_code);
+    set("account_number", p.account_number);
+    set("payment_reference_note", p.payment_reference_note);
+    set("payment_terms", p.payment_terms);
+    set("stripe_publishable_key", p.stripe_publishable_key);
+    set("stripe_secret_key", p.stripe_secret_key);
+    mockProfile.stripe_connected = !!(p.stripe_publishable_key && p.stripe_secret_key);
+  }
+  bumpVersion();
+}
+
+/** Persist current `mockProfile` fields to Supabase (upsert by user id). */
+export async function saveProfileToCloud(patch: Partial<typeof mockProfile>) {
+  Object.assign(mockProfile, patch);
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return;
+  const row = {
+    id: userData.user.id,
+    business_name: mockProfile.business_name || null,
+    full_name: mockProfile.full_name || null,
+    phone: mockProfile.phone || null,
+    email: mockProfile.email || null,
+    town: mockProfile.town || null,
+    trade_type: mockProfile.trade_type || null,
+    registration_number: mockProfile.registration_number || null,
+    vat_number: mockProfile.vat_number || null,
+    vat_registered: mockProfile.vat_registered,
+    bank_account_name: mockProfile.bank_account_name || null,
+    bank_name: mockProfile.bank_name || null,
+    sort_code: mockProfile.sort_code || null,
+    account_number: mockProfile.account_number || null,
+    payment_reference_note: mockProfile.payment_reference_note || null,
+    payment_terms: mockProfile.payment_terms || null,
+    stripe_publishable_key: mockProfile.stripe_publishable_key || null,
+    stripe_secret_key: mockProfile.stripe_secret_key || null,
+  };
+  const { error } = await supabase.from("profiles").upsert(row, { onConflict: "id" });
+  if (error) console.error("[profile] save failed", error);
   bumpVersion();
 }
 
