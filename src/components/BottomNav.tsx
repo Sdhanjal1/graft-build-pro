@@ -1,9 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Users, Plus, FileText, Settings, Calendar } from "lucide-react";
+import { Home, Plus, FileText, Settings, Calendar } from "lucide-react";
 
 const items = [
   { to: "/", label: "Home", icon: Home },
-  { to: "/clients", label: "Clients", icon: Users },
   { to: "/calendar", label: "Calendar", icon: Calendar },
   { to: "/quotes", label: "Quotes", icon: FileText },
   { to: "/settings", label: "Settings", icon: Settings },
@@ -23,10 +22,9 @@ export function BottomNav() {
           {items.slice(0, 2).map((it) => (
             <NavItem key={it.to} {...it} active={isActive(it.to)} />
           ))}
-          <NavItem {...items[2]} active={isActive(items[2].to)} />
           {/* spacer to reserve room for the centred + button */}
-          <div className="flex-1 shrink-0" aria-hidden />
-          {items.slice(3).map((it) => (
+          <div className="w-14 shrink-0" aria-hidden />
+          {items.slice(2).map((it) => (
             <NavItem key={it.to} {...it} active={isActive(it.to)} />
           ))}
 
