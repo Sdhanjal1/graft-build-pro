@@ -12,7 +12,7 @@ import {
 } from "@/lib/mock-data";
 import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { transcribeAudio } from "@/lib/transcribe.functions";
-import { Mic, Sparkles, Square, Save, RefreshCw, Loader2 } from "lucide-react";
+import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2 } from "lucide-react";
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
