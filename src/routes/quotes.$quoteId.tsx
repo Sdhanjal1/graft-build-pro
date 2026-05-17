@@ -163,7 +163,15 @@ function QuoteDetail() {
           <p className="text-[10px] text-paper/60 truncate">{mockProfile.registration_number} · VAT {mockProfile.vat_number}</p>
         </div>
       </div>
-      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" right={<StatusBadge status={status} />} />
+      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
+
+      {status === "declined" && (
+        <section className="px-5 mt-3">
+          <div className="card-surface p-3 text-center text-sm text-muted-foreground">
+            Customer declined this quote. <button onClick={async () => { try { await setQuoteStatus(quote.id, "pending"); setStatusState("pending"); } catch (e) { toast.error(e instanceof Error ? e.message : "Could not reopen"); } }} className="underline font-semibold text-ink ml-1">Reopen</button>
+          </div>
+        </section>
+      )}
 
       {client && (
         <section className="px-5">
