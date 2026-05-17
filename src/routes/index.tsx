@@ -6,7 +6,7 @@ import {
   todaysJobs, annualRemindersDue, formatTime, getQuote,
 } from "@/lib/mock-data";
 import { AlertTriangle, ArrowRight, BarChart3, Mic, CreditCard, Landmark, Banknote, Search, Sparkles, BellRing } from "lucide-react";
-import { QuottrLogo } from "@/components/QuottrLogo";
+import { QuottrWordmark } from "@/components/QuottrLogo";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
