@@ -30,6 +30,19 @@ function SettingsPage() {
     mockProfile.account_number = next.account_number;
     mockProfile.payment_reference_note = next.payment_reference_note;
   };
+  const [stripe, setStripe] = useState({
+    publishable: mockProfile.stripe_publishable_key,
+    secret: mockProfile.stripe_secret_key,
+  });
+  const saveStripe = (patch: Partial<typeof stripe>) => {
+    const next = { ...stripe, ...patch };
+    setStripe(next);
+    mockProfile.stripe_publishable_key = next.publishable;
+    mockProfile.stripe_secret_key = next.secret;
+    mockProfile.stripe_connected = !!(next.publishable && next.secret);
+  };
+  const [terms, setTerms] = useState(mockProfile.payment_terms);
+  const saveTerms = (v: string) => { setTerms(v); mockProfile.payment_terms = v; };
 
   return (
     <AppShell>
