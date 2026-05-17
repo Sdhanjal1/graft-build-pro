@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
-import { mockClients, mockQuotes, mockProfile, mockTransactions, stats, formatGBP, getClient } from "@/lib/mock-data";
-import { AlertTriangle, ArrowRight, BarChart3, Mic, CreditCard, Landmark, Banknote } from "lucide-react";
+import {
+  mockClients, mockQuotes, mockProfile, mockTransactions, stats, formatGBP, getClient,
+  todaysJobs, annualRemindersDue, formatTime, getQuote,
+} from "@/lib/mock-data";
+import { AlertTriangle, ArrowRight, BarChart3, Mic, CreditCard, Landmark, Banknote, Search, Sparkles, BellRing } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
 
 export const Route = createFileRoute("/")({
@@ -19,12 +22,21 @@ function HomePage() {
   const s = stats();
   const recentQuotes = mockQuotes.slice(0, 3);
   const recentClients = mockClients.slice(0, 3);
+  const today = todaysJobs();
+  const reminders = annualRemindersDue(30);
 
   return (
     <AppShell>
       <header className="px-5 pt-6 pb-5">
         <div className="flex items-center justify-between mb-5">
           <QuottrLogo className="h-7 w-auto" />
+          <Link
+            to="/search"
+            aria-label="Search"
+            className="h-10 w-10 rounded-full bg-card border border-border flex items-center justify-center"
+          >
+            <Search className="h-4 w-4" />
+          </Link>
         </div>
         <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">
           Good morning
@@ -84,6 +96,73 @@ function HomePage() {
             </div>
             <ArrowRight className="h-5 w-5 text-status-overdue" />
           </Link>
+        </section>
+      )}
+
+      {/* Today */}
+      {today.length > 0 && (
+        <section className="px-5 mt-4">
+          <div className="card-surface p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-4 w-4 text-lime" />
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Today</p>
+            </div>
+            <div className="space-y-2">
+              {today.map((j) => {
+                const q = getQuote(j.quote_id);
+                const c = q ? getClient(q.client_id) : undefined;
+                if (!q) return null;
+                return (
+                  <Link
+                    key={j.id}
+                    to="/quotes/$quoteId"
+                    params={{ quoteId: q.id }}
+                    className="flex items-center gap-3 active:scale-[0.99] transition"
+                  >
+                    <div className="num text-lg text-ink leading-none w-14 shrink-0">{formatTime(j.starts_at)}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{q.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{c?.name} · {c?.address}</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Upcoming annual reminders */}
+      {reminders.length > 0 && (
+        <section className="px-5 mt-4">
+          <div className="rounded-2xl bg-lime/15 border border-lime/40 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <BellRing className="h-4 w-4 text-ink" />
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-ink">Upcoming reminders</p>
+            </div>
+            <div className="space-y-2">
+              {reminders.slice(0, 3).map(({ job, quote, client, due }) => {
+                const days = Math.max(0, Math.ceil((due - Date.now()) / 86400000));
+                return (
+                  <Link
+                    key={job.id}
+                    to="/quotes/$quoteId"
+                    params={{ quoteId: quote.id }}
+                    className="flex items-center gap-3 active:scale-[0.99] transition"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate text-ink">{client?.name}</p>
+                      <p className="text-xs text-ink/70 truncate">{quote.title}</p>
+                    </div>
+                    <span className="num text-xs font-bold text-ink bg-paper/60 rounded-full px-2.5 py-1">
+                      {days}d
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
         </section>
       )}
 

@@ -11,6 +11,7 @@ import {
 import appCss from "../styles.css?url";
 import { BottomNav } from "@/components/BottomNav";
 import { Splash } from "@/components/Splash";
+import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 
 function NotFoundComponent() {
   return (
@@ -103,6 +104,7 @@ function RootComponent() {
       <Splash />
       <Outlet />
       <BottomNav />
+      <PWAInstallBanner />
     </QueryClientProvider>
   );
 }

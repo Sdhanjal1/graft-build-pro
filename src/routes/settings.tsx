@@ -4,7 +4,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { mockProfile, stats, formatGBP, TRADE_TYPES } from "@/lib/mock-data";
 import {
   Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut, BarChart3,
-  CreditCard, Landmark, Banknote, Wallet, Trophy, MapPin,
+  CreditCard, Landmark, Banknote, Wallet, Trophy, MapPin, Gift, Share2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
@@ -229,6 +229,10 @@ function SettingsPage() {
         </div>
       </section>
 
+      <section className="px-5 mt-5">
+        <ReferMate />
+      </section>
+
       <section className="px-5 mt-5 mb-6">
         <Link to="/auth" className="card-surface p-4 flex items-center gap-3 text-status-overdue font-semibold">
           <LogOut className="h-5 w-5" />
@@ -352,6 +356,55 @@ function SettingRow({ icon: Icon, label, status }: { icon: React.ComponentType<{
         <p className="text-xs text-muted-foreground">{status}</p>
       </div>
       <span className="text-xs font-semibold text-ink bg-lime px-3 py-1.5 rounded-full">Add</span>
+    </div>
+  );
+}
+
+function ReferMate() {
+  const code = "MATE20";
+  const shareText =
+    `I use Quottr to quote on the spot and get paid faster — try it. ` +
+    `Use my code ${code} for £20 off your first month: https://quottr.app/?ref=${code}`;
+  const onShare = async () => {
+    if (typeof navigator !== "undefined" && (navigator as Navigator & { share?: (data: ShareData) => Promise<void> }).share) {
+      try {
+        await (navigator as Navigator & { share: (data: ShareData) => Promise<void> }).share({
+          title: "Quottr",
+          text: shareText,
+        });
+        return;
+      } catch {
+        // fall through to copy
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(shareText);
+      alert("Share message copied to clipboard");
+    } catch {
+      // no-op
+    }
+  };
+  return (
+    <div className="rounded-2xl bg-ink text-paper p-5 relative overflow-hidden">
+      <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-lime/30 blur-2xl" />
+      <div className="flex items-center gap-2">
+        <Gift className="h-4 w-4 text-lime" />
+        <p className="text-xs uppercase tracking-widest text-paper/60 font-semibold">Refer a mate</p>
+      </div>
+      <h3 className="text-2xl mt-1 leading-tight">Give £20 off, get £20 off</h3>
+      <p className="text-xs text-paper/70 mt-1">Share Quottr with another tradesperson — when they sign up you both get £20 off your next month.</p>
+      <div className="mt-3 flex items-center gap-2">
+        <div className="flex-1 bg-paper/10 rounded-full px-4 py-2.5">
+          <p className="text-[10px] uppercase tracking-widest text-paper/50 font-semibold">Your code</p>
+          <p className="num text-base text-lime leading-none">{code}</p>
+        </div>
+        <button
+          onClick={onShare}
+          className="bg-lime text-ink rounded-full px-4 py-3 text-sm font-bold inline-flex items-center gap-2"
+        >
+          <Share2 className="h-4 w-4" /> Share
+        </button>
+      </div>
     </div>
   );
 }
