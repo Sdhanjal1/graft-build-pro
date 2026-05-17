@@ -57,11 +57,32 @@ function QuoteDetail() {
   const createCheckout = useServerFn(createInvoiceCheckout);
 
   const setMethod = (m: PaymentMethod) => { quote.payment_method = m; setMethodState(m); };
-  const acceptQuote = () => {
-    quote.status = "accepted";
-    setStatusState("accepted");
-    // Trigger deposit prompt first; scheduling moves to a follow-up after.
-    setAskDeposit(true);
+  const acceptQuote = async () => {
+    try {
+      await setQuoteStatus(quote.id, "accepted");
+      setStatusState("accepted");
+      setAskDeposit(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update status");
+    }
+  };
+  const markSent = async () => {
+    try {
+      await setQuoteStatus(quote.id, "sent");
+      setStatusState("sent");
+      toast.success("Marked as sent");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update status");
+    }
+  };
+  const declineQuote = async () => {
+    try {
+      await setQuoteStatus(quote.id, "declined");
+      setStatusState("declined");
+      toast.success("Quote declined");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update status");
+    }
   };
   const confirmSchedule = () => {
     const iso = new Date(schedAt).toISOString();
