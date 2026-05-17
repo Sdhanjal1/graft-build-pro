@@ -17,11 +17,15 @@ export const transcribeAudio = createServerFn({ method: "POST" })
     const bytes = Buffer.from(data.audioBase64, "base64");
     const blob = new Blob([bytes], { type: data.mimeType });
 
-    const ext =
-      data.mimeType.includes("webm") ? "webm" :
-      data.mimeType.includes("mp4") || data.mimeType.includes("mp4a") ? "mp4" :
-      data.mimeType.includes("ogg") ? "ogg" :
-      data.mimeType.includes("wav") ? "wav" : "webm";
+    const ext = data.mimeType.includes("webm")
+      ? "webm"
+      : data.mimeType.includes("mp4") || data.mimeType.includes("mp4a")
+        ? "mp4"
+        : data.mimeType.includes("ogg")
+          ? "ogg"
+          : data.mimeType.includes("wav")
+            ? "wav"
+            : "webm";
 
     const form = new FormData();
     form.append("file", blob, `recording.${ext}`);
@@ -39,7 +43,9 @@ export const transcribeAudio = createServerFn({ method: "POST" })
       const errText = await res.text().catch(() => "");
       console.error("OpenAI Whisper error", res.status, errText);
       if (res.status === 429 && errText.includes("insufficient_quota")) {
-        throw new Error("OpenAI quota is exhausted. Update the OpenAI key or billing, or use a browser that supports live voice typing.");
+        throw new Error(
+          "OpenAI quota is exhausted. Update the OpenAI key or billing, or use a browser that supports live voice typing.",
+        );
       }
       throw new Error(`Transcription failed (${res.status})`);
     }
