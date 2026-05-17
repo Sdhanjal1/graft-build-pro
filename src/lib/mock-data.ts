@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export type QuoteStatus = "pending" | "accepted" | "paid" | "overdue";
+export type QuoteStatus = "pending" | "sent" | "accepted" | "declined" | "paid" | "overdue";
 export type PaymentMethod = "card" | "bank" | "cash";
 export type PaymentRequestType = "deposit" | "full" | "custom";
 export type JobStatus = "scheduled" | "in_progress" | "complete";
