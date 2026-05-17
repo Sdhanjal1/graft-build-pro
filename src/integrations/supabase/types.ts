@@ -106,39 +106,66 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_number: string | null
+          bank_account_name: string | null
+          bank_name: string | null
           business_name: string | null
           created_at: string
           email: string | null
           full_name: string | null
           id: string
+          payment_reference_note: string | null
+          payment_terms: string | null
           phone: string | null
           registration_number: string | null
+          sort_code: string | null
+          stripe_publishable_key: string | null
+          stripe_secret_key: string | null
+          town: string | null
           trade_type: string | null
           updated_at: string
           vat_number: string | null
           vat_registered: boolean
         }
         Insert: {
+          account_number?: string | null
+          bank_account_name?: string | null
+          bank_name?: string | null
           business_name?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id: string
+          payment_reference_note?: string | null
+          payment_terms?: string | null
           phone?: string | null
           registration_number?: string | null
+          sort_code?: string | null
+          stripe_publishable_key?: string | null
+          stripe_secret_key?: string | null
+          town?: string | null
           trade_type?: string | null
           updated_at?: string
           vat_number?: string | null
           vat_registered?: boolean
         }
         Update: {
+          account_number?: string | null
+          bank_account_name?: string | null
+          bank_name?: string | null
           business_name?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id?: string
+          payment_reference_note?: string | null
+          payment_terms?: string | null
           phone?: string | null
           registration_number?: string | null
+          sort_code?: string | null
+          stripe_publishable_key?: string | null
+          stripe_secret_key?: string | null
+          town?: string | null
           trade_type?: string | null
           updated_at?: string
           vat_number?: string | null
