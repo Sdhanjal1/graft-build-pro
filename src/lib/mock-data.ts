@@ -289,3 +289,112 @@ export const stats = () => {
 
 export const formatGBP = (n: number) =>
   new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: n < 1000 ? 2 : 0 }).format(n);
+
+// ---------- Scheduled jobs (calendar) ----------
+
+// Anchor mock jobs around "today" so the calendar always has content to show.
+const _today = new Date();
+const _atHour = (offsetDays: number, hour: number, minute = 0) => {
+  const d = new Date(_today);
+  d.setDate(d.getDate() + offsetDays);
+  d.setHours(hour, minute, 0, 0);
+  return d.toISOString();
+};
+
+export const mockJobs: ScheduledJob[] = [
+  { id: "j1", quote_id: "q2", starts_at: _atHour(0, 9, 0),  duration_minutes: 480, status: "in_progress", materials_checked: [0, 1, 2], created_at: _atHour(-3, 12) },
+  { id: "j2", quote_id: "q1", starts_at: _atHour(1, 8, 30), duration_minutes: 600, status: "scheduled",   materials_checked: [], created_at: _atHour(-1, 10) },
+  { id: "j3", quote_id: "q4", starts_at: _atHour(2, 13, 0), duration_minutes: 180, status: "scheduled",   materials_checked: [0], created_at: _atHour(-2, 9) },
+  { id: "j4", quote_id: "q5", starts_at: _atHour(-2, 11, 0), duration_minutes: 60, status: "complete",    materials_checked: [0, 1], annual_reminder_at: _atHour(330, 9), created_at: _atHour(-4, 8) },
+];
+
+export const getJob = (id: string) => mockJobs.find((j) => j.id === id);
+export const getJobByQuote = (quoteId: string) =>
+  mockJobs.find((j) => j.quote_id === quoteId);
+
+const sameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
+export const jobsForDay = (day: Date) =>
+  mockJobs
+    .filter((j) => sameDay(new Date(j.starts_at), day))
+    .sort((a, b) => +new Date(a.starts_at) - +new Date(b.starts_at));
+
+export const jobsForRange = (from: Date, to: Date) =>
+  mockJobs
+    .filter((j) => {
+      const d = new Date(j.starts_at);
+      return d >= from && d <= to;
+    })
+    .sort((a, b) => +new Date(a.starts_at) - +new Date(b.starts_at));
+
+export const scheduleJob = (
+  quoteId: string,
+  startsAt: string,
+  durationMinutes = 240,
+): ScheduledJob => {
+  const existing = getJobByQuote(quoteId);
+  if (existing) {
+    existing.starts_at = startsAt;
+    existing.duration_minutes = durationMinutes;
+    existing.status = "scheduled";
+    return existing;
+  }
+  const job: ScheduledJob = {
+    id: `j_${Date.now()}`,
+    quote_id: quoteId,
+    starts_at: startsAt,
+    duration_minutes: durationMinutes,
+    status: "scheduled",
+    materials_checked: [],
+    created_at: new Date().toISOString(),
+  };
+  mockJobs.push(job);
+  // Mark the underlying quote as accepted so it shows up in the right buckets.
+  const q = getQuote(quoteId);
+  if (q && q.status === "pending") q.status = "accepted";
+  return job;
+};
+
+export const setJobStatus = (jobId: string, status: JobStatus) => {
+  const j = getJob(jobId);
+  if (j) j.status = status;
+  return j;
+};
+
+export const toggleMaterial = (jobId: string, idx: number) => {
+  const j = getJob(jobId);
+  if (!j) return;
+  const i = j.materials_checked.indexOf(idx);
+  if (i >= 0) j.materials_checked.splice(i, 1);
+  else j.materials_checked.push(idx);
+};
+
+export const setAnnualReminder = (jobId: string, monthsFromNow = 11) => {
+  const j = getJob(jobId);
+  if (!j) return;
+  const d = new Date();
+  d.setMonth(d.getMonth() + monthsFromNow);
+  j.annual_reminder_at = d.toISOString();
+};
+
+/** Rough travel-time guess between UK postcodes — uses the outward code only. */
+export const estimateTravelMinutes = (fromAddr?: string, toAddr?: string) => {
+  if (!fromAddr || !toAddr) return null;
+  const pc = (a: string) => (a.match(/[A-Z]{1,2}\d[A-Z0-9]?/i) ?? [""])[0].toUpperCase();
+  const a = pc(fromAddr);
+  const b = pc(toAddr);
+  if (!a || !b) return null;
+  if (a === b) return 10;
+  // Different district within same area (e.g. SW19 vs SW1)
+  if (a.replace(/\d.*/, "") === b.replace(/\d.*/, "")) return 20;
+  return 35;
+};
+
+/** Formatters used across the calendar views. */
+export const formatTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+export const formatDayLabel = (d: Date) =>
+  d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
