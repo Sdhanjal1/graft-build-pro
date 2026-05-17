@@ -135,10 +135,11 @@ function NewQuotePage() {
 
       const blobType = mr.mimeType || mimeType || "audio/webm";
       const blob = new Blob(chunksRef.current, { type: blobType });
+      console.log("[voice] stop", { chunks: chunksRef.current.length, size: blob.size, type: blobType });
       chunksRef.current = [];
 
       if (blob.size < 200) {
-        setVoiceError("Didn't catch any audio — check your mic and try again.");
+        setVoiceError("Didn't catch any audio — hold the button a moment longer and speak clearly.");
         return;
       }
 
@@ -166,8 +167,8 @@ function NewQuotePage() {
       }
     };
 
-    // Start with timeslice so chunks accumulate progressively (helps iOS Safari)
-    mr.start(1000);
+    // No timeslice — one final ondataavailable fires on stop with the full recording.
+    mr.start();
     setRecording(true);
     setRecordSeconds(0);
     tickRef.current = setInterval(() => {
