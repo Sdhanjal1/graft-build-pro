@@ -14,7 +14,152 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          property_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          property_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          property_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          business_name: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          registration_number: string | null
+          trade_type: string | null
+          updated_at: string
+          vat_number: string | null
+          vat_registered: boolean
+        }
+        Insert: {
+          business_name?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          registration_number?: string | null
+          trade_type?: string | null
+          updated_at?: string
+          vat_number?: string | null
+          vat_registered?: boolean
+        }
+        Update: {
+          business_name?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          registration_number?: string | null
+          trade_type?: string | null
+          updated_at?: string
+          vat_number?: string | null
+          vat_registered?: boolean
+        }
+        Relationships: []
+      }
+      quotes: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          job_description: string | null
+          line_items: Json
+          notes: string | null
+          status: string
+          subtotal: number
+          title: string
+          total: number
+          trade_type: string | null
+          updated_at: string
+          user_id: string
+          vat_amount: number
+          vat_registered: boolean
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          job_description?: string | null
+          line_items?: Json
+          notes?: string | null
+          status?: string
+          subtotal?: number
+          title: string
+          total?: number
+          trade_type?: string | null
+          updated_at?: string
+          user_id: string
+          vat_amount?: number
+          vat_registered?: boolean
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          job_description?: string | null
+          line_items?: Json
+          notes?: string | null
+          status?: string
+          subtotal?: number
+          title?: string
+          total?: number
+          trade_type?: string | null
+          updated_at?: string
+          user_id?: string
+          vat_amount?: number
+          vat_registered?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
