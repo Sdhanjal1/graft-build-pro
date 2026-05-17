@@ -676,6 +676,23 @@ export const markInvoiced = async (quoteId: string): Promise<Quote | null> => {
   return q;
 };
 
+/** Persist a quote status change to Lovable Cloud. */
+export const setQuoteStatus = async (
+  quoteId: string,
+  status: QuoteStatus,
+): Promise<Quote | null> => {
+  const q = getQuote(quoteId);
+  if (!q) return null;
+  const { error } = await supabase
+    .from("quotes")
+    .update({ status })
+    .eq("id", quoteId);
+  if (error) throw error;
+  q.status = status;
+  bumpVersion();
+  return q;
+};
+
 export const invoiceRef = (q: Quote) => q.ref.replace(/^QTR/i, "INV");
 
 export const buildFinalInvoiceMessage = (quote: Quote, clientFirstName: string) => {
