@@ -11,8 +11,9 @@ import {
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
 } from "@/lib/mock-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2 } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
+import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/quotes/$quoteId")({
