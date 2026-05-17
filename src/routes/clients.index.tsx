@@ -23,9 +23,14 @@ function ClientsPage() {
           <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Client book</p>
           <h1 className="text-4xl leading-none mt-1">Clients</h1>
         </div>
-        <button className="h-11 w-11 rounded-full bg-ink text-paper flex items-center justify-center">
-          <UserPlus className="h-5 w-5" />
-        </button>
+        <Link
+          to="/clients/new"
+          aria-label="Add new client"
+          className="h-11 px-4 rounded-full bg-lime text-ink inline-flex items-center gap-1.5 font-bold text-sm active:scale-95 transition"
+        >
+          <UserPlus className="h-4 w-4" />
+          New
+        </Link>
       </header>
 
       <div className="px-5">
