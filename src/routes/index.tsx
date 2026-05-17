@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
-import { mockClients, mockQuotes, mockProfile, mockTransactions, stats, formatGBP, getClient } from "@/lib/mock-data";
-import { AlertTriangle, ArrowRight, BarChart3, Mic, CreditCard, Landmark, Banknote } from "lucide-react";
+import {
+  mockClients, mockQuotes, mockProfile, mockTransactions, stats, formatGBP, getClient,
+  todaysJobs, annualRemindersDue, formatTime, getQuote,
+} from "@/lib/mock-data";
+import { AlertTriangle, ArrowRight, BarChart3, Mic, CreditCard, Landmark, Banknote, Search, Sparkles, BellRing } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
 
 export const Route = createFileRoute("/")({
