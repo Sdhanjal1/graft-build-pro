@@ -152,9 +152,15 @@ export type Database = {
           created_at: string
           due_date: string | null
           id: string
+          invoice_due_date: string | null
+          invoiced_at: string | null
           job_description: string | null
           line_items: Json
           notes: string | null
+          paid_via: string | null
+          payment_method: string | null
+          payment_request: Json | null
+          ref: string | null
           status: string
           subtotal: number
           title: string
@@ -170,9 +176,15 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          invoice_due_date?: string | null
+          invoiced_at?: string | null
           job_description?: string | null
           line_items?: Json
           notes?: string | null
+          paid_via?: string | null
+          payment_method?: string | null
+          payment_request?: Json | null
+          ref?: string | null
           status?: string
           subtotal?: number
           title: string
@@ -188,9 +200,15 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          invoice_due_date?: string | null
+          invoiced_at?: string | null
           job_description?: string | null
           line_items?: Json
           notes?: string | null
+          paid_via?: string | null
+          payment_method?: string | null
+          payment_request?: Json | null
+          ref?: string | null
           status?: string
           subtotal?: number
           title?: string
