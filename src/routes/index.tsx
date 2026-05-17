@@ -3,6 +3,7 @@ import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { mockClients, mockQuotes, mockProfile, mockTransactions, stats, formatGBP, getClient } from "@/lib/mock-data";
 import { AlertTriangle, ArrowRight, BarChart3, Mic, CreditCard, Landmark, Banknote } from "lucide-react";
+import { QuottrLogo } from "@/components/QuottrLogo";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -21,7 +22,10 @@ function HomePage() {
 
   return (
     <AppShell>
-      <header className="px-5 pt-8 pb-5">
+      <header className="px-5 pt-6 pb-5">
+        <div className="flex items-center justify-between mb-5">
+          <QuottrLogo className="h-7 w-auto" />
+        </div>
         <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">
           Good morning
         </p>
