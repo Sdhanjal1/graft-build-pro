@@ -229,6 +229,10 @@ function SettingsPage() {
         </div>
       </section>
 
+      <section className="px-5 mt-5">
+        <ReferMate />
+      </section>
+
       <section className="px-5 mt-5 mb-6">
         <Link to="/auth" className="card-surface p-4 flex items-center gap-3 text-status-overdue font-semibold">
           <LogOut className="h-5 w-5" />
