@@ -163,7 +163,7 @@ function QuoteDetail() {
             <Row label="Subtotal" value={formatGBP(quote.subtotal)} />
             {mockProfile.vat_registered && <Row label="VAT (20%)" value={formatGBP(quote.vat_amount)} />}
             {method === "card" && (
-              <Row label="Card processing fee (3.5%)" value={formatGBP(quote.total * 0.035)} muted />
+              <Row label="Card processing fee (3.5%)" value={formatGBP(quote.total * 0.035)} />
             )}
             <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
               <span className="text-sm uppercase tracking-widest font-semibold">
