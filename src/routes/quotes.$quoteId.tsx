@@ -16,6 +16,7 @@ import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, Chec
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
+import { feedback } from "@/lib/feedback";
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
