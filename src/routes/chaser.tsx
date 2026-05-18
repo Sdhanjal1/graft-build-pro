@@ -153,9 +153,12 @@ function ChaserPage() {
           );
         })}
         {overdue.length === 0 && (
-          <p className="text-center text-sm text-muted-foreground py-12">
-            Nothing overdue. Nice one. 🎉
-          </p>
+          <EmptyState
+            icon={PartyPopper}
+            tone="celebrate"
+            title="All caught up"
+            body="No overdue invoices. We'll nudge you the moment something needs chasing."
+          />
         )}
       </section>
     </AppShell>
