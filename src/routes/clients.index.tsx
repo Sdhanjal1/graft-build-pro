@@ -47,6 +47,18 @@ function ClientsPage() {
       </div>
 
       <div className="px-5 mt-4 space-y-2.5">
+        {filtered.length === 0 && (
+          mockClients.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="No clients yet"
+              body="Add your first client to start sending quotes and tracking jobs."
+              cta={{ label: "Add client", to: "/clients/new" }}
+            />
+          ) : (
+            <EmptyState icon={Inbox} title="No matches" body={`No clients match "${q}".`} />
+          )
+        )}
         {filtered.map((c) => {
           const cQuotes = quotesForClient(c.id);
           const total = cQuotes.reduce((s, x) => s + x.total, 0);
