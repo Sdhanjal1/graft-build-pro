@@ -334,8 +334,10 @@ function NewQuotePage() {
         line_items: draft.line_items,
         vatRegistered: vat,
       });
+      feedback("success");
       navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id } });
     } catch (e) {
+      feedback("error");
       setError(e instanceof Error ? e.message : "Could not save quote");
       setSaving(false);
     }
