@@ -50,12 +50,14 @@ function SearchPage() {
 
       <section className="px-5 mt-4 space-y-2">
         {q.trim() === "" && (
-          <p className="text-center text-xs text-muted-foreground py-12">
-            Start typing to search clients, quotes and scheduled jobs.
-          </p>
+          <EmptyState
+            icon={SearchIcon}
+            title="Search everything"
+            body="Find clients by name or address, quotes by ref or title, and scheduled jobs."
+          />
         )}
         {q.trim() !== "" && results.length === 0 && (
-          <p className="text-center text-xs text-muted-foreground py-12">No matches for “{q}”.</p>
+          <EmptyState icon={Inbox} title="No matches" body={`Nothing found for "${q}".`} />
         )}
         {results.map((r) => {
           const Icon = r.kind === "client" ? User : r.kind === "quote" ? FileText : CalendarIcon;
