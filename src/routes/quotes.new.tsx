@@ -14,6 +14,7 @@ import {
 import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2 } from "lucide-react";
+import { feedback } from "@/lib/feedback";
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
