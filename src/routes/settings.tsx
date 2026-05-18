@@ -237,6 +237,11 @@ function SettingsPage() {
       </section>
 
       <section className="px-5 mt-5">
+        <h2 className="text-xl mb-2.5">Feedback</h2>
+        <FeedbackToggles />
+      </section>
+
+      <section className="px-5 mt-5">
         <h2 className="text-xl mb-2.5">Integrations</h2>
         <div className="card-surface divide-y divide-border">
           <SettingRow icon={Wallet} label="Stripe Connect" status={mockProfile.stripe_connected ? "Connected" : "Add to take card payments"} />
