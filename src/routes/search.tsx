@@ -2,7 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { globalSearch, type SearchResult } from "@/lib/mock-data";
-import { Search as SearchIcon, User, FileText, Calendar as CalendarIcon, X } from "lucide-react";
+import { Search as SearchIcon, User, FileText, Calendar as CalendarIcon, X, Inbox } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 
 export const Route = createFileRoute("/search")({
   component: SearchPage,
