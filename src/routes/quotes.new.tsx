@@ -307,8 +307,10 @@ function NewQuotePage() {
     try {
       const g = await generateFn({ data: { description: text, trade, vatRegistered: vat } });
       setDraft(g);
+      feedback("success");
     } catch (e) {
       console.error(e);
+      feedback("error");
       setError(e instanceof Error ? e.message : "Failed to generate quote");
     } finally {
       setLoading(false);
