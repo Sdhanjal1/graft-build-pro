@@ -2,7 +2,8 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { getClient, quotesForClient, formatGBP } from "@/lib/mock-data";
-import { Phone, Mail, MapPin, Home } from "lucide-react";
+import { Phone, Mail, MapPin, Home, FileText } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 
 export const Route = createFileRoute("/clients/$clientId")({
   component: ClientDetail,
