@@ -243,12 +243,12 @@ function DayView({ anchor, onOpenJob }: { anchor: Date; onOpenJob: (id: string) 
   return (
     <section className="px-5 mt-3 pb-4">
       {jobs.length === 0 ? (
-        <div className="card-surface p-8 text-center">
-          <p className="text-sm text-muted-foreground">Nothing scheduled.</p>
-          <Link to="/quotes" className="inline-block mt-3 bg-lime text-ink rounded-full px-5 py-2 text-xs font-bold">
-            Schedule a job
-          </Link>
-        </div>
+        <EmptyState
+          icon={CalendarOff}
+          title="Nothing scheduled"
+          body="Free day. Schedule a job from an accepted quote to fill it in."
+          cta={{ label: "Browse quotes", to: "/quotes" }}
+        />
       ) : (
         <ol className="space-y-3">
           {jobs.map((j, i) => {
