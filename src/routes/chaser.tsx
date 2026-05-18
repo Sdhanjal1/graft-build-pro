@@ -70,13 +70,13 @@ function ChaserPage() {
                         href={wa}
                         target="_blank"
                         rel="noreferrer"
-                        onClick={() => { markChaseSent(chase.id); force((n) => n + 1); }}
+                        onClick={() => { feedback("success"); markChaseSent(chase.id); force((n) => n + 1); }}
                         className="bg-ink text-paper rounded-full py-2 text-xs font-bold inline-flex items-center justify-center gap-1.5"
                       >
                         <Check className="h-3.5 w-3.5" /> Send chase
                       </a>
                       <button
-                        onClick={() => { skipChase(chase.id); force((n) => n + 1); }}
+                        onClick={() => { feedback("tap"); skipChase(chase.id); force((n) => n + 1); }}
                         className="bg-card border border-border text-ink rounded-full py-2 text-xs font-bold inline-flex items-center justify-center gap-1.5"
                       >
                         <XIcon className="h-3.5 w-3.5" /> Skip
