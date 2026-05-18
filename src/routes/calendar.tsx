@@ -9,8 +9,9 @@ import {
 } from "@/lib/mock-data";
 import {
   ChevronLeft, ChevronRight, MessageCircle, Phone, Mail,
-  Play, CheckCircle2, Bell, Hammer, Car, MapPin, Package, Check,
+  Play, CheckCircle2, Bell, Hammer, Car, MapPin, Package, Check, CalendarOff,
 } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 
 export const Route = createFileRoute("/calendar")({
   component: CalendarPage,
