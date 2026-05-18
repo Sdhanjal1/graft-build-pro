@@ -291,6 +291,7 @@ function NewQuotePage() {
 
   const toggleRecord = () => {
     if (transcribing) return;
+    feedback("tap");
     if (recording) stopRecording();
     else startRecording();
   };
