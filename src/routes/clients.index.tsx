@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { mockClients, quotesForClient, formatGBP } from "@/lib/mock-data";
-import { Search, Phone, ArrowRight, UserPlus } from "lucide-react";
+import { Search, Phone, ArrowRight, UserPlus, Users, Inbox } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 import { useState } from "react";
 
 export const Route = createFileRoute("/clients/")({
