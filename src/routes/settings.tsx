@@ -3,9 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { mockProfile, stats, formatGBP, TRADE_TYPES, clearUserData, saveProfileToCloud } from "@/lib/mock-data";
 import { signOut } from "@/lib/auth";
+import { getFeedbackPrefs, setFeedbackPrefs, feedback } from "@/lib/feedback";
 import {
   Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut, BarChart3,
-  CreditCard, Landmark, Banknote, Wallet, Trophy, MapPin, Gift, Share2,
+  CreditCard, Landmark, Banknote, Wallet, Trophy, MapPin, Gift, Share2, Vibrate, Volume2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
