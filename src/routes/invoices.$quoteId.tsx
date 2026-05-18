@@ -153,9 +153,9 @@ function InvoicePage() {
           onClick={async () => {
             try {
               const r = await downloadOrShareQuotePdf(quote, client, "invoice");
-              if (!r.shared && !r.cancelled) toast.success("Invoice PDF downloaded");
+              if (!r.shared && !r.cancelled) feedback("success"); toast.success("Invoice PDF downloaded");
             } catch (e) {
-              toast.error(e instanceof Error ? e.message : "Could not generate PDF");
+              feedback("error"); toast.error(e instanceof Error ? e.message : "Could not generate PDF");
             }
           }}
           className="w-full bg-card border-2 border-ink text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
