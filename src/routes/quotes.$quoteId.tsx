@@ -96,6 +96,7 @@ function QuoteDetail() {
     quote.paid_via = m; quote.status = "paid";
     setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
     setAskInvoice(true);
+    feedback("success");
   };
   const duplicate = async () => {
     try {
