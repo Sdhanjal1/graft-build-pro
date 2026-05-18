@@ -5,7 +5,8 @@ import {
   mockQuotes, getClient, mockProfile, formatGBP, buildChaserMessage,
   chasesDueNow, upcomingChases, markChaseSent, skipChase,
 } from "@/lib/mock-data";
-import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon } from "lucide-react";
+import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, PartyPopper } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 
 export const Route = createFileRoute("/chaser")({
   component: ChaserPage,
