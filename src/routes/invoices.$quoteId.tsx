@@ -8,6 +8,7 @@ import { MessageCircle, Mail, CreditCard, Landmark, Share2 } from "lucide-react"
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
+import { feedback } from "@/lib/feedback";
 
 export const Route = createFileRoute("/invoices/$quoteId")({
   component: InvoicePage,
