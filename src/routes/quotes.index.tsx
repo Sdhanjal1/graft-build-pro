@@ -3,7 +3,8 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { mockQuotes, getClient, formatGBP, type QuoteStatus } from "@/lib/mock-data";
-import { Search } from "lucide-react";
+import { Search, FileText, Inbox } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 
 export const Route = createFileRoute("/quotes/")({
   component: QuotesPage,
