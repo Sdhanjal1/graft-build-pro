@@ -3,9 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { mockProfile, stats, formatGBP, TRADE_TYPES, clearUserData, saveProfileToCloud } from "@/lib/mock-data";
 import { signOut } from "@/lib/auth";
+import { getFeedbackPrefs, setFeedbackPrefs, feedback } from "@/lib/feedback";
 import {
   Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut, BarChart3,
-  CreditCard, Landmark, Banknote, Wallet, Trophy, MapPin, Gift, Share2,
+  CreditCard, Landmark, Banknote, Wallet, Trophy, MapPin, Gift, Share2, Vibrate, Volume2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
@@ -236,6 +237,11 @@ function SettingsPage() {
       </section>
 
       <section className="px-5 mt-5">
+        <h2 className="text-xl mb-2.5">Feedback</h2>
+        <FeedbackToggles />
+      </section>
+
+      <section className="px-5 mt-5">
         <h2 className="text-xl mb-2.5">Integrations</h2>
         <div className="card-surface divide-y divide-border">
           <SettingRow icon={Wallet} label="Stripe Connect" status={mockProfile.stripe_connected ? "Connected" : "Add to take card payments"} />
@@ -255,6 +261,45 @@ function SettingsPage() {
         </button>
       </section>
     </AppShell>
+  );
+}
+
+function FeedbackToggles() {
+  const [prefs, setPrefs] = useState(() => getFeedbackPrefs());
+  const update = (patch: Partial<typeof prefs>) => {
+    setPrefs((p) => ({ ...p, ...patch }));
+    setFeedbackPrefs(patch);
+    feedback("tap");
+  };
+  return (
+    <div className="card-surface divide-y divide-border">
+      <ToggleRow icon={Vibrate} label="Haptics" hint="Subtle vibration on actions" checked={prefs.haptics} onChange={(v) => update({ haptics: v })} />
+      <ToggleRow icon={Volume2} label="Sound" hint="Soft confirmation tones" checked={prefs.sound} onChange={(v) => update({ sound: v })} />
+    </div>
+  );
+}
+
+function ToggleRow({
+  icon: Icon, label, hint, checked, onChange,
+}: { icon: React.ComponentType<{ className?: string }>; label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="px-5 py-4 flex items-center gap-3 cursor-pointer">
+      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm">{label}</p>
+        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      </div>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-6 w-11 appearance-none rounded-full bg-secondary checked:bg-lime relative cursor-pointer transition
+          before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:h-5 before:w-5 before:rounded-full before:bg-white before:transition
+          checked:before:translate-x-5"
+      />
+    </label>
   );
 }
 

@@ -14,6 +14,7 @@ import {
 import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2 } from "lucide-react";
+import { feedback } from "@/lib/feedback";
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
@@ -290,6 +291,7 @@ function NewQuotePage() {
 
   const toggleRecord = () => {
     if (transcribing) return;
+    feedback("tap");
     if (recording) stopRecording();
     else startRecording();
   };
@@ -305,8 +307,10 @@ function NewQuotePage() {
     try {
       const g = await generateFn({ data: { description: text, trade, vatRegistered: vat } });
       setDraft(g);
+      feedback("success");
     } catch (e) {
       console.error(e);
+      feedback("error");
       setError(e instanceof Error ? e.message : "Failed to generate quote");
     } finally {
       setLoading(false);
@@ -330,8 +334,10 @@ function NewQuotePage() {
         line_items: draft.line_items,
         vatRegistered: vat,
       });
+      feedback("success");
       navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id } });
     } catch (e) {
+      feedback("error");
       setError(e instanceof Error ? e.message : "Could not save quote");
       setSaving(false);
     }

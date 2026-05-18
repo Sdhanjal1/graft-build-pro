@@ -16,6 +16,7 @@ import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, Chec
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
+import { feedback } from "@/lib/feedback";
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
@@ -63,25 +64,25 @@ function QuoteDetail() {
       setStatusState("accepted");
       setAskDeposit(true);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not update status");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
     }
   };
   const markSent = async () => {
     try {
       await setQuoteStatus(quote.id, "sent");
       setStatusState("sent");
-      toast.success("Marked as sent");
+      feedback("success"); toast.success("Marked as sent");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not update status");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
     }
   };
   const declineQuote = async () => {
     try {
       await setQuoteStatus(quote.id, "declined");
       setStatusState("declined");
-      toast.success("Quote declined");
+      feedback("success"); toast.success("Quote declined");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not update status");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
     }
   };
   const confirmSchedule = () => {
@@ -95,15 +96,16 @@ function QuoteDetail() {
     quote.paid_via = m; quote.status = "paid";
     setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
     setAskInvoice(true);
+    feedback("success");
   };
   const duplicate = async () => {
     try {
       const copy = await duplicateQuote(quote.id);
       if (!copy) return;
-      toast.success(`Quote duplicated as ${copy.ref}`);
+      feedback("success"); toast.success(`Quote duplicated as ${copy.ref}`);
       navigate({ to: "/quotes/$quoteId", params: { quoteId: copy.id } });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not duplicate quote");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not duplicate quote");
     }
   };
   const sendDepositRequest = () => {
@@ -126,7 +128,7 @@ function QuoteDetail() {
       setAskInvoice(false);
       navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not issue invoice");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not issue invoice");
     }
   };
   const createPaymentRequest = async (type: PaymentRequestType, amount?: number) => {
@@ -189,7 +191,7 @@ function QuoteDetail() {
       {status === "declined" && (
         <section className="px-5 mt-3">
           <div className="card-surface p-3 text-center text-sm text-muted-foreground">
-            Customer declined this quote. <button onClick={async () => { try { await setQuoteStatus(quote.id, "pending"); setStatusState("pending"); } catch (e) { toast.error(e instanceof Error ? e.message : "Could not reopen"); } }} className="underline font-semibold text-ink ml-1">Reopen</button>
+            Customer declined this quote. <button onClick={async () => { try { await setQuoteStatus(quote.id, "pending"); setStatusState("pending"); } catch (e) { feedback("error"); toast.error(e instanceof Error ? e.message : "Could not reopen"); } }} className="underline font-semibold text-ink ml-1">Reopen</button>
           </div>
         </section>
       )}
@@ -418,9 +420,9 @@ function QuoteDetail() {
             onClick={async () => {
               try {
                 const r = await downloadOrShareQuotePdf(liveQuote, client, "quote");
-                if (!r.shared && !r.cancelled) toast.success("Quote PDF downloaded");
+                if (!r.shared && !r.cancelled) feedback("success"); toast.success("Quote PDF downloaded");
               } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Could not generate PDF");
+                feedback("error"); toast.error(e instanceof Error ? e.message : "Could not generate PDF");
               }
             }}
             className="bg-card border-2 border-ink text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
