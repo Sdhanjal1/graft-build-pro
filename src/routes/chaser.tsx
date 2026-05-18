@@ -5,7 +5,8 @@ import {
   mockQuotes, getClient, mockProfile, formatGBP, buildChaserMessage,
   chasesDueNow, upcomingChases, markChaseSent, skipChase,
 } from "@/lib/mock-data";
-import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon } from "lucide-react";
+import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, PartyPopper } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 
 export const Route = createFileRoute("/chaser")({
   component: ChaserPage,
@@ -152,9 +153,12 @@ function ChaserPage() {
           );
         })}
         {overdue.length === 0 && (
-          <p className="text-center text-sm text-muted-foreground py-12">
-            Nothing overdue. Nice one. 🎉
-          </p>
+          <EmptyState
+            icon={PartyPopper}
+            tone="celebrate"
+            title="All caught up"
+            body="No overdue invoices. We'll nudge you the moment something needs chasing."
+          />
         )}
       </section>
     </AppShell>
