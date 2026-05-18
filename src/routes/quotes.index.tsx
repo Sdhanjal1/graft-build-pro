@@ -58,7 +58,20 @@ function QuotesPage() {
 
       <div className="px-5 mt-4 space-y-2.5">
         {filtered.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-12">No quotes match</p>
+          mockQuotes.length === 0 ? (
+            <EmptyState
+              icon={FileText}
+              title="No quotes yet"
+              body="Voice-draft your first quote in under a minute. We'll handle the totals, VAT and PDF."
+              cta={{ label: "New quote", to: "/quotes/new" }}
+            />
+          ) : (
+            <EmptyState
+              icon={Inbox}
+              title="Nothing here"
+              body={q ? `No quotes match "${q}".` : `No ${filter} quotes right now.`}
+            />
+          )
         )}
         {filtered.map((quote) => {
           const c = getClient(quote.client_id);
