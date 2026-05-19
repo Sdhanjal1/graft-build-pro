@@ -113,7 +113,7 @@ function RootComponent() {
   const router = useRouter();
   const path = router.state.location.pathname;
   const isMarketing = path === "/welcome" || path === "/pricing" || path === "/about";
-  const isPortal = path.startsWith("/portal/");
+  const isPortal = path.startsWith("/portal/") || path.startsWith("/request/");
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate>
