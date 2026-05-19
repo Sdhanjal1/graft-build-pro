@@ -110,12 +110,15 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+  const path = router.state.location.pathname;
+  const isMarketing = path === "/welcome" || path === "/pricing" || path === "/about";
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate>
         <Splash />
         <Outlet />
-        <BottomNav />
+        {!isMarketing && <BottomNav />}
         <PWAInstallBanner />
         <OfflineBanner />
       </AuthGate>
