@@ -86,7 +86,6 @@ function SiteCapturePage() {
         }
         setCapture(c);
         setItems(list);
-        setElapsed(Math.floor((Date.now() - new Date(c.started_at).getTime()) / 1000));
         setLoadingInit(false);
       } catch (e) {
         if (!cancelled) {
@@ -100,10 +99,12 @@ function SiteCapturePage() {
     };
   }, [captureId]);
 
+  // Timer only ticks while voice recording is active
   useEffect(() => {
+    if (!recording) return;
     const t = setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [recording]);
 
   useEffect(
     () => () => {
@@ -494,9 +495,12 @@ function SiteCapturePage() {
               autoFocus
               value={textValue}
               onChange={(e) => setTextValue(e.target.value)}
-              onKeyDown={(e) => {
+              onKeyDown={async (e) => {
                 if (e.key === "Enter") {
-                  addItem(textValue, "manual");
+                  e.preventDefault();
+                  if (!textValue.trim()) return;
+                  await addItem(textValue, "manual");
+                  setTextValue("");
                   setTextOpen(false);
                 }
               }}
@@ -505,8 +509,10 @@ function SiteCapturePage() {
             />
             <button
               type="button"
-              onClick={() => {
-                addItem(textValue, "manual");
+              onClick={async () => {
+                if (!textValue.trim()) return;
+                await addItem(textValue, "manual");
+                setTextValue("");
                 setTextOpen(false);
               }}
               disabled={!textValue.trim()}
