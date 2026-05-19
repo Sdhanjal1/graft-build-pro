@@ -1,16 +1,16 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Plus, FileText, Settings, Users } from "lucide-react";
+import { Home, Plus, FileText, Settings, MessageSquare } from "lucide-react";
 
 const items = [
   { to: "/", label: "Home", icon: Home },
-  { to: "/clients", label: "Clients", icon: Users },
+  { to: "/messages", label: "Inbox", icon: MessageSquare },
   { to: "/quotes", label: "Quotes", icon: FileText },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const hide = pathname.startsWith("/auth") || pathname.startsWith("/capture");
+  const hide = pathname.startsWith("/auth") || pathname.startsWith("/capture") || pathname.startsWith("/portal/");
   if (hide) return null;
 
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));

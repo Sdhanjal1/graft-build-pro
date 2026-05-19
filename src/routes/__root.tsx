@@ -113,14 +113,15 @@ function RootComponent() {
   const router = useRouter();
   const path = router.state.location.pathname;
   const isMarketing = path === "/welcome" || path === "/pricing" || path === "/about";
+  const isPortal = path.startsWith("/portal/");
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate>
-        <Splash />
+        {!isPortal && <Splash />}
         <Outlet />
-        {!isMarketing && <BottomNav />}
-        <PWAInstallBanner />
-        <OfflineBanner />
+        {!isMarketing && !isPortal && <BottomNav />}
+        {!isPortal && <PWAInstallBanner />}
+        {!isPortal && <OfflineBanner />}
       </AuthGate>
     </QueryClientProvider>
   );
@@ -128,11 +129,15 @@ function RootComponent() {
 
 const PUBLIC_ROUTES = new Set(["/auth", "/welcome", "/pricing", "/about"]);
 
+function isPublicPath(path: string) {
+  return PUBLIC_ROUTES.has(path) || path.startsWith("/portal/");
+}
+
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, loading } = useSession();
   const router = useRouter();
   const path = router.state.location.pathname;
-  const isPublic = PUBLIC_ROUTES.has(path);
+  const isPublic = isPublicPath(path);
 
   React.useEffect(() => {
     if (loading) return;
