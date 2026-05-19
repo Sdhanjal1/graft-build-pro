@@ -315,10 +315,13 @@ function QuoteDetail() {
 
       {/* Actions */}
       <section className="px-5 mt-5 space-y-2.5">
-        <a href={waHref} target="_blank" rel="noreferrer" className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2">
-          <MessageCircle className="h-5 w-5" />
-          Send via WhatsApp
-        </a>
+        <button
+          onClick={() => setSendOpen(true)}
+          className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2"
+        >
+          <Send className="h-5 w-5" />
+          Send quote
+        </button>
         <div className="grid grid-cols-2 gap-2.5">
           <a href={mailHref} className="bg-ink text-paper rounded-full py-3.5 font-semibold inline-flex items-center justify-center gap-2 text-sm">
             <Mail className="h-4 w-4" /> Email
