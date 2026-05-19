@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getWorkingHours, saveWorkingHours, type WorkingHours } from "@/lib/working-hours.functions";
+import { CustomerQRCard, PushPermissionCard } from "@/components/CustomerQRCard";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -250,6 +251,16 @@ function SettingsPage() {
           <SettingRow icon={Key} label="Claude API key" status="Optional — fallback quote generator is active" />
           <SettingRow icon={Key} label="OpenAI Whisper key" status="Add to enable voice-to-text" />
         </div>
+      </section>
+
+      <section className="px-5 mt-5">
+        <h2 className="text-xl mb-2.5">Get more jobs</h2>
+        <CustomerQRCard />
+      </section>
+
+      <section className="px-5 mt-5">
+        <h2 className="text-xl mb-2.5">Notifications</h2>
+        <PushPermissionCard />
       </section>
 
       <section className="px-5 mt-5">
