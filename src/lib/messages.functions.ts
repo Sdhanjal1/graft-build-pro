@@ -1,0 +1,192 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
+// ---------- Pro: create/get portal token for a quote ----------
+export const ensurePortalToken = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      quoteId: z.string().min(1).max(120),
+      channel: z.enum(["sms", "email", "manual"]).default("manual"),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: existing } = await supabase
+      .from("quote_portal_tokens")
+      .select("token")
+      .eq("quote_id", data.quoteId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (existing?.token) return { token: existing.token };
+
+    const token = crypto.randomUUID().replace(/-/g, "") + Math.random().toString(36).slice(2, 8);
+    const { error } = await supabase.from("quote_portal_tokens").insert({
+      quote_id: data.quoteId,
+      user_id: userId,
+      token,
+      channel: data.channel,
+    });
+    if (error) throw new Error(error.message);
+    return { token };
+  });
+
+// ---------- Pro: list messages for a quote ----------
+export const listQuoteMessages = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ quoteId: z.string().min(1).max(120) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: rows, error } = await supabase
+      .from("quote_messages")
+      .select("*")
+      .eq("quote_id", data.quoteId)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return { messages: rows ?? [] };
+  });
+
+// ---------- Pro: send a message into the thread ----------
+export const sendProMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      quoteId: z.string().min(1).max(120),
+      body: z.string().min(1).max(4000),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: row, error } = await supabase
+      .from("quote_messages")
+      .insert({ quote_id: data.quoteId, user_id: userId, sender: "pro", body: data.body })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return { message: row };
+  });
+
+// ---------- Pro: inbox (latest message per quote) ----------
+export const getInbox = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: rows, error } = await supabase
+      .from("quote_messages")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+    return { messages: rows ?? [] };
+  });
+
+// ---------- Public: resolve token -> quote + messages ----------
+export const getPortalData = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ token: z.string().min(8).max(128) }).parse(d))
+  .handler(async ({ data }) => {
+    const { data: tk } = await supabaseAdmin
+      .from("quote_portal_tokens")
+      .select("quote_id, user_id")
+      .eq("token", data.token)
+      .maybeSingle();
+    if (!tk) throw new Error("Invalid or expired link");
+
+    const [{ data: quote }, { data: messages }, { data: profile }] = await Promise.all([
+      supabaseAdmin.from("quotes").select("*").eq("id", tk.quote_id).maybeSingle(),
+      supabaseAdmin
+        .from("quote_messages")
+        .select("*")
+        .eq("quote_id", tk.quote_id)
+        .order("created_at", { ascending: true }),
+      supabaseAdmin
+        .from("profiles")
+        .select("business_name, full_name, phone, email")
+        .eq("id", tk.user_id)
+        .maybeSingle(),
+    ]);
+
+    if (!quote) throw new Error("Quote not found");
+    let client: any = null;
+    if (quote.client_id) {
+      const { data: c } = await supabaseAdmin
+        .from("clients")
+        .select("name, address, email, phone")
+        .eq("id", quote.client_id)
+        .maybeSingle();
+      client = c;
+    }
+    return { quote, messages: messages ?? [], profile, client };
+  });
+
+// ---------- Public: customer posts a message ----------
+function isWithinWorkingHours(schedule: any, tz: string): boolean {
+  try {
+    const now = new Date();
+    const fmt = new Intl.DateTimeFormat("en-GB", {
+      timeZone: tz, weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false,
+    }).formatToParts(now);
+    const wd = (fmt.find((p) => p.type === "weekday")?.value ?? "").toLowerCase().slice(0, 3);
+    const hh = fmt.find((p) => p.type === "hour")?.value ?? "00";
+    const mm = fmt.find((p) => p.type === "minute")?.value ?? "00";
+    const cur = `${hh}:${mm}`;
+    const day = schedule?.[wd];
+    if (!day?.enabled) return false;
+    return cur >= day.start && cur <= day.end;
+  } catch {
+    return true;
+  }
+}
+
+export const postPortalMessage = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({
+      token: z.string().min(8).max(128),
+      body: z.string().min(1).max(4000),
+    }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { data: tk } = await supabaseAdmin
+      .from("quote_portal_tokens")
+      .select("quote_id, user_id")
+      .eq("token", data.token)
+      .maybeSingle();
+    if (!tk) throw new Error("Invalid link");
+
+    const { data: inserted, error } = await supabaseAdmin
+      .from("quote_messages")
+      .insert({
+        quote_id: tk.quote_id,
+        user_id: tk.user_id,
+        sender: "customer",
+        body: data.body,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    // Auto-reply if outside working hours
+    const { data: wh } = await supabaseAdmin
+      .from("working_hours")
+      .select("dnd_enabled, schedule, auto_reply, timezone")
+      .eq("user_id", tk.user_id)
+      .maybeSingle();
+
+    let autoReply: any = null;
+    if (wh?.dnd_enabled && !isWithinWorkingHours(wh.schedule, wh.timezone || "Europe/London")) {
+      const { data: ar } = await supabaseAdmin
+        .from("quote_messages")
+        .insert({
+          quote_id: tk.quote_id,
+          user_id: tk.user_id,
+          sender: "system",
+          body: wh.auto_reply,
+        })
+        .select()
+        .single();
+      autoReply = ar;
+    }
+    return { message: inserted, autoReply };
+  });
