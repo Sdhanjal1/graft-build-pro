@@ -130,7 +130,7 @@ function RootComponent() {
 const PUBLIC_ROUTES = new Set(["/auth", "/welcome", "/pricing", "/about"]);
 
 function isPublicPath(path: string) {
-  return PUBLIC_ROUTES.has(path) || path.startsWith("/portal/");
+  return PUBLIC_ROUTES.has(path) || path.startsWith("/portal/") || path.startsWith("/request/");
 }
 
 function AuthGate({ children }: { children: React.ReactNode }) {
