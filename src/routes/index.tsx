@@ -78,8 +78,48 @@ function HomePage() {
               View all
             </Link>
           </div>
+          <Link
+            to="/capture/new"
+            className="mt-2 w-full inline-flex items-center justify-center gap-2 bg-paper/10 border border-lime/40 text-lime rounded-full py-3 text-sm font-semibold active:scale-[0.99] transition"
+          >
+            <MapPin className="h-4 w-4" />
+            Start site capture
+          </Link>
         </div>
       </section>
+
+      {/* Active site captures */}
+      {activeCaptures.length > 0 && (
+        <section className="px-5 mt-4">
+          <div className="rounded-2xl bg-ink text-paper p-4 border border-lime/30">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="h-4 w-4 text-lime" />
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-paper/60">
+                {activeCaptures.length} active site capture{activeCaptures.length === 1 ? "" : "s"}
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              {activeCaptures.slice(0, 3).map((c) => (
+                <Link
+                  key={c.id}
+                  to="/capture/$captureId"
+                  params={{ captureId: c.id }}
+                  className="flex items-center gap-3 rounded-xl bg-paper/5 px-3 py-2.5 active:scale-[0.99] transition"
+                >
+                  <Clock className="h-4 w-4 text-lime shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate text-paper">{captureTitle(c)}</p>
+                    <p className="text-[11px] text-paper/50 truncate">
+                      Updated {new Date(c.updated_at).toLocaleString("en-GB", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })}
+                    </p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-paper/40" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Stats row */}
       <section className="px-5 mt-4 grid grid-cols-3 gap-3">
