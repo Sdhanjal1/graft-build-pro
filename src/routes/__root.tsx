@@ -110,12 +110,15 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+  const path = router.state.location.pathname;
+  const isMarketing = path === "/welcome" || path === "/pricing" || path === "/about";
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate>
         <Splash />
         <Outlet />
-        <BottomNav />
+        {!isMarketing && <BottomNav />}
         <PWAInstallBanner />
         <OfflineBanner />
       </AuthGate>
@@ -123,22 +126,24 @@ function RootComponent() {
   );
 }
 
+const PUBLIC_ROUTES = new Set(["/auth", "/welcome", "/pricing", "/about"]);
+
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, loading } = useSession();
   const router = useRouter();
   const path = router.state.location.pathname;
-  const onAuthRoute = path === "/auth";
+  const isPublic = PUBLIC_ROUTES.has(path);
 
   React.useEffect(() => {
     if (loading) return;
-    if (!session && !onAuthRoute) {
+    if (!session && !isPublic) {
       router.navigate({ to: "/auth" });
     } else if (session) {
       void hydrateUserData();
     }
-  }, [session, loading, onAuthRoute, router]);
+  }, [session, loading, isPublic, router]);
 
   if (loading) return null;
-  if (!session && !onAuthRoute) return null;
+  if (!session && !isPublic) return null;
   return <>{children}</>;
 }
