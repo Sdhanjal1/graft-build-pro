@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   mockClients, mockQuotes, mockProfile, mockTransactions, stats, formatGBP, getClient,
   todaysJobs, annualRemindersDue, formatTime, getQuote,
 } from "@/lib/mock-data";
-import { AlertTriangle, ArrowRight, BarChart3, Mic, CreditCard, Landmark, Banknote, Search, Sparkles, BellRing } from "lucide-react";
+import { listActiveCaptures, captureTitle, type SiteCapture } from "@/lib/site-captures";
+import { AlertTriangle, ArrowRight, BarChart3, Mic, CreditCard, Landmark, Banknote, Search, Sparkles, BellRing, MapPin, Clock } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 
 export const Route = createFileRoute("/")({
@@ -24,6 +26,15 @@ function HomePage() {
   const recentClients = mockClients.slice(0, 3);
   const today = todaysJobs();
   const reminders = annualRemindersDue(30);
+  const [activeCaptures, setActiveCaptures] = useState<SiteCapture[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    listActiveCaptures()
+      .then((list) => { if (!cancelled) setActiveCaptures(list); })
+      .catch((e) => console.error("captures", e));
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <AppShell>
