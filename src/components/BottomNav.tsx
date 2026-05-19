@@ -10,7 +10,7 @@ const items = [
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const hide = pathname.startsWith("/auth");
+  const hide = pathname.startsWith("/auth") || pathname.startsWith("/capture");
   if (hide) return null;
 
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));

@@ -256,6 +256,89 @@ export type Database = {
           },
         ]
       }
+      site_capture_items: {
+        Row: {
+          capture_id: string
+          created_at: string
+          description: string
+          id: string
+          position: number
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          capture_id: string
+          created_at?: string
+          description: string
+          id?: string
+          position?: number
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          capture_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          position?: number
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_capture_items_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "site_captures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_captures: {
+        Row: {
+          address: string | null
+          created_at: string
+          customer_name: string | null
+          generated_quote_id: string | null
+          id: string
+          started_at: string
+          status: string
+          trade_type: string | null
+          updated_at: string
+          user_id: string
+          vat_registered: boolean
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          customer_name?: string | null
+          generated_quote_id?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          trade_type?: string | null
+          updated_at?: string
+          user_id: string
+          vat_registered?: boolean
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          customer_name?: string | null
+          generated_quote_id?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          trade_type?: string | null
+          updated_at?: string
+          user_id?: string
+          vat_registered?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
