@@ -446,6 +446,18 @@ function QuoteDetail() {
         </div>
       </section>
 
+      <SendQuoteDialog
+        open={sendOpen}
+        onClose={() => setSendOpen(false)}
+        quoteId={quote.id}
+        quoteRef={quote.ref ?? quote.id.slice(0, 8)}
+        quoteTitle={quote.title}
+        customerName={client?.name}
+        customerPhone={client?.phone}
+        customerEmail={client?.email}
+        whatsappHref={waHref}
+      />
+
       {/* Bottom sheet: how did the customer pay? */}
       {askingPaid && (
         <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setAskingPaid(false)}>
