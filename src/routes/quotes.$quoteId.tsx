@@ -12,11 +12,15 @@ import {
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
 } from "@/lib/mock-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2, Send, XCircle } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
+import { SendQuoteDialog } from "@/components/SendQuoteDialog";
+import { listQuoteMessages, sendProMessage } from "@/lib/messages.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useRef } from "react";
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
@@ -45,6 +49,7 @@ function QuoteDetail() {
   const [askDeposit, setAskDeposit] = useState(false);
   const [askInvoice, setAskInvoice] = useState(false);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
+  const [sendOpen, setSendOpen] = useState(false);
   const navigate = useNavigate();
   const defaultSchedule = useMemo(() => {
     const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0);
@@ -310,10 +315,13 @@ function QuoteDetail() {
 
       {/* Actions */}
       <section className="px-5 mt-5 space-y-2.5">
-        <a href={waHref} target="_blank" rel="noreferrer" className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2">
-          <MessageCircle className="h-5 w-5" />
-          Send via WhatsApp
-        </a>
+        <button
+          onClick={() => setSendOpen(true)}
+          className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2"
+        >
+          <Send className="h-5 w-5" />
+          Send quote
+        </button>
         <div className="grid grid-cols-2 gap-2.5">
           <a href={mailHref} className="bg-ink text-paper rounded-full py-3.5 font-semibold inline-flex items-center justify-center gap-2 text-sm">
             <Mail className="h-4 w-4" /> Email
@@ -437,6 +445,18 @@ function QuoteDetail() {
           </button>
         </div>
       </section>
+
+      <SendQuoteDialog
+        open={sendOpen}
+        onClose={() => setSendOpen(false)}
+        quoteId={quote.id}
+        quoteRef={quote.ref ?? quote.id.slice(0, 8)}
+        quoteTitle={quote.title}
+        customerName={client?.name}
+        customerPhone={client?.phone}
+        customerEmail={client?.email}
+        whatsappHref={waHref}
+      />
 
       {/* Bottom sheet: how did the customer pay? */}
       {askingPaid && (

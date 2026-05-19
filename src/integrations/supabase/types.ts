@@ -173,6 +173,66 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          quote_id: string
+          read_at: string | null
+          sender: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          quote_id: string
+          read_at?: string | null
+          sender: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          quote_id?: string
+          read_at?: string | null
+          sender?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quote_portal_tokens: {
+        Row: {
+          channel: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          quote_id: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          quote_id: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          quote_id?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       quotes: {
         Row: {
           client_id: string | null
@@ -336,6 +396,36 @@ export type Database = {
           updated_at?: string
           user_id?: string
           vat_registered?: boolean
+        }
+        Relationships: []
+      }
+      working_hours: {
+        Row: {
+          auto_reply: string
+          created_at: string
+          dnd_enabled: boolean
+          schedule: Json
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_reply?: string
+          created_at?: string
+          dnd_enabled?: boolean
+          schedule?: Json
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_reply?: string
+          created_at?: string
+          dnd_enabled?: boolean
+          schedule?: Json
+          timezone?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
