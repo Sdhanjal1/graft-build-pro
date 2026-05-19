@@ -86,7 +86,6 @@ function SiteCapturePage() {
         }
         setCapture(c);
         setItems(list);
-        setElapsed(Math.floor((Date.now() - new Date(c.started_at).getTime()) / 1000));
         setLoadingInit(false);
       } catch (e) {
         if (!cancelled) {
@@ -100,10 +99,12 @@ function SiteCapturePage() {
     };
   }, [captureId]);
 
+  // Timer only ticks while voice recording is active
   useEffect(() => {
+    if (!recording) return;
     const t = setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [recording]);
 
   useEffect(
     () => () => {
