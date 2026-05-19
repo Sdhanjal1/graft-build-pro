@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { BottomNav } from "@/components/BottomNav";
 import { Splash } from "@/components/Splash";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { useSession } from "@/lib/auth";
 import { hydrateUserData } from "@/lib/mock-data";
 
@@ -116,6 +117,7 @@ function RootComponent() {
         <Outlet />
         <BottomNav />
         <PWAInstallBanner />
+        <OfflineBanner />
       </AuthGate>
     </QueryClientProvider>
   );
