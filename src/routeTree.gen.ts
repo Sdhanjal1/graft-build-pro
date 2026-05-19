@@ -22,6 +22,8 @@ import { Route as QuotesQuoteIdRouteImport } from './routes/quotes.$quoteId'
 import { Route as InvoicesQuoteIdRouteImport } from './routes/invoices.$quoteId'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
 import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
+import { Route as CaptureNewRouteImport } from './routes/capture.new'
+import { Route as CaptureCaptureIdRouteImport } from './routes/capture.$captureId'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -89,6 +91,16 @@ const ClientsClientIdRoute = ClientsClientIdRouteImport.update({
   path: '/clients/$clientId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CaptureNewRoute = CaptureNewRouteImport.update({
+  id: '/capture/new',
+  path: '/capture/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CaptureCaptureIdRoute = CaptureCaptureIdRouteImport.update({
+  id: '/capture/$captureId',
+  path: '/capture/$captureId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -103,6 +115,8 @@ export interface FileRoutesByFullPath {
   '/chaser': typeof ChaserRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/capture/$captureId': typeof CaptureCaptureIdRoute
+  '/capture/new': typeof CaptureNewRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
@@ -119,6 +133,8 @@ export interface FileRoutesByTo {
   '/chaser': typeof ChaserRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/capture/$captureId': typeof CaptureCaptureIdRoute
+  '/capture/new': typeof CaptureNewRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
@@ -136,6 +152,8 @@ export interface FileRoutesById {
   '/chaser': typeof ChaserRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/capture/$captureId': typeof CaptureCaptureIdRoute
+  '/capture/new': typeof CaptureNewRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
@@ -154,6 +172,8 @@ export interface FileRouteTypes {
     | '/chaser'
     | '/search'
     | '/settings'
+    | '/capture/$captureId'
+    | '/capture/new'
     | '/clients/$clientId'
     | '/clients/new'
     | '/invoices/$quoteId'
@@ -170,6 +190,8 @@ export interface FileRouteTypes {
     | '/chaser'
     | '/search'
     | '/settings'
+    | '/capture/$captureId'
+    | '/capture/new'
     | '/clients/$clientId'
     | '/clients/new'
     | '/invoices/$quoteId'
@@ -186,6 +208,8 @@ export interface FileRouteTypes {
     | '/chaser'
     | '/search'
     | '/settings'
+    | '/capture/$captureId'
+    | '/capture/new'
     | '/clients/$clientId'
     | '/clients/new'
     | '/invoices/$quoteId'
@@ -203,6 +227,8 @@ export interface RootRouteChildren {
   ChaserRoute: typeof ChaserRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
+  CaptureCaptureIdRoute: typeof CaptureCaptureIdRoute
+  CaptureNewRoute: typeof CaptureNewRoute
   ClientsClientIdRoute: typeof ClientsClientIdRoute
   ClientsNewRoute: typeof ClientsNewRoute
   InvoicesQuoteIdRoute: typeof InvoicesQuoteIdRoute
@@ -306,6 +332,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsClientIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/capture/new': {
+      id: '/capture/new'
+      path: '/capture/new'
+      fullPath: '/capture/new'
+      preLoaderRoute: typeof CaptureNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/capture/$captureId': {
+      id: '/capture/$captureId'
+      path: '/capture/$captureId'
+      fullPath: '/capture/$captureId'
+      preLoaderRoute: typeof CaptureCaptureIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -323,6 +363,8 @@ const rootRouteChildren: RootRouteChildren = {
   ChaserRoute: ChaserRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
+  CaptureCaptureIdRoute: CaptureCaptureIdRoute,
+  CaptureNewRoute: CaptureNewRoute,
   ClientsClientIdRoute: ClientsClientIdRoute,
   ClientsNewRoute: ClientsNewRoute,
   InvoicesQuoteIdRoute: InvoicesQuoteIdRoute,
@@ -335,3 +377,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
