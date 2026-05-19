@@ -233,6 +233,48 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_requests: {
+        Row: {
+          body: string
+          created_at: string
+          customer_name: string | null
+          customer_phone: string | null
+          customer_user_id: string
+          id: string
+          pro_user_id: string
+          read_at: string | null
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          customer_user_id: string
+          id?: string
+          pro_user_id: string
+          read_at?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          customer_user_id?: string
+          id?: string
+          pro_user_id?: string
+          read_at?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quotes: {
         Row: {
           client_id: string | null

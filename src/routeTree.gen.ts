@@ -21,6 +21,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as QuotesIndexRouteImport } from './routes/quotes.index'
 import { Route as ClientsIndexRouteImport } from './routes/clients.index'
+import { Route as RequestProIdRouteImport } from './routes/request.$proId'
 import { Route as QuotesNewRouteImport } from './routes/quotes.new'
 import { Route as QuotesQuoteIdRouteImport } from './routes/quotes.$quoteId'
 import { Route as PortalTokenRouteImport } from './routes/portal.$token'
@@ -91,6 +92,11 @@ const ClientsIndexRoute = ClientsIndexRouteImport.update({
   path: '/clients/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RequestProIdRoute = RequestProIdRouteImport.update({
+  id: '/request/$proId',
+  path: '/request/$proId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QuotesNewRoute = QuotesNewRouteImport.update({
   id: '/quotes/new',
   path: '/quotes/new',
@@ -157,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/portal/$token': typeof PortalTokenRoute
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
+  '/request/$proId': typeof RequestProIdRoute
   '/clients/': typeof ClientsIndexRoute
   '/quotes/': typeof QuotesIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/portal/$token': typeof PortalTokenRoute
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
+  '/request/$proId': typeof RequestProIdRoute
   '/clients': typeof ClientsIndexRoute
   '/quotes': typeof QuotesIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/portal/$token': typeof PortalTokenRoute
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
+  '/request/$proId': typeof RequestProIdRoute
   '/clients/': typeof ClientsIndexRoute
   '/quotes/': typeof QuotesIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
     | '/portal/$token'
     | '/quotes/$quoteId'
     | '/quotes/new'
+    | '/request/$proId'
     | '/clients/'
     | '/quotes/'
     | '/api/public/payments/webhook'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/portal/$token'
     | '/quotes/$quoteId'
     | '/quotes/new'
+    | '/request/$proId'
     | '/clients'
     | '/quotes'
     | '/api/public/payments/webhook'
@@ -275,6 +286,7 @@ export interface FileRouteTypes {
     | '/portal/$token'
     | '/quotes/$quoteId'
     | '/quotes/new'
+    | '/request/$proId'
     | '/clients/'
     | '/quotes/'
     | '/api/public/payments/webhook'
@@ -299,6 +311,7 @@ export interface RootRouteChildren {
   PortalTokenRoute: typeof PortalTokenRoute
   QuotesQuoteIdRoute: typeof QuotesQuoteIdRoute
   QuotesNewRoute: typeof QuotesNewRoute
+  RequestProIdRoute: typeof RequestProIdRoute
   ClientsIndexRoute: typeof ClientsIndexRoute
   QuotesIndexRoute: typeof QuotesIndexRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
@@ -390,6 +403,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/request/$proId': {
+      id: '/request/$proId'
+      path: '/request/$proId'
+      fullPath: '/request/$proId'
+      preLoaderRoute: typeof RequestProIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/quotes/new': {
       id: '/quotes/new'
       path: '/quotes/new'
@@ -475,6 +495,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortalTokenRoute: PortalTokenRoute,
   QuotesQuoteIdRoute: QuotesQuoteIdRoute,
   QuotesNewRoute: QuotesNewRoute,
+  RequestProIdRoute: RequestProIdRoute,
   ClientsIndexRoute: ClientsIndexRoute,
   QuotesIndexRoute: QuotesIndexRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
@@ -482,13 +503,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

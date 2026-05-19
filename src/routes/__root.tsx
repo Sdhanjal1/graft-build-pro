@@ -113,7 +113,7 @@ function RootComponent() {
   const router = useRouter();
   const path = router.state.location.pathname;
   const isMarketing = path === "/welcome" || path === "/pricing" || path === "/about";
-  const isPortal = path.startsWith("/portal/");
+  const isPortal = path.startsWith("/portal/") || path.startsWith("/request/");
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate>
@@ -130,7 +130,7 @@ function RootComponent() {
 const PUBLIC_ROUTES = new Set(["/auth", "/welcome", "/pricing", "/about"]);
 
 function isPublicPath(path: string) {
-  return PUBLIC_ROUTES.has(path) || path.startsWith("/portal/");
+  return PUBLIC_ROUTES.has(path) || path.startsWith("/portal/") || path.startsWith("/request/");
 }
 
 function AuthGate({ children }: { children: React.ReactNode }) {
