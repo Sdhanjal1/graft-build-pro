@@ -273,6 +273,98 @@ function SettingsPage() {
   );
 }
 
+function WorkingHoursPanel() {
+  const fetchWh = useServerFn(getWorkingHours);
+  const saveWh = useServerFn(saveWorkingHours);
+  const [wh, setWh] = useState<WorkingHours | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { void fetchWh().then(setWh).catch(() => setWh(null)); }, []);
+
+  useEffect(() => {
+    if (!wh) return;
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => { void saveWh({ data: wh }).catch(() => {}); }, 700);
+    return () => { if (timer.current) clearTimeout(timer.current); };
+  }, [wh]);
+
+  if (!wh) return <div className="card-surface p-5 text-sm text-muted-foreground">Loading…</div>;
+
+  const days: Array<{ key: keyof WorkingHours["schedule"]; label: string }> = [
+    { key: "mon", label: "Mon" }, { key: "tue", label: "Tue" }, { key: "wed", label: "Wed" },
+    { key: "thu", label: "Thu" }, { key: "fri", label: "Fri" }, { key: "sat", label: "Sat" }, { key: "sun", label: "Sun" },
+  ];
+
+  const updateDay = (k: keyof WorkingHours["schedule"], patch: Partial<WorkingHours["schedule"]["mon"]>) =>
+    setWh({ ...wh, schedule: { ...wh.schedule, [k]: { ...wh.schedule[k], ...patch } } });
+
+  return (
+    <div className="card-surface p-5 space-y-4">
+      <label className="flex items-center justify-between cursor-pointer">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center"><Clock className="h-4 w-4" /></div>
+          <div>
+            <p className="font-semibold text-sm">Do Not Disturb</p>
+            <p className="text-xs text-muted-foreground">Pause notifications outside working hours</p>
+          </div>
+        </div>
+        <input
+          type="checkbox"
+          checked={wh.dnd_enabled}
+          onChange={(e) => setWh({ ...wh, dnd_enabled: e.target.checked })}
+          className="h-6 w-11 appearance-none rounded-full bg-secondary checked:bg-lime relative cursor-pointer transition
+            before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:h-5 before:w-5 before:rounded-full before:bg-white before:transition
+            checked:before:translate-x-5"
+        />
+      </label>
+
+      <div className="space-y-2">
+        {days.map(({ key, label }) => {
+          const d = wh.schedule[key];
+          return (
+            <div key={key} className="flex items-center gap-2">
+              <label className="w-20 flex items-center gap-2 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  checked={d.enabled}
+                  onChange={(e) => updateDay(key, { enabled: e.target.checked })}
+                  className="h-4 w-4 accent-lime"
+                />
+                {label}
+              </label>
+              <input
+                type="time"
+                disabled={!d.enabled}
+                value={d.start}
+                onChange={(e) => updateDay(key, { start: e.target.value })}
+                className="flex-1 bg-secondary rounded-xl px-3 py-2 text-sm outline-none disabled:opacity-40"
+              />
+              <span className="text-muted-foreground text-xs">–</span>
+              <input
+                type="time"
+                disabled={!d.enabled}
+                value={d.end}
+                onChange={(e) => updateDay(key, { end: e.target.value })}
+                className="flex-1 bg-secondary rounded-xl px-3 py-2 text-sm outline-none disabled:opacity-40"
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Auto-reply (sent outside hours)</span>
+        <textarea
+          value={wh.auto_reply}
+          onChange={(e) => setWh({ ...wh, auto_reply: e.target.value })}
+          rows={2}
+          className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+        />
+      </label>
+    </div>
+  );
+}
+
 function FeedbackToggles() {
   const [prefs, setPrefs] = useState(() => getFeedbackPrefs());
   const update = (patch: Partial<typeof prefs>) => {
