@@ -12,11 +12,15 @@ import {
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
 } from "@/lib/mock-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2, Send, XCircle } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
+import { SendQuoteDialog } from "@/components/SendQuoteDialog";
+import { listQuoteMessages, sendProMessage } from "@/lib/messages.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useRef } from "react";
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
