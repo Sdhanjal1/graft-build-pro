@@ -13,6 +13,7 @@ import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as ChaserRouteImport } from './routes/chaser'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -22,6 +23,7 @@ import { Route as QuotesIndexRouteImport } from './routes/quotes.index'
 import { Route as ClientsIndexRouteImport } from './routes/clients.index'
 import { Route as QuotesNewRouteImport } from './routes/quotes.new'
 import { Route as QuotesQuoteIdRouteImport } from './routes/quotes.$quoteId'
+import { Route as PortalTokenRouteImport } from './routes/portal.$token'
 import { Route as InvoicesQuoteIdRouteImport } from './routes/invoices.$quoteId'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
 import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
@@ -47,6 +49,11 @@ const SearchRoute = SearchRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesRoute = MessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChaserRoute = ChaserRouteImport.update({
@@ -94,6 +101,11 @@ const QuotesQuoteIdRoute = QuotesQuoteIdRouteImport.update({
   path: '/quotes/$quoteId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalTokenRoute = PortalTokenRouteImport.update({
+  id: '/portal/$token',
+  path: '/portal/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InvoicesQuoteIdRoute = InvoicesQuoteIdRouteImport.update({
   id: '/invoices/$quoteId',
   path: '/invoices/$quoteId',
@@ -132,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
@@ -141,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
+  '/portal/$token': typeof PortalTokenRoute
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
   '/clients/': typeof ClientsIndexRoute
@@ -153,6 +167,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
@@ -162,6 +177,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
+  '/portal/$token': typeof PortalTokenRoute
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
   '/clients': typeof ClientsIndexRoute
@@ -175,6 +191,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
@@ -184,6 +201,7 @@ export interface FileRoutesById {
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
+  '/portal/$token': typeof PortalTokenRoute
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
   '/clients/': typeof ClientsIndexRoute
@@ -198,6 +216,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/messages'
     | '/pricing'
     | '/search'
     | '/settings'
@@ -207,6 +226,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId'
     | '/clients/new'
     | '/invoices/$quoteId'
+    | '/portal/$token'
     | '/quotes/$quoteId'
     | '/quotes/new'
     | '/clients/'
@@ -219,6 +239,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/messages'
     | '/pricing'
     | '/search'
     | '/settings'
@@ -228,6 +249,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId'
     | '/clients/new'
     | '/invoices/$quoteId'
+    | '/portal/$token'
     | '/quotes/$quoteId'
     | '/quotes/new'
     | '/clients'
@@ -240,6 +262,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/messages'
     | '/pricing'
     | '/search'
     | '/settings'
@@ -249,6 +272,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId'
     | '/clients/new'
     | '/invoices/$quoteId'
+    | '/portal/$token'
     | '/quotes/$quoteId'
     | '/quotes/new'
     | '/clients/'
@@ -262,6 +286,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CalendarRoute: typeof CalendarRoute
   ChaserRoute: typeof ChaserRoute
+  MessagesRoute: typeof MessagesRoute
   PricingRoute: typeof PricingRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
@@ -271,6 +296,7 @@ export interface RootRouteChildren {
   ClientsClientIdRoute: typeof ClientsClientIdRoute
   ClientsNewRoute: typeof ClientsNewRoute
   InvoicesQuoteIdRoute: typeof InvoicesQuoteIdRoute
+  PortalTokenRoute: typeof PortalTokenRoute
   QuotesQuoteIdRoute: typeof QuotesQuoteIdRoute
   QuotesNewRoute: typeof QuotesNewRoute
   ClientsIndexRoute: typeof ClientsIndexRoute
@@ -306,6 +332,13 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages': {
+      id: '/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof MessagesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chaser': {
@@ -371,6 +404,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QuotesQuoteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal/$token': {
+      id: '/portal/$token'
+      path: '/portal/$token'
+      fullPath: '/portal/$token'
+      preLoaderRoute: typeof PortalTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/invoices/$quoteId': {
       id: '/invoices/$quoteId'
       path: '/invoices/$quoteId'
@@ -422,6 +462,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CalendarRoute: CalendarRoute,
   ChaserRoute: ChaserRoute,
+  MessagesRoute: MessagesRoute,
   PricingRoute: PricingRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
@@ -431,6 +472,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientsClientIdRoute: ClientsClientIdRoute,
   ClientsNewRoute: ClientsNewRoute,
   InvoicesQuoteIdRoute: InvoicesQuoteIdRoute,
+  PortalTokenRoute: PortalTokenRoute,
   QuotesQuoteIdRoute: QuotesQuoteIdRoute,
   QuotesNewRoute: QuotesNewRoute,
   ClientsIndexRoute: ClientsIndexRoute,
@@ -440,3 +482,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
