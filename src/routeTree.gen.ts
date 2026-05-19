@@ -9,11 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ChaserRouteImport } from './routes/chaser'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as QuotesIndexRouteImport } from './routes/quotes.index'
 import { Route as ClientsIndexRouteImport } from './routes/clients.index'
@@ -26,6 +29,11 @@ import { Route as CaptureNewRouteImport } from './routes/capture.new'
 import { Route as CaptureCaptureIdRouteImport } from './routes/capture.$captureId'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -34,6 +42,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChaserRoute = ChaserRouteImport.update({
@@ -49,6 +62,11 @@ const CalendarRoute = CalendarRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -110,11 +128,14 @@ const ApiPublicPaymentsWebhookRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/welcome': typeof WelcomeRoute
   '/capture/$captureId': typeof CaptureCaptureIdRoute
   '/capture/new': typeof CaptureNewRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
@@ -128,11 +149,14 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/welcome': typeof WelcomeRoute
   '/capture/$captureId': typeof CaptureCaptureIdRoute
   '/capture/new': typeof CaptureNewRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
@@ -147,11 +171,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/welcome': typeof WelcomeRoute
   '/capture/$captureId': typeof CaptureCaptureIdRoute
   '/capture/new': typeof CaptureNewRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
@@ -167,11 +194,14 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/pricing'
     | '/search'
     | '/settings'
+    | '/welcome'
     | '/capture/$captureId'
     | '/capture/new'
     | '/clients/$clientId'
@@ -185,11 +215,14 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/pricing'
     | '/search'
     | '/settings'
+    | '/welcome'
     | '/capture/$captureId'
     | '/capture/new'
     | '/clients/$clientId'
@@ -203,11 +236,14 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/pricing'
     | '/search'
     | '/settings'
+    | '/welcome'
     | '/capture/$captureId'
     | '/capture/new'
     | '/clients/$clientId'
@@ -222,11 +258,14 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
   CalendarRoute: typeof CalendarRoute
   ChaserRoute: typeof ChaserRoute
+  PricingRoute: typeof PricingRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
+  WelcomeRoute: typeof WelcomeRoute
   CaptureCaptureIdRoute: typeof CaptureCaptureIdRoute
   CaptureNewRoute: typeof CaptureNewRoute
   ClientsClientIdRoute: typeof ClientsClientIdRoute
@@ -241,6 +280,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -253,6 +299,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chaser': {
@@ -274,6 +327,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -358,11 +418,14 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
   CalendarRoute: CalendarRoute,
   ChaserRoute: ChaserRoute,
+  PricingRoute: PricingRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
+  WelcomeRoute: WelcomeRoute,
   CaptureCaptureIdRoute: CaptureCaptureIdRoute,
   CaptureNewRoute: CaptureNewRoute,
   ClientsClientIdRoute: ClientsClientIdRoute,
@@ -377,13 +440,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
