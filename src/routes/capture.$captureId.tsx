@@ -495,9 +495,12 @@ function SiteCapturePage() {
               autoFocus
               value={textValue}
               onChange={(e) => setTextValue(e.target.value)}
-              onKeyDown={(e) => {
+              onKeyDown={async (e) => {
                 if (e.key === "Enter") {
-                  addItem(textValue, "manual");
+                  e.preventDefault();
+                  if (!textValue.trim()) return;
+                  await addItem(textValue, "manual");
+                  setTextValue("");
                   setTextOpen(false);
                 }
               }}
@@ -506,8 +509,10 @@ function SiteCapturePage() {
             />
             <button
               type="button"
-              onClick={() => {
-                addItem(textValue, "manual");
+              onClick={async () => {
+                if (!textValue.trim()) return;
+                await addItem(textValue, "manual");
+                setTextValue("");
                 setTextOpen(false);
               }}
               disabled={!textValue.trim()}
