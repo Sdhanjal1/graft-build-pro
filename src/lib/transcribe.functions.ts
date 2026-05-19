@@ -9,9 +9,9 @@ const InputSchema = z.object({
 export const transcribeAudio = createServerFn({ method: "POST" })
   .inputValidator((input) => InputSchema.parse(input))
   .handler(async ({ data }) => {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.ELEVENLABS_API_KEY;
     if (!apiKey) {
-      throw new Error("Transcription is not configured (missing API key).");
+      throw new Error("Transcription is not configured (missing ElevenLabs API key).");
     }
 
     const bytes = Buffer.from(data.audioBase64, "base64");
@@ -29,23 +29,25 @@ export const transcribeAudio = createServerFn({ method: "POST" })
 
     const form = new FormData();
     form.append("file", blob, `recording.${ext}`);
-    form.append("model", "whisper-1");
-    form.append("language", "en");
-    form.append("response_format", "json");
+    form.append("model_id", "scribe_v1");
+    form.append("language_code", "eng");
+    form.append("tag_audio_events", "false");
+    form.append("diarize", "false");
 
-    const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    const res = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}` },
+      headers: { "xi-api-key": apiKey },
       body: form,
     });
 
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
-      console.error("OpenAI Whisper error", res.status, errText);
-      if (res.status === 429 && errText.includes("insufficient_quota")) {
-        throw new Error(
-          "OpenAI quota is exhausted. Update the OpenAI key or billing, or use a browser that supports live voice typing.",
-        );
+      console.error("ElevenLabs Scribe error", res.status, errText);
+      if (res.status === 401) {
+        throw new Error("ElevenLabs API key is invalid. Update the key and try again.");
+      }
+      if (res.status === 429) {
+        throw new Error("ElevenLabs rate limit hit. Wait a moment and try again.");
       }
       throw new Error(`Transcription failed (${res.status})`);
     }
