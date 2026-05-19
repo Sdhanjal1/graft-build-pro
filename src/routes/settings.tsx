@@ -6,8 +6,10 @@ import { signOut } from "@/lib/auth";
 import { getFeedbackPrefs, setFeedbackPrefs, feedback } from "@/lib/feedback";
 import {
   Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut, BarChart3,
-  CreditCard, Landmark, Banknote, Wallet, Trophy, MapPin, Gift, Share2, Vibrate, Volume2,
+  CreditCard, Landmark, Banknote, Wallet, Trophy, MapPin, Gift, Share2, Vibrate, Volume2, Clock,
 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { getWorkingHours, saveWorkingHours, type WorkingHours } from "@/lib/working-hours.functions";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -251,8 +253,15 @@ function SettingsPage() {
       </section>
 
       <section className="px-5 mt-5">
+        <h2 className="text-xl mb-2.5">Working hours</h2>
+        <WorkingHoursPanel />
+      </section>
+
+      <section className="px-5 mt-5">
         <ReferMate />
       </section>
+
+
 
       <section className="px-5 mt-5 mb-6">
         <button onClick={handleSignOut} className="card-surface p-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left">
