@@ -12,7 +12,7 @@ export function CustomerQRCard() {
   const url = `${origin}/request/${user.id}`;
 
   const share = async () => {
-    feedback.tap();
+    feedback("tap");
     try {
       if (navigator.share) {
         await navigator.share({ title: "Request a quote", text: "Scan or tap to request a quote from me:", url });
@@ -57,7 +57,7 @@ export function PushPermissionCard() {
   }, []);
 
   const enable = async () => {
-    feedback.tap();
+    feedback("tap");
     if (!("Notification" in window)) return;
     const result = await Notification.requestPermission();
     setPerm(result);
