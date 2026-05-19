@@ -49,6 +49,7 @@ function QuoteDetail() {
   const [askDeposit, setAskDeposit] = useState(false);
   const [askInvoice, setAskInvoice] = useState(false);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
+  const [sendOpen, setSendOpen] = useState(false);
   const navigate = useNavigate();
   const defaultSchedule = useMemo(() => {
     const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0);
