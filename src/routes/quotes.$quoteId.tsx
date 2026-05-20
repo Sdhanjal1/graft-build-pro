@@ -14,6 +14,7 @@ import {
 import { createInvoiceCheckout } from "@/lib/payments.functions";
 import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
+import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
