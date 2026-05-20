@@ -122,7 +122,7 @@ export const getPortalData = createServerFn({ method: "POST" })
         .order("created_at", { ascending: true }),
       supabaseAdmin
         .from("profiles")
-        .select("business_name, full_name, phone, email")
+        .select("business_name, full_name, phone, email, logo_url, quote_intro, quote_footer, signature_name, show_signature")
         .eq("id", tk.user_id)
         .maybeSingle(),
     ]);
