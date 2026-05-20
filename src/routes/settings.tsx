@@ -94,9 +94,169 @@ function SettingsPage() {
 
   const stripeConnected = !!(stripe.publishable && stripe.secret);
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleLogoFile = async (file: File) => {
+    if (!file) return;
+    if (!/^image\/(png|jpeg|jpg)$/i.test(file.type)) {
+      toast.error("Use a PNG or JPG image");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Logo must be 5MB or smaller");
+      return;
+    }
+    setUploading(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Not signed in");
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${userData.user.id}/logo-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("branding").upload(path, file, {
+        upsert: true,
+        contentType: file.type,
+      });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("branding").getPublicUrl(path);
+      saveProfile({ logo_url: pub.publicUrl });
+      toast.success("Logo updated");
+    } catch (e) {
+      console.error(e);
+      toast.error("Couldn't upload logo");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeLogo = () => saveProfile({ logo_url: "" });
+
   return (
     <AppShell>
       <PageHeader title="Settings" subtitle="Configuration" />
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void handleLogoFile(f);
+          e.target.value = "";
+        }}
+      />
+
+      {/* BRANDING */}
+      <Section title="Branding">
+        <div className="card-surface p-5 space-y-4">
+          {profile.logo_url ? (
+            <div className="flex flex-col items-center gap-3">
+              <BusinessLogo logoUrl={profile.logo_url} businessName={profile.business_name} size="xl" />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  {uploading ? "Uploading…" : "Change logo"}
+                </button>
+                <button
+                  type="button"
+                  onClick={removeLogo}
+                  className="text-xs font-bold bg-secondary text-ink px-4 py-2 rounded-full flex items-center gap-1.5"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Remove logo
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">Appears on all quotes, invoices and PDFs</p>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="w-full rounded-2xl border-2 border-dashed border-lime/60 bg-ink text-paper px-5 py-8 flex flex-col items-center gap-2 hover:bg-ink/90 transition disabled:opacity-50"
+            >
+              <div className="h-14 w-14 rounded-full bg-lime text-ink flex items-center justify-center">
+                <Camera className="h-6 w-6" />
+              </div>
+              <p className="font-bold text-sm">{uploading ? "Uploading…" : "Your business logo"}</p>
+              <p className="text-xs text-paper/60 text-center max-w-[260px]">
+                Appears on all quotes, invoices and PDFs. Tap to upload or take a photo.
+              </p>
+              <p className="text-[10px] uppercase tracking-widest text-paper/40 mt-1">PNG or JPG · max 5MB</p>
+            </button>
+          )}
+
+          {!profile.logo_url && (
+            <div className="flex items-center gap-3 rounded-2xl bg-secondary p-3">
+              <BusinessLogo businessName={profile.business_name} size="md" />
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Placeholder used until you upload</p>
+                <p className="text-sm font-semibold truncate">{profile.business_name || "Your business"}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </Section>
+
+      {/* QUOTE APPEARANCE */}
+      <Section title="Quote appearance">
+        <div className="card-surface p-5 space-y-4">
+          <EditField icon={Building2} label="Business name on quotes" value={profile.business_name} onChange={(v) => saveProfile({ business_name: v })} />
+
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
+              <ImageIcon className="h-3 w-3" /> Opening message on quotes
+            </span>
+            <textarea
+              value={profile.quote_intro}
+              onChange={(e) => saveProfile({ quote_intro: e.target.value })}
+              placeholder="Thank you for the opportunity to quote for your works. Please find our detailed quotation below."
+              rows={3}
+              className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+            />
+            <span className="text-[11px] text-muted-foreground">Appears at the top of every quote. Leave blank to skip.</span>
+          </label>
+
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
+              <FileText className="h-3 w-3" /> Footer message
+            </span>
+            <textarea
+              value={profile.quote_footer}
+              onChange={(e) => saveProfile({ quote_footer: e.target.value })}
+              placeholder="All works carried out to current British Standards. Payment due within 14 days of invoice."
+              rows={3}
+              className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+            />
+            <span className="text-[11px] text-muted-foreground">Appears at the bottom of every quote and invoice.</span>
+          </label>
+
+          <EditField
+            icon={PenLine}
+            label="Your name on quotes"
+            value={profile.signature_name}
+            onChange={(v) => saveProfile({ signature_name: v })}
+            placeholder={profile.full_name}
+          />
+          <ToggleRow
+            icon={PenLine}
+            label="Show signature on quotes"
+            hint="Adds a signature line at the bottom"
+            checked={profile.show_signature}
+            onChange={(v) => saveProfile({ show_signature: v })}
+            flush
+          />
+        </div>
+      </Section>
+
+
 
       {/* BUSINESS */}
       <Section title="Business">
