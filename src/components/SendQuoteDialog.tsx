@@ -50,7 +50,8 @@ export function SendQuoteDialog({
       setBusy("sms");
       const { token } = await ensureToken({ data: { quoteId, channel: "sms" } });
       const url = portalUrl(token);
-      const text = `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready. View, ask questions and approve here: ${url}`;
+      const historyLine = await portalHistoryLine();
+      const text = `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready. View, ask questions and approve here: ${url}${historyLine}`;
       const digits = (customerPhone ?? "").replace(/\D/g, "");
       const smsHref = digits
         ? `sms:${digits}?&body=${encodeURIComponent(text)}`
@@ -81,9 +82,10 @@ export function SendQuoteDialog({
       setBusy("email");
       const { token } = await ensureToken({ data: { quoteId, channel: "email" } });
       const url = portalUrl(token);
+      const historyLine = await portalHistoryLine();
       const subject = `Your quote ${quoteRef} — ${quoteTitle}`;
       const body =
-        `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}\n\nThanks.`;
+        `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}${historyLine}\n\nThanks.`;
       const mailHref = `mailto:${customerEmail ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.location.href = mailHref;
       feedback("success");
