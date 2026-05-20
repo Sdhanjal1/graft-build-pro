@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_documents: {
+        Row: {
+          client_id: string
+          created_at: string
+          file_url: string
+          id: string
+          kind: string
+          portal_visible: boolean
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          file_url: string
+          id?: string
+          kind?: string
+          portal_visible?: boolean
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          file_url?: string
+          id?: string
+          kind?: string
+          portal_visible?: boolean
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      client_portal_messages: {
+        Row: {
+          body: string
+          client_id: string
+          created_at: string
+          id: string
+          read_at: string | null
+          sender: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          client_id: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address: string | null
@@ -23,7 +89,11 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          portal_active: boolean
+          portal_code: string | null
           property_type: string | null
+          service_due_date: string | null
+          service_type: string | null
           updated_at: string
           user_id: string
         }
@@ -35,7 +105,11 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          portal_active?: boolean
+          portal_code?: string | null
           property_type?: string | null
+          service_due_date?: string | null
+          service_type?: string | null
           updated_at?: string
           user_id: string
         }
@@ -47,7 +121,11 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          portal_active?: boolean
+          portal_code?: string | null
           property_type?: string | null
+          service_due_date?: string | null
+          service_type?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -337,6 +415,7 @@ export type Database = {
           paid_via: string | null
           payment_method: string | null
           payment_request: Json | null
+          portal_visible: boolean
           ref: string | null
           status: string
           subtotal: number
@@ -361,6 +440,7 @@ export type Database = {
           paid_via?: string | null
           payment_method?: string | null
           payment_request?: Json | null
+          portal_visible?: boolean
           ref?: string | null
           status?: string
           subtotal?: number
@@ -385,6 +465,7 @@ export type Database = {
           paid_via?: string | null
           payment_method?: string | null
           payment_request?: Json | null
+          portal_visible?: boolean
           ref?: string | null
           status?: string
           subtotal?: number
@@ -524,7 +605,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_portal_code: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
