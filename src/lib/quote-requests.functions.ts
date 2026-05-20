@@ -45,6 +45,13 @@ export const createQuoteRequest = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
+    // Fire-and-forget push to pro across all their devices
+    void notifyUser(data.proId, {
+      title: data.customerName ? `New quote request from ${data.customerName}` : "New quote request",
+      body: data.body.slice(0, 140),
+      url: "/messages",
+      tag: `req-${row?.id ?? Date.now()}`,
+    });
     return { request: row };
   });
 
