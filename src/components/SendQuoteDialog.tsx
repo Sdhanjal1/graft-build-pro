@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { MessageCircle, Mail, MessageSquare, Sparkles, Loader2, Copy, Check } from "lucide-react";
 import { ensurePortalToken } from "@/lib/messages.functions";
+import { getPortalCodeForQuote } from "@/lib/portal.functions";
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
 
@@ -22,8 +23,20 @@ export function SendQuoteDialog({
   customerName, customerPhone, customerEmail, whatsappHref,
 }: Props) {
   const ensureToken = useServerFn(ensurePortalToken);
+  const fetchClientCode = useServerFn(getPortalCodeForQuote);
   const [busy, setBusy] = useState<null | "sms" | "email">(null);
   const [copied, setCopied] = useState(false);
+
+  const portalHistoryLine = async () => {
+    try {
+      const { portal_code } = await fetchClientCode({ data: { quoteId } });
+      if (!portal_code) return "";
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      return `\n\nView your quotes and service history: ${origin}/portal/c/${portal_code}`;
+    } catch {
+      return "";
+    }
+  };
 
   if (!open) return null;
 
