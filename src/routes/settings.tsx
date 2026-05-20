@@ -1,12 +1,18 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { mockProfile, stats, formatGBP, TRADE_TYPES, clearUserData, saveProfileToCloud } from "@/lib/mock-data";
+import {
+  mockProfile,
+  TRADE_TYPES,
+  clearUserData,
+  saveProfileToCloud,
+} from "@/lib/mock-data";
 import { signOut } from "@/lib/auth";
 import { getFeedbackPrefs, setFeedbackPrefs, feedback } from "@/lib/feedback";
 import {
-  Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut, BarChart3,
-  CreditCard, Landmark, Banknote, Wallet, Trophy, MapPin, Gift, Share2, Vibrate, Volume2, Clock,
+  Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut,
+  CreditCard, MapPin, Gift, Share2, Vibrate, Volume2, Clock, Bell,
+  CheckCircle2, FileText, MessageSquare, AlertTriangle, Trash2,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getWorkingHours, saveWorkingHours, type WorkingHours } from "@/lib/working-hours.functions";
@@ -17,7 +23,6 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
-  const s = stats();
   const navigate = useNavigate();
   const handleSignOut = async () => {
     await signOut();
@@ -38,7 +43,6 @@ function SettingsPage() {
   });
   const saveProfile = (patch: Partial<typeof profile>) => setProfile((p) => ({ ...p, ...patch }));
 
-
   const [vatRegistered, setVatRegistered] = useState(mockProfile.vat_registered);
   const [bank, setBank] = useState({
     account_name: mockProfile.bank_account_name,
@@ -52,9 +56,8 @@ function SettingsPage() {
     secret: mockProfile.stripe_secret_key,
   });
   const [terms, setTerms] = useState(mockProfile.payment_terms);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
 
-  // Debounced cloud-save: any change to profile fields triggers one upsert after 600ms idle.
+  // Debounced cloud-save
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -71,7 +74,7 @@ function SettingsPage() {
         stripe_secret_key: stripe.secret,
         stripe_connected: !!(stripe.publishable && stripe.secret),
         payment_terms: terms,
-      }).then(() => setSavedAt(Date.now()));
+      });
     }, 600);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -79,208 +82,160 @@ function SettingsPage() {
 
   const saveBank = (patch: Partial<typeof bank>) => setBank((b) => ({ ...b, ...patch }));
   const saveStripe = (patch: Partial<typeof stripe>) => setStripe((s) => ({ ...s, ...patch }));
-  const saveTerms = (v: string) => setTerms(v);
 
-  const topMax = s.topJobs[0]?.total ?? 1;
+  const stripeConnected = !!(stripe.publishable && stripe.secret);
 
   return (
     <AppShell>
-      <PageHeader title="Settings" subtitle="Account" />
+      <PageHeader title="Settings" subtitle="Configuration" />
 
-      {/* Profit tracker */}
-      <section className="px-5">
-        <div className="card-surface p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="h-4 w-4" />
-            <p className="text-sm font-semibold">Profit tracker</p>
-            <span className="ml-auto text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-              {new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            <BigStat label="Quoted" value={formatGBP(s.totalQuoted)} />
-            <BigStat label="Collected" value={formatGBP(s.collectedAll)} accent />
-            <BigStat label="Outstanding" value={formatGBP(s.outstanding)} />
-          </div>
-
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
-            Received by method
-          </p>
-          <div className="space-y-2">
-            <MethodBar icon={CreditCard} label="Card"          value={s.paidByCard} total={s.collectedAll} />
-            <MethodBar icon={Landmark}   label="Bank transfer" value={s.paidByBank} total={s.collectedAll} />
-            <MethodBar icon={Banknote}   label="Cash"          value={s.paidByCash} total={s.collectedAll} />
-          </div>
-
-          {/* Best performing job */}
-          {s.bestJob && (
-            <div className="mt-4 rounded-2xl bg-lime text-ink p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-ink text-lime flex items-center justify-center shrink-0">
-                <Trophy className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] uppercase tracking-widest font-bold opacity-70">Best performing job</p>
-                <p className="text-sm font-semibold truncate">{s.bestJob.title}</p>
-              </div>
-              <p className="num text-2xl shrink-0">{formatGBP(s.bestJob.total)}</p>
-            </div>
-          )}
-
-          {/* Top 5 by value */}
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mt-4 mb-2">
-            Top 5 jobs by value
-          </p>
-          <div className="space-y-2">
-            {s.topJobs.map((q) => (
-              <div key={q.id}>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="truncate pr-2 font-medium">{q.title}</span>
-                  <span className="num font-semibold shrink-0">{formatGBP(q.total)}</span>
-                </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div className="h-full bg-ink rounded-full" style={{ width: `${(q.total / topMax) * 100}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Payment details */}
-      <section className="px-5 mt-5">
-        <h2 className="text-xl mb-2.5">Payment details</h2>
-        <div className="card-surface p-5 space-y-4">
-          {/* Stripe */}
-          <div className="rounded-2xl bg-ink text-paper p-4 space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-lime text-ink flex items-center justify-center">
-                <CreditCard className="h-4 w-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold">Stripe — card payments</p>
-                <p className="text-[11px] text-paper/60">
-                  {mockProfile.stripe_connected ? "Connected — live links" : "Add keys to generate live payment links"}
-                </p>
-              </div>
-            </div>
-            <DarkInput
-              label="Publishable key"
-              placeholder="Your Stripe publishable key — starts with pk_live_ — find in Stripe dashboard under Developers — API keys"
-              value={stripe.publishable}
-              onChange={(v) => saveStripe({ publishable: v })}
-            />
-            <DarkInput
-              label="Secret key"
-              placeholder="sk_live_…"
-              value={stripe.secret}
-              onChange={(v) => saveStripe({ secret: v })}
-              type="password"
-            />
-            <a
-              href="https://stripe.com/docs/connect/onboarding"
-              target="_blank"
-              rel="noreferrer"
-              className="block text-center w-full bg-lime text-ink rounded-full py-3 text-sm font-bold"
-            >
-              Connect Stripe account
-            </a>
-          </div>
-
-          {/* Payment terms */}
-          <Input label="Payment terms (shown on every invoice)" value={terms} onChange={saveTerms} />
-
-          {/* Bank */}
-          <div className="space-y-2.5">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Bank transfer details</p>
-            <Input label="Account name" value={bank.account_name} onChange={(v) => saveBank({ account_name: v })} />
-            <Input label="Bank name" value={bank.bank_name} onChange={(v) => saveBank({ bank_name: v })} />
-            <div className="grid grid-cols-2 gap-2.5">
-              <Input label="Sort code" value={bank.sort_code} onChange={(v) => saveBank({ sort_code: v })} />
-              <Input label="Account number" value={bank.account_number} onChange={(v) => saveBank({ account_number: v })} />
-            </div>
-            <Input
-              label="Payment reference instructions"
-              value={bank.payment_reference_note}
-              onChange={(v) => saveBank({ payment_reference_note: v })}
-            />
-          </div>
-
-          {/* VAT toggle */}
-          <label className="flex items-center justify-between cursor-pointer pt-2 border-t border-border">
-            <div>
-              <p className="font-semibold text-sm">VAT registered</p>
-              <p className="text-xs text-muted-foreground">Adds 20% VAT to every quote</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={vatRegistered}
-              onChange={(e) => setVatRegistered(e.target.checked)}
-              className="h-6 w-11 appearance-none rounded-full bg-secondary checked:bg-lime relative cursor-pointer transition
-                before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:h-5 before:w-5 before:rounded-full before:bg-white before:transition
-                checked:before:translate-x-5"
-            />
-          </label>
-        </div>
-      </section>
-
-      {/* Business profile — editable */}
-      <section className="px-5 mt-5">
-        <h2 className="text-xl mb-2.5">Business details</h2>
+      {/* BUSINESS */}
+      <Section title="Business">
         <div className="card-surface p-5 space-y-3.5">
-          <EditField icon={Building2} label="Business name"   value={profile.business_name}        onChange={(v) => saveProfile({ business_name: v })} />
-          <EditField icon={User}      label="Your name"        value={profile.full_name}            onChange={(v) => saveProfile({ full_name: v })} />
-          <EditField icon={Phone}     label="Phone"            value={profile.phone}                onChange={(v) => saveProfile({ phone: v })} />
-          <EditField icon={Mail}      label="Email"            value={profile.email}                onChange={(v) => saveProfile({ email: v })} />
-          <EditField icon={MapPin}    label="Town"             value={profile.town}                 onChange={(v) => saveProfile({ town: v })} placeholder="e.g. Manchester" />
-          <SelectField icon={BadgeCheck} label="Trade type"    value={profile.trade_type}           onChange={(v) => saveProfile({ trade_type: v })} options={TRADE_TYPES} />
-          <EditField icon={BadgeCheck} label="Gas Safe registration"  value={profile.registration_number}  onChange={(v) => saveProfile({ registration_number: v })} />
-          <EditField icon={Receipt}    label="VAT number"      value={profile.vat_number}           onChange={(v) => saveProfile({ vat_number: v })} />
+          <EditField icon={Building2}  label="Business name" value={profile.business_name} onChange={(v) => saveProfile({ business_name: v })} />
+          <EditField icon={User}       label="Your name"     value={profile.full_name}     onChange={(v) => saveProfile({ full_name: v })} />
+          <EditField icon={Phone}      label="Phone"         value={profile.phone}         onChange={(v) => saveProfile({ phone: v })} />
+          <EditField icon={Mail}       label="Email"         value={profile.email}         onChange={(v) => saveProfile({ email: v })} />
+          <EditField icon={MapPin}     label="Town"          value={profile.town}          onChange={(v) => saveProfile({ town: v })} placeholder="e.g. Manchester" />
+          <SelectField icon={BadgeCheck} label="Trade type"  value={profile.trade_type}    onChange={(v) => saveProfile({ trade_type: v })} options={TRADE_TYPES} />
+          <EditField icon={BadgeCheck} label="Gas Safe registration number" value={profile.registration_number} onChange={(v) => saveProfile({ registration_number: v })} />
+          <EditField icon={Receipt}    label="VAT number"    value={profile.vat_number}    onChange={(v) => saveProfile({ vat_number: v })} />
+          <ToggleRow
+            icon={Receipt}
+            label="VAT registered"
+            hint="Adds 20% VAT to every quote"
+            checked={vatRegistered}
+            onChange={setVatRegistered}
+            flush
+          />
         </div>
-      </section>
+      </Section>
 
-      <section className="px-5 mt-5">
-        <h2 className="text-xl mb-2.5">Feedback</h2>
-        <FeedbackToggles />
-      </section>
+      {/* PAYMENTS */}
+      <Section title="Payments">
+        <div className="card-surface p-5 space-y-3">
+          <Input label="Bank account name"        value={bank.account_name}           onChange={(v) => saveBank({ account_name: v })} />
+          <Input label="Bank name"                value={bank.bank_name}              onChange={(v) => saveBank({ bank_name: v })} />
+          <div className="grid grid-cols-2 gap-2.5">
+            <Input label="Sort code"              value={bank.sort_code}              onChange={(v) => saveBank({ sort_code: v })} />
+            <Input label="Account number"         value={bank.account_number}         onChange={(v) => saveBank({ account_number: v })} />
+          </div>
+          <Input label="Payment reference instructions" value={bank.payment_reference_note} onChange={(v) => saveBank({ payment_reference_note: v })} />
+          <Input label="Payment terms"            value={terms}                       onChange={setTerms} />
 
-      <section className="px-5 mt-5">
-        <h2 className="text-xl mb-2.5">Integrations</h2>
+          <div className="rounded-2xl bg-ink text-paper p-4 flex items-center gap-3 mt-2">
+            <div className="h-10 w-10 rounded-full bg-lime text-ink flex items-center justify-center shrink-0">
+              <CreditCard className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold">Stripe</p>
+              <p className="text-[11px] text-paper/60">
+                {stripeConnected ? "Connected — live links" : "Not connected"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const next = prompt("Stripe publishable key (pk_…)", stripe.publishable || "") ?? stripe.publishable;
+                const sec = prompt("Stripe secret key (sk_…)", stripe.secret || "") ?? stripe.secret;
+                saveStripe({ publishable: next, secret: sec });
+              }}
+              className="text-xs font-bold bg-lime text-ink px-3.5 py-2 rounded-full"
+            >
+              Manage
+            </button>
+          </div>
+        </div>
+      </Section>
+
+      {/* WORKING HOURS */}
+      <Section title="Working hours">
+        <WorkingHoursPanel />
+      </Section>
+
+      {/* NOTIFICATIONS */}
+      <Section title="Notifications">
+        <div className="space-y-3">
+          <PushPermissionCard />
+          <NotificationToggles />
+        </div>
+      </Section>
+
+      {/* GET MORE JOBS */}
+      <Section title="Get more jobs">
+        <CustomerQRCard />
+      </Section>
+
+      {/* REFER A MATE */}
+      <Section title="Refer a mate">
+        <ReferMate />
+      </Section>
+
+      {/* INTEGRATIONS */}
+      <Section title="Integrations">
         <div className="card-surface divide-y divide-border">
-          <SettingRow icon={Wallet} label="Stripe Connect" status={mockProfile.stripe_connected ? "Connected" : "Add to take card payments"} />
           <SettingRow icon={Key} label="Claude API key" status="Optional — fallback quote generator is active" />
           <SettingRow icon={Key} label="OpenAI Whisper key" status="Add to enable voice-to-text" />
+          <SettingRow icon={CreditCard} label="Stripe Connect" status={stripeConnected ? "Connected" : "Add to take card payments"} />
         </div>
-      </section>
+      </Section>
 
-      <section className="px-5 mt-5">
-        <h2 className="text-xl mb-2.5">Get more jobs</h2>
-        <CustomerQRCard />
-      </section>
+      {/* FEEDBACK (haptics/sound — keep) */}
+      <Section title="Feedback">
+        <FeedbackToggles />
+      </Section>
 
-      <section className="px-5 mt-5">
-        <h2 className="text-xl mb-2.5">Notifications</h2>
-        <PushPermissionCard />
-      </section>
+      {/* ACCOUNT */}
+      <Section title="Account">
+        <div className="card-surface divide-y divide-border">
+          <button onClick={handleSignOut} className="px-5 py-4 flex items-center gap-3 font-semibold w-full text-left">
+            <LogOut className="h-5 w-5" />
+            Sign out
+          </button>
+          <button
+            onClick={() => {
+              if (confirm("Permanently delete your account? This cannot be undone.")) {
+                // TODO: wire account deletion
+                alert("Account deletion isn't enabled yet. Please contact support.");
+              }
+            }}
+            className="px-5 py-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left"
+          >
+            <Trash2 className="h-5 w-5" />
+            Delete account
+          </button>
+        </div>
+      </Section>
 
-      <section className="px-5 mt-5">
-        <h2 className="text-xl mb-2.5">Working hours</h2>
-        <WorkingHoursPanel />
-      </section>
-
-      <section className="px-5 mt-5">
-        <ReferMate />
-      </section>
-
-
-
-      <section className="px-5 mt-5 mb-6">
-        <button onClick={handleSignOut} className="card-surface p-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left">
-          <LogOut className="h-5 w-5" />
-          Sign out
-        </button>
-      </section>
+      <div className="h-6" />
     </AppShell>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="px-5 mt-5">
+      <h2 className="text-xl mb-2.5">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function NotificationToggles() {
+  const [prefs, setPrefs] = useState({
+    quoteRequest: true,
+    quoteApproved: true,
+    newMessage: true,
+    invoiceOverdue: true,
+  });
+  const update = (patch: Partial<typeof prefs>) => setPrefs((p) => ({ ...p, ...patch }));
+  return (
+    <div className="card-surface divide-y divide-border">
+      <ToggleRow icon={FileText}      label="New quote request" checked={prefs.quoteRequest}  onChange={(v) => update({ quoteRequest: v })} />
+      <ToggleRow icon={CheckCircle2}  label="Quote approved"    checked={prefs.quoteApproved} onChange={(v) => update({ quoteApproved: v })} />
+      <ToggleRow icon={MessageSquare} label="New message"       checked={prefs.newMessage}    onChange={(v) => update({ newMessage: v })} />
+      <ToggleRow icon={AlertTriangle} label="Invoice overdue"   checked={prefs.invoiceOverdue} onChange={(v) => update({ invoiceOverdue: v })} />
+    </div>
   );
 }
 
@@ -392,10 +347,10 @@ function FeedbackToggles() {
 }
 
 function ToggleRow({
-  icon: Icon, label, hint, checked, onChange,
-}: { icon: React.ComponentType<{ className?: string }>; label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void }) {
+  icon: Icon, label, hint, checked, onChange, flush,
+}: { icon: React.ComponentType<{ className?: string }>; label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void; flush?: boolean }) {
   return (
-    <label className="px-5 py-4 flex items-center gap-3 cursor-pointer">
+    <label className={`${flush ? "py-2" : "px-5 py-4"} flex items-center gap-3 cursor-pointer`}>
       <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
         <Icon className="h-4 w-4" />
       </div>
@@ -471,52 +426,6 @@ function Input({ label, value, onChange }: { label: string; value: string; onCha
   );
 }
 
-function DarkInput({
-  label, value, onChange, placeholder, type = "text",
-}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
-  return (
-    <label className="block">
-      <span className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">{label}</span>
-      <input
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full bg-paper/10 text-paper placeholder:text-paper/40 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
-      />
-    </label>
-  );
-}
-
-function BigStat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
-  return (
-    <div className={`rounded-2xl p-3 ${accent ? "bg-lime text-ink" : "bg-secondary"}`}>
-      <p className="text-[9px] uppercase tracking-widest font-semibold opacity-70">{label}</p>
-      <p className="num text-lg mt-1 leading-none">{value}</p>
-    </div>
-  );
-}
-
-function MethodBar({
-  icon: Icon, label, value, total,
-}: { icon: React.ComponentType<{ className?: string }>; label: string; value: number; total: number }) {
-  const pct = total > 0 ? (value / total) * 100 : 0;
-  return (
-    <div>
-      <div className="flex items-center justify-between text-xs mb-1">
-        <span className="inline-flex items-center gap-1.5">
-          <Icon className="h-3.5 w-3.5" />
-          {label}
-        </span>
-        <span className="num font-semibold">{formatGBP(value)}</span>
-      </div>
-      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-        <div className="h-full bg-lime rounded-full" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
-
 function SettingRow({ icon: Icon, label, status }: { icon: React.ComponentType<{ className?: string }>; label: string; status: string }) {
   return (
     <div className="px-5 py-4 flex items-center gap-3">
@@ -546,7 +455,7 @@ function ReferMate() {
         });
         return;
       } catch {
-        // fall through to copy
+        // fall through
       }
     }
     try {
@@ -580,3 +489,6 @@ function ReferMate() {
     </div>
   );
 }
+
+// Bell icon used elsewhere — silence unused import via reference
+void Bell;
