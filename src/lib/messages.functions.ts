@@ -210,5 +210,15 @@ export const postPortalMessage = createServerFn({ method: "POST" })
         .single();
       autoReply = ar;
     }
+    // Notify pro of new customer message
+    try {
+      const { notifyUser } = await import("@/lib/push.functions");
+      void notifyUser(tk.user_id, {
+        title: "New customer message",
+        body: data.body.slice(0, 140),
+        url: "/messages",
+        tag: `msg-${tk.quote_id}`,
+      });
+    } catch (e) { console.error("push notify failed", e); }
     return { message: inserted, autoReply };
   });
