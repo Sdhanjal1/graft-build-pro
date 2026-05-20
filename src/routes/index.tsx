@@ -253,7 +253,11 @@ function HomePage() {
                     <StatusBadge status={q.status} />
                   </div>
                   <p className="font-semibold text-sm mt-1 truncate">{q.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">{c?.name}</p>
+                  {c && c.name && c.name.toLowerCase() !== "new client" ? (
+                    <p className="text-xs font-bold text-ink truncate">{c.name}</p>
+                  ) : (
+                    <p className="text-xs font-semibold text-status-pending truncate">Tap to assign client</p>
+                  )}
                 </div>
                 <p className="num text-2xl text-ink leading-none">{formatGBP(q.total)}</p>
               </Link>
