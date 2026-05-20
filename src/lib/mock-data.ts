@@ -101,6 +101,11 @@ export const mockProfile = {
   payment_terms: "Payment due within 14 days of invoice date.",
   /** Card processing fee shown on card payment summaries */
   card_fee_pct: 3.5,
+  logo_url: "",
+  quote_intro: "",
+  quote_footer: "",
+  signature_name: "",
+  show_signature: true,
 };
 
 export const mockClients: Client[] = [];
