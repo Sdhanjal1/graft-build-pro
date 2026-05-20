@@ -166,7 +166,7 @@ function SettingsPage() {
             </div>
             <DarkInput
               label="Publishable key"
-              placeholder="pk_live_…"
+              placeholder="Your Stripe publishable key — starts with pk_live_ — find in Stripe dashboard under Developers — API keys"
               value={stripe.publishable}
               onChange={(v) => saveStripe({ publishable: v })}
             />

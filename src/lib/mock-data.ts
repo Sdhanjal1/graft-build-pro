@@ -438,15 +438,21 @@ export const stats = () => {
     paidByBank: txByMethod("bank"),
     paidByCash: txByMethod("cash"),
     collectedAll,
-    avgQuote: totalQuoted / mockQuotes.length,
+    avgQuote: mockQuotes.length ? totalQuoted / mockQuotes.length : 0,
     collectedThisMonth,
     topJobs,
     bestJob,
   };
 };
 
-export const formatGBP = (n: number) =>
-  new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: n < 1000 ? 2 : 0 }).format(n);
+export const formatGBP = (n: number) => {
+  const safe = Number.isFinite(n) ? n : 0;
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    maximumFractionDigits: safe < 1000 ? 2 : 0,
+  }).format(safe);
+};
 
 // ---------- Scheduled jobs (calendar) ----------
 
@@ -609,7 +615,8 @@ export const saveGeneratedQuote = async (input: {
   line_items: LineItem[];
   vatRegistered: boolean;
 }): Promise<Quote> => {
-  const client = await findOrCreateClient(input.clientName || "New client");
+  const trimmedName = input.clientName?.trim() ?? "";
+  const client = trimmedName ? await findOrCreateClient(trimmedName) : null;
   const subtotal = +input.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
   const vat_amount = input.vatRegistered ? +(subtotal * VAT_RATE).toFixed(2) : 0;
   const total = +(subtotal + vat_amount).toFixed(2);
@@ -618,7 +625,7 @@ export const saveGeneratedQuote = async (input: {
   const insertPayload = {
     user_id,
     ref: nextQuoteRef(),
-    client_id: client.id,
+    client_id: client?.id ?? null,
     title: input.title,
     job_description: input.description,
     line_items: input.line_items as unknown as Record<string, unknown>,

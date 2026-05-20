@@ -253,7 +253,11 @@ function HomePage() {
                     <StatusBadge status={q.status} />
                   </div>
                   <p className="font-semibold text-sm mt-1 truncate">{q.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">{c?.name}</p>
+                  {c && c.name && c.name.toLowerCase() !== "new client" ? (
+                    <p className="text-xs font-bold text-ink truncate">{c.name}</p>
+                  ) : (
+                    <p className="text-xs font-semibold text-status-pending truncate">Tap to assign client</p>
+                  )}
                 </div>
                 <p className="num text-2xl text-ink leading-none">{formatGBP(q.total)}</p>
               </Link>
@@ -305,6 +309,12 @@ function HomePage() {
             <p className="num text-2xl mt-1 leading-none text-lime">{formatGBP(s.outstanding)}</p>
           </div>
         </div>
+
+        {s.collectedThisMonth === 0 && s.outstanding > 0 && s.outstanding >= s.totalQuoted && (
+          <p className="mt-2 text-[11px] text-muted-foreground leading-snug">
+            Payments will appear here once collected via Stripe or recorded manually.
+          </p>
+        )}
 
         <div className="card-surface mt-3 divide-y divide-border">
           <div className="px-5 py-3 flex items-center justify-between">

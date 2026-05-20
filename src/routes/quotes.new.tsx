@@ -328,7 +328,7 @@ function NewQuotePage() {
     setError(null);
     try {
       const q = await saveGeneratedQuote({
-        clientName: clientName || "New client",
+        clientName: clientName.trim(),
         description: desc.trim(),
         title: draft.title,
         line_items: draft.line_items,
