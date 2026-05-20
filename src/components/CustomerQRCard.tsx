@@ -104,7 +104,7 @@ export function PushPermissionCard() {
         const { key } = await fetchKey();
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: b64uToU8(key),
+          applicationServerKey: b64uToU8(key) as unknown as BufferSource,
         });
       }
       const json = sub.toJSON() as any;
