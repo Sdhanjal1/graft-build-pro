@@ -438,15 +438,22 @@ export const stats = () => {
     paidByBank: txByMethod("bank"),
     paidByCash: txByMethod("cash"),
     collectedAll,
-    avgQuote: totalQuoted / mockQuotes.length,
+    avgQuote: mockQuotes.length ? totalQuoted / mockQuotes.length : 0,
     collectedThisMonth,
     topJobs,
     bestJob,
   };
 };
 
-export const formatGBP = (n: number) =>
-  new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: n < 1000 ? 2 : 0 }).format(n);
+export const formatGBP = (n: number) => {
+  const safe = Number.isFinite(n) ? n : 0;
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(safe);
+};
 
 // ---------- Scheduled jobs (calendar) ----------
 
