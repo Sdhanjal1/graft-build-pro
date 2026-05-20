@@ -11,7 +11,7 @@ import { signOut } from "@/lib/auth";
 import { getFeedbackPrefs, setFeedbackPrefs, feedback } from "@/lib/feedback";
 import {
   Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut,
-  CreditCard, MapPin, Gift, Share2, Vibrate, Volume2, Clock, Bell,
+  CreditCard, MapPin, Gift, Share2, Vibrate, Volume2, Clock,
   CheckCircle2, FileText, MessageSquare, AlertTriangle, Trash2,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
