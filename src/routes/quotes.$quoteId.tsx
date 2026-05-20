@@ -184,12 +184,12 @@ function QuoteDetail() {
   return (
     <AppShell>
       <div className="bg-ink text-paper px-5 pt-6 pb-5 flex items-center gap-3">
-        <QuottrLogo className="h-7 w-auto" />
-        <div className="h-6 w-px bg-paper/20" />
-        <div className="min-w-0">
+        <BusinessLogo logoUrl={mockProfile.logo_url} businessName={mockProfile.business_name} size="md" />
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-paper truncate">{mockProfile.business_name}</p>
           <p className="text-[10px] text-paper/60 truncate">{mockProfile.registration_number} · VAT {mockProfile.vat_number}</p>
         </div>
+        <QuottrLogo className="h-5 w-auto opacity-60" />
       </div>
       <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
 
