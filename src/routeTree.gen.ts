@@ -14,6 +14,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as MessagesRouteImport } from './routes/messages'
+import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as ChaserRouteImport } from './routes/chaser'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -55,6 +56,11 @@ const PricingRoute = PricingRouteImport.update({
 const MessagesRoute = MessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InsightsRoute = InsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChaserRoute = ChaserRouteImport.update({
@@ -150,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/insights': typeof InsightsRoute
   '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/insights': typeof InsightsRoute
   '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
@@ -199,6 +207,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/insights': typeof InsightsRoute
   '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
@@ -225,6 +234,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/insights'
     | '/messages'
     | '/pricing'
     | '/search'
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/insights'
     | '/messages'
     | '/pricing'
     | '/search'
@@ -273,6 +284,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/insights'
     | '/messages'
     | '/pricing'
     | '/search'
@@ -298,6 +310,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CalendarRoute: typeof CalendarRoute
   ChaserRoute: typeof ChaserRoute
+  InsightsRoute: typeof InsightsRoute
   MessagesRoute: typeof MessagesRoute
   PricingRoute: typeof PricingRoute
   SearchRoute: typeof SearchRoute
@@ -352,6 +365,13 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/messages'
       preLoaderRoute: typeof MessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/insights': {
+      id: '/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof InsightsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chaser': {
@@ -482,6 +502,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CalendarRoute: CalendarRoute,
   ChaserRoute: ChaserRoute,
+  InsightsRoute: InsightsRoute,
   MessagesRoute: MessagesRoute,
   PricingRoute: PricingRoute,
   SearchRoute: SearchRoute,
