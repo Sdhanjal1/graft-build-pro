@@ -310,6 +310,12 @@ function HomePage() {
           </div>
         </div>
 
+        {s.collectedThisMonth === 0 && s.outstanding > 0 && s.outstanding >= s.totalQuoted && (
+          <p className="mt-2 text-[11px] text-muted-foreground leading-snug">
+            Payments will appear here once collected via Stripe or recorded manually.
+          </p>
+        )}
+
         <div className="card-surface mt-3 divide-y divide-border">
           <div className="px-5 py-3 flex items-center justify-between">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Recent transactions</p>
