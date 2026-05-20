@@ -13,10 +13,14 @@ import {
   Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut,
   CreditCard, MapPin, Gift, Share2, Vibrate, Volume2, Clock,
   CheckCircle2, FileText, MessageSquare, AlertTriangle, Trash2, Bell,
+  Camera, ImageIcon, Pencil, PenLine,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getWorkingHours, saveWorkingHours, type WorkingHours } from "@/lib/working-hours.functions";
 import { CustomerQRCard, PushPermissionCard } from "@/components/CustomerQRCard";
+import { BusinessLogo } from "@/components/BusinessLogo";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
