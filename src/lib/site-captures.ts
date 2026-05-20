@@ -156,6 +156,20 @@ export async function deleteCapture(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export function captureTitle(c: Pick<SiteCapture, "customer_name" | "address">): string {
-  return c.customer_name?.trim() || c.address?.trim() || "Untitled site";
+export function captureTitle(c: Pick<SiteCapture, "customer_name" | "address"> & Partial<Pick<SiteCapture, "started_at" | "created_at">>): string {
+  const name = c.customer_name?.trim();
+  if (name) return name;
+  const addr = c.address?.trim();
+  if (addr) return addr;
+  const iso = c.started_at || c.created_at;
+  if (iso) {
+    return new Date(iso).toLocaleString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  return "Site capture";
 }
