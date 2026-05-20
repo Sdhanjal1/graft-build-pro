@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
-import { mockQuotes, getClient, formatGBP, type QuoteStatus } from "@/lib/mock-data";
+import { SwipeRow } from "@/components/SwipeRow";
+import { mockQuotes, getClient, formatGBP, deleteQuote, useDataVersion, type QuoteStatus } from "@/lib/mock-data";
 import { Search, FileText, Inbox } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 
