@@ -177,7 +177,7 @@ export async function sendWebPush(
     headers["Content-Encoding"] = "aes128gcm";
     headers["Content-Type"] = "application/octet-stream";
     headers["Content-Length"] = String(enc.body.length);
-    body = enc.body;
+    body = enc.body as unknown as BodyInit;
   } else {
     headers["Content-Length"] = "0";
   }
