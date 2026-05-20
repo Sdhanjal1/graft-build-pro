@@ -149,6 +149,13 @@ export async function deleteCaptureItem(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function deleteCapture(id: string): Promise<void> {
+  // No FK cascade — remove items first, then the capture.
+  await supabase.from("site_capture_items").delete().eq("capture_id", id);
+  const { error } = await supabase.from("site_captures").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export function captureTitle(c: Pick<SiteCapture, "customer_name" | "address">): string {
   return c.customer_name?.trim() || c.address?.trim() || "Untitled site";
 }

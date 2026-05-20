@@ -6,9 +6,11 @@ import {
   mockClients, mockQuotes, mockProfile, mockTransactions, stats, formatGBP, getClient,
   todaysJobs, annualRemindersDue, formatTime, getQuote,
 } from "@/lib/mock-data";
-import { listActiveCaptures, captureTitle, type SiteCapture } from "@/lib/site-captures";
+import { listActiveCaptures, captureTitle, deleteCapture, type SiteCapture } from "@/lib/site-captures";
 import { AlertTriangle, ArrowRight, BarChart3, Mic, CreditCard, Landmark, Banknote, Search, Sparkles, BellRing, MapPin, Clock } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
+import { SwipeRow } from "@/components/SwipeRow";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -100,21 +102,35 @@ function HomePage() {
             </div>
             <div className="space-y-1.5">
               {activeCaptures.slice(0, 3).map((c) => (
-                <Link
+                <SwipeRow
                   key={c.id}
-                  to="/capture/$captureId"
-                  params={{ captureId: c.id }}
-                  className="flex items-center gap-3 rounded-xl bg-paper/5 px-3 py-2.5 active:scale-[0.99] transition"
+                  onDelete={async () => {
+                    try {
+                      await deleteCapture(c.id);
+                      setActiveCaptures((prev) => prev.filter((x) => x.id !== c.id));
+                      toast.success("Site capture deleted");
+                    } catch (e) {
+                      toast.error("Couldn't delete site capture");
+                      throw e;
+                    }
+                  }}
+                  className="rounded-xl"
                 >
-                  <Clock className="h-4 w-4 text-lime shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate text-paper">{captureTitle(c)}</p>
-                    <p className="text-[11px] text-paper/50 truncate">
-                      Updated {new Date(c.updated_at).toLocaleString("en-GB", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })}
-                    </p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-paper/40" />
-                </Link>
+                  <Link
+                    to="/capture/$captureId"
+                    params={{ captureId: c.id }}
+                    className="flex items-center gap-3 rounded-xl bg-paper/5 px-3 py-2.5 active:scale-[0.99] transition"
+                  >
+                    <Clock className="h-4 w-4 text-lime shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate text-paper">{captureTitle(c)}</p>
+                      <p className="text-[11px] text-paper/50 truncate">
+                        Updated {new Date(c.updated_at).toLocaleString("en-GB", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-paper/40" />
+                  </Link>
+                </SwipeRow>
               ))}
             </div>
           </div>
