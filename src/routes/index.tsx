@@ -119,7 +119,7 @@ function HomePage() {
                   <Link
                     to="/capture/$captureId"
                     params={{ captureId: c.id }}
-                    className="flex items-center gap-3 rounded-xl bg-paper/5 px-3 py-2.5 active:scale-[0.99] transition"
+                    className="flex items-center gap-3 rounded-xl bg-ink border border-paper/10 px-3 py-2.5 active:scale-[0.99] transition"
                   >
                     <Clock className="h-4 w-4 text-lime shrink-0" />
                     <div className="flex-1 min-w-0">
