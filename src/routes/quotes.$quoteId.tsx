@@ -216,6 +216,14 @@ function QuoteDetail() {
         </section>
       )}
 
+      {mockProfile.quote_intro && (
+        <section className="px-5 mt-4">
+          <div className="card-surface p-5">
+            <p className="text-sm leading-relaxed italic text-muted-foreground">{mockProfile.quote_intro}</p>
+          </div>
+        </section>
+      )}
+
       <section className="px-5 mt-4">
         <div className="card-surface p-5">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Job description</p>
