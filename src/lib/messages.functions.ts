@@ -14,23 +14,39 @@ export const ensurePortalToken = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const now = Date.now();
     const { data: existing } = await supabase
       .from("quote_portal_tokens")
-      .select("token")
+      .select("token, expires_at")
       .eq("quote_id", data.quoteId)
       .eq("user_id", userId)
       .maybeSingle();
-    if (existing?.token) return { token: existing.token };
+    if (existing?.token && existing.expires_at && new Date(existing.expires_at).getTime() > now) {
+      return { token: existing.token, expiresAt: existing.expires_at };
+    }
 
     const token = crypto.randomUUID().replace(/-/g, "") + Math.random().toString(36).slice(2, 8);
-    const { error } = await supabase.from("quote_portal_tokens").insert({
-      quote_id: data.quoteId,
-      user_id: userId,
-      token,
-      channel: data.channel,
-    });
-    if (error) throw new Error(error.message);
-    return { token };
+    // Tokens valid for 30 days
+    const expiresAt = new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString();
+    // Upsert (if a stale record exists, replace it)
+    if (existing?.token) {
+      const { error } = await supabase
+        .from("quote_portal_tokens")
+        .update({ token, channel: data.channel, expires_at: expiresAt, created_at: new Date().toISOString() })
+        .eq("quote_id", data.quoteId)
+        .eq("user_id", userId);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabase.from("quote_portal_tokens").insert({
+        quote_id: data.quoteId,
+        user_id: userId,
+        token,
+        channel: data.channel,
+        expires_at: expiresAt,
+      });
+      if (error) throw new Error(error.message);
+    }
+    return { token, expiresAt };
   });
 
 // ---------- Pro: list messages for a quote ----------
