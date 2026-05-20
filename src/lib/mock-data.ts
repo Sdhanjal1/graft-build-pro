@@ -683,6 +683,16 @@ export const duplicateQuote = async (quoteId: string): Promise<Quote | null> => 
   return copy;
 };
 
+export const deleteQuote = async (quoteId: string): Promise<void> => {
+  const { error } = await supabase.from("quotes").delete().eq("id", quoteId);
+  if (error) throw error;
+  const idx = mockQuotes.findIndex((q) => q.id === quoteId);
+  if (idx >= 0) mockQuotes.splice(idx, 1);
+  const jIdx = mockJobs.findIndex((j) => j.quote_id === quoteId);
+  if (jIdx >= 0) mockJobs.splice(jIdx, 1);
+  bumpVersion();
+};
+
 // ---------- Auto-chase scheduler ----------
 
 const CHASE_OFFSETS = [7, 14, 21];
