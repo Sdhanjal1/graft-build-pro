@@ -114,10 +114,15 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          logo_url: string | null
           payment_reference_note: string | null
           payment_terms: string | null
           phone: string | null
+          quote_footer: string | null
+          quote_intro: string | null
           registration_number: string | null
+          show_signature: boolean
+          signature_name: string | null
           sort_code: string | null
           stripe_publishable_key: string | null
           stripe_secret_key: string | null
@@ -136,10 +141,15 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          logo_url?: string | null
           payment_reference_note?: string | null
           payment_terms?: string | null
           phone?: string | null
+          quote_footer?: string | null
+          quote_intro?: string | null
           registration_number?: string | null
+          show_signature?: boolean
+          signature_name?: string | null
           sort_code?: string | null
           stripe_publishable_key?: string | null
           stripe_secret_key?: string | null
@@ -158,10 +168,15 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          logo_url?: string | null
           payment_reference_note?: string | null
           payment_terms?: string | null
           phone?: string | null
+          quote_footer?: string | null
+          quote_intro?: string | null
           registration_number?: string | null
+          show_signature?: boolean
+          signature_name?: string | null
           sort_code?: string | null
           stripe_publishable_key?: string | null
           stripe_secret_key?: string | null

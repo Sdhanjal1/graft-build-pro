@@ -101,6 +101,11 @@ export const mockProfile = {
   payment_terms: "Payment due within 14 days of invoice date.",
   /** Card processing fee shown on card payment summaries */
   card_fee_pct: 3.5,
+  logo_url: "",
+  quote_intro: "",
+  quote_footer: "",
+  signature_name: "",
+  show_signature: true,
 };
 
 export const mockClients: Client[] = [];
@@ -190,6 +195,11 @@ export async function hydrateUserData() {
     set("stripe_publishable_key", p.stripe_publishable_key);
     set("stripe_secret_key", p.stripe_secret_key);
     mockProfile.stripe_connected = !!(p.stripe_publishable_key && p.stripe_secret_key);
+    set("logo_url", p.logo_url);
+    set("quote_intro", p.quote_intro);
+    set("quote_footer", p.quote_footer);
+    set("signature_name", p.signature_name);
+    if (typeof p.show_signature === "boolean") mockProfile.show_signature = p.show_signature;
   }
   bumpVersion();
 }
@@ -218,6 +228,11 @@ export async function saveProfileToCloud(patch: Partial<typeof mockProfile>) {
     payment_terms: mockProfile.payment_terms || null,
     stripe_publishable_key: mockProfile.stripe_publishable_key || null,
     stripe_secret_key: mockProfile.stripe_secret_key || null,
+    logo_url: mockProfile.logo_url || null,
+    quote_intro: mockProfile.quote_intro || null,
+    quote_footer: mockProfile.quote_footer || null,
+    signature_name: mockProfile.signature_name || null,
+    show_signature: mockProfile.show_signature,
   };
   const { error } = await supabase.from("profiles").upsert(row, { onConflict: "id" });
   if (error) console.error("[profile] save failed", error);
