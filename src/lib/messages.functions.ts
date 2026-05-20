@@ -14,23 +14,39 @@ export const ensurePortalToken = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const now = Date.now();
     const { data: existing } = await supabase
       .from("quote_portal_tokens")
-      .select("token")
+      .select("token, expires_at")
       .eq("quote_id", data.quoteId)
       .eq("user_id", userId)
       .maybeSingle();
-    if (existing?.token) return { token: existing.token };
+    if (existing?.token && existing.expires_at && new Date(existing.expires_at).getTime() > now) {
+      return { token: existing.token, expiresAt: existing.expires_at };
+    }
 
     const token = crypto.randomUUID().replace(/-/g, "") + Math.random().toString(36).slice(2, 8);
-    const { error } = await supabase.from("quote_portal_tokens").insert({
-      quote_id: data.quoteId,
-      user_id: userId,
-      token,
-      channel: data.channel,
-    });
-    if (error) throw new Error(error.message);
-    return { token };
+    // Tokens valid for 30 days
+    const expiresAt = new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString();
+    // Upsert (if a stale record exists, replace it)
+    if (existing?.token) {
+      const { error } = await supabase
+        .from("quote_portal_tokens")
+        .update({ token, channel: data.channel, expires_at: expiresAt, created_at: new Date().toISOString() })
+        .eq("quote_id", data.quoteId)
+        .eq("user_id", userId);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabase.from("quote_portal_tokens").insert({
+        quote_id: data.quoteId,
+        user_id: userId,
+        token,
+        channel: data.channel,
+        expires_at: expiresAt,
+      });
+      if (error) throw new Error(error.message);
+    }
+    return { token, expiresAt };
   });
 
 // ---------- Pro: list messages for a quote ----------
@@ -89,10 +105,13 @@ export const getPortalData = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { data: tk } = await supabaseAdmin
       .from("quote_portal_tokens")
-      .select("quote_id, user_id")
+      .select("quote_id, user_id, expires_at")
       .eq("token", data.token)
       .maybeSingle();
     if (!tk) throw new Error("Invalid or expired link");
+    if (tk.expires_at && new Date(tk.expires_at).getTime() < Date.now()) {
+      throw new Error("This link has expired. Please ask for a new one.");
+    }
 
     const [{ data: quote }, { data: messages }, { data: profile }] = await Promise.all([
       supabaseAdmin.from("quotes").select("*").eq("id", tk.quote_id).maybeSingle(),
@@ -150,10 +169,13 @@ export const postPortalMessage = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { data: tk } = await supabaseAdmin
       .from("quote_portal_tokens")
-      .select("quote_id, user_id")
+      .select("quote_id, user_id, expires_at")
       .eq("token", data.token)
       .maybeSingle();
     if (!tk) throw new Error("Invalid link");
+    if (tk.expires_at && new Date(tk.expires_at).getTime() < Date.now()) {
+      throw new Error("This link has expired.");
+    }
 
     const { data: inserted, error } = await supabaseAdmin
       .from("quote_messages")
@@ -188,5 +210,15 @@ export const postPortalMessage = createServerFn({ method: "POST" })
         .single();
       autoReply = ar;
     }
+    // Notify pro of new customer message
+    try {
+      const { notifyUser } = await import("@/lib/push.functions");
+      void notifyUser(tk.user_id, {
+        title: "New customer message",
+        body: data.body.slice(0, 140),
+        url: "/messages",
+        tag: `msg-${tk.quote_id}`,
+      });
+    } catch (e) { console.error("push notify failed", e); }
     return { message: inserted, autoReply };
   });
