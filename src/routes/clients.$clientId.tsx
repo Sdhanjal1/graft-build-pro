@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { getClient, quotesForClient, formatGBP } from "@/lib/mock-data";
 import { Phone, Mail, MapPin, Home, FileText } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+import { CustomerPortalPanel } from "@/components/CustomerPortalPanel";
 
 export const Route = createFileRoute("/clients/$clientId")({
   component: ClientDetail,
@@ -48,6 +49,12 @@ function ClientDetail() {
           )}
         </div>
       </section>
+
+      <section className="px-5 mt-6">
+        <h2 className="text-xl mb-2.5">Customer portal</h2>
+        <CustomerPortalPanel clientId={clientId} />
+      </section>
+
 
       <section className="mt-6">
         <h2 className="px-5 text-xl mb-2.5">Job history</h2>
