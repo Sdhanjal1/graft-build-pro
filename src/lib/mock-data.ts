@@ -625,7 +625,7 @@ export const saveGeneratedQuote = async (input: {
   const insertPayload = {
     user_id,
     ref: nextQuoteRef(),
-    client_id: client.id,
+    client_id: client?.id ?? null,
     title: input.title,
     job_description: input.description,
     line_items: input.line_items as unknown as Record<string, unknown>,
