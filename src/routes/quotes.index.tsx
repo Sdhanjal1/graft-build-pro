@@ -79,22 +79,34 @@ function QuotesPage() {
         {filtered.map((quote) => {
           const c = getClient(quote.client_id);
           return (
-            <Link
-              to="/quotes/$quoteId"
-              params={{ quoteId: quote.id }}
+            <SwipeRow
               key={quote.id}
-              className="card-surface p-4 flex items-center gap-3"
+              onDelete={async () => {
+                try {
+                  await deleteQuote(quote.id);
+                  toast.success("Quote deleted");
+                } catch (e) {
+                  toast.error("Couldn't delete quote");
+                  throw e;
+                }
+              }}
             >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{quote.ref}</p>
-                  <StatusBadge status={quote.status} />
+              <Link
+                to="/quotes/$quoteId"
+                params={{ quoteId: quote.id }}
+                className="card-surface p-4 flex items-center gap-3"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{quote.ref}</p>
+                    <StatusBadge status={quote.status} />
+                  </div>
+                  <p className="font-semibold text-sm mt-1 truncate">{quote.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">{c?.name}</p>
                 </div>
-                <p className="font-semibold text-sm mt-1 truncate">{quote.title}</p>
-                <p className="text-xs text-muted-foreground truncate">{c?.name}</p>
-              </div>
-              <p className="num text-2xl text-ink">{formatGBP(quote.total)}</p>
-            </Link>
+                <p className="num text-2xl text-ink">{formatGBP(quote.total)}</p>
+              </Link>
+            </SwipeRow>
           );
         })}
       </div>
