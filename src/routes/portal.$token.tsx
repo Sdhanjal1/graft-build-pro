@@ -95,12 +95,12 @@ function PortalPage() {
   return (
     <div className="min-h-screen bg-paper pb-32">
       <header className="bg-ink text-paper px-5 pt-6 pb-5 flex items-center gap-3">
-        <QuottrLogo className="h-7 w-auto" />
-        <div className="h-6 w-px bg-paper/20" />
-        <div className="min-w-0">
+        <BusinessLogo logoUrl={(profile as any)?.logo_url} businessName={profile?.business_name ?? "Your tradesperson"} size="md" />
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold truncate">{profile?.business_name ?? "Your tradesperson"}</p>
           <p className="text-[10px] text-paper/60 truncate">Quote {quote.ref ?? ""}</p>
         </div>
+        <QuottrLogo className="h-5 w-auto opacity-60" />
       </header>
 
       <section className="px-5 mt-5">
