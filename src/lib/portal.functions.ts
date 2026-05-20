@@ -271,3 +271,24 @@ export const sendProClientMessage = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { message: row };
   });
+
+// ---------- Pro: get client portal code for a quote (used by SendQuoteDialog) ----------
+export const getPortalCodeForQuote = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ quoteId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: quote } = await context.supabase
+      .from("quotes")
+      .select("client_id")
+      .eq("id", data.quoteId)
+      .maybeSingle();
+    if (!quote?.client_id) return { portal_code: null };
+    const { data: client } = await context.supabase
+      .from("clients")
+      .select("portal_code, portal_active")
+      .eq("id", quote.client_id)
+      .maybeSingle();
+    return {
+      portal_code: client?.portal_active ? client?.portal_code ?? null : null,
+    };
+  });
