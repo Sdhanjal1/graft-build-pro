@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getPortalData, postPortalMessage } from "@/lib/messages.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { QuottrLogo } from "@/components/QuottrLogo";
+import { BusinessLogo } from "@/components/BusinessLogo";
 import { Loader2, Send, Check, ThumbsUp, MessageSquare } from "lucide-react";
 
 export const Route = createFileRoute("/portal/$token")({
