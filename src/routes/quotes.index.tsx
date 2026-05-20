@@ -15,6 +15,7 @@ export const Route = createFileRoute("/quotes/")({
 const FILTERS: ("all" | QuoteStatus)[] = ["all", "pending", "sent", "accepted", "declined", "paid", "overdue"];
 
 function QuotesPage() {
+  useDataVersion();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
   const [q, setQ] = useState("");
 
