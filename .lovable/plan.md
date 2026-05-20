@@ -1,61 +1,99 @@
-## Goal
-Add in-app messaging as the primary quote-sending channel in Quottr while preserving the existing WhatsApp flow, plus a customer portal with two-way messaging and Do Not Disturb working hours.
+# Customer Portal — Magic Link Implementation
+
+A per-client permanent portal at `/portal/[12-char-code]` showing all their quotes, documents, and a messaging thread — no login required.
 
 ## Scope
 
-### 1. Send Quote — three-option chooser
-Replace the current single Send action with a dialog showing:
-1. **Send via Quottr** (recommended badge, primary) — SMS to customer with portal link; all comms inside portal.
-2. **Send via Email** — branded email with portal link; same portal experience.
-3. **Send via WhatsApp** — existing flow unchanged, with subtle tip: *"Using Quottr keeps your business communication separate from your personal WhatsApp."*
+Replaces the current per-quote portal token model with a per-client portal code. Existing `/portal/$token` (per-quote thread) stays for backward compatibility; new client-wide portal lives at `/portal/c/$code`.
 
-Triggered from existing Send buttons on quote detail / quotes list.
+## Database changes (one migration)
 
-### 2. Customer Portal (public, token-based)
-New public route `/portal/$token` where the customer can:
-- View the quote
-- Approve / request changes
-- See documents
-- **Message thread** with Nav (two-way)
+1. **`clients`** — add columns:
+   - `portal_code text unique` (12-char alphanumeric, auto-generated)
+   - `portal_active boolean default true`
+   - `service_due_date date null`
+   - `service_type text null`
+2. **`quotes`** — add `portal_visible boolean default true`
+3. **New table `client_documents`**:
+   - `id`, `user_id`, `client_id`, `title`, `kind` (cert/service/warranty/other), `file_url`, `portal_visible boolean default true`, timestamps
+   - RLS: owner-only manage
+4. **New table `client_portal_messages`** (client-wide thread, distinct from per-quote `quote_messages`):
+   - `id`, `user_id`, `client_id`, `sender` (pro/customer), `body`, `read_at`, timestamps
+   - RLS: owner-only manage
+5. **Storage bucket `client-docs`** (public read), RLS on objects: owner write under `{user_id}/...`
+6. **Trigger**: on `clients` insert, populate `portal_code` if null (12-char base36 random).
+7. **Backfill**: existing clients get a `portal_code`.
 
-Token generated per quote on send; no auth required for customer.
+## Server functions (new file `src/lib/portal.functions.ts`)
 
-### 3. In-app inbox for Nav
-- New `Messages` section (or surface inside quote detail) showing message threads per quote/customer
-- Real-time updates via Supabase Realtime
-- Push/toast notification on new customer message (respecting DND)
+- `getClientPortalData({ code })` — public (admin client). Returns: `{ client: { first_name, business_name_pro, logo_url, service_due_date, service_type }, quotes: [...portal_visible & completed-ish], documents: [...portal_visible], messages: [...] }`. Returns 404 if `portal_active=false` or code unknown.
+- `postClientPortalMessage({ code, body, firstName?, lastName? })` — public. Inserts customer message; optionally updates `clients.name` once if blank.
+- `regeneratePortalCode({ clientId })` — auth, regenerates code.
+- `togglePortalActive({ clientId, active })` — auth.
+- `toggleQuotePortalVisible({ quoteId, visible })` — auth.
+- `toggleDocumentPortalVisible({ documentId, visible })` — auth.
+- `listClientDocuments({ clientId })` / `uploadClientDocument` / `deleteClientDocument` — auth.
+- `sendProClientMessage({ clientId, body })` / `listClientPortalMessages({ clientId })` — auth.
 
-### 4. Do Not Disturb (Settings)
-- Working hours editor (per-day on/off + start/end times)
-- Customisable auto-reply (default provided)
-- When customer sends a message outside hours: Nav notifications paused + auto-reply posted into thread
+## Customer-facing route — `src/routes/portal.c.$code.tsx`
 
-### 5. Database
-New tables:
-- `quote_portal_tokens` — quote_id, token, expires_at
-- `quote_messages` — quote_id, sender ('customer' | 'pro'), body, created_at, read_at
-- `working_hours` — user_id, per-day schedule JSON, auto_reply_text, dnd_enabled
+Public route. Flow:
+1. Fetch portal data via server fn.
+2. Check `localStorage[`quottr_portal_${code}_name`]` — if missing, show name confirmation card (first + last name → Confirm). Save to localStorage; POST to server so pro sees the customer name.
+3. Header: business logo (via `BusinessLogo`), business name, "Hi {firstName}".
+4. Gold service-due card if `service_due_date` within 60 days → tap opens message composer.
+5. **Your quotes & jobs** — list cards (date, title, total, StatusBadge). Tap to expand line items; Download PDF button per quote (links to existing invoice/quote PDF).
+6. **Your documents** — list visible docs with download button.
+7. **Messages** — simple thread (pro/customer bubbles), composer at bottom.
+8. **Request a new quote** — big lime button → `/request/$proId`.
+9. Footer: "Powered by Quottr" → quottr.co.uk.
 
-RLS: pro sees only their own; portal endpoints use service-role server functions gated by token validation.
+Design: dark ink bg, lime green CTAs, Bebas Neue headings, DM Sans body — matches existing portal route.
 
-### 6. Server functions
-- `sendQuoteViaQuottr` — generate token, send SMS (stub/log for now if Twilio not wired), insert audit
-- `sendQuoteViaEmail` — generate token, send email via Lovable Emails
-- `getPortalQuote(token)` — public, no auth
-- `postPortalMessage(token, body)` — public; triggers auto-reply if outside hours
-- `postProMessage(quoteId, body)` — auth required
+## Pro-side controls — `src/routes/clients.$clientId.tsx`
 
-### 7. Keep existing
-- WhatsApp send option works exactly as today
-- All existing design tokens, components, routes preserved
+Add a **Customer portal** section:
+- Portal URL display + Copy + Share buttons
+- Regenerate link button (confirm dialog)
+- Preview portal button (opens `/portal/c/{code}` in new tab)
+- Portal active toggle
+- Documents list with per-row visibility toggle + upload button + delete
+- Quotes list (existing) with per-row "Show in portal" toggle
+- Service reminder fields (service type, due date)
 
-## Technical Notes
-- SMS: if Twilio connector not yet configured, scaffold the call site and surface a clear setup CTA; do not block the flow
-- Email: use Lovable Emails (`scaffold_transactional_email`) for branded portal-link email
-- Realtime: enable on `quote_messages` for live thread
-- Portal route is public — no `AuthGate`; uses token-only server fns with `supabaseAdmin`
+## Quote send messaging
 
-## Out of Scope (this iteration)
-- Customer-side push notifications
-- File uploads inside portal messages (text only first pass)
-- Multi-language auto-reply
+Update `SendQuoteDialog` (and any SMS/email body builder) to append:
+```
+View your quotes and service history: https://quottr.co.uk/portal/c/{portal_code}
+```
+when sending. Use the client's `portal_code` from the quote's `client_id`.
+
+## Files
+
+**Created**
+- `supabase/migrations/<ts>_customer_portal.sql`
+- `src/lib/portal.functions.ts`
+- `src/routes/portal.c.$code.tsx`
+- `src/components/portal/PortalQuoteCard.tsx` (expandable card)
+- `src/components/portal/PortalNameGate.tsx`
+- `src/components/portal/PortalMessageThread.tsx`
+
+**Edited**
+- `src/routes/clients.$clientId.tsx` — portal management UI
+- `src/components/SendQuoteDialog.tsx` — append portal link
+- `src/integrations/supabase/types.ts` — regenerates after migration
+
+## Security notes (as specified)
+
+- 12-char base36 = ~62 bits, unguessable enough for non-financial data.
+- Public route, no PII shown beyond what client already knows (their own quotes/docs).
+- No bank/card details exposed.
+- Pro can regenerate code to invalidate shared links.
+- `portal_active=false` returns "Portal disabled" page.
+
+## Not in scope
+
+- Real-time messaging (simple poll on load, per spec).
+- Replacing existing `/portal/$token` per-quote portal.
+- Email/SMS sending infra (we only append the URL to message bodies — the user's existing flow handles delivery).
