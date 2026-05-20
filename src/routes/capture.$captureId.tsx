@@ -200,7 +200,19 @@ function SiteCapturePage() {
       try {
         const audioBase64 = await blobToBase64(blob);
         const { text } = await transcribeFn({ data: { audioBase64, mimeType: blobType } });
-        await addItem(text, "voice");
+        let jobs: string[] = [];
+        try {
+          const res = await extractJobsFn({
+            data: { transcript: text, trade: capture?.trade_type || undefined },
+          });
+          jobs = res.jobs.map((j) => j.trim()).filter(Boolean);
+        } catch (err) {
+          console.error("extractJobs failed, falling back to raw transcript", err);
+        }
+        if (jobs.length === 0) jobs = [text];
+        for (const j of jobs) {
+          await addItem(j, "voice");
+        }
       } catch (e) {
         console.error(e);
         setError(e instanceof Error ? e.message : "Could not transcribe");
