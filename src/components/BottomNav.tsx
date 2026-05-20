@@ -1,10 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Plus, FileText, Settings, MessageSquare } from "lucide-react";
+import { Home, Plus, Settings, MessageSquare, BarChart3 } from "lucide-react";
 
 const items = [
   { to: "/", label: "Home", icon: Home },
   { to: "/messages", label: "Inbox", icon: MessageSquare },
-  { to: "/quotes", label: "Quotes", icon: FileText },
+  { to: "/insights", label: "Insights", icon: BarChart3 },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
