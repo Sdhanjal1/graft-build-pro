@@ -105,7 +105,7 @@ function QuotesPage() {
                   {c && c.name && c.name.toLowerCase() !== "new client" ? (
                     <p className="text-xs font-bold text-ink truncate">{c.name}</p>
                   ) : (
-                    <p className="text-xs font-semibold text-status-overdue truncate">Tap to assign client</p>
+                    <p className="text-xs font-semibold text-status-pending truncate">Tap to assign client</p>
                   )}
                 </div>
                 <p className="num text-2xl text-ink">{formatGBP(quote.total)}</p>
