@@ -53,6 +53,7 @@ function SiteCapturePage() {
   const { captureId } = Route.useParams();
   const navigate = useNavigate();
   const transcribeFn = useServerFn(transcribeAudio);
+  const extractJobsFn = useServerFn(extractJobsFromTranscript);
   const generateFn = useServerFn(generateCaptureQuote);
 
   const [capture, setCapture] = useState<SiteCapture | null>(null);
