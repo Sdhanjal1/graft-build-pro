@@ -15,6 +15,7 @@ import {
   type SiteCaptureItem,
 } from "@/lib/site-captures";
 import { transcribeAudio } from "@/lib/transcribe.functions";
+import { extractJobsFromTranscript } from "@/lib/extract-jobs.functions";
 import { generateCaptureQuote } from "@/lib/ai-capture-quote.functions";
 import { saveGeneratedQuote, TRADE_TYPES, mockProfile } from "@/lib/mock-data";
 import { feedback } from "@/lib/feedback";
@@ -52,6 +53,7 @@ function SiteCapturePage() {
   const { captureId } = Route.useParams();
   const navigate = useNavigate();
   const transcribeFn = useServerFn(transcribeAudio);
+  const extractJobsFn = useServerFn(extractJobsFromTranscript);
   const generateFn = useServerFn(generateCaptureQuote);
 
   const [capture, setCapture] = useState<SiteCapture | null>(null);
@@ -198,7 +200,19 @@ function SiteCapturePage() {
       try {
         const audioBase64 = await blobToBase64(blob);
         const { text } = await transcribeFn({ data: { audioBase64, mimeType: blobType } });
-        await addItem(text, "voice");
+        let jobs: string[] = [];
+        try {
+          const res = await extractJobsFn({
+            data: { transcript: text, trade: capture?.trade_type || undefined },
+          });
+          jobs = res.jobs.map((j) => j.trim()).filter(Boolean);
+        } catch (err) {
+          console.error("extractJobs failed, falling back to raw transcript", err);
+        }
+        if (jobs.length === 0) jobs = [text];
+        for (const j of jobs) {
+          await addItem(j, "voice");
+        }
       } catch (e) {
         console.error(e);
         setError(e instanceof Error ? e.message : "Could not transcribe");
