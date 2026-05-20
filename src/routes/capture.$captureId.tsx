@@ -15,6 +15,7 @@ import {
   type SiteCaptureItem,
 } from "@/lib/site-captures";
 import { transcribeAudio } from "@/lib/transcribe.functions";
+import { extractJobsFromTranscript } from "@/lib/extract-jobs.functions";
 import { generateCaptureQuote } from "@/lib/ai-capture-quote.functions";
 import { saveGeneratedQuote, TRADE_TYPES, mockProfile } from "@/lib/mock-data";
 import { feedback } from "@/lib/feedback";
