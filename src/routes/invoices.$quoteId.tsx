@@ -41,14 +41,17 @@ function InvoicePage() {
       {/* Bold INVOICE banner — distinct from quote */}
       <section className="px-5">
         <div className="rounded-3xl bg-ink text-paper overflow-hidden">
-          <div className="px-6 pt-6 pb-5 flex items-start justify-between">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-lime font-bold">Invoice</p>
-              <h1 className="text-5xl mt-1 leading-none text-paper">{ref}</h1>
-              <p className="text-xs text-paper/60 mt-2">{mockProfile.business_name}</p>
-              <p className="text-[10px] text-paper/50">{mockProfile.registration_number} · VAT {mockProfile.vat_number}</p>
+          <div className="px-6 pt-6 pb-5 flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3 min-w-0">
+              <BusinessLogo logoUrl={mockProfile.logo_url} businessName={mockProfile.business_name} size="md" />
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.3em] text-lime font-bold">Invoice</p>
+                <h1 className="text-5xl mt-1 leading-none text-paper">{ref}</h1>
+                <p className="text-xs text-paper/60 mt-2 truncate">{mockProfile.business_name}</p>
+                <p className="text-[10px] text-paper/50 truncate">{mockProfile.registration_number} · VAT {mockProfile.vat_number}</p>
+              </div>
             </div>
-            <QuottrLogo className="h-8 w-auto" />
+            <QuottrLogo className="h-6 w-auto opacity-60" />
           </div>
 
           {/* Hero amount due */}
