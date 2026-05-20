@@ -195,6 +195,11 @@ export async function hydrateUserData() {
     set("stripe_publishable_key", p.stripe_publishable_key);
     set("stripe_secret_key", p.stripe_secret_key);
     mockProfile.stripe_connected = !!(p.stripe_publishable_key && p.stripe_secret_key);
+    set("logo_url", p.logo_url);
+    set("quote_intro", p.quote_intro);
+    set("quote_footer", p.quote_footer);
+    set("signature_name", p.signature_name);
+    if (typeof p.show_signature === "boolean") mockProfile.show_signature = p.show_signature;
   }
   bumpVersion();
 }
