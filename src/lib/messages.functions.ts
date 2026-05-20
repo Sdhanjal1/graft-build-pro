@@ -169,10 +169,13 @@ export const postPortalMessage = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { data: tk } = await supabaseAdmin
       .from("quote_portal_tokens")
-      .select("quote_id, user_id")
+      .select("quote_id, user_id, expires_at")
       .eq("token", data.token)
       .maybeSingle();
     if (!tk) throw new Error("Invalid link");
+    if (tk.expires_at && new Date(tk.expires_at).getTime() < Date.now()) {
+      throw new Error("This link has expired.");
+    }
 
     const { data: inserted, error } = await supabaseAdmin
       .from("quote_messages")
