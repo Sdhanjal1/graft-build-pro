@@ -44,6 +44,11 @@ function SettingsPage() {
     trade_type: mockProfile.trade_type,
     registration_number: mockProfile.registration_number,
     vat_number: mockProfile.vat_number,
+    logo_url: mockProfile.logo_url,
+    quote_intro: mockProfile.quote_intro,
+    quote_footer: mockProfile.quote_footer,
+    signature_name: mockProfile.signature_name || mockProfile.full_name,
+    show_signature: mockProfile.show_signature,
   });
   const saveProfile = (patch: Partial<typeof profile>) => setProfile((p) => ({ ...p, ...patch }));
 
