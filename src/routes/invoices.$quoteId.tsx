@@ -6,6 +6,7 @@ import {
 } from "@/lib/mock-data";
 import { MessageCircle, Mail, CreditCard, Landmark, Share2 } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
+import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
