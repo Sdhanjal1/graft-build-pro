@@ -450,8 +450,7 @@ export const formatGBP = (n: number) => {
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
     currency: "GBP",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: safe < 1000 ? 2 : 0,
   }).format(safe);
 };
 
