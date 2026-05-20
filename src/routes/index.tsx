@@ -6,9 +6,11 @@ import {
   mockClients, mockQuotes, mockProfile, mockTransactions, stats, formatGBP, getClient,
   todaysJobs, annualRemindersDue, formatTime, getQuote,
 } from "@/lib/mock-data";
-import { listActiveCaptures, captureTitle, type SiteCapture } from "@/lib/site-captures";
+import { listActiveCaptures, captureTitle, deleteCapture, type SiteCapture } from "@/lib/site-captures";
 import { AlertTriangle, ArrowRight, BarChart3, Mic, CreditCard, Landmark, Banknote, Search, Sparkles, BellRing, MapPin, Clock } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
+import { SwipeRow } from "@/components/SwipeRow";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
