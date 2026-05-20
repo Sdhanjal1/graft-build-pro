@@ -105,10 +105,13 @@ export const getPortalData = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { data: tk } = await supabaseAdmin
       .from("quote_portal_tokens")
-      .select("quote_id, user_id")
+      .select("quote_id, user_id, expires_at")
       .eq("token", data.token)
       .maybeSingle();
     if (!tk) throw new Error("Invalid or expired link");
+    if (tk.expires_at && new Date(tk.expires_at).getTime() < Date.now()) {
+      throw new Error("This link has expired. Please ask for a new one.");
+    }
 
     const [{ data: quote }, { data: messages }, { data: profile }] = await Promise.all([
       supabaseAdmin.from("quotes").select("*").eq("id", tk.quote_id).maybeSingle(),
