@@ -55,18 +55,27 @@ function ChaserPage() {
               {due.map(({ chase, quote }) => {
                 const c = getClient(quote.client_id);
                 const first = c?.name.split(" ")[0] ?? "there";
-                const msg = encodeURIComponent(buildChaserMessage(quote, first));
-                const digits = c?.phone.replace(/\D/g, "");
-                const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${msg}`;
+                const text = buildChaseMessageForOffset(quote, first, chase.day_offset);
+                const wa = waLink(c?.phone, text);
+                const autoIn = chase.auto_send_at
+                  ? Math.max(0, Math.round((new Date(chase.auto_send_at).getTime() - Date.now()) / 60000))
+                  : null;
                 return (
                   <div key={chase.id} className="rounded-2xl bg-lime/15 border border-lime/40 p-3.5">
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] uppercase tracking-widest font-bold bg-lime text-ink rounded-full px-2 py-0.5">
-                        Day {chase.day_offset} · due now
+                        Day {chase.day_offset} · ready to send
                       </span>
                       <p className="text-xs font-semibold text-ink truncate">{quote.ref} · {c?.name}</p>
                     </div>
-                    <p className="text-xs text-ink/70 truncate mt-1">{quote.title} · {formatGBP(quote.total)}</p>
+                    <p className="text-xs text-ink/70 truncate mt-1">
+                      Chase ready to send to {c?.name} — {formatGBP(quote.total)} — {chase.day_offset} days overdue
+                    </p>
+                    {autoIn !== null && (
+                      <p className="text-[10px] text-ink/60 mt-1">
+                        Auto-sends in {autoIn >= 60 ? `${Math.floor(autoIn / 60)}h ${autoIn % 60}m` : `${autoIn}m`} if no action
+                      </p>
+                    )}
                     <div className="grid grid-cols-2 gap-2 mt-3">
                       <a
                         href={wa}
@@ -75,13 +84,13 @@ function ChaserPage() {
                         onClick={() => { feedback("success"); markChaseSent(chase.id); force((n) => n + 1); }}
                         className="bg-ink text-paper rounded-full py-2 text-xs font-bold inline-flex items-center justify-center gap-1.5"
                       >
-                        <Check className="h-3.5 w-3.5" /> Send chase
+                        <Check className="h-3.5 w-3.5" /> Send now
                       </a>
                       <button
                         onClick={() => { feedback("tap"); skipChase(chase.id); force((n) => n + 1); }}
                         className="bg-card border border-border text-ink rounded-full py-2 text-xs font-bold inline-flex items-center justify-center gap-1.5"
                       >
-                        <XIcon className="h-3.5 w-3.5" /> Skip
+                        <XIcon className="h-3.5 w-3.5" /> Skip this chase
                       </button>
                     </div>
                   </div>
@@ -89,6 +98,7 @@ function ChaserPage() {
               })}
             </div>
           )}
+
 
           {upcoming.length > 0 && (
             <div className="card-surface divide-y divide-border">
