@@ -484,6 +484,21 @@ function JobSheet({ job, onClose, onChange }: { job: ScheduledJob; onClose: () =
 function CompletePrompt({
   job, quoteId, onClose,
 }: { job: ScheduledJob; quoteId: string; onClose: () => void }) {
+  const q = getQuote(quoteId);
+  const c = q ? getClient(q.client_id) : undefined;
+  const requestReview = () => {
+    if (!c) return;
+    const first = c.name.split(" ")[0];
+    const text = buildReviewRequestMessage(first);
+    window.open(waLink(c.phone, text), "_blank");
+    markReviewRequested(c.id);
+    if (!mockProfile.google_review_url) {
+      toast.info("Add your Google review link in Settings for a one-tap link");
+    } else {
+      toast.success(`Review request sent to ${first}`);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[60] flex items-end bg-ink/70" onClick={onClose}>
       <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
