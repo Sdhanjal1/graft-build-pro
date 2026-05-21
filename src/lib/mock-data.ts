@@ -33,7 +33,10 @@ export type Client = {
   property_type: string;
   notes?: string;
   created_at: string;
+  /** ISO timestamp when a Google review request was last sent */
+  review_requested_at?: string;
 };
+
 
 export type PaymentRequest = {
   id: string;
