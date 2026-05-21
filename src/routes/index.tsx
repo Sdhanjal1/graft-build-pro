@@ -1,121 +1,222 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AppShell } from "@/components/AppShell";
-import {
-  mockProfile, stats, formatGBP, getClient,
-  todaysJobs, formatTime, getQuote,
-} from "@/lib/mock-data";
-import { Mic, ArrowRight, Sparkles } from "lucide-react";
-import { QuottrWordmark } from "@/components/QuottrLogo";
-import { RotatingPrompts } from "@/components/RotatingPrompts";
+import { MarketingShell } from "@/components/MarketingShell";
+import { ArrowRight, Check, Mic, Wrench, MessageSquare } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
   head: () => ({
     meta: [
-      { title: "Quottr — Home" },
-      { name: "description", content: "Tap to start a quote. See what you're owed at a glance." },
+      { title: "Quottr — You talk. Quottr quotes." },
+      { name: "description", content: "Job management for trades. As easy as sending a voice note. Quottr handles quotes, invoices, customers and chasing for you." },
+      { property: "og:title", content: "Quottr — You talk. Quottr quotes." },
+      { property: "og:description", content: "Voice-first job management for tradespeople. Quotes, invoices and customers, sorted." },
+      { property: "og:type", content: "website" },
     ],
+    links: [{ rel: "canonical", href: "/" }],
   }),
 });
 
 function HomePage() {
-  const s = stats();
-  const today = todaysJobs();
-  const firstName = mockProfile.full_name.split(" ")[0];
-  const owedColor = s.outstanding > 0 ? "text-status-overdue" : "text-lime";
-
   return (
-    <AppShell>
-      <header className="bg-ink text-paper rounded-b-3xl px-5 pt-7 pb-8">
-        <QuottrWordmark className="text-4xl" />
-        <p className="mt-2 text-lg font-semibold text-paper font-sans">
-          You talk. Quottr quotes.
-        </p>
-        <p className="mt-6 text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-          Good morning
-        </p>
-        <h1 className="text-3xl leading-none mt-1 text-paper">{firstName}</h1>
-        <p className="mt-1.5 text-sm text-paper/60">{mockProfile.business_name}</p>
-      </header>
+    <MarketingShell>
+      <section className="bg-ink text-paper relative overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-40 pointer-events-none"
+          style={{ background: "radial-gradient(circle at 50% 0%, color-mix(in oklab, var(--lime) 35%, transparent), transparent 55%)" }}
+        />
+        <div className="mx-auto max-w-7xl px-5 pt-16 md:pt-24 pb-12 md:pb-16 relative text-center">
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-paper/10 border border-paper/15 text-[11px] uppercase tracking-widest font-semibold text-paper/80">
+            <span className="h-1.5 w-1.5 rounded-full bg-lime" /> Voice-first for trades
+          </span>
 
-      {/* Big voice button */}
-      <section className="px-5 mt-8 flex flex-col items-center">
-        <Link
-          to="/quotes/new"
-          search={{ voice: 1 }}
-          aria-label="Tap to start a quote"
-          className="relative h-40 w-40 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_50px_-12px_rgba(200,224,74,0.55)] active:scale-95 transition"
-        >
-          <span className="absolute inset-0 rounded-full bg-lime/30 animate-ping" />
-          <Mic className="relative h-16 w-16 text-ink" strokeWidth={2.25} />
-        </Link>
-        <p className="mt-5 text-base font-semibold text-ink">Tap to start a quote</p>
-        <p className="text-xs text-muted-foreground">Speak the job — we'll do the rest</p>
-        <RotatingPrompts className="mt-3 text-center px-4" />
-      </section>
+          <h1
+            className="mt-8 text-lime leading-[0.8] tracking-tight"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(5rem, 22vw, 18rem)" }}
+          >
+            Quottr.
+          </h1>
 
-      {/* You are owed */}
-      <section className="px-5 mt-8">
-        <div className="card-surface p-5">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-            You are owed
+          <p
+            className="mt-6 text-paper text-3xl md:text-5xl leading-[1.05] max-w-4xl mx-auto"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.01em" }}
+          >
+            Job management for trades.<br />
+            <span className="text-lime">You talk. Quottr quotes.</span>
           </p>
-          <p className={`num text-5xl mt-1 leading-none ${owedColor}`}>
-            {formatGBP(s.outstanding)}
+
+          <p className="mt-6 text-base md:text-lg text-paper/75 max-w-2xl mx-auto">
+            As easy as sending a voice note. Quottr is job management software that handles quotes, invoices, customers and chasing for you.
           </p>
-          {s.outstanding > 0 ? (
+
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              to="/chaser"
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-ink"
+              to="/auth"
+              className="inline-flex items-center justify-center gap-2 bg-lime text-ink font-semibold px-7 py-4 rounded-full hover:brightness-95 transition text-base"
             >
-              Chase unpaid invoices
-              <ArrowRight className="h-3.5 w-3.5" />
+              Create free account <ArrowRight className="h-4 w-4" />
             </Link>
-          ) : (
-            <p className="mt-2 text-xs text-muted-foreground">All paid up — nice work.</p>
-          )}
+            <a
+              href="#how"
+              className="inline-flex items-center justify-center bg-paper/10 border border-paper/15 text-paper font-medium px-7 py-4 rounded-full hover:bg-paper/15 transition text-base"
+            >
+              See how it works
+            </a>
+          </div>
+
+          <div className="mt-6 flex items-center gap-4 text-xs text-paper/55 justify-center flex-wrap">
+            <span>No card required</span>
+            <span className="h-1 w-1 rounded-full bg-paper/30" />
+            <span>14-day free trial</span>
+            <span className="h-1 w-1 rounded-full bg-paper/30" />
+            <span>Cancel any time</span>
+          </div>
+
+          <div className="mt-12 md:mt-16 mx-auto max-w-4xl">
+            <div className="rounded-2xl md:rounded-3xl overflow-hidden border border-paper/10 bg-ink shadow-2xl ring-1 ring-lime/20">
+              <video
+                src="/quottr-how-it-works.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                className="w-full h-auto block"
+                aria-label="See how Quottr works — voice to quote to paid in under a minute"
+              />
+            </div>
+            <p className="mt-3 text-xs text-paper/50 uppercase tracking-widest font-semibold">
+              Voice → Quote → Paid · 18 seconds
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* Today's jobs - only if any */}
-      {today.length > 0 && (
-        <section className="px-5 mt-4">
-          <div className="card-surface p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-4 w-4 text-lime" />
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
-                Today's jobs
-              </p>
-            </div>
-            <div className="space-y-2">
-              {today.map((j) => {
-                const q = getQuote(j.quote_id);
-                const c = q ? getClient(q.client_id) : undefined;
-                if (!q) return null;
-                return (
-                  <Link
-                    key={j.id}
-                    to="/quotes/$quoteId"
-                    params={{ quoteId: q.id }}
-                    className="flex items-center gap-3 active:scale-[0.99] transition"
-                  >
-                    <div className="num text-lg text-ink leading-none w-14 shrink-0">
-                      {formatTime(j.starts_at)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{q.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {c?.name} · {c?.address}
-                      </p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </Link>
-                );
-              })}
-            </div>
+      <section id="how" className="mx-auto max-w-5xl px-5 py-20 md:py-28 text-center">
+        <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">How it works</p>
+        <h2 className="mt-3 text-5xl md:text-7xl leading-[0.95]">
+          You talk, <span className="text-lime-ink bg-lime px-2">Quottr sorts</span>.
+        </h2>
+        <ul className="mt-12 space-y-6 text-left md:text-center max-w-3xl mx-auto">
+          {[
+            <>Just tell Quottr what needs doing — <em>“Quote Mrs Jones for a new combi.”</em></>,
+            <>Your quote is priced, branded and ready to review in seconds.</>,
+            <>Send by WhatsApp. Customer signs and pays the deposit. You get your evenings back.</>,
+          ].map((line, i) => (
+            <li key={i} className="flex items-start gap-4 md:justify-center text-lg md:text-2xl text-ink/85">
+              <span className="mt-2 h-2 w-2 rounded-full bg-lime shrink-0" />
+              <span className="max-w-2xl">{line}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-10">
+          <Link
+            to="/auth"
+            className="inline-flex items-center gap-2 bg-ink text-paper font-semibold px-7 py-4 rounded-full hover:bg-ink/90 transition"
+          >
+            Start for free <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
+
+      <section className="bg-ink text-paper">
+        <div className="mx-auto max-w-6xl px-5 py-20 md:py-28">
+          <div className="max-w-3xl">
+            <p className="text-[11px] uppercase tracking-widest text-paper/50 font-semibold">Built for the van, site and sofa</p>
+            <h2 className="mt-3 text-4xl md:text-6xl leading-[0.95] text-paper">
+              Get your evenings and weekends back. <span className="text-lime">Admin sorted on the go.</span>
+            </h2>
           </div>
-        </section>
-      )}
-    </AppShell>
+          <div className="mt-14 grid gap-8 md:grid-cols-3">
+            {[
+              {
+                icon: MessageSquare,
+                title: "So easy your Nan could use it",
+                body: "Send a voice note or message and Quottr creates quotes, sends invoices and keeps jobs moving. Hours of admin gone, every week.",
+              },
+              {
+                icon: Wrench,
+                title: "Job management on the move",
+                body: "Voice-first means you can manage jobs in your gloves, in a loft, or in a room filled with dust. One hand, no typing.",
+              },
+              {
+                icon: Mic,
+                title: "A mate in your pocket",
+                body: "Quottr gets to know you and helps you run your business. Polite chases, smart reminders, and the odd dad joke.",
+              },
+            ].map((p) => (
+              <div key={p.title} className="rounded-2xl border border-paper/10 bg-paper/[0.03] p-7 hover:bg-paper/[0.06] transition">
+                <div className="h-11 w-11 rounded-xl bg-lime flex items-center justify-center">
+                  <p.icon className="h-5 w-5 text-ink" />
+                </div>
+                <h3 className="mt-5 text-2xl md:text-3xl text-paper">{p.title}</h3>
+                <p className="mt-3 text-sm text-paper/70 leading-relaxed">{p.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-5 py-20 md:py-24">
+        <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">Are you ready for Making Tax Digital?</p>
+        <h2 className="mt-3 text-3xl md:text-5xl leading-[1.05] max-w-4xl">
+          Skip the complicated bookkeeping software. <span className="text-ink/55">Plug in Quottr and it handles it for you. Connects with Xero, QuickBooks and more.</span>
+        </h2>
+        <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+          {["Xero", "QuickBooks", "FreeAgent", "Sage"].map((name) => (
+            <div key={name} className="h-20 rounded-2xl border border-ink/10 bg-card flex items-center justify-center text-xl font-semibold text-ink/70">
+              {name}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-card border-y border-ink/10">
+        <div className="mx-auto max-w-6xl px-5 py-20">
+          <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">AI built for the trades</p>
+          <h2 className="mt-3 text-3xl md:text-5xl leading-[1.05] max-w-3xl">
+            The trades are loving Quottr.
+          </h2>
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            {[
+              { q: "I quoted three jobs from the van between calls. Used to take me a full evening.", who: "Nav P. — Gas engineer, Leeds" },
+              { q: "Site capture mode is a game-changer. I just walk and tap.", who: "Sam R. — Plumber, Bristol" },
+              { q: "Money lands the same day now. Paid for the subscription twice over.", who: "Dani O. — Sparks, Glasgow" },
+            ].map((t) => (
+              <figure key={t.who} className="rounded-2xl border border-ink/10 bg-paper p-6">
+                <blockquote className="text-lg leading-snug">“{t.q}”</blockquote>
+                <figcaption className="mt-4 text-xs uppercase tracking-widest text-ink/55 font-semibold">{t.who}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-5 py-20 md:py-28">
+        <div className="rounded-3xl bg-lime text-ink p-10 md:p-16 relative overflow-hidden text-center">
+          <h2
+            className="text-5xl md:text-8xl leading-[0.9]"
+            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+          >
+            Stop quoting in the evenings.
+          </h2>
+          <p className="mt-4 text-ink/80 text-lg md:text-xl max-w-2xl mx-auto">
+            Try Quottr free for 14 days. No card, no contract, no hassle.
+          </p>
+          <div className="mt-7 flex flex-wrap gap-3 justify-center">
+            <Link to="/auth" className="inline-flex items-center gap-2 bg-ink text-paper font-semibold px-7 py-4 rounded-full hover:bg-ink/90 transition">
+              Get Quottr <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link to="/pricing" className="inline-flex items-center bg-paper/40 text-ink font-medium px-7 py-4 rounded-full hover:bg-paper/60 transition">
+              See pricing
+            </Link>
+          </div>
+          <ul className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink/80 justify-center">
+            {["Free 14-day trial", "No card required", "Cancel any time"].map((p) => (
+              <li key={p} className="inline-flex items-center gap-2"><Check className="h-4 w-4" />{p}</li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    </MarketingShell>
   );
 }
