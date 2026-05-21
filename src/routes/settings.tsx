@@ -340,6 +340,16 @@ function SettingsPage() {
         <ReferMate />
       </Section>
 
+      {/* AUTO-CHASE */}
+      <Section title="Auto-chase">
+        <AutoChasePanel />
+      </Section>
+
+      {/* GOOGLE REVIEWS */}
+      <Section title="Google reviews">
+        <GoogleReviewPanel />
+      </Section>
+
       {/* INTEGRATIONS */}
       <Section title="Integrations">
         <div className="card-surface divide-y divide-border">
@@ -348,6 +358,7 @@ function SettingsPage() {
           <SettingRow icon={CreditCard} label="Stripe Connect" status={stripeConnected ? "Connected" : "Add to take card payments"} />
         </div>
       </Section>
+
 
       {/* FEEDBACK (haptics/sound — keep) */}
       <Section title="Feedback">
