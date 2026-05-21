@@ -365,6 +365,15 @@ function NewQuotePage() {
 
   return (
     <AppShell>
+      {(recording || transcribing) && (
+        <VoiceOverlay
+          recording={recording}
+          transcribing={transcribing}
+          seconds={recordSeconds}
+          liveTranscript={liveTranscript}
+          onStop={stopRecording}
+        />
+      )}
       <PageHeader title="New quote" subtitle="AI generator" back="/" />
 
       <div className="px-5 -mt-2 mb-3">
