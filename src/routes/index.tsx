@@ -6,6 +6,7 @@ import {
 } from "@/lib/mock-data";
 import { Mic, ArrowRight, Sparkles } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
+import { RotatingPrompts } from "@/components/RotatingPrompts";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -27,6 +28,9 @@ function HomePage() {
     <AppShell>
       <header className="bg-ink text-paper rounded-b-3xl px-5 pt-7 pb-8">
         <QuottrWordmark className="text-4xl" />
+        <p className="mt-2 text-lg font-semibold text-paper font-sans">
+          You talk. Quottr quotes.
+        </p>
         <p className="mt-6 text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
           Good morning
         </p>
@@ -47,6 +51,7 @@ function HomePage() {
         </Link>
         <p className="mt-5 text-base font-semibold text-ink">Tap to start a quote</p>
         <p className="text-xs text-muted-foreground">Speak the job — we'll do the rest</p>
+        <RotatingPrompts className="mt-3 text-center px-4" />
       </section>
 
       {/* You are owed */}

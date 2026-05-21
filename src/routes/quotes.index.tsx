@@ -65,7 +65,7 @@ function QuotesPage() {
             <EmptyState
               icon={FileText}
               title="No quotes yet"
-              body="Voice-draft your first quote in under a minute. We'll handle the totals, VAT and PDF."
+              body="Tap the mic, describe a job — your first quote takes 9 seconds."
               cta={{ label: "New quote", to: "/quotes/new" }}
             />
           ) : (

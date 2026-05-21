@@ -138,9 +138,9 @@ function MessagesInbox() {
         {!loading && threads.length === 0 && requests.length === 0 && (
           <div className="card-surface p-8 text-center">
             <Inbox className="h-8 w-8 mx-auto text-muted-foreground" />
-            <p className="mt-3 font-semibold">No messages yet</p>
+            <p className="mt-3 font-semibold">Quiet out there</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Share your QR code from Settings — customers can scan it to send you a quote request.
+              Share your QR code and let customers come to you while you're on the tools.
             </p>
           </div>
         )}
