@@ -165,6 +165,7 @@ function NewQuotePage() {
   const startRecording = async () => {
     setVoiceError(null);
     liveTranscriptRef.current = "";
+    setLiveTranscript("");
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
       return;
