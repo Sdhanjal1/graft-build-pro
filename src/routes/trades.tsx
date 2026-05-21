@@ -12,8 +12,9 @@ export const Route = createFileRoute("/trades")({
       { name: "description", content: "Built for plumbers, gas engineers, electricians, joiners, roofers, decorators and every trade in between." },
       { property: "og:title", content: "Trades — Quottr" },
       { property: "og:description", content: "Quottr is built for tradespeople. See which trades use it day-to-day." },
+      { property: "og:url", content: "https://www.quottr.co.uk/trades" },
     ],
-    links: [{ rel: "canonical", href: "/trades" }],
+    links: [{ rel: "canonical", href: "https://www.quottr.co.uk/trades" }],
   }),
 });
 

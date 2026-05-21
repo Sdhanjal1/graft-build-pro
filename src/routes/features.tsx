@@ -10,8 +10,9 @@ export const Route = createFileRoute("/features")({
       { name: "description", content: "Voice quoting, site capture, WhatsApp send, auto chasers and more. Everything Quottr does for tradespeople." },
       { property: "og:title", content: "Features — Quottr" },
       { property: "og:description", content: "Everything Quottr does — voice quoting, WhatsApp send, auto chasers, Google review requests, and more." },
+      { property: "og:url", content: "https://www.quottr.co.uk/features" },
     ],
-    links: [{ rel: "canonical", href: "/features" }],
+    links: [{ rel: "canonical", href: "https://www.quottr.co.uk/features" }],
   }),
 });
 

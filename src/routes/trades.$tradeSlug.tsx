@@ -23,8 +23,9 @@ export const Route = createFileRoute("/trades/$tradeSlug")({
         { name: "description", content: description },
         { property: "og:title", content: title },
         { property: "og:description", content: description },
+        { property: "og:url", content: `https://www.quottr.co.uk/trades/${trade.slug}` },
       ],
-      links: [{ rel: "canonical", href: `/trades/${trade.slug}` }],
+      links: [{ rel: "canonical", href: `https://www.quottr.co.uk/trades/${trade.slug}` }],
     };
   },
   component: TradeDetailPage,
