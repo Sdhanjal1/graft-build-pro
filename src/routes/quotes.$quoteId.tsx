@@ -177,6 +177,25 @@ function QuoteDetail() {
   };
 
   const liveQuote: Quote = { ...quote, payment_method: method, status, paid_via: paidVia, payment_request: paymentRequest };
+  const sharePdf = async () => {
+    try {
+      const r = await downloadOrShareQuotePdf(liveQuote, client, "quote");
+      if (!r.shared && !r.cancelled) { feedback("success"); toast.success("Quote PDF downloaded"); }
+    } catch (e) {
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not generate PDF");
+    }
+  };
+  let primary: { label: string; icon: React.ComponentType<{ className?: string }>; onClick: () => void };
+  if (status === "pending" || status === "declined") {
+    primary = { label: "Send quote", icon: Send, onClick: () => setSendOpen(true) };
+  } else if (status === "sent") {
+    primary = { label: "Mark as accepted", icon: ThumbsUp, onClick: acceptQuote };
+  } else if (status === "accepted") {
+    primary = { label: "Mark job complete", icon: Check, onClick: () => setAskingPaid(true) };
+  } else {
+    primary = { label: "Share PDF", icon: Share2, onClick: sharePdf };
+  }
+  const PrimaryIcon = primary.icon;
   const messageBody = buildInvoiceMessage(liveQuote, client?.name.split(" ")[0] ?? "there");
   const encoded = encodeURIComponent(messageBody);
   const phoneDigits = client?.phone.replace(/\D/g, "");
@@ -334,80 +353,56 @@ function QuoteDetail() {
 
       {/* Actions — one primary + More options */}
       <section className="px-5 mt-6 space-y-3">
-        {(() => {
-          const sharePdf = async () => {
-            try {
-              const r = await downloadOrShareQuotePdf(liveQuote, client, "quote");
-              if (!r.shared && !r.cancelled) { feedback("success"); toast.success("Quote PDF downloaded"); }
-            } catch (e) {
-              feedback("error"); toast.error(e instanceof Error ? e.message : "Could not generate PDF");
-            }
-          };
-          let primary: { label: string; icon: any; onClick: () => void };
-          if (status === "pending" || status === "declined") {
-            primary = { label: "Send quote", icon: Send, onClick: () => setSendOpen(true) };
-          } else if (status === "sent") {
-            primary = { label: "Mark as accepted", icon: ThumbsUp, onClick: acceptQuote };
-          } else if (status === "accepted") {
-            primary = { label: "Mark job complete", icon: Check, onClick: () => setAskingPaid(true) };
-          } else {
-            primary = { label: "Share PDF", icon: Share2, onClick: sharePdf };
-          }
-          const Icon = primary.icon;
-          return (
-            <>
-              <button
-                onClick={primary.onClick}
-                className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2"
-              >
-                <Icon className="h-5 w-5" />
-                {primary.label}
-              </button>
-              {status === "paid" && (
-                <div className="w-full bg-status-paid/15 border border-status-paid/40 rounded-2xl py-3 px-4 inline-flex items-center justify-center gap-2 text-xs font-semibold text-ink">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Paid via {paidVia === "card" ? "card" : paidVia === "bank" ? "bank transfer" : "cash"}
-                </div>
-              )}
-              <button
-                onClick={() => setMoreOpen(true)}
-                className="w-full text-center text-sm text-muted-foreground underline underline-offset-4 py-1"
-              >
-                More options
-              </button>
-              {moreOpen && (
-                <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setMoreOpen(false)}>
-                  <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-2 pb-6" onClick={(e) => e.stopPropagation()}>
-                    <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto my-3" />
-                    <h3 className="text-xl px-4 mb-2">More options</h3>
-                    <ul className="px-2">
-                      <MoreItem icon={Mail} label="Email customer" onClick={() => { setMoreOpen(false); window.location.href = mailHref; }} />
-                      <MoreItem icon={Phone} label="Call customer" onClick={() => { setMoreOpen(false); window.location.href = `tel:${client?.phone}`; }} />
-                      <MoreItem icon={Share2} label="Share PDF" onClick={() => { setMoreOpen(false); sharePdf(); }} />
-                      <MoreItem icon={Copy} label="Duplicate quote" onClick={() => { setMoreOpen(false); duplicate(); }} />
-                      {(status === "pending") && (
-                        <MoreItem icon={Send} label="Mark as sent" onClick={() => { setMoreOpen(false); markSent(); }} />
-                      )}
-                      {status === "accepted" && !job && (
-                        <MoreItem icon={Calendar} label="Schedule this job" onClick={() => { setMoreOpen(false); setScheduling(true); }} />
-                      )}
-                      {status === "accepted" && (
-                        <MoreItem icon={Zap} label="Request payment" onClick={() => { setMoreOpen(false); setRequesting(true); }} />
-                      )}
-                      {invoicedAt && (
-                        <MoreItem icon={FileText} label="View final invoice" onClick={() => { setMoreOpen(false); navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } }); }} />
-                      )}
-                      {status !== "declined" && status !== "paid" && (
-                        <MoreItem icon={XCircle} label="Mark as declined" onClick={() => { setMoreOpen(false); declineQuote(); }} danger />
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              )}
-            </>
-          );
-        })()}
+        <button
+          onClick={primary.onClick}
+          className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2"
+        >
+          <PrimaryIcon className="h-5 w-5" />
+          {primary.label}
+        </button>
+        {status === "paid" && (
+          <div className="w-full bg-status-paid/15 border border-status-paid/40 rounded-2xl py-3 px-4 inline-flex items-center justify-center gap-2 text-xs font-semibold text-ink">
+            <CheckCircle2 className="h-4 w-4" />
+            Paid via {paidVia === "card" ? "card" : paidVia === "bank" ? "bank transfer" : "cash"}
+          </div>
+        )}
+        <button
+          onClick={() => setMoreOpen(true)}
+          className="w-full text-center text-sm text-muted-foreground underline underline-offset-4 py-1"
+        >
+          More options
+        </button>
       </section>
+
+      {moreOpen && (
+        <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setMoreOpen(false)}>
+          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-2 pb-6" onClick={(e) => e.stopPropagation()}>
+            <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto my-3" />
+            <h3 className="text-xl px-4 mb-2">More options</h3>
+            <ul className="px-2">
+              <MoreItem icon={Mail} label="Email customer" onClick={() => { setMoreOpen(false); window.location.href = mailHref; }} />
+              <MoreItem icon={Phone} label="Call customer" onClick={() => { setMoreOpen(false); window.location.href = `tel:${client?.phone}`; }} />
+              <MoreItem icon={Share2} label="Share PDF" onClick={() => { setMoreOpen(false); sharePdf(); }} />
+              <MoreItem icon={Copy} label="Duplicate quote" onClick={() => { setMoreOpen(false); duplicate(); }} />
+              {status === "pending" && (
+                <MoreItem icon={Send} label="Mark as sent" onClick={() => { setMoreOpen(false); markSent(); }} />
+              )}
+              {status === "accepted" && !job && (
+                <MoreItem icon={Calendar} label="Schedule this job" onClick={() => { setMoreOpen(false); setScheduling(true); }} />
+              )}
+              {status === "accepted" && (
+                <MoreItem icon={Zap} label="Request payment" onClick={() => { setMoreOpen(false); setRequesting(true); }} />
+              )}
+              {invoicedAt && (
+                <MoreItem icon={FileText} label="View final invoice" onClick={() => { setMoreOpen(false); navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } }); }} />
+              )}
+              {status !== "declined" && status !== "paid" && (
+                <MoreItem icon={XCircle} label="Mark as declined" onClick={() => { setMoreOpen(false); declineQuote(); }} danger />
+              )}
+            </ul>
+          </div>
+        </div>
+      )}
 
       <SendQuoteDialog
         open={sendOpen}
