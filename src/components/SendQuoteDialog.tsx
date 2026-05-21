@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { MessageCircle, Mail, MessageSquare, Sparkles, Loader2, Copy, Check } from "lucide-react";
+import { MessageCircle, Mail, Sparkles, Loader2, Copy, Check } from "lucide-react";
 import { ensurePortalToken } from "@/lib/messages.functions";
 import { getPortalCodeForQuote } from "@/lib/portal.functions";
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
+import { buildQuoteWhatsAppMessage, getQuote, waLink } from "@/lib/mock-data";
 
 type Props = {
   open: boolean;
@@ -15,13 +16,15 @@ type Props = {
   customerName?: string;
   customerPhone?: string;
   customerEmail?: string;
-  whatsappHref: string; // pre-built wa.me link, keeps existing behaviour
+  /** Optional fallback wa.me link kept for back-compat; the dialog now builds its own. */
+  whatsappHref?: string;
 };
 
 export function SendQuoteDialog({
   open, onClose, quoteId, quoteRef, quoteTitle,
-  customerName, customerPhone, customerEmail, whatsappHref,
+  customerName, customerPhone, customerEmail,
 }: Props) {
+
   const ensureToken = useServerFn(ensurePortalToken);
   const fetchClientCode = useServerFn(getPortalCodeForQuote);
   const [busy, setBusy] = useState<null | "sms" | "email">(null);
