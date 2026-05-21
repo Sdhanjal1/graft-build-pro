@@ -1,15 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/MarketingShell";
-import { ArrowRight, Check, Mic, Wrench, MessageSquare } from "lucide-react";
+import { ArrowRight, Check, Mic, FileCheck, Bell, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
   head: () => ({
     meta: [
-      { title: "Quottr — You talk. Quottr quotes." },
-      { name: "description", content: "Job management for trades. As easy as sending a voice note. Quottr handles quotes, invoices, customers and chasing for you." },
-      { property: "og:title", content: "Quottr — You talk. Quottr quotes." },
-      { property: "og:description", content: "Voice-first job management for tradespeople. Quotes, invoices and customers, sorted." },
+      { title: "Quottr — Stop quoting in the evenings." },
+      { name: "description", content: "Voice to professional quote in 18 seconds. Sent via WhatsApp. Customer pays the deposit before you leave the drive." },
+      { property: "og:title", content: "Quottr — Stop quoting in the evenings." },
+      { property: "og:description", content: "Voice to professional quote in 18 seconds. Sent via WhatsApp. Customer pays the deposit before you leave the drive." },
       { property: "og:type", content: "website" },
     ],
     links: [{ rel: "canonical", href: "/" }],
@@ -19,6 +19,7 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   return (
     <MarketingShell>
+      {/* HERO */}
       <section className="bg-ink text-paper relative overflow-hidden">
         <div
           className="absolute inset-0 opacity-40 pointer-events-none"
@@ -37,15 +38,14 @@ function HomePage() {
           </h1>
 
           <p
-            className="mt-6 text-paper text-3xl md:text-5xl leading-[1.05] max-w-4xl mx-auto"
+            className="mt-6 text-paper text-4xl md:text-6xl leading-[0.95] max-w-4xl mx-auto"
             style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.01em" }}
           >
-            Job management for trades.<br />
-            <span className="text-lime">You talk. Quottr quotes.</span>
+            Stop quoting <span className="text-lime">in the evenings.</span>
           </p>
 
           <p className="mt-6 text-base md:text-lg text-paper/75 max-w-2xl mx-auto">
-            As easy as sending a voice note. Quottr is job management software that handles quotes, invoices, customers and chasing for you.
+            Voice to professional quote in 18 seconds. Sent via WhatsApp. Customer pays the deposit before you leave the drive.
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
@@ -81,7 +81,7 @@ function HomePage() {
                 playsInline
                 preload="metadata"
                 className="w-full h-auto block"
-                aria-label="See how Quottr works — voice to quote to paid in under a minute"
+                aria-label="One tap. Money in. Voice to quote to paid in 18 seconds."
               />
             </div>
             <p className="mt-3 text-xs text-paper/50 uppercase tracking-widest font-semibold">
@@ -91,24 +91,38 @@ function HomePage() {
         </div>
       </section>
 
+      {/* HOW IT WORKS */}
       <section id="how" className="mx-auto max-w-5xl px-5 py-20 md:py-28 text-center">
         <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">How it works</p>
         <h2 className="mt-3 text-5xl md:text-7xl leading-[0.95]">
-          You talk, <span className="text-lime-ink bg-lime px-2">Quottr sorts</span>.
+          18 seconds from <span className="text-lime-ink bg-lime px-2">van to paid</span>.
         </h2>
-        <ul className="mt-12 space-y-6 text-left md:text-center max-w-3xl mx-auto">
+        <ol className="mt-14 grid gap-8 md:grid-cols-3 text-left">
           {[
-            <>Just tell Quottr what needs doing — <em>“Quote Mrs Jones for a new combi.”</em></>,
-            <>Your quote is priced, branded and ready to review in seconds.</>,
-            <>Send by WhatsApp. Customer signs and pays the deposit. You get your evenings back.</>,
-          ].map((line, i) => (
-            <li key={i} className="flex items-start gap-4 md:justify-center text-lg md:text-2xl text-ink/85">
-              <span className="mt-2 h-2 w-2 rounded-full bg-lime shrink-0" />
-              <span className="max-w-2xl">{line}</span>
+            {
+              n: "01",
+              t: "Speak the job",
+              b: "One voice note from the van. No typing. No forms. Just talk.",
+            },
+            {
+              n: "02",
+              t: "Quote ready",
+              b: "Claude AI generates a fully itemised professional quote with 2026 UK trade pricing. Branded with your logo.",
+            },
+            {
+              n: "03",
+              t: "WhatsApp it",
+              b: "Customer gets a link. They view, approve, and pay the deposit. You get a notification. Money in before you start.",
+            },
+          ].map((s) => (
+            <li key={s.n} className="rounded-2xl border border-ink/10 bg-card p-7">
+              <div className="text-lime text-sm font-semibold tracking-widest">{s.n}</div>
+              <h3 className="mt-3 text-2xl md:text-3xl leading-tight" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{s.t}</h3>
+              <p className="mt-3 text-sm text-ink/70 leading-relaxed">{s.b}</p>
             </li>
           ))}
-        </ul>
-        <div className="mt-10">
+        </ol>
+        <div className="mt-12">
           <Link
             to="/auth"
             className="inline-flex items-center gap-2 bg-ink text-paper font-semibold px-7 py-4 rounded-full hover:bg-ink/90 transition"
@@ -118,37 +132,43 @@ function HomePage() {
         </div>
       </section>
 
+      {/* FEATURE CARDS */}
       <section className="bg-ink text-paper">
         <div className="mx-auto max-w-6xl px-5 py-20 md:py-28">
           <div className="max-w-3xl">
-            <p className="text-[11px] uppercase tracking-widest text-paper/50 font-semibold">Built for the van, site and sofa</p>
+            <p className="text-[11px] uppercase tracking-widest text-paper/50 font-semibold">Built for the trades, not the office</p>
             <h2 className="mt-3 text-4xl md:text-6xl leading-[0.95] text-paper">
-              Get your evenings and weekends back. <span className="text-lime">Admin sorted on the go.</span>
+              Quottr does the bits <span className="text-lime">other software won't.</span>
             </h2>
           </div>
-          <div className="mt-14 grid gap-8 md:grid-cols-3">
+          <div className="mt-14 grid gap-6 md:grid-cols-2">
             {[
               {
-                icon: MessageSquare,
-                title: "So easy your Nan could use it",
-                body: "Send a voice note or message and Quottr creates quotes, sends invoices and keeps jobs moving. Hours of admin gone, every week.",
-              },
-              {
-                icon: Wrench,
-                title: "Job management on the move",
-                body: "Voice-first means you can manage jobs in your gloves, in a loft, or in a room filled with dust. One hand, no typing.",
-              },
-              {
                 icon: Mic,
-                title: "A mate in your pocket",
-                body: "Quottr gets to know you and helps you run your business. Polite chases, smart reminders, and the odd dad joke.",
+                title: "Built for dirty hands",
+                body: "One voice note from a muddy van, a dusty loft, or under a sink. Quottr turns it into a professional quote while you drive to the next job.",
+              },
+              {
+                icon: FileCheck,
+                title: "Your customer gets a portal",
+                body: "Every customer gets a private link. They see every quote, every invoice, every Gas Safe cert. They approve jobs and pay deposits without you making a single call.",
+              },
+              {
+                icon: Bell,
+                title: "Chases money while you sleep",
+                body: "Unpaid invoice? Quottr sends polite escalating reminders at 7, 14 and 21 days. Automatically. You stay on the tools. The money comes to you.",
+              },
+              {
+                icon: MapPin,
+                title: "Site capture mode",
+                body: "Walk around a property tapping items as you find them. Boiler. Radiators. Pipework. Get back to the van and generate one complete quote from everything you captured.",
               },
             ].map((p) => (
               <div key={p.title} className="rounded-2xl border border-paper/10 bg-paper/[0.03] p-7 hover:bg-paper/[0.06] transition">
                 <div className="h-11 w-11 rounded-xl bg-lime flex items-center justify-center">
                   <p.icon className="h-5 w-5 text-ink" />
                 </div>
-                <h3 className="mt-5 text-2xl md:text-3xl text-paper">{p.title}</h3>
+                <h3 className="mt-5 text-2xl md:text-3xl text-paper uppercase" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{p.title}</h3>
                 <p className="mt-3 text-sm text-paper/70 leading-relaxed">{p.body}</p>
               </div>
             ))}
@@ -156,31 +176,37 @@ function HomePage() {
         </div>
       </section>
 
+      {/* ACCOUNTING / MTD */}
       <section className="mx-auto max-w-6xl px-5 py-20 md:py-24">
-        <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">Are you ready for Making Tax Digital?</p>
-        <h2 className="mt-3 text-3xl md:text-5xl leading-[1.05] max-w-4xl">
-          Skip the complicated bookkeeping software. <span className="text-ink/55">Plug in Quottr and it handles it for you. Connects with Xero, QuickBooks and more.</span>
+        <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">Accounting, sorted</p>
+        <h2 className="mt-3 text-4xl md:text-6xl leading-[1.0] max-w-4xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+          Making Tax Digital ready.
         </h2>
+        <p className="mt-5 text-lg text-ink/70 max-w-3xl">
+          Every invoice you raise in Quottr feeds straight into Xero, QuickBooks, FreeAgent and Sage. No double entry. No spreadsheets. HMRC happy.
+        </p>
         <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
           {["Xero", "QuickBooks", "FreeAgent", "Sage"].map((name) => (
-            <div key={name} className="h-20 rounded-2xl border border-ink/10 bg-card flex items-center justify-center text-xl font-semibold text-ink/70">
-              {name}
+            <div key={name} className="h-24 rounded-2xl border border-ink/10 bg-card flex flex-col items-center justify-center">
+              <span className="text-xl font-semibold text-ink/75">{name}</span>
+              <span className="mt-1 text-[10px] uppercase tracking-widest text-ink/45 font-semibold">Coming soon</span>
             </div>
           ))}
         </div>
       </section>
 
+      {/* TESTIMONIALS */}
       <section className="bg-card border-y border-ink/10">
         <div className="mx-auto max-w-6xl px-5 py-20">
-          <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">AI built for the trades</p>
+          <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">Straight from the van</p>
           <h2 className="mt-3 text-3xl md:text-5xl leading-[1.05] max-w-3xl">
             The trades are loving Quottr.
           </h2>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             {[
-              { q: "I quoted three jobs from the van between calls. Used to take me a full evening.", who: "Nav P. — Gas engineer, Leeds" },
-              { q: "Site capture mode is a game-changer. I just walk and tap.", who: "Sam R. — Plumber, Bristol" },
-              { q: "Money lands the same day now. Paid for the subscription twice over.", who: "Dani O. — Sparks, Glasgow" },
+              { q: "Quoted a full bathroom refit from the van in 40 seconds. Customer approved it before I got home. Deposit paid same day.", who: "Nav P. — Gas engineer, Leeds" },
+              { q: "The site capture mode is the one. Walk round, tap what needs doing, quote it all at once. Game changer for bigger jobs.", who: "Sam R. — Plumber, Bristol" },
+              { q: "Had £3,200 outstanding for months. Quottr chased it all automatically. Got paid within two weeks without a single awkward call.", who: "Dani O. — Electrician, Glasgow" },
             ].map((t) => (
               <figure key={t.who} className="rounded-2xl border border-ink/10 bg-paper p-6">
                 <blockquote className="text-lg leading-snug">“{t.q}”</blockquote>
@@ -191,6 +217,7 @@ function HomePage() {
         </div>
       </section>
 
+      {/* FINAL CTA */}
       <section className="mx-auto max-w-6xl px-5 py-20 md:py-28">
         <div className="rounded-3xl bg-lime text-ink p-10 md:p-16 relative overflow-hidden text-center">
           <h2
