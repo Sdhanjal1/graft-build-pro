@@ -206,10 +206,12 @@ function NewQuotePage() {
         recognition.interimResults = true;
         recognition.lang = "en-GB";
         recognition.onresult = (event) => {
-          liveTranscriptRef.current = Array.from(event.results)
+          const text = Array.from(event.results)
             .map((result) => result[0]?.transcript || "")
             .join(" ")
             .trim();
+          liveTranscriptRef.current = text;
+          setLiveTranscript(text);
         };
         recognition.onerror = (event) => console.warn("Speech recognition error", event.error);
         recognition.start();
