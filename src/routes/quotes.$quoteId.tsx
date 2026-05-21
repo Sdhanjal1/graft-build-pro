@@ -209,6 +209,9 @@ function QuoteDetail() {
       toast.error(e?.message ?? "Could not start payment");
       setTakingOnSite(false);
     }
+  };
+
+
 
   const liveQuote: Quote = { ...quote, payment_method: method, status, paid_via: paidVia, payment_request: paymentRequest };
   const sharePdf = async () => {
