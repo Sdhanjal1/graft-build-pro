@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/MarketingShell";
 import { ArrowRight } from "lucide-react";
 import tradespersonApp from "@/assets/tradesperson-app.jpg";
+import { trades } from "@/lib/trades-data";
 
 export const Route = createFileRoute("/trades")({
   component: TradesPage,
@@ -15,17 +16,6 @@ export const Route = createFileRoute("/trades")({
     links: [{ rel: "canonical", href: "/trades" }],
   }),
 });
-
-const trades = [
-  { name: "Plumbers", body: "Combi swaps, leaks, bathrooms. Quote on the doorstep, send before you get back in the van." },
-  { name: "Gas engineers", body: "Boiler installs, annual services, landlord certs. Quottr remembers when to call them back." },
-  { name: "Electricians", body: "Consumer units, EICRs, rewires. Voice-note the scope, send a tidy quote in seconds." },
-  { name: "Joiners & carpenters", body: "Kitchens, second fix, bespoke. Site capture mode walks the room with you." },
-  { name: "Roofers", body: "Tile repairs, full re-roofs, gutters. Photo, voice, done." },
-  { name: "Decorators", body: "Rooms, exteriors, commercial. Itemised quotes that win the job." },
-  { name: "Bathroom & kitchen fitters", body: "Multi-day jobs, deposits, stage payments. Quottr handles the schedule." },
-  { name: "Landscapers & groundworks", body: "Big jobs, multiple visits. Quote, invoice, get paid before winter." },
-];
 
 function TradesPage() {
   return (
@@ -54,14 +44,21 @@ function TradesPage() {
         </div>
       </section>
 
-
       <section className="mx-auto max-w-6xl px-5 py-20">
         <div className="grid gap-5 md:grid-cols-2">
           {trades.map((t) => (
-            <div key={t.name} className="rounded-2xl border border-ink/10 bg-card p-7 hover:border-ink/20 transition">
-              <h3 className="text-3xl">{t.name}</h3>
-              <p className="mt-2 text-base text-ink/70 leading-relaxed">{t.body}</p>
-            </div>
+            <Link
+              key={t.slug}
+              to="/trades/$tradeSlug"
+              params={{ tradeSlug: t.slug }}
+              className="group rounded-2xl border border-ink/10 bg-card p-7 hover:border-ink/30 hover:bg-paper transition block"
+            >
+              <h3 className="text-3xl flex items-center justify-between">
+                <span>{t.name}</span>
+                <ArrowRight className="h-5 w-5 text-ink/40 group-hover:text-lime-ink group-hover:translate-x-1 transition" />
+              </h3>
+              <p className="mt-2 text-base text-ink/70 leading-relaxed">{t.shortBody}</p>
+            </Link>
           ))}
         </div>
 
