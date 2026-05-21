@@ -5,15 +5,53 @@ import {
   useCurrentFrame,
   useVideoConfig,
   Sequence,
+  Audio,
+  staticFile,
 } from "remotion";
+import { z } from "zod";
 import { colors, display, body } from "./theme";
 
 // 30s @ 30fps = 900 frames, 1080x1920
-// Visual-only (no audio). Music/SFX to be added later via ElevenLabs.
+// V3 upgrades:
+// - 0.5s brand flash at frame 0 (better social thumbnail)
+// - Tightened hook (1.2s instead of 3s)
+// - Burned-in captions throughout (mute-watch safe)
+// - Price slam-bounce + 4-frame screen shake
+// - hookVariant prop for A/B testing
+// - Music bed + SFX (whoosh / cash / click / pop)
+
+export const socialAdV3Schema = z.object({
+  hookVariant: z.enum(["9pm", "stop-typing", "18-seconds"]).default("stop-typing"),
+});
+
+type Props = z.infer<typeof socialAdV3Schema>;
+
+const HOOKS: Record<
+  Props["hookVariant"],
+  { eyebrow: string; line1: string; line2: string; cap: string }
+> = {
+  "9pm": {
+    eyebrow: "TRADESMEN —",
+    line1: "9PM.",
+    line2: "STILL QUOTING?",
+    cap: "Still quoting at 9pm?",
+  },
+  "stop-typing": {
+    eyebrow: "TRADESMEN —",
+    line1: "STOP",
+    line2: "TYPING.",
+    cap: "Stop typing quotes.",
+  },
+  "18-seconds": {
+    eyebrow: "QUOTE A BOILER IN —",
+    line1: "18",
+    line2: "SECONDS.",
+    cap: "Quote a boiler in 18 seconds.",
+  },
+};
 
 // ---------- Persistent layered background ----------
 const Grain: React.FC<{ opacity?: number }> = ({ opacity = 0.08 }) => {
-  // CSS-only noise via layered repeating gradients (cheap, render-safe)
   const frame = useCurrentFrame();
   const shift = (frame * 1.3) % 7;
   return (
@@ -36,13 +74,11 @@ const PersistentBg: React.FC = () => {
   const drift2 = Math.cos(frame / 100) * 60;
   return (
     <AbsoluteFill>
-      {/* Base gradient */}
       <AbsoluteFill
         style={{
           background: `radial-gradient(140% 100% at ${50 + drift / 4}% ${30 + drift / 2}%, ${colors.ink2} 0%, ${colors.ink} 55%, #000 100%)`,
         }}
       />
-      {/* Lime parallax blob */}
       <AbsoluteFill>
         <div
           style={{
@@ -69,7 +105,6 @@ const PersistentBg: React.FC = () => {
           }}
         />
       </AbsoluteFill>
-      {/* Grid texture, very faint */}
       <AbsoluteFill
         style={{
           backgroundImage: `repeating-linear-gradient(0deg, rgba(207,255,61,0.035) 0 1px, transparent 1px 90px), repeating-linear-gradient(90deg, rgba(207,255,61,0.035) 0 1px, transparent 1px 90px)`,
@@ -77,7 +112,6 @@ const PersistentBg: React.FC = () => {
         }}
       />
       <Grain />
-      {/* Vignette */}
       <AbsoluteFill
         style={{
           background:
@@ -88,13 +122,105 @@ const PersistentBg: React.FC = () => {
   );
 };
 
+// ---------- Brand flash (frame 0-15, makes thumbnail branded) ----------
+const BrandFlash: React.FC = () => {
+  const frame = useCurrentFrame();
+  const op = interpolate(frame, [0, 2, 11, 15], [1, 1, 1, 0], { extrapolateRight: "clamp" });
+  const scale = interpolate(frame, [0, 15], [1, 1.05]);
+  return (
+    <AbsoluteFill
+      style={{
+        opacity: op,
+        background: colors.ink,
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
+      }}
+    >
+      <div
+        style={{
+          fontFamily: display,
+          color: colors.paper,
+          fontSize: 280,
+          letterSpacing: -4,
+          lineHeight: 0.9,
+          transform: `scale(${scale})`,
+          textShadow: `0 0 60px ${colors.lime}66`,
+        }}
+      >
+        QUOTTR<span style={{ color: colors.lime }}>.</span>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ---------- Captions (burned-in, TikTok-style, switch by frame) ----------
+type Caption = { from: number; to: number; text: string; accent?: string };
+
+const Captions: React.FC<{ items: Caption[] }> = ({ items }) => {
+  const frame = useCurrentFrame();
+  const active = items.find((c) => frame >= c.from && frame < c.to);
+  if (!active) return null;
+  const localFrame = frame - active.from;
+  const pop = spring({
+    frame: localFrame,
+    fps: 30,
+    config: { damping: 14, stiffness: 240 },
+  });
+  return (
+    <AbsoluteFill
+      style={{
+        justifyContent: "flex-end",
+        alignItems: "center",
+        paddingBottom: 240,
+        pointerEvents: "none",
+        zIndex: 40,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 920,
+          padding: "22px 38px",
+          background: "rgba(0,0,0,0.78)",
+          borderRadius: 18,
+          border: `2px solid ${colors.lime}55`,
+          transform: `translateY(${(1 - pop) * 24}px) scale(${0.92 + pop * 0.08})`,
+          opacity: pop,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: body,
+            color: colors.paper,
+            fontSize: 44,
+            fontWeight: 700,
+            letterSpacing: 0.5,
+            lineHeight: 1.15,
+            textAlign: "center",
+            textShadow: "0 2px 4px rgba(0,0,0,0.9)",
+          }}
+        >
+          {active.accent ? (
+            <>
+              {active.text.split(active.accent)[0]}
+              <span style={{ color: colors.lime }}>{active.accent}</span>
+              {active.text.split(active.accent)[1]}
+            </>
+          ) : (
+            active.text
+          )}
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 // ---------- Helpers ----------
 const KineticChars: React.FC<{
   text: string;
   startFrame?: number;
   color?: string;
   size?: number;
-  weight?: number;
   family?: string;
   letterSpacing?: number;
   lineHeight?: number;
@@ -105,7 +231,6 @@ const KineticChars: React.FC<{
   startFrame = 0,
   color = colors.paper,
   size = 200,
-  weight,
   family = display,
   letterSpacing = -2,
   lineHeight = 0.88,
@@ -120,7 +245,7 @@ const KineticChars: React.FC<{
         const s = spring({
           frame: frame - startFrame - i * stagger,
           fps,
-          config: { damping: 14, stiffness: 140 },
+          config: { damping: 14, stiffness: 160 },
         });
         return (
           <span
@@ -130,7 +255,6 @@ const KineticChars: React.FC<{
               fontFamily: family,
               color,
               fontSize: size,
-              fontWeight: weight as number | undefined,
               letterSpacing,
               transform: `translateY(${(1 - s) * fromY}px)`,
               opacity: s,
@@ -145,14 +269,14 @@ const KineticChars: React.FC<{
   );
 };
 
-// ---------- Scene 1: Hook (0-90, 3s) ----------
-const Scene1: React.FC = () => {
+// ---------- Scene 1: Hook — TIGHT, 1.2s (frame 15-51) ----------
+const Scene1: React.FC<{ variant: Props["hookVariant"] }> = ({ variant }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const eyebrow = spring({ frame, fps, config: { damping: 18, stiffness: 140 } });
-  const out = interpolate(frame, [78, 90], [1, 0], { extrapolateRight: "clamp" });
-  // Camera-like push
-  const scale = interpolate(frame, [0, 90], [1, 1.08]);
+  const eyebrow = spring({ frame, fps, config: { damping: 18, stiffness: 200 } });
+  const out = interpolate(frame, [30, 40], [1, 0], { extrapolateRight: "clamp" });
+  const scale = interpolate(frame, [0, 40], [1, 1.1]);
+  const h = HOOKS[variant];
   return (
     <AbsoluteFill
       style={{
@@ -171,26 +295,27 @@ const Scene1: React.FC = () => {
           fontSize: 38,
           letterSpacing: 8,
           fontWeight: 700,
-          marginBottom: 28,
+          marginBottom: 24,
         }}
       >
-        STILL QUOTING AT 9PM?
+        {h.eyebrow}
       </div>
-      <KineticChars text="STOP" startFrame={10} size={300} fromY={80} />
+      <KineticChars text={h.line1} startFrame={3} size={300} fromY={90} stagger={1} />
       <div style={{ marginTop: -10 }}>
         <KineticChars
-          text="TYPING."
-          startFrame={28}
-          size={300}
+          text={h.line2}
+          startFrame={9}
+          size={h.line2.length > 8 ? 200 : 280}
           color={colors.lime}
-          fromY={80}
+          fromY={90}
+          stagger={1}
         />
       </div>
     </AbsoluteFill>
   );
 };
 
-// ---------- Scene 2: Solution (90-210, 4s) ----------
+// ---------- Scene 2: Solution (frame 51-141) ----------
 const Waveform: React.FC<{ bars?: number }> = ({ bars = 32 }) => {
   const frame = useCurrentFrame();
   return (
@@ -221,8 +346,8 @@ const Waveform: React.FC<{ bars?: number }> = ({ bars = 32 }) => {
 const Scene2: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const s = spring({ frame, fps, config: { damping: 18, stiffness: 130 } });
-  const out = interpolate(frame, [105, 120], [1, 0], { extrapolateRight: "clamp" });
+  const s = spring({ frame, fps, config: { damping: 18, stiffness: 160 } });
+  const out = interpolate(frame, [78, 90], [1, 0], { extrapolateRight: "clamp" });
   return (
     <AbsoluteFill
       style={{
@@ -247,25 +372,34 @@ const Scene2: React.FC = () => {
           INSTEAD
         </div>
       </div>
-      <KineticChars text="JUST" startFrame={6} size={260} fromY={70} />
+      <KineticChars text="JUST" startFrame={4} size={260} fromY={70} stagger={1} />
       <div style={{ marginTop: -10 }}>
         <KineticChars
           text="TALK."
-          startFrame={22}
+          startFrame={16}
           size={260}
           color={colors.lime}
           fromY={70}
+          stagger={1}
         />
       </div>
-      <div style={{ marginTop: 50, opacity: interpolate(frame, [40, 60], [0, 1], { extrapolateRight: "clamp" }) }}>
+      <div
+        style={{
+          marginTop: 50,
+          opacity: interpolate(frame, [28, 48], [0, 1], { extrapolateRight: "clamp" }),
+        }}
+      >
         <Waveform />
       </div>
     </AbsoluteFill>
   );
 };
 
-// ---------- iPhone mock + Quote demo (210-540, 11s) ----------
-const PhoneFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// ---------- Phone ----------
+const PhoneFrame: React.FC<{ children: React.ReactNode; shake?: number }> = ({
+  children,
+  shake = 0,
+}) => {
   return (
     <div
       style={{
@@ -277,9 +411,9 @@ const PhoneFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           "0 60px 140px rgba(0,0,0,0.7), 0 0 0 14px #1a1c14, 0 0 0 16px #2a2d22",
         padding: 18,
         position: "relative",
+        transform: `translate(${shake}px, ${shake * 0.6}px)`,
       }}
     >
-      {/* Notch */}
       <div
         style={{
           position: "absolute",
@@ -319,7 +453,7 @@ const QuoteLineItem: React.FC<{
   const s = spring({
     frame: frame - appearAt,
     fps,
-    config: { damping: 16, stiffness: 160 },
+    config: { damping: 16, stiffness: 180 },
   });
   return (
     <div
@@ -360,7 +494,6 @@ const QuoteLineItem: React.FC<{
 const PhoneQuoteScreen: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  // Voice waveform (0-60), then quote items appear (60-180), then total (180-200), then send (200+)
   const waveOpacity = interpolate(frame, [0, 10, 60, 75], [0, 1, 1, 0], {
     extrapolateRight: "clamp",
   });
@@ -369,8 +502,21 @@ const PhoneQuoteScreen: React.FC = () => {
   });
   const total = Math.min(
     1240,
-    Math.floor(interpolate(frame, [180, 210], [0, 1240], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }))
+    Math.floor(
+      interpolate(frame, [180, 210], [0, 1240], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+      })
+    )
   );
+  // Price slam — bouncy spring at frame 180
+  const totalSlam = spring({
+    frame: frame - 180,
+    fps,
+    config: { damping: 6, stiffness: 200 },
+  });
+  const totalScale = interpolate(totalSlam, [0, 1], [1.6, 1]);
+
   const sendPulse = spring({
     frame: frame - 240,
     fps,
@@ -379,7 +525,6 @@ const PhoneQuoteScreen: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ background: colors.ink }}>
-      {/* Status bar */}
       <div
         style={{
           padding: "60px 36px 0",
@@ -395,7 +540,6 @@ const PhoneQuoteScreen: React.FC = () => {
         <span>QUOTTR</span>
       </div>
 
-      {/* Voice prompt + waveform */}
       <div
         style={{
           opacity: waveOpacity,
@@ -440,7 +584,6 @@ const PhoneQuoteScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Quote builds */}
       <div
         style={{
           opacity: quoteOpacity,
@@ -492,7 +635,7 @@ const PhoneQuoteScreen: React.FC = () => {
         <QuoteLineItem label="Power flush" amount="£90" appearAt={130} />
         <QuoteLineItem label="System chemicals" amount="£50" appearAt={155} />
 
-        {/* Total */}
+        {/* Total — slams in with bounce */}
         <div
           style={{
             margin: "32px 28px 0",
@@ -503,8 +646,8 @@ const PhoneQuoteScreen: React.FC = () => {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            opacity: interpolate(frame, [175, 195], [0, 1], { extrapolateRight: "clamp" }),
-            transform: `scale(${interpolate(frame, [175, 195], [0.9, 1], { extrapolateRight: "clamp" })})`,
+            opacity: interpolate(frame, [178, 188], [0, 1], { extrapolateRight: "clamp" }),
+            transform: `scale(${totalScale})`,
           }}
         >
           <div
@@ -530,7 +673,6 @@ const PhoneQuoteScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Send button */}
         <div
           style={{
             margin: "40px 28px 0",
@@ -558,13 +700,18 @@ const PhoneQuoteScreen: React.FC = () => {
 const Scene3Phone: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  // Phone slides up and tilts in
   const enter = spring({ frame, fps, config: { damping: 18, stiffness: 90 } });
   const tilt = interpolate(enter, [0, 1], [8, 0]);
   const out = interpolate(frame, [310, 330], [1, 0], { extrapolateRight: "clamp" });
 
-  // Side label "18 SECONDS"
   const labelIn = spring({ frame: frame - 50, fps, config: { damping: 16, stiffness: 140 } });
+
+  // 4-frame screen shake at total reveal (phone-local frame ~180)
+  const shakeFrame = frame - 180;
+  let shake = 0;
+  if (shakeFrame >= 0 && shakeFrame < 8) {
+    shake = (shakeFrame % 2 === 0 ? 1 : -1) * (8 - shakeFrame) * 2;
+  }
 
   return (
     <AbsoluteFill
@@ -583,7 +730,6 @@ const Scene3Phone: React.FC = () => {
           opacity: enter,
         }}
       >
-        {/* Left side label */}
         <div
           style={{
             opacity: labelIn,
@@ -618,7 +764,7 @@ const Scene3Phone: React.FC = () => {
           </div>
         </div>
 
-        <PhoneFrame>
+        <PhoneFrame shake={shake}>
           <PhoneQuoteScreen />
         </PhoneFrame>
       </div>
@@ -626,7 +772,7 @@ const Scene3Phone: React.FC = () => {
   );
 };
 
-// ---------- Scene 4: WhatsApp delivery (540-660, 4s) ----------
+// ---------- Scene 4: WhatsApp delivery ----------
 const Scene4WhatsApp: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -647,7 +793,6 @@ const Scene4WhatsApp: React.FC = () => {
         gap: 60,
       }}
     >
-      {/* WhatsApp-style bubble */}
       <div
         style={{
           transform: `scale(${bubbleS}) translateY(${(1 - bubbleS) * 60}px)`,
@@ -693,7 +838,6 @@ const Scene4WhatsApp: React.FC = () => {
         </div>
       </div>
 
-      {/* Deposit confirmation card */}
       <div
         style={{
           transform: `scale(${cashPulse}) translateY(${(1 - depositS) * 80}px)`,
@@ -733,7 +877,7 @@ const Scene4WhatsApp: React.FC = () => {
   );
 };
 
-// ---------- Scene 5: Testimonial (660-780, 4s) ----------
+// ---------- Scene 5: Testimonial ----------
 const Scene5Testimonial: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -759,9 +903,7 @@ const Scene5Testimonial: React.FC = () => {
           letterSpacing: -1,
         }}
       >
-        "SAVED ME{" "}
-        <span style={{ color: colors.lime }}>6 HOURS</span>
-        {" "}A WEEK."
+        "SAVED ME <span style={{ color: colors.lime }}>6 HOURS</span> A WEEK."
       </div>
       <div
         style={{
@@ -773,7 +915,6 @@ const Scene5Testimonial: React.FC = () => {
           transform: `translateX(${(1 - nameS) * 40}px)`,
         }}
       >
-        {/* Avatar */}
         <div
           style={{
             width: 90,
@@ -817,7 +958,7 @@ const Scene5Testimonial: React.FC = () => {
   );
 };
 
-// ---------- Scene 6: Rapid-fire benefits (780-870, 3s) ----------
+// ---------- Scene 6: Rapid-fire ----------
 const Benefit: React.FC<{ word: string; start: number; end: number; color?: string }> = ({
   word,
   start,
@@ -854,7 +995,6 @@ const Benefit: React.FC<{ word: string; start: number; end: number; color?: stri
 };
 
 const Scene6Rapid: React.FC = () => {
-  // Each beat ~25 frames
   return (
     <AbsoluteFill>
       <Benefit word="FASTER." start={0} end={25} color={colors.paper} />
@@ -864,7 +1004,7 @@ const Scene6Rapid: React.FC = () => {
   );
 };
 
-// ---------- Scene 7: End card (870-900, 1s) — actually we'll give it more ----------
+// ---------- Scene 7: End card ----------
 const Scene7End: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -892,8 +1032,7 @@ const Scene7End: React.FC = () => {
           textShadow: `0 0 60px ${colors.lime}55`,
         }}
       >
-        QUOTTR
-        <span style={{ color: colors.lime }}>.</span>
+        QUOTTR<span style={{ color: colors.lime }}>.</span>
       </div>
 
       <div
@@ -923,7 +1062,6 @@ const Scene7End: React.FC = () => {
           gap: 18,
         }}
       >
-        {/* Faux QR — pure CSS grid pattern, looks scannable in motion */}
         <div
           style={{
             width: 240,
@@ -946,7 +1084,6 @@ const Scene7End: React.FC = () => {
               position: "relative",
             }}
           >
-            {/* Corner markers */}
             {[
               { top: 6, left: 6 },
               { top: 6, right: 6 },
@@ -994,33 +1131,131 @@ const Scene7End: React.FC = () => {
   );
 };
 
-// ---------- Main composition ----------
-export const SocialAdV2: React.FC = () => {
+// ---------- Caption track (timed to scenes) ----------
+const buildCaptions = (variant: Props["hookVariant"]): Caption[] => {
+  const hookCap = HOOKS[variant].cap;
+  return [
+    // Brand flash 0-15: no caption
+    { from: 16, to: 50, text: hookCap, accent: hookCap.split(" ").slice(-1)[0] },
+    // Solution 51-140
+    { from: 55, to: 95, text: "Just talk." },
+    { from: 96, to: 140, text: "Quottr writes the quote.", accent: "writes" },
+    // Phone demo 141-540 (full scene shown but captions chunk it)
+    { from: 150, to: 210, text: "Describe the job out loud." },
+    { from: 215, to: 290, text: "Line items appear instantly.", accent: "instantly" },
+    { from: 320, to: 410, text: "Total: £1,240. Done in 18 seconds.", accent: "18 seconds" },
+    { from: 415, to: 530, text: "Send via WhatsApp.", accent: "WhatsApp" },
+    // WhatsApp 540-660
+    { from: 545, to: 600, text: "Customer gets it instantly." },
+    { from: 605, to: 660, text: "Pays the deposit on the spot.", accent: "deposit" },
+    // Testimonial 660-780
+    { from: 665, to: 778, text: '"Saved me 6 hours a week." — Dave, Plumber', accent: "6 hours" },
+    // Rapid 780-870: words ARE the captions
+    // End 870-900: no caption
+  ];
+};
+
+// ---------- Audio track ----------
+const SoundDesign: React.FC = () => {
+  return (
+    <>
+      {/* Music bed — looped throughout, ducked under SFX */}
+      <Audio src={staticFile("audio/music.mp3")} volume={0.18} />
+      {/* SFX */}
+      <Sequence from={0} durationInFrames={20}>
+        <Audio src={staticFile("audio/whoosh.mp3")} volume={0.5} />
+      </Sequence>
+      <Sequence from={15} durationInFrames={20}>
+        <Audio src={staticFile("audio/pop.mp3")} volume={0.6} />
+      </Sequence>
+      <Sequence from={51} durationInFrames={20}>
+        <Audio src={staticFile("audio/whoosh.mp3")} volume={0.4} />
+      </Sequence>
+      <Sequence from={141} durationInFrames={20}>
+        <Audio src={staticFile("audio/whoosh.mp3")} volume={0.45} />
+      </Sequence>
+      {/* Quote line ticks */}
+      {[221, 246, 271, 296].map((f, i) => (
+        <Sequence key={i} from={f} durationInFrames={10}>
+          <Audio src={staticFile("audio/click.mp3")} volume={0.7} />
+        </Sequence>
+      ))}
+      {/* Total slam */}
+      <Sequence from={319} durationInFrames={30}>
+        <Audio src={staticFile("audio/pop.mp3")} volume={0.9} />
+      </Sequence>
+      {/* WhatsApp send whoosh */}
+      <Sequence from={540} durationInFrames={20}>
+        <Audio src={staticFile("audio/whoosh.mp3")} volume={0.5} />
+      </Sequence>
+      {/* Deposit cash */}
+      <Sequence from={605} durationInFrames={60}>
+        <Audio src={staticFile("audio/cash.mp3")} volume={0.7} />
+      </Sequence>
+      {/* Rapid-fire ticks */}
+      {[780, 805, 830].map((f, i) => (
+        <Sequence key={`r${i}`} from={f} durationInFrames={10}>
+          <Audio src={staticFile("audio/pop.mp3")} volume={0.6} />
+        </Sequence>
+      ))}
+      {/* Final logo */}
+      <Sequence from={870} durationInFrames={30}>
+        <Audio src={staticFile("audio/whoosh.mp3")} volume={0.4} />
+      </Sequence>
+    </>
+  );
+};
+
+// ---------- Main ----------
+export const SocialAdV3: React.FC<Props> = ({ hookVariant }) => {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       <PersistentBg />
 
-      <Sequence from={0} durationInFrames={90}>
-        <Scene1 />
+      <Sequence from={0} durationInFrames={16}>
+        <BrandFlash />
       </Sequence>
-      <Sequence from={90} durationInFrames={120}>
+
+      {/* Hook — tight 1.2s */}
+      <Sequence from={15} durationInFrames={40}>
+        <Scene1 variant={hookVariant} />
+      </Sequence>
+
+      {/* Solution */}
+      <Sequence from={51} durationInFrames={90}>
         <Scene2 />
       </Sequence>
-      <Sequence from={210} durationInFrames={330}>
+
+      {/* Phone demo */}
+      <Sequence from={141} durationInFrames={400}>
         <Scene3Phone />
       </Sequence>
+
+      {/* WhatsApp */}
       <Sequence from={540} durationInFrames={120}>
         <Scene4WhatsApp />
       </Sequence>
+
+      {/* Testimonial */}
       <Sequence from={660} durationInFrames={120}>
         <Scene5Testimonial />
       </Sequence>
+
+      {/* Rapid */}
       <Sequence from={780} durationInFrames={90}>
         <Scene6Rapid />
       </Sequence>
-      <Sequence from={870} durationInFrames={120}>
+
+      {/* End */}
+      <Sequence from={870} durationInFrames={130}>
         <Scene7End />
       </Sequence>
+
+      {/* Captions overlay */}
+      <Captions items={buildCaptions(hookVariant)} />
+
+      {/* Sound */}
+      <SoundDesign />
     </AbsoluteFill>
   );
 };
