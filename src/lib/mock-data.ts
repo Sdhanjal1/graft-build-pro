@@ -744,15 +744,16 @@ export const deleteQuote = async (quoteId: string): Promise<void> => {
 
 // ---------- Auto-chase scheduler ----------
 
-const CHASE_OFFSETS = [7, 14, 21];
-
 export const mockChases: ScheduledChase[] = [];
 
-/** Ensure day 7/14/21 chases exist for an overdue/accepted invoice. */
+/** Ensure chases exist for an overdue/accepted invoice, honouring per-invoice + profile toggles. */
 export const ensureChasesFor = (quote: Quote) => {
   if (!quote.due_date) return;
+  const enabled = quote.auto_chase_enabled ?? mockProfile.auto_chase_enabled;
+  if (!enabled) return;
+  const offsets = (mockProfile.chase_offsets?.length ? mockProfile.chase_offsets : [7, 14, 21]);
   const dueMs = new Date(quote.due_date).getTime();
-  CHASE_OFFSETS.forEach((d) => {
+  offsets.forEach((d) => {
     const exists = mockChases.find((c) => c.quote_id === quote.id && c.day_offset === d);
     if (exists) return;
     mockChases.push({
@@ -765,12 +766,20 @@ export const ensureChasesFor = (quote: Quote) => {
   });
 };
 
+/** Disable any pending chases for a quote (used when Nav toggles auto-chase off). */
+export const cancelChasesFor = (quoteId: string) => {
+  for (let i = mockChases.length - 1; i >= 0; i--) {
+    if (mockChases[i].quote_id === quoteId && mockChases[i].status === "scheduled") {
+      mockChases.splice(i, 1);
+    }
+  }
+};
+
 /** Seed chases for every overdue quote on load. */
 export const seedChases = () => {
   mockQuotes
     .filter((q) => q.status === "overdue")
     .forEach((q) => ensureChasesFor(q));
-  // Mark past-due scheduled chases as still scheduled (the UI surfaces "due now").
 };
 
 seedChases();
@@ -780,13 +789,18 @@ export const chasesForQuote = (quoteId: string) =>
     .filter((c) => c.quote_id === quoteId)
     .sort((a, b) => a.day_offset - b.day_offset);
 
-/** Chases due now (scheduled and past due_at) across all overdue invoices. */
+/** Chases due now (scheduled and past due_at). Auto-stamps auto_send_at on first sight. */
 export const chasesDueNow = () => {
   const now = Date.now();
-  return mockChases
+  const windowMs = (mockProfile.chase_auto_send_after_hours ?? 4) * 3600 * 1000;
+  const due = mockChases
     .filter((c) => c.status === "scheduled" && new Date(c.due_at).getTime() <= now)
     .map((c) => ({ chase: c, quote: getQuote(c.quote_id) }))
     .filter((x): x is { chase: ScheduledChase; quote: Quote } => !!x.quote);
+  due.forEach(({ chase }) => {
+    if (!chase.auto_send_at) chase.auto_send_at = new Date(now + windowMs).toISOString();
+  });
+  return due;
 };
 
 export const upcomingChases = () => {
@@ -802,6 +816,31 @@ export const markChaseSent = (chaseId: string) => {
   const c = mockChases.find((x) => x.id === chaseId);
   if (c) c.status = "sent";
 };
+
+/** Build chase message for a specific day offset using the profile templates. */
+export const buildChaseMessageForOffset = (
+  quote: Quote,
+  clientFirstName: string,
+  offset: number,
+) => {
+  const offsets = mockProfile.chase_offsets ?? [7, 14, 21];
+  const t = mockProfile.chase_templates ?? DEFAULT_CHASE_TEMPLATES;
+  const tpl =
+    offset === offsets[0] ? t.first
+    : offset === offsets[1] ? t.second
+    : t.final;
+  const link = quote.payment_request?.link ?? stripePaymentLink(quote);
+  const bank = `${mockProfile.bank_account_name} · sort ${mockProfile.sort_code} · ${mockProfile.account_number}`;
+  return tpl
+    .replaceAll("{name}", clientFirstName)
+    .replaceAll("{job}", quote.title)
+    .replaceAll("{amount}", formatGBP(quote.total))
+    .replaceAll("{link}", link)
+    .replaceAll("{bank}", bank)
+    .replaceAll("{business}", mockProfile.business_name);
+};
+
+
 
 export const skipChase = (chaseId: string) => {
   const c = mockChases.find((x) => x.id === chaseId);
