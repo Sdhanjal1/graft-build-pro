@@ -344,7 +344,7 @@ function QuoteDetail() {
             }
           };
           let primary: { label: string; icon: any; onClick: () => void };
-          if (status === "pending" || status === "draft" || status === "declined") {
+          if (status === "pending" || status === "declined") {
             primary = { label: "Send quote", icon: Send, onClick: () => setSendOpen(true) };
           } else if (status === "sent") {
             primary = { label: "Mark as accepted", icon: ThumbsUp, onClick: acceptQuote };
@@ -385,7 +385,7 @@ function QuoteDetail() {
                       <MoreItem icon={Phone} label="Call customer" onClick={() => { setMoreOpen(false); window.location.href = `tel:${client?.phone}`; }} />
                       <MoreItem icon={Share2} label="Share PDF" onClick={() => { setMoreOpen(false); sharePdf(); }} />
                       <MoreItem icon={Copy} label="Duplicate quote" onClick={() => { setMoreOpen(false); duplicate(); }} />
-                      {(status === "pending" || status === "draft") && (
+                      {(status === "pending") && (
                         <MoreItem icon={Send} label="Mark as sent" onClick={() => { setMoreOpen(false); markSent(); }} />
                       )}
                       {status === "accepted" && !job && (
