@@ -80,6 +80,15 @@ export type ScheduledChase = {
   status: ChaseStatus;
 };
 
+export const DEFAULT_CHASE_TEMPLATES = {
+  first:
+    "Hi {name} — just a friendly reminder that your invoice for {job} of {amount} is due. You can pay by card here: {link} or by bank transfer to {bank}. Thanks, {business}",
+  second:
+    "Hi {name} — following up on the invoice for {job} — {amount} now 14 days overdue. Please arrange payment at your earliest convenience: {link}. {business}",
+  final:
+    "Hi {name} — this is a final reminder regarding the outstanding invoice for {job} — {amount} now 21 days overdue. Please make payment today to avoid further action: {link}. {business}",
+};
+
 export const mockProfile = {
   business_name: "Cosy Plumbing & Heating",
   full_name: "Nav Dhanjal",
@@ -106,7 +115,16 @@ export const mockProfile = {
   quote_footer: "",
   signature_name: "",
   show_signature: true,
+  // ---- Auto-chase ----
+  auto_chase_enabled: true,
+  chase_offsets: [7, 14, 21] as number[],
+  chase_templates: { ...DEFAULT_CHASE_TEMPLATES },
+  /** Hours to wait for Nav to act before auto-sending a chase */
+  chase_auto_send_after_hours: 4,
+  // ---- Google reviews ----
+  google_review_url: "",
 };
+
 
 export const mockClients: Client[] = [];
 
