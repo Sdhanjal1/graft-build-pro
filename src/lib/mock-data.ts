@@ -33,7 +33,10 @@ export type Client = {
   property_type: string;
   notes?: string;
   created_at: string;
+  /** ISO timestamp when a Google review request was last sent */
+  review_requested_at?: string;
 };
+
 
 export type PaymentRequest = {
   id: string;
@@ -67,17 +70,32 @@ export type Quote = {
   invoiced_at?: string;
   /** ISO date the customer is asked to pay by on the invoice */
   invoice_due_date?: string;
+  /** Per-invoice override for the auto-chase scheduler (defaults to profile setting) */
+  auto_chase_enabled?: boolean;
 };
 
 export type ChaseStatus = "scheduled" | "sent" | "skipped";
+
 
 export type ScheduledChase = {
   id: string;
   quote_id: string;
   /** 7 / 14 / 21 — days after due date */
   day_offset: number;
-  due_at: string; // ISO
+  due_at: string; // ISO — when the chase becomes due
   status: ChaseStatus;
+  /** ISO timestamp when it will auto-send if Nav doesn't act first */
+  auto_send_at?: string;
+};
+
+
+export const DEFAULT_CHASE_TEMPLATES = {
+  first:
+    "Hi {name} — just a friendly reminder that your invoice for {job} of {amount} is due. You can pay by card here: {link} or by bank transfer to {bank}. Thanks, {business}",
+  second:
+    "Hi {name} — following up on the invoice for {job} — {amount} now 14 days overdue. Please arrange payment at your earliest convenience: {link}. {business}",
+  final:
+    "Hi {name} — this is a final reminder regarding the outstanding invoice for {job} — {amount} now 21 days overdue. Please make payment today to avoid further action: {link}. {business}",
 };
 
 export const mockProfile = {
@@ -106,7 +124,16 @@ export const mockProfile = {
   quote_footer: "",
   signature_name: "",
   show_signature: true,
+  // ---- Auto-chase ----
+  auto_chase_enabled: true,
+  chase_offsets: [7, 14, 21] as number[],
+  chase_templates: { ...DEFAULT_CHASE_TEMPLATES },
+  /** Hours to wait for Nav to act before auto-sending a chase */
+  chase_auto_send_after_hours: 4,
+  // ---- Google reviews ----
+  google_review_url: "",
 };
+
 
 export const mockClients: Client[] = [];
 
@@ -717,15 +744,16 @@ export const deleteQuote = async (quoteId: string): Promise<void> => {
 
 // ---------- Auto-chase scheduler ----------
 
-const CHASE_OFFSETS = [7, 14, 21];
-
 export const mockChases: ScheduledChase[] = [];
 
-/** Ensure day 7/14/21 chases exist for an overdue/accepted invoice. */
+/** Ensure chases exist for an overdue/accepted invoice, honouring per-invoice + profile toggles. */
 export const ensureChasesFor = (quote: Quote) => {
   if (!quote.due_date) return;
+  const enabled = quote.auto_chase_enabled ?? mockProfile.auto_chase_enabled;
+  if (!enabled) return;
+  const offsets = (mockProfile.chase_offsets?.length ? mockProfile.chase_offsets : [7, 14, 21]);
   const dueMs = new Date(quote.due_date).getTime();
-  CHASE_OFFSETS.forEach((d) => {
+  offsets.forEach((d) => {
     const exists = mockChases.find((c) => c.quote_id === quote.id && c.day_offset === d);
     if (exists) return;
     mockChases.push({
@@ -738,12 +766,20 @@ export const ensureChasesFor = (quote: Quote) => {
   });
 };
 
+/** Disable any pending chases for a quote (used when Nav toggles auto-chase off). */
+export const cancelChasesFor = (quoteId: string) => {
+  for (let i = mockChases.length - 1; i >= 0; i--) {
+    if (mockChases[i].quote_id === quoteId && mockChases[i].status === "scheduled") {
+      mockChases.splice(i, 1);
+    }
+  }
+};
+
 /** Seed chases for every overdue quote on load. */
 export const seedChases = () => {
   mockQuotes
     .filter((q) => q.status === "overdue")
     .forEach((q) => ensureChasesFor(q));
-  // Mark past-due scheduled chases as still scheduled (the UI surfaces "due now").
 };
 
 seedChases();
@@ -753,13 +789,18 @@ export const chasesForQuote = (quoteId: string) =>
     .filter((c) => c.quote_id === quoteId)
     .sort((a, b) => a.day_offset - b.day_offset);
 
-/** Chases due now (scheduled and past due_at) across all overdue invoices. */
+/** Chases due now (scheduled and past due_at). Auto-stamps auto_send_at on first sight. */
 export const chasesDueNow = () => {
   const now = Date.now();
-  return mockChases
+  const windowMs = (mockProfile.chase_auto_send_after_hours ?? 4) * 3600 * 1000;
+  const due = mockChases
     .filter((c) => c.status === "scheduled" && new Date(c.due_at).getTime() <= now)
     .map((c) => ({ chase: c, quote: getQuote(c.quote_id) }))
     .filter((x): x is { chase: ScheduledChase; quote: Quote } => !!x.quote);
+  due.forEach(({ chase }) => {
+    if (!chase.auto_send_at) chase.auto_send_at = new Date(now + windowMs).toISOString();
+  });
+  return due;
 };
 
 export const upcomingChases = () => {
@@ -776,10 +817,104 @@ export const markChaseSent = (chaseId: string) => {
   if (c) c.status = "sent";
 };
 
+/** Build chase message for a specific day offset using the profile templates. */
+export const buildChaseMessageForOffset = (
+  quote: Quote,
+  clientFirstName: string,
+  offset: number,
+) => {
+  const offsets = mockProfile.chase_offsets ?? [7, 14, 21];
+  const t = mockProfile.chase_templates ?? DEFAULT_CHASE_TEMPLATES;
+  const tpl =
+    offset === offsets[0] ? t.first
+    : offset === offsets[1] ? t.second
+    : t.final;
+  const link = quote.payment_request?.link ?? stripePaymentLink(quote);
+  const bank = `${mockProfile.bank_account_name} · sort ${mockProfile.sort_code} · ${mockProfile.account_number}`;
+  return tpl
+    .replaceAll("{name}", clientFirstName)
+    .replaceAll("{job}", quote.title)
+    .replaceAll("{amount}", formatGBP(quote.total))
+    .replaceAll("{link}", link)
+    .replaceAll("{bank}", bank)
+    .replaceAll("{business}", mockProfile.business_name);
+};
+
+
+
 export const skipChase = (chaseId: string) => {
   const c = mockChases.find((x) => x.id === chaseId);
   if (c) c.status = "skipped";
 };
+
+/** Toggle auto-chase on/off for a single quote. */
+export const setQuoteAutoChase = (quoteId: string, enabled: boolean) => {
+  const q = getQuote(quoteId);
+  if (!q) return;
+  q.auto_chase_enabled = enabled;
+  if (enabled) ensureChasesFor(q);
+  else cancelChasesFor(quoteId);
+  bumpVersion();
+};
+
+// ---------- WhatsApp helpers ----------
+
+/** Convert a UK mobile (e.g. 07700 900456) into a wa.me digits string (44...). */
+export const waDigits = (phone?: string) => {
+  const d = (phone ?? "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.startsWith("44")) return d;
+  return "44" + d.replace(/^0/, "");
+};
+
+/** Build a wa.me deep link with pre-filled text. */
+export const waLink = (phone: string | undefined, text: string) =>
+  `https://wa.me/${waDigits(phone)}?text=${encodeURIComponent(text)}`;
+
+/** Spec-format quote message with customer portal link. */
+export const buildQuoteWhatsAppMessage = (
+  quote: Quote,
+  client: Pick<Client, "name"> | undefined,
+  portalUrl: string,
+) => {
+  const first = client?.name?.split(" ")[0] ?? "there";
+  return [
+    `Hi ${first} 👋`,
+    `Your quote from ${mockProfile.business_name} is ready.`,
+    `Total: ${formatGBP(quote.total)}${mockProfile.vat_registered ? " inc VAT" : ""}`,
+    "",
+    `View, approve and pay your deposit here:`,
+    portalUrl,
+    "",
+    `Quote valid for 30 days. Any questions just reply.`,
+    `${mockProfile.business_name} · ${mockProfile.phone}`,
+  ].join("\n");
+};
+
+// ---------- Google review request ----------
+
+export const buildReviewRequestMessage = (clientFirstName: string) => {
+  const url = mockProfile.google_review_url || "[paste your Google review link in Settings]";
+  return [
+    `Hi ${clientFirstName} — thank you for choosing ${mockProfile.business_name}.`,
+    `We really hope you were happy with the work.`,
+    "",
+    `If you have a moment it would mean the world if you left us a quick Google review — it helps other homeowners find us:`,
+    url,
+    "",
+    `Takes 30 seconds and makes a huge difference. Thank you 🙏`,
+    mockProfile.business_name,
+  ].join("\n");
+};
+
+export const markReviewRequested = (clientId: string) => {
+  const c = getClient(clientId);
+  if (!c) return;
+  c.review_requested_at = new Date().toISOString();
+  bumpVersion();
+};
+
+
 
 // ---------- Quote → invoice split ----------
 

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { MessageCircle, Mail, MessageSquare, Sparkles, Loader2, Copy, Check } from "lucide-react";
+import { MessageCircle, Mail, Sparkles, Loader2, Copy, Check } from "lucide-react";
 import { ensurePortalToken } from "@/lib/messages.functions";
 import { getPortalCodeForQuote } from "@/lib/portal.functions";
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
+import { buildQuoteWhatsAppMessage, getQuote, waLink } from "@/lib/mock-data";
 
 type Props = {
   open: boolean;
@@ -15,17 +16,20 @@ type Props = {
   customerName?: string;
   customerPhone?: string;
   customerEmail?: string;
-  whatsappHref: string; // pre-built wa.me link, keeps existing behaviour
+  /** Optional fallback wa.me link kept for back-compat; the dialog now builds its own. */
+  whatsappHref?: string;
 };
 
 export function SendQuoteDialog({
   open, onClose, quoteId, quoteRef, quoteTitle,
-  customerName, customerPhone, customerEmail, whatsappHref,
+  customerName, customerPhone, customerEmail,
 }: Props) {
+
   const ensureToken = useServerFn(ensurePortalToken);
   const fetchClientCode = useServerFn(getPortalCodeForQuote);
-  const [busy, setBusy] = useState<null | "sms" | "email">(null);
+  const [busy, setBusy] = useState<null | "sms" | "email" | "wa">(null);
   const [copied, setCopied] = useState(false);
+
 
   const portalHistoryLine = async () => {
     try {
@@ -163,27 +167,53 @@ export function SendQuoteDialog({
             </div>
           </button>
 
-          {/* Option 3 — WhatsApp (unchanged) */}
-          <a
-            href={whatsappHref}
-            target="_blank"
-            rel="noreferrer"
-            onClick={() => { feedback("tap"); setTimeout(onClose, 50); }}
-            className="w-full text-left rounded-2xl p-4 bg-card border border-border text-ink flex items-start gap-3"
+          {/* Option 3 — WhatsApp deep-link (pre-filled message, one tap to send) */}
+          <button
+            onClick={async () => {
+              try {
+                setBusy("wa");
+                const q = getQuote(quoteId);
+                if (!q) throw new Error("Quote not found");
+                let portalUrl = "";
+                try {
+                  const { portal_code } = await fetchClientCode({ data: { quoteId } });
+                  if (portal_code) {
+                    const origin = typeof window !== "undefined" ? window.location.origin : "";
+                    portalUrl = `${origin}/portal/c/${portal_code}`;
+                  }
+                } catch { /* fall back below */ }
+                if (!portalUrl) {
+                  const { token } = await ensureToken({ data: { quoteId, channel: "whatsapp" } });
+                  portalUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/portal/${token}`;
+                }
+                const text = buildQuoteWhatsAppMessage(q, { name: customerName ?? "" }, portalUrl);
+                window.open(waLink(customerPhone, text), "_blank");
+                feedback("success");
+                onClose();
+              } catch (e) {
+                feedback("error");
+                toast.error(e instanceof Error ? e.message : "Could not open WhatsApp");
+              } finally {
+                setBusy(null);
+              }
+            }}
+            disabled={busy !== null}
+            className="w-full text-left rounded-2xl p-4 bg-card border border-border text-ink flex items-start gap-3 disabled:opacity-60"
           >
             <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
-              <MessageCircle className="h-4 w-4" />
+              {busy === "wa" ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-sm">Send via WhatsApp</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Quote sent directly in WhatsApp — no portal. Best for customers who prefer WhatsApp or don't have email.
+                Opens WhatsApp with the full message pre-filled — portal link, total and your details. One tap to send.
               </p>
               <p className="text-[10px] text-muted-foreground/80 mt-1.5 italic">
                 Tip — using Quottr keeps your business communication separate from your personal WhatsApp.
               </p>
             </div>
-          </a>
+          </button>
+
 
           {/* Copy portal link helper */}
           <button

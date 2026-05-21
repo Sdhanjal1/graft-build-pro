@@ -5,13 +5,16 @@ import {
   mockJobs, getQuote, getClient, jobsForDay, jobsForRange,
   setJobStatus, toggleMaterial, setAnnualReminder, estimateTravelMinutes,
   formatTime, formatDayLabel, formatGBP,
+  buildReviewRequestMessage, markReviewRequested, waLink, mockProfile,
   type ScheduledJob, type JobStatus,
 } from "@/lib/mock-data";
 import {
   ChevronLeft, ChevronRight, MessageCircle, Phone, Mail,
-  Play, CheckCircle2, Bell, Hammer, Car, MapPin, Package, Check, CalendarOff,
+  Play, CheckCircle2, Bell, Hammer, Car, MapPin, Package, Check, CalendarOff, Star,
 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/calendar")({
   component: CalendarPage,
@@ -481,6 +484,21 @@ function JobSheet({ job, onClose, onChange }: { job: ScheduledJob; onClose: () =
 function CompletePrompt({
   job, quoteId, onClose,
 }: { job: ScheduledJob; quoteId: string; onClose: () => void }) {
+  const q = getQuote(quoteId);
+  const c = q ? getClient(q.client_id) : undefined;
+  const requestReview = () => {
+    if (!c) return;
+    const first = c.name.split(" ")[0];
+    const text = buildReviewRequestMessage(first);
+    window.open(waLink(c.phone, text), "_blank");
+    markReviewRequested(c.id);
+    if (!mockProfile.google_review_url) {
+      toast.info("Add your Google review link in Settings for a one-tap link");
+    } else {
+      toast.success(`Review request sent to ${first}`);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[60] flex items-end bg-ink/70" onClick={onClose}>
       <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
@@ -516,6 +534,27 @@ function CompletePrompt({
             </button>
           </div>
         </div>
+
+        {c && (
+          <div className="mt-3 card-surface p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Star className="h-4 w-4 text-lime" />
+              <p className="text-sm font-bold">Request a Google review from {c.name.split(" ")[0]}?</p>
+            </div>
+            <p className="text-[11px] text-muted-foreground mb-3">
+              Opens WhatsApp with a ready-to-send review request{c.review_requested_at ? ` · last sent ${new Date(c.review_requested_at).toLocaleDateString("en-GB")}` : ""}.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => { requestReview(); onClose(); }} className="bg-lime text-ink rounded-full py-2.5 text-xs font-bold">
+                Yes — send review request
+              </button>
+              <button onClick={onClose} className="bg-card border border-border rounded-full py-2.5 text-xs font-bold">
+                Not now
+              </button>
+            </div>
+          </div>
+        )}
+
 
         <button onClick={onClose} className="w-full mt-3 text-xs text-muted-foreground py-2">Done</button>
       </div>
