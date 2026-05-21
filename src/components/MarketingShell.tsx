@@ -94,7 +94,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
           <div>
             <p className="text-[10px] uppercase tracking-widest text-paper/50 font-semibold mb-3">Product</p>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/welcome" className="text-paper/80 hover:text-lime">Features</Link></li>
+              <li><Link to="/features" className="text-paper/80 hover:text-lime">Features</Link></li>
               <li><Link to="/pricing" className="text-paper/80 hover:text-lime">Pricing</Link></li>
               <li><Link to="/auth" className="text-paper/80 hover:text-lime">Sign up</Link></li>
             </ul>
