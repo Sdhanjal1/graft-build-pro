@@ -43,7 +43,7 @@ export function PageHeader({
           {subtitle && (
             <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">{subtitle}</p>
           )}
-          <h1 className="text-3xl leading-none mt-1 truncate text-paper">{title}</h1>
+          <h1 className="text-3xl leading-tight mt-1 break-words text-paper">{title}</h1>
         </div>
         {right}
       </div>

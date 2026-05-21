@@ -51,6 +51,7 @@ function QuoteDetail() {
   const [askInvoice, setAskInvoice] = useState(false);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
   const [sendOpen, setSendOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const navigate = useNavigate();
   const defaultSchedule = useMemo(() => {
     const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0);
@@ -250,38 +251,28 @@ function QuoteDetail() {
           <div className="px-5 py-4 border-t border-border bg-secondary/40 space-y-1.5">
             <Row label="Subtotal" value={formatGBP(quote.subtotal)} />
             {mockProfile.vat_registered && <Row label="VAT (20%)" value={formatGBP(quote.vat_amount)} />}
-            {method === "card" && (
-              <Row label="Card processing fee (3.5%)" value={formatGBP(quote.total * 0.035)} />
-            )}
             <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
-              <span className="text-sm uppercase tracking-widest font-semibold">
-                {method === "card" ? "Total with card fee" : "Total"}
-              </span>
-              <span className="num text-3xl text-ink">
-                {formatGBP(method === "card" ? quote.total * 1.035 : quote.total)}
-              </span>
+              <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
+              <span className="num text-3xl text-ink">{formatGBP(quote.total)}</span>
             </div>
-            {method !== "card" && (
-              <p className="text-[10px] text-muted-foreground pt-1">No fees for bank transfer or cash.</p>
-            )}
           </div>
         </div>
       </section>
 
       {(mockProfile.quote_footer || (mockProfile.show_signature && (mockProfile.signature_name || mockProfile.full_name))) && (
-        <section className="px-5 mt-4">
-          <div className="card-surface p-5 space-y-4">
+        <section className="px-5 mt-3">
+          <div className="px-1 space-y-2">
             {mockProfile.quote_footer && (
-              <p className="text-xs text-muted-foreground leading-relaxed">{mockProfile.quote_footer}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{mockProfile.quote_footer}</p>
             )}
             {mockProfile.show_signature && (mockProfile.signature_name || mockProfile.full_name) && (
-              <div className="pt-2 border-t border-border">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Signed</p>
-                <p className="text-lg mt-1" style={{ fontFamily: "'Caveat', 'Bradley Hand', cursive" }}>
+              <p className="text-[11px] text-muted-foreground">
+                Signed{" "}
+                <span className="text-sm text-ink" style={{ fontFamily: "'Caveat', 'Bradley Hand', cursive" }}>
                   {mockProfile.signature_name || mockProfile.full_name}
-                </p>
-                <p className="text-[11px] text-muted-foreground">{mockProfile.business_name}</p>
-              </div>
+                </span>
+                {" · "}{mockProfile.business_name}
+              </p>
             )}
           </div>
         </section>
@@ -310,26 +301,25 @@ function QuoteDetail() {
         </div>
 
         {method === "card" && (
-          <div className="mt-3 rounded-2xl bg-ink text-paper p-4 space-y-2">
-            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-              Stripe payment link {paymentRequest ? `· ${paymentRequest.label}` : ""}
-            </p>
-            <p className="text-xs break-all text-lime">
-              {paymentRequest ? paymentRequest.link : stripePaymentLink(liveQuote)}
-            </p>
-            {paymentRequest && (
-              <p className="num text-2xl text-paper">{formatGBP(paymentRequest.amount)}</p>
-            )}
+          <div className="mt-3">
+            <a
+              href={paymentRequest ? paymentRequest.link : stripePaymentLink(liveQuote)}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full bg-ink text-paper rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
+            >
+              <CreditCard className="h-4 w-4" /> Pay by card
+              {paymentRequest && <span className="num text-paper/80">· {formatGBP(paymentRequest.amount)}</span>}
+            </a>
             {!mockProfile.stripe_connected && (
-              <p className="text-[10px] text-paper/50">Test link — add your Stripe keys in Settings to go live.</p>
+              <p className="text-[10px] text-muted-foreground mt-2 text-center">Test link — add your Stripe keys in Settings to go live.</p>
             )}
           </div>
         )}
         {method === "bank" && (
           <div className="mt-3 card-surface p-4 space-y-2">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Bank details on invoice</p>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Bank details</p>
             <BankRow k="Account name" v={mockProfile.bank_account_name} />
-            <BankRow k="Bank" v={mockProfile.bank_name} />
             <BankRow k="Sort code" v={mockProfile.sort_code} />
             <BankRow k="Account no." v={mockProfile.account_number} />
             <BankRow k="Reference" v={quote.ref} />
@@ -337,142 +327,86 @@ function QuoteDetail() {
         )}
         {method === "cash" && (
           <div className="mt-3 card-surface p-4">
-            <p className="text-sm"><span className="font-semibold">Payment method:</span> Cash on completion — please have cash ready on the day.</p>
+            <p className="text-sm"><span className="font-semibold">Cash on completion</span> — please have cash ready on the day.</p>
           </div>
         )}
       </section>
 
-      {/* Actions */}
-      <section className="px-5 mt-5 space-y-2.5">
-        <button
-          onClick={() => setSendOpen(true)}
-          className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2"
-        >
-          <Send className="h-5 w-5" />
-          Send quote
-        </button>
-        <div className="grid grid-cols-2 gap-2.5">
-          <a href={mailHref} className="bg-ink text-paper rounded-full py-3.5 font-semibold inline-flex items-center justify-center gap-2 text-sm">
-            <Mail className="h-4 w-4" /> Email
-          </a>
-          <a href={`tel:${client?.phone}`} className="bg-card border border-border text-ink rounded-full py-3.5 font-semibold inline-flex items-center justify-center gap-2 text-sm">
-            <Phone className="h-4 w-4" /> Call
-          </a>
-        </div>
-
-        {/* Quote workflow buttons */}
-        {(status === "pending" || status === "sent") && (
-          <>
-            <button
-              onClick={acceptQuote}
-              className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
-            >
-              <ThumbsUp className="h-4 w-4" /> Mark as accepted
-            </button>
-            <div className="grid grid-cols-2 gap-2.5">
-              {status === "pending" && (
-                <button
-                  onClick={markSent}
-                  className="bg-card border border-border text-ink rounded-full py-3 font-semibold inline-flex items-center justify-center gap-2 text-sm"
-                >
-                  <Send className="h-4 w-4" /> Mark as sent
-                </button>
+      {/* Actions — one primary + More options */}
+      <section className="px-5 mt-6 space-y-3">
+        {(() => {
+          const sharePdf = async () => {
+            try {
+              const r = await downloadOrShareQuotePdf(liveQuote, client, "quote");
+              if (!r.shared && !r.cancelled) { feedback("success"); toast.success("Quote PDF downloaded"); }
+            } catch (e) {
+              feedback("error"); toast.error(e instanceof Error ? e.message : "Could not generate PDF");
+            }
+          };
+          let primary: { label: string; icon: any; onClick: () => void };
+          if (status === "pending" || status === "declined") {
+            primary = { label: "Send quote", icon: Send, onClick: () => setSendOpen(true) };
+          } else if (status === "sent") {
+            primary = { label: "Mark as accepted", icon: ThumbsUp, onClick: acceptQuote };
+          } else if (status === "accepted") {
+            primary = { label: "Mark job complete", icon: Check, onClick: () => setAskingPaid(true) };
+          } else {
+            primary = { label: "Share PDF", icon: Share2, onClick: sharePdf };
+          }
+          const Icon = primary.icon;
+          return (
+            <>
+              <button
+                onClick={primary.onClick}
+                className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2"
+              >
+                <Icon className="h-5 w-5" />
+                {primary.label}
+              </button>
+              {status === "paid" && (
+                <div className="w-full bg-status-paid/15 border border-status-paid/40 rounded-2xl py-3 px-4 inline-flex items-center justify-center gap-2 text-xs font-semibold text-ink">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Paid via {paidVia === "card" ? "card" : paidVia === "bank" ? "bank transfer" : "cash"}
+                </div>
               )}
               <button
-                onClick={declineQuote}
-                className={`${status === "sent" ? "col-span-2" : ""} bg-card border border-border text-muted-foreground rounded-full py-3 font-semibold inline-flex items-center justify-center gap-2 text-sm`}
+                onClick={() => setMoreOpen(true)}
+                className="w-full text-center text-sm text-muted-foreground underline underline-offset-4 py-1"
               >
-                <XCircle className="h-4 w-4" /> Decline
+                More options
               </button>
-            </div>
-          </>
-        )}
-
-        {/* Scheduled summary or schedule prompt */}
-        {status === "accepted" && (
-          job ? (
-            <Link
-              to="/calendar"
-              search={{ jobId: job.id }}
-              className="w-full bg-card border border-border rounded-2xl py-3 px-4 flex items-center gap-3 text-sm font-semibold"
-            >
-              <Calendar className="h-4 w-4 text-lime" />
-              <span className="flex-1 truncate">
-                Scheduled · {formatDayLabel(new Date(job.starts_at))} at {formatTime(job.starts_at)}
-              </span>
-              <button
-                onClick={(e) => { e.preventDefault(); setScheduling(true); }}
-                className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground"
-              >
-                Change
-              </button>
-            </Link>
-          ) : (
-            <button
-              onClick={() => setScheduling(true)}
-              className="w-full bg-card border-2 border-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
-            >
-              <Calendar className="h-4 w-4" /> Schedule this job
-            </button>
-          )
-        )}
-
-        {status !== "paid" && status === "accepted" && (
-          <button
-            onClick={() => setRequesting(true)}
-            className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
-          >
-            <Zap className="h-4 w-4" /> Request payment
-          </button>
-        )}
-
-        {status !== "paid" ? (
-          <button
-            onClick={() => setAskingPaid(true)}
-            className="w-full bg-card border-2 border-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
-          >
-            <Check className="h-4 w-4" /> Mark job complete
-          </button>
-        ) : (
-          <div className="w-full bg-status-paid/15 border border-status-paid/40 rounded-2xl py-3.5 px-4 inline-flex items-center justify-center gap-2 text-sm font-semibold text-ink">
-            <CheckCircle2 className="h-4 w-4" />
-            Paid via {paidVia === "card" ? "card" : paidVia === "bank" ? "bank transfer" : "cash"}
-          </div>
-        )}
-
-        {/* Final invoice link (once issued) */}
-        {invoicedAt && (
-          <Link
-            to="/invoices/$quoteId"
-            params={{ quoteId: quote.id }}
-            className="w-full bg-ink text-paper rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
-          >
-            <FileText className="h-4 w-4" /> View final invoice
-          </Link>
-        )}
-
-        {/* Share PDF + Duplicate */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <button
-            onClick={async () => {
-              try {
-                const r = await downloadOrShareQuotePdf(liveQuote, client, "quote");
-                if (!r.shared && !r.cancelled) feedback("success"); toast.success("Quote PDF downloaded");
-              } catch (e) {
-                feedback("error"); toast.error(e instanceof Error ? e.message : "Could not generate PDF");
-              }
-            }}
-            className="bg-card border-2 border-ink text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
-          >
-            <Share2 className="h-4 w-4" /> Share PDF
-          </button>
-          <button
-            onClick={duplicate}
-            className="bg-secondary text-ink rounded-full py-3.5 font-semibold inline-flex items-center justify-center gap-2 text-sm"
-          >
-            <Copy className="h-4 w-4" /> Duplicate
-          </button>
-        </div>
+              {moreOpen && (
+                <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setMoreOpen(false)}>
+                  <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-2 pb-6" onClick={(e) => e.stopPropagation()}>
+                    <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto my-3" />
+                    <h3 className="text-xl px-4 mb-2">More options</h3>
+                    <ul className="px-2">
+                      <MoreItem icon={Mail} label="Email customer" onClick={() => { setMoreOpen(false); window.location.href = mailHref; }} />
+                      <MoreItem icon={Phone} label="Call customer" onClick={() => { setMoreOpen(false); window.location.href = `tel:${client?.phone}`; }} />
+                      <MoreItem icon={Share2} label="Share PDF" onClick={() => { setMoreOpen(false); sharePdf(); }} />
+                      <MoreItem icon={Copy} label="Duplicate quote" onClick={() => { setMoreOpen(false); duplicate(); }} />
+                      {(status === "pending") && (
+                        <MoreItem icon={Send} label="Mark as sent" onClick={() => { setMoreOpen(false); markSent(); }} />
+                      )}
+                      {status === "accepted" && !job && (
+                        <MoreItem icon={Calendar} label="Schedule this job" onClick={() => { setMoreOpen(false); setScheduling(true); }} />
+                      )}
+                      {status === "accepted" && (
+                        <MoreItem icon={Zap} label="Request payment" onClick={() => { setMoreOpen(false); setRequesting(true); }} />
+                      )}
+                      {invoicedAt && (
+                        <MoreItem icon={FileText} label="View final invoice" onClick={() => { setMoreOpen(false); navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } }); }} />
+                      )}
+                      {status !== "declined" && status !== "paid" && (
+                        <MoreItem icon={XCircle} label="Mark as declined" onClick={() => { setMoreOpen(false); declineQuote(); }} danger />
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
       </section>
 
       <SendQuoteDialog
@@ -709,5 +643,21 @@ function PaidButton({ icon: Icon, label, onClick }: { icon: React.ComponentType<
     <button onClick={onClick} className="w-full bg-ink text-paper rounded-2xl py-4 font-bold inline-flex items-center justify-center gap-2">
       <Icon className="h-4 w-4" /> {label}
     </button>
+  );
+}
+
+function MoreItem({
+  icon: Icon, label, onClick, danger,
+}: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void; danger?: boolean }) {
+  return (
+    <li>
+      <button
+        onClick={onClick}
+        className={`w-full flex items-center gap-3 px-3 py-3.5 rounded-2xl hover:bg-secondary text-left ${danger ? "text-status-overdue" : "text-ink"}`}
+      >
+        <Icon className="h-5 w-5 shrink-0" />
+        <span className="text-sm font-semibold">{label}</span>
+      </button>
+    </li>
   );
 }
