@@ -17,7 +17,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
     <div className="min-h-dvh bg-paper text-ink flex flex-col">
       <header className="sticky top-0 z-40 bg-paper/85 backdrop-blur border-b border-ink/10">
         <div className="mx-auto max-w-6xl px-5 h-16 flex items-center justify-between">
-          <Link to="/welcome" className="flex items-center">
+          <Link to="/" className="flex items-center">
             <QuottrWordmark className="text-2xl" />
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
