@@ -132,6 +132,18 @@ function NewQuotePage() {
     };
   }, []);
 
+  // Auto-start voice recording when arriving with ?voice=1
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (voiceParam === 1 && !autoStartedRef.current && !recording && !transcribing && !draft) {
+      autoStartedRef.current = true;
+      startRecording();
+      // Clear the search param so it doesn't re-trigger on remount
+      navigate({ to: "/quotes/new", search: {}, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceParam]);
+
   const stopRecording = () => {
     const recognition = speechRecognitionRef.current;
     if (recognition) {
