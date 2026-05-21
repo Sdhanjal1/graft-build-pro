@@ -259,19 +259,19 @@ function QuoteDetail() {
       </section>
 
       {(mockProfile.quote_footer || (mockProfile.show_signature && (mockProfile.signature_name || mockProfile.full_name))) && (
-        <section className="px-5 mt-4">
-          <div className="card-surface p-5 space-y-4">
+        <section className="px-5 mt-3">
+          <div className="px-1 space-y-2">
             {mockProfile.quote_footer && (
-              <p className="text-xs text-muted-foreground leading-relaxed">{mockProfile.quote_footer}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{mockProfile.quote_footer}</p>
             )}
             {mockProfile.show_signature && (mockProfile.signature_name || mockProfile.full_name) && (
-              <div className="pt-2 border-t border-border">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Signed</p>
-                <p className="text-lg mt-1" style={{ fontFamily: "'Caveat', 'Bradley Hand', cursive" }}>
+              <p className="text-[11px] text-muted-foreground">
+                Signed{" "}
+                <span className="text-sm text-ink" style={{ fontFamily: "'Caveat', 'Bradley Hand', cursive" }}>
                   {mockProfile.signature_name || mockProfile.full_name}
-                </p>
-                <p className="text-[11px] text-muted-foreground">{mockProfile.business_name}</p>
-              </div>
+                </span>
+                {" · "}{mockProfile.business_name}
+              </p>
             )}
           </div>
         </section>
