@@ -81,12 +81,16 @@ async function blobToBase64(blob: Blob): Promise<string> {
 
 export const Route = createFileRoute("/quotes/new")({
   component: NewQuotePage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    voice: s.voice === 1 || s.voice === "1" ? 1 : undefined,
+  }),
 });
 
 type Draft = { title: string; line_items: LineItem[] } | null;
 
 function NewQuotePage() {
   const navigate = useNavigate();
+  const { voice: voiceParam } = Route.useSearch();
   const [desc, setDesc] = useState("");
   const [trade, setTrade] = useState(mockProfile.trade_type);
   const [vat, setVat] = useState(mockProfile.vat_registered);
@@ -105,6 +109,7 @@ function NewQuotePage() {
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [transcribing, setTranscribing] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [liveTranscript, setLiveTranscript] = useState("");
   const [draft, setDraft] = useState<Draft>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,6 +131,18 @@ function NewQuotePage() {
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
+
+  // Auto-start voice recording when arriving with ?voice=1
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (voiceParam === 1 && !autoStartedRef.current && !recording && !transcribing && !draft) {
+      autoStartedRef.current = true;
+      startRecording();
+      // Clear the search param so it doesn't re-trigger on remount
+      navigate({ to: "/quotes/new", search: {}, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceParam]);
 
   const stopRecording = () => {
     const recognition = speechRecognitionRef.current;
@@ -161,6 +178,7 @@ function NewQuotePage() {
   const startRecording = async () => {
     setVoiceError(null);
     liveTranscriptRef.current = "";
+    setLiveTranscript("");
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
       return;
@@ -202,10 +220,12 @@ function NewQuotePage() {
         recognition.interimResults = true;
         recognition.lang = "en-GB";
         recognition.onresult = (event) => {
-          liveTranscriptRef.current = Array.from(event.results)
+          const text = Array.from(event.results)
             .map((result) => result[0]?.transcript || "")
             .join(" ")
             .trim();
+          liveTranscriptRef.current = text;
+          setLiveTranscript(text);
         };
         recognition.onerror = (event) => console.warn("Speech recognition error", event.error);
         recognition.start();
@@ -345,6 +365,15 @@ function NewQuotePage() {
 
   return (
     <AppShell>
+      {(recording || transcribing) && (
+        <VoiceOverlay
+          recording={recording}
+          transcribing={transcribing}
+          seconds={recordSeconds}
+          liveTranscript={liveTranscript}
+          onStop={stopRecording}
+        />
+      )}
       <PageHeader title="New quote" subtitle="AI generator" back="/" />
 
       <div className="px-5 -mt-2 mb-3">
@@ -664,6 +693,71 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex items-baseline justify-between text-sm">
       <span className="text-muted-foreground">{label}</span>
       <span className="num">{value}</span>
+    </div>
+  );
+}
+
+function VoiceOverlay({
+  recording,
+  transcribing,
+  seconds,
+  liveTranscript,
+  onStop,
+}: {
+  recording: boolean;
+  transcribing: boolean;
+  seconds: number;
+  liveTranscript: string;
+  onStop: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col items-center justify-between px-6 pt-16 pb-10 safe-top safe-bottom">
+      <div className="flex flex-col items-center">
+        <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+          {transcribing ? "Transcribing" : "Listening"}
+        </p>
+        <p className="num text-2xl mt-1 text-lime">{formatMMSS(seconds)}</p>
+      </div>
+
+      <div className="relative flex items-center justify-center my-8">
+        {recording && (
+          <>
+            <span className="absolute h-64 w-64 rounded-full bg-lime/10 animate-ping" />
+            <span className="absolute h-52 w-52 rounded-full bg-lime/20 animate-pulse" />
+          </>
+        )}
+        <div
+          className={`relative h-40 w-40 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_60px_-12px_rgba(200,224,74,0.7)] ${
+            recording ? "animate-[pulse_1.4s_ease-in-out_infinite]" : ""
+          }`}
+        >
+          {transcribing ? (
+            <Loader2 className="h-16 w-16 text-ink animate-spin" />
+          ) : (
+            <Mic className="h-16 w-16 text-ink" strokeWidth={2.25} />
+          )}
+        </div>
+      </div>
+
+      <div className="w-full max-w-md min-h-[6rem] text-center">
+        {liveTranscript ? (
+          <p className="text-base leading-relaxed text-paper/90">{liveTranscript}</p>
+        ) : (
+          <p className="text-sm text-paper/50">
+            {transcribing ? "Turning your voice into text…" : "Describe the job — boiler, bathroom, materials, time…"}
+          </p>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={onStop}
+        disabled={transcribing}
+        className="mt-6 inline-flex items-center justify-center gap-2 bg-paper text-ink rounded-full px-8 py-4 text-sm font-bold active:scale-[0.99] transition disabled:opacity-60"
+      >
+        <Square className="h-4 w-4 fill-ink" />
+        {transcribing ? "Please wait…" : "Stop recording"}
+      </button>
     </div>
   );
 }
