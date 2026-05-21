@@ -20,18 +20,32 @@ function AboutPage() {
   return (
     <MarketingShell>
       <section className="bg-ink text-paper">
-        <div className="mx-auto max-w-4xl px-5 py-20">
+        <div className="mx-auto max-w-4xl px-5 py-20 md:py-28">
           <p className="text-[11px] uppercase tracking-widest text-paper/60 font-semibold">Our story</p>
-          <h1 className="mt-3 text-5xl md:text-6xl text-paper">Built for the van, not the desk.</h1>
-          <p className="mt-6 text-lg text-paper/75 max-w-2xl">
-            Quottr started in a Transit Custom with a half-eaten sandwich and a stack of unsent quotes.
-            We're a small team of engineers and ex-tradespeople on a mission to kill the evening admin
-            so you can be home for tea.
+          <h1 className="mt-3 text-5xl md:text-7xl leading-[0.95] text-paper">
+            Built for a plumber <span className="text-lime">called Nav.</span>
+          </h1>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-3xl px-5 py-20">
+        <div className="space-y-6 text-lg md:text-xl text-ink/80 leading-relaxed">
+          <p>
+            Quottr started because my brother <strong>Nav</strong> — a plumber with 15 years
+            experience — was spending every evening writing quotes on his phone.
+          </p>
+          <p>He hated it.</p>
+          <p>
+            We built Quottr in a <strong>week</strong>. He sent his first AI-generated quote
+            before leaving a customer's drive.
+          </p>
+          <p className="text-2xl md:text-3xl text-ink" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+            That was the moment we knew this was real.
           </p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-4xl px-5 py-20 grid gap-12 md:grid-cols-2">
+      <section className="mx-auto max-w-4xl px-5 pb-20 grid gap-12 md:grid-cols-2">
         <div>
           <h2 className="text-3xl">What we believe</h2>
           <p className="mt-4 text-ink/70 leading-relaxed">
@@ -64,3 +78,4 @@ function AboutPage() {
     </MarketingShell>
   );
 }
+

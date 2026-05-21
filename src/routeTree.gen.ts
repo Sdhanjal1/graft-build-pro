@@ -26,6 +26,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as QuotesIndexRouteImport } from './routes/quotes.index'
 import { Route as ClientsIndexRouteImport } from './routes/clients.index'
+import { Route as TradesTradeSlugRouteImport } from './routes/trades.$tradeSlug'
 import { Route as RequestProIdRouteImport } from './routes/request.$proId'
 import { Route as QuotesNewRouteImport } from './routes/quotes.new'
 import { Route as QuotesQuoteIdRouteImport } from './routes/quotes.$quoteId'
@@ -123,6 +124,11 @@ const ClientsIndexRoute = ClientsIndexRouteImport.update({
   path: '/clients/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TradesTradeSlugRoute = TradesTradeSlugRouteImport.update({
+  id: '/$tradeSlug',
+  path: '/$tradeSlug',
+  getParentRoute: () => TradesRoute,
+} as any)
 const RequestProIdRoute = RequestProIdRouteImport.update({
   id: '/request/$proId',
   path: '/request/$proId',
@@ -194,7 +200,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
-  '/trades': typeof TradesRoute
+  '/trades': typeof TradesRouteWithChildren
   '/welcome': typeof WelcomeRoute
   '/capture/$captureId': typeof CaptureCaptureIdRoute
   '/capture/new': typeof CaptureNewRoute
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
   '/request/$proId': typeof RequestProIdRoute
+  '/trades/$tradeSlug': typeof TradesTradeSlugRoute
   '/clients/': typeof ClientsIndexRoute
   '/quotes/': typeof QuotesIndexRoute
   '/portal/c/$code': typeof PortalCCodeRoute
@@ -224,7 +231,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
-  '/trades': typeof TradesRoute
+  '/trades': typeof TradesRouteWithChildren
   '/welcome': typeof WelcomeRoute
   '/capture/$captureId': typeof CaptureCaptureIdRoute
   '/capture/new': typeof CaptureNewRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
   '/request/$proId': typeof RequestProIdRoute
+  '/trades/$tradeSlug': typeof TradesTradeSlugRoute
   '/clients': typeof ClientsIndexRoute
   '/quotes': typeof QuotesIndexRoute
   '/portal/c/$code': typeof PortalCCodeRoute
@@ -255,7 +263,7 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
-  '/trades': typeof TradesRoute
+  '/trades': typeof TradesRouteWithChildren
   '/welcome': typeof WelcomeRoute
   '/capture/$captureId': typeof CaptureCaptureIdRoute
   '/capture/new': typeof CaptureNewRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
   '/request/$proId': typeof RequestProIdRoute
+  '/trades/$tradeSlug': typeof TradesTradeSlugRoute
   '/clients/': typeof ClientsIndexRoute
   '/quotes/': typeof QuotesIndexRoute
   '/portal/c/$code': typeof PortalCCodeRoute
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | '/quotes/$quoteId'
     | '/quotes/new'
     | '/request/$proId'
+    | '/trades/$tradeSlug'
     | '/clients/'
     | '/quotes/'
     | '/portal/c/$code'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/quotes/$quoteId'
     | '/quotes/new'
     | '/request/$proId'
+    | '/trades/$tradeSlug'
     | '/clients'
     | '/quotes'
     | '/portal/c/$code'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/quotes/$quoteId'
     | '/quotes/new'
     | '/request/$proId'
+    | '/trades/$tradeSlug'
     | '/clients/'
     | '/quotes/'
     | '/portal/c/$code'
@@ -378,7 +390,7 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
-  TradesRoute: typeof TradesRoute
+  TradesRoute: typeof TradesRouteWithChildren
   WelcomeRoute: typeof WelcomeRoute
   CaptureCaptureIdRoute: typeof CaptureCaptureIdRoute
   CaptureNewRoute: typeof CaptureNewRoute
@@ -516,6 +528,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/trades/$tradeSlug': {
+      id: '/trades/$tradeSlug'
+      path: '/$tradeSlug'
+      fullPath: '/trades/$tradeSlug'
+      preLoaderRoute: typeof TradesTradeSlugRouteImport
+      parentRoute: typeof TradesRoute
+    }
     '/request/$proId': {
       id: '/request/$proId'
       path: '/request/$proId'
@@ -596,6 +615,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface TradesRouteChildren {
+  TradesTradeSlugRoute: typeof TradesTradeSlugRoute
+}
+
+const TradesRouteChildren: TradesRouteChildren = {
+  TradesTradeSlugRoute: TradesTradeSlugRoute,
+}
+
+const TradesRouteWithChildren =
+  TradesRoute._addFileChildren(TradesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -610,7 +640,7 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
-  TradesRoute: TradesRoute,
+  TradesRoute: TradesRouteWithChildren,
   WelcomeRoute: WelcomeRoute,
   CaptureCaptureIdRoute: CaptureCaptureIdRoute,
   CaptureNewRoute: CaptureNewRoute,
