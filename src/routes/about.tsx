@@ -10,9 +10,9 @@ export const Route = createFileRoute("/about")({
       { name: "description", content: "Quottr is built by tradespeople, for tradespeople. Our mission: kill the evening admin." },
       { property: "og:title", content: "About — Quottr" },
       { property: "og:description", content: "Built by tradespeople, for tradespeople." },
-      { property: "og:url", content: "https://graft-build-pro.lovable.app/about" },
+      { property: "og:url", content: "https://www.quottr.co.uk/about" },
     ],
-    links: [{ rel: "canonical", href: "https://graft-build-pro.lovable.app/about" }],
+    links: [{ rel: "canonical", href: "https://www.quottr.co.uk/about" }],
   }),
 });
 

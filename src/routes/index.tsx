@@ -11,8 +11,9 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Quottr — Stop quoting in the evenings." },
       { property: "og:description", content: "Voice to professional quote in 18 seconds. Sent via WhatsApp. Customer pays the deposit before you leave the drive." },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://www.quottr.co.uk/" },
     ],
-    links: [{ rel: "canonical", href: "/" }],
+    links: [{ rel: "canonical", href: "https://www.quottr.co.uk/" }],
   }),
 });
 

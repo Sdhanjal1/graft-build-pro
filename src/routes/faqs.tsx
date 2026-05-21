@@ -10,8 +10,9 @@ export const Route = createFileRoute("/faqs")({
       { name: "description", content: "Common questions about Quottr — pricing, voice quoting, payments, data and more." },
       { property: "og:title", content: "FAQs — Quottr" },
       { property: "og:description", content: "Everything you wanted to ask about Quottr." },
+      { property: "og:url", content: "https://www.quottr.co.uk/faqs" },
     ],
-    links: [{ rel: "canonical", href: "/faqs" }],
+    links: [{ rel: "canonical", href: "https://www.quottr.co.uk/faqs" }],
   }),
 });
 
