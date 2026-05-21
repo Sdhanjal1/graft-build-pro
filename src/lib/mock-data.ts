@@ -82,9 +82,12 @@ export type ScheduledChase = {
   quote_id: string;
   /** 7 / 14 / 21 — days after due date */
   day_offset: number;
-  due_at: string; // ISO
+  due_at: string; // ISO — when the chase becomes due
   status: ChaseStatus;
+  /** ISO timestamp when it will auto-send if Nav doesn't act first */
+  auto_send_at?: string;
 };
+
 
 export const DEFAULT_CHASE_TEMPLATES = {
   first:
