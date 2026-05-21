@@ -1,6 +1,7 @@
 import { Composition } from "remotion";
 import { MainVideo } from "./MainVideo";
 import { VerticalVideo } from "./VerticalVideo";
+import { SocialAd } from "./SocialAd";
 
 export const RemotionRoot = () => (
   <>
@@ -20,5 +21,14 @@ export const RemotionRoot = () => (
       width={1080}
       height={1920}
     />
+    <Composition
+      id="social"
+      component={SocialAd}
+      durationInFrames={450}
+      fps={30}
+      width={1080}
+      height={1920}
+    />
   </>
 );
+
