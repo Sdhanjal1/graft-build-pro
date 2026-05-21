@@ -246,8 +246,8 @@ function DayView({ anchor, onOpenJob }: { anchor: Date; onOpenJob: (id: string) 
       {jobs.length === 0 ? (
         <EmptyState
           icon={CalendarOff}
-          title="Nothing scheduled"
-          body="Free day. Schedule a job from an accepted quote to fill it in."
+          title="Nothing in the diary"
+          body="Accept a quote and the job lands here automatically."
           cta={{ label: "Browse quotes", to: "/quotes" }}
         />
       ) : (
