@@ -70,9 +70,12 @@ export type Quote = {
   invoiced_at?: string;
   /** ISO date the customer is asked to pay by on the invoice */
   invoice_due_date?: string;
+  /** Per-invoice override for the auto-chase scheduler (defaults to profile setting) */
+  auto_chase_enabled?: boolean;
 };
 
 export type ChaseStatus = "scheduled" | "sent" | "skipped";
+
 
 export type ScheduledChase = {
   id: string;
