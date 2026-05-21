@@ -535,6 +535,27 @@ function CompletePrompt({
           </div>
         </div>
 
+        {c && (
+          <div className="mt-3 card-surface p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Star className="h-4 w-4 text-lime" />
+              <p className="text-sm font-bold">Request a Google review from {c.name.split(" ")[0]}?</p>
+            </div>
+            <p className="text-[11px] text-muted-foreground mb-3">
+              Opens WhatsApp with a ready-to-send review request{c.review_requested_at ? ` · last sent ${new Date(c.review_requested_at).toLocaleDateString("en-GB")}` : ""}.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => { requestReview(); onClose(); }} className="bg-lime text-ink rounded-full py-2.5 text-xs font-bold">
+                Yes — send review request
+              </button>
+              <button onClick={onClose} className="bg-card border border-border rounded-full py-2.5 text-xs font-bold">
+                Not now
+              </button>
+            </div>
+          </div>
+        )}
+
+
         <button onClick={onClose} className="w-full mt-3 text-xs text-muted-foreground py-2">Done</button>
       </div>
     </div>
