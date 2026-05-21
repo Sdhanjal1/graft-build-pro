@@ -82,11 +82,16 @@ const Mic: React.FC<{ pulse: number }> = ({ pulse }) => (
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontSize: 110,
       }}
     >
-      🎤
+      <svg width="110" height="110" viewBox="0 0 24 24" fill="none" stroke={colors.ink} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="9" y="2" width="6" height="12" rx="3" fill={colors.ink} />
+        <path d="M5 11a7 7 0 0 0 14 0" />
+        <line x1="12" y1="18" x2="12" y2="22" />
+        <line x1="9" y1="22" x2="15" y2="22" />
+      </svg>
     </div>
+
   </div>
 );
 
