@@ -847,6 +847,75 @@ export const skipChase = (chaseId: string) => {
   if (c) c.status = "skipped";
 };
 
+/** Toggle auto-chase on/off for a single quote. */
+export const setQuoteAutoChase = (quoteId: string, enabled: boolean) => {
+  const q = getQuote(quoteId);
+  if (!q) return;
+  q.auto_chase_enabled = enabled;
+  if (enabled) ensureChasesFor(q);
+  else cancelChasesFor(quoteId);
+  bumpVersion();
+};
+
+// ---------- WhatsApp helpers ----------
+
+/** Convert a UK mobile (e.g. 07700 900456) into a wa.me digits string (44...). */
+export const waDigits = (phone?: string) => {
+  const d = (phone ?? "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.startsWith("44")) return d;
+  return "44" + d.replace(/^0/, "");
+};
+
+/** Build a wa.me deep link with pre-filled text. */
+export const waLink = (phone: string | undefined, text: string) =>
+  `https://wa.me/${waDigits(phone)}?text=${encodeURIComponent(text)}`;
+
+/** Spec-format quote message with customer portal link. */
+export const buildQuoteWhatsAppMessage = (
+  quote: Quote,
+  client: Pick<Client, "name"> | undefined,
+  portalUrl: string,
+) => {
+  const first = client?.name?.split(" ")[0] ?? "there";
+  return [
+    `Hi ${first} 👋`,
+    `Your quote from ${mockProfile.business_name} is ready.`,
+    `Total: ${formatGBP(quote.total)}${mockProfile.vat_registered ? " inc VAT" : ""}`,
+    "",
+    `View, approve and pay your deposit here:`,
+    portalUrl,
+    "",
+    `Quote valid for 30 days. Any questions just reply.`,
+    `${mockProfile.business_name} · ${mockProfile.phone}`,
+  ].join("\n");
+};
+
+// ---------- Google review request ----------
+
+export const buildReviewRequestMessage = (clientFirstName: string) => {
+  const url = mockProfile.google_review_url || "[paste your Google review link in Settings]";
+  return [
+    `Hi ${clientFirstName} — thank you for choosing ${mockProfile.business_name}.`,
+    `We really hope you were happy with the work.`,
+    "",
+    `If you have a moment it would mean the world if you left us a quick Google review — it helps other homeowners find us:`,
+    url,
+    "",
+    `Takes 30 seconds and makes a huge difference. Thank you 🙏`,
+    mockProfile.business_name,
+  ].join("\n");
+};
+
+export const markReviewRequested = (clientId: string) => {
+  const c = getClient(clientId);
+  if (!c) return;
+  c.review_requested_at = new Date().toISOString();
+  bumpVersion();
+};
+
+
+
 // ---------- Quote → invoice split ----------
 
 /** Mark a quote as invoiced (issues a formal invoice), persisted to Lovable Cloud. */
