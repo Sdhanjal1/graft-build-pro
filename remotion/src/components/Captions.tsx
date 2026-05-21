@@ -34,11 +34,10 @@ const Cue: React.FC<{ cue: Cue; frame: number }> = ({ cue, frame }) => {
     >
       <div
         style={{
-          background: "rgba(14,15,12,0.78)",
+          background: "rgba(14,15,12,0.82)",
           border: `1px solid rgba(207,255,61,0.25)`,
           padding: "18px 36px",
           borderRadius: 18,
-          backdropFilter: "blur(2px)",
         }}
       >
         <span
