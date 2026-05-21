@@ -30,6 +30,14 @@ export const RemotionRoot = () => (
       width={1080}
       height={1920}
     />
+    <Composition
+      id="social-v2"
+      component={SocialAdV2}
+      durationInFrames={990}
+      fps={30}
+      width={1080}
+      height={1920}
+    />
   </>
 );
 
