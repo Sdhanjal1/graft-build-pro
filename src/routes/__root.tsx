@@ -11,6 +11,7 @@ import {
 
 import appCss from "../styles.css?url";
 import { BottomNav } from "@/components/BottomNav";
+import { FloatingMicButton } from "@/components/FloatingMicButton";
 import { Splash } from "@/components/Splash";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { OfflineBanner } from "@/components/OfflineBanner";
