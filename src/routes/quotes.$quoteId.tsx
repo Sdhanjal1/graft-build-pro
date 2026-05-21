@@ -177,6 +177,25 @@ function QuoteDetail() {
   };
 
   const liveQuote: Quote = { ...quote, payment_method: method, status, paid_via: paidVia, payment_request: paymentRequest };
+  const sharePdf = async () => {
+    try {
+      const r = await downloadOrShareQuotePdf(liveQuote, client, "quote");
+      if (!r.shared && !r.cancelled) { feedback("success"); toast.success("Quote PDF downloaded"); }
+    } catch (e) {
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not generate PDF");
+    }
+  };
+  let primary: { label: string; icon: React.ComponentType<{ className?: string }>; onClick: () => void };
+  if (status === "pending" || status === "declined") {
+    primary = { label: "Send quote", icon: Send, onClick: () => setSendOpen(true) };
+  } else if (status === "sent") {
+    primary = { label: "Mark as accepted", icon: ThumbsUp, onClick: acceptQuote };
+  } else if (status === "accepted") {
+    primary = { label: "Mark job complete", icon: Check, onClick: () => setAskingPaid(true) };
+  } else {
+    primary = { label: "Share PDF", icon: Share2, onClick: sharePdf };
+  }
+  const PrimaryIcon = primary.icon;
   const messageBody = buildInvoiceMessage(liveQuote, client?.name.split(" ")[0] ?? "there");
   const encoded = encodeURIComponent(messageBody);
   const phoneDigits = client?.phone.replace(/\D/g, "");
