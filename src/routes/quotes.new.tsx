@@ -90,6 +90,7 @@ type Draft = { title: string; line_items: LineItem[] } | null;
 
 function NewQuotePage() {
   const navigate = useNavigate();
+  const { voice: voiceParam } = Route.useSearch();
   const [desc, setDesc] = useState("");
   const [trade, setTrade] = useState(mockProfile.trade_type);
   const [vat, setVat] = useState(mockProfile.vat_registered);
