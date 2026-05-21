@@ -397,6 +397,17 @@ function QuoteDetail() {
           <PrimaryIcon className="h-5 w-5" />
           {primary.label}
         </button>
+        {(status === "accepted" || status === "sent") && (
+          <button
+            onClick={() => takePaymentOnSite("full")}
+            disabled={takingOnSite}
+            className="w-full bg-ink text-paper rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-60"
+          >
+            {takingOnSite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Nfc className="h-4 w-4" />}
+            Take payment on site
+            <span className="num text-paper/80">· {formatGBP(quote.total)}</span>
+          </button>
+        )}
         {status === "paid" && (
           <div className="w-full bg-status-paid/15 border border-status-paid/40 rounded-2xl py-3 px-4 inline-flex items-center justify-center gap-2 text-xs font-semibold text-ink">
             <CheckCircle2 className="h-4 w-4" />
