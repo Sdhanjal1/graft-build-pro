@@ -121,7 +121,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate>
-        {!isPortal && <Splash />}
+        
         <Outlet />
         {showAppChrome && <BottomNav />}
         {showAppChrome && <FloatingMicButton />}
