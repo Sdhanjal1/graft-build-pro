@@ -645,3 +645,18 @@ function PaidButton({ icon: Icon, label, onClick }: { icon: React.ComponentType<
     </button>
   );
 }
+
+function MoreItem({
+  icon: Icon, label, onClick, danger,
+}: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void; danger?: boolean }) {
+  return (
+    <li>
+      <button
+        onClick={onClick}
+        className={`w-full flex items-center gap-3 px-3 py-3.5 rounded-2xl hover:bg-secondary text-left ${danger ? "text-status-overdue" : "text-ink"}`}
+      >
+        <Icon className="h-5 w-5 shrink-0" />
+        <span className="text-sm font-semibold">{label}</span>
+      </button>
+    </li>
+  );
