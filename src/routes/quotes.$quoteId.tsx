@@ -439,7 +439,10 @@ function QuoteDetail() {
                 <MoreItem icon={Calendar} label="Schedule this job" onClick={() => { setMoreOpen(false); setScheduling(true); }} />
               )}
               {status === "accepted" && (
-                <MoreItem icon={Zap} label="Request payment" onClick={() => { setMoreOpen(false); setRequesting(true); }} />
+                <MoreItem icon={Zap} label="Request payment (send link)" onClick={() => { setMoreOpen(false); setRequesting(true); }} />
+              )}
+              {(status === "accepted" || status === "sent") && (
+                <MoreItem icon={Smartphone} label="Take 50% deposit on site" onClick={() => { setMoreOpen(false); takePaymentOnSite("deposit"); }} />
               )}
               {invoicedAt && (
                 <MoreItem icon={FileText} label="View final invoice" onClick={() => { setMoreOpen(false); navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } }); }} />
