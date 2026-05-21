@@ -27,6 +27,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as QuotesIndexRouteImport } from './routes/quotes.index'
 import { Route as ClientsIndexRouteImport } from './routes/clients.index'
 import { Route as TradesTradeSlugRouteImport } from './routes/trades.$tradeSlug'
+import { Route as SitemapXmlRouteImport } from './routes/sitemap.xml'
 import { Route as RequestProIdRouteImport } from './routes/request.$proId'
 import { Route as QuotesNewRouteImport } from './routes/quotes.new'
 import { Route as QuotesQuoteIdRouteImport } from './routes/quotes.$quoteId'
@@ -129,6 +130,11 @@ const TradesTradeSlugRoute = TradesTradeSlugRouteImport.update({
   path: '/$tradeSlug',
   getParentRoute: () => TradesRoute,
 } as any)
+const SitemapXmlRoute = SitemapXmlRouteImport.update({
+  id: '/sitemap/xml',
+  path: '/sitemap/xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RequestProIdRoute = RequestProIdRouteImport.update({
   id: '/request/$proId',
   path: '/request/$proId',
@@ -211,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
   '/request/$proId': typeof RequestProIdRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/trades/$tradeSlug': typeof TradesTradeSlugRoute
   '/clients/': typeof ClientsIndexRoute
   '/quotes/': typeof QuotesIndexRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
   '/request/$proId': typeof RequestProIdRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/trades/$tradeSlug': typeof TradesTradeSlugRoute
   '/clients': typeof ClientsIndexRoute
   '/quotes': typeof QuotesIndexRoute
@@ -274,6 +282,7 @@ export interface FileRoutesById {
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
   '/request/$proId': typeof RequestProIdRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/trades/$tradeSlug': typeof TradesTradeSlugRoute
   '/clients/': typeof ClientsIndexRoute
   '/quotes/': typeof QuotesIndexRoute
@@ -307,6 +316,7 @@ export interface FileRouteTypes {
     | '/quotes/$quoteId'
     | '/quotes/new'
     | '/request/$proId'
+    | '/sitemap/xml'
     | '/trades/$tradeSlug'
     | '/clients/'
     | '/quotes/'
@@ -338,6 +348,7 @@ export interface FileRouteTypes {
     | '/quotes/$quoteId'
     | '/quotes/new'
     | '/request/$proId'
+    | '/sitemap/xml'
     | '/trades/$tradeSlug'
     | '/clients'
     | '/quotes'
@@ -369,6 +380,7 @@ export interface FileRouteTypes {
     | '/quotes/$quoteId'
     | '/quotes/new'
     | '/request/$proId'
+    | '/sitemap/xml'
     | '/trades/$tradeSlug'
     | '/clients/'
     | '/quotes/'
@@ -401,6 +413,7 @@ export interface RootRouteChildren {
   QuotesQuoteIdRoute: typeof QuotesQuoteIdRoute
   QuotesNewRoute: typeof QuotesNewRoute
   RequestProIdRoute: typeof RequestProIdRoute
+  SitemapXmlRoute: typeof SitemapXmlRoute
   ClientsIndexRoute: typeof ClientsIndexRoute
   QuotesIndexRoute: typeof QuotesIndexRoute
   PortalCCodeRoute: typeof PortalCCodeRoute
@@ -535,6 +548,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TradesTradeSlugRouteImport
       parentRoute: typeof TradesRoute
     }
+    '/sitemap/xml': {
+      id: '/sitemap/xml'
+      path: '/sitemap/xml'
+      fullPath: '/sitemap/xml'
+      preLoaderRoute: typeof SitemapXmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/request/$proId': {
       id: '/request/$proId'
       path: '/request/$proId'
@@ -651,6 +671,7 @@ const rootRouteChildren: RootRouteChildren = {
   QuotesQuoteIdRoute: QuotesQuoteIdRoute,
   QuotesNewRoute: QuotesNewRoute,
   RequestProIdRoute: RequestProIdRoute,
+  SitemapXmlRoute: SitemapXmlRoute,
   ClientsIndexRoute: ClientsIndexRoute,
   QuotesIndexRoute: QuotesIndexRoute,
   PortalCCodeRoute: PortalCCodeRoute,
@@ -659,3 +680,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
