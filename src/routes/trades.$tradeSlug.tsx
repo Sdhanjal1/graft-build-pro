@@ -1,14 +1,15 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/MarketingShell";
 import { ArrowRight, Mic, Check } from "lucide-react";
-import { getTradeBySlug, trades } from "@/lib/trades-data";
+import { getTradeBySlug, trades, type Trade } from "@/lib/trades-data";
 
 export const Route = createFileRoute("/trades/$tradeSlug")({
-  loader: ({ params }) => {
+  loader: ({ params }): { trade: Trade } => {
     const trade = getTradeBySlug(params.tradeSlug);
     if (!trade) throw notFound();
     return { trade };
   },
+
   head: ({ loaderData }) => {
     const trade = loaderData?.trade;
     if (!trade) {
