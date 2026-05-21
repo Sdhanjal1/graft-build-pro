@@ -176,6 +176,40 @@ function QuoteDetail() {
     }
   };
 
+  const [takingOnSite, setTakingOnSite] = useState(false);
+  const takePaymentOnSite = async (type: PaymentRequestType, amount?: number) => {
+    setTakingOnSite(true);
+    setError(null);
+    try {
+      const amt =
+        type === "deposit" ? quote.total * 0.5 :
+        type === "full" ? quote.total :
+        (amount ?? 0);
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const result = await createCheckout({
+        data: {
+          quoteId: quote.id,
+          quoteRef: quote.ref,
+          title: quote.title,
+          amount: amt,
+          currency: "gbp",
+          requestType: type,
+          customerEmail: client?.email,
+          successUrl: `${origin}/quotes/${quote.id}?paid=1`,
+          cancelUrl: `${origin}/quotes/${quote.id}?cancelled=1`,
+        },
+      });
+      // Open Stripe Checkout in the same window — Apple Pay / Google Pay
+      // appear automatically on supported devices. The webhook will mark
+      // the invoice as paid when the customer completes the sheet.
+      window.location.href = result.url;
+    } catch (e: any) {
+      console.error(e);
+      feedback("error");
+      toast.error(e?.message ?? "Could not start payment");
+      setTakingOnSite(false);
+    }
+
   const liveQuote: Quote = { ...quote, payment_method: method, status, paid_via: paidVia, payment_request: paymentRequest };
   const sharePdf = async () => {
     try {
