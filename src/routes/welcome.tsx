@@ -73,28 +73,23 @@ function WelcomePage() {
             <span>Cancel any time</span>
           </div>
 
-          {/* Phone mock peeking from bottom */}
-          <div className="mt-12 md:mt-16 mx-auto max-w-sm">
-            <div className="rounded-[2.5rem] border-[10px] border-ink bg-ink shadow-2xl overflow-hidden ring-1 ring-paper/10">
-              <div className="bg-lime/95 aspect-[9/16] flex flex-col">
-                <div className="h-9 flex items-center justify-between px-5 text-ink text-[11px] font-semibold">
-                  <span>9:41</span>
-                  <span>•••</span>
-                </div>
-                <div className="flex-1 flex flex-col items-center justify-center text-ink px-6 text-center">
-                  <p
-                    className="text-5xl md:text-6xl leading-none"
-                    style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-                  >
-                    Quote Mrs Jones<br />for a new combi
-                  </p>
-                  <div className="mt-8 h-20 w-20 rounded-full bg-ink text-lime flex items-center justify-center shadow-lg">
-                    <Mic className="h-8 w-8" />
-                  </div>
-                  <p className="mt-3 text-xs uppercase tracking-widest font-semibold text-ink/70">Listening…</p>
-                </div>
-              </div>
+          {/* Inline video — see it in action */}
+          <div className="mt-12 md:mt-16 mx-auto max-w-4xl">
+            <div className="rounded-2xl md:rounded-3xl overflow-hidden border border-paper/10 bg-ink shadow-2xl ring-1 ring-lime/20">
+              <video
+                src="/quottr-how-it-works.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                className="w-full h-auto block"
+                aria-label="See how Quottr works — voice to quote to paid in under a minute"
+              />
             </div>
+            <p className="mt-3 text-xs text-paper/50 uppercase tracking-widest font-semibold">
+              Voice → Quote → Paid · 18 seconds
+            </p>
           </div>
         </div>
       </section>
