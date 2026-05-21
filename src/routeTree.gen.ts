@@ -10,11 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as TradesRouteImport } from './routes/trades'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as InsightsRouteImport } from './routes/insights'
+import { Route as FeaturesRouteImport } from './routes/features'
+import { Route as FaqsRouteImport } from './routes/faqs'
 import { Route as ChaserRouteImport } from './routes/chaser'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -37,6 +40,11 @@ import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/publi
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TradesRoute = TradesRouteImport.update({
+  id: '/trades',
+  path: '/trades',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -62,6 +70,16 @@ const MessagesRoute = MessagesRouteImport.update({
 const InsightsRoute = InsightsRouteImport.update({
   id: '/insights',
   path: '/insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeaturesRoute = FeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqsRoute = FaqsRouteImport.update({
+  id: '/faqs',
+  path: '/faqs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChaserRoute = ChaserRouteImport.update({
@@ -162,11 +180,14 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/faqs': typeof FaqsRoute
+  '/features': typeof FeaturesRoute
   '/insights': typeof InsightsRoute
   '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/trades': typeof TradesRoute
   '/welcome': typeof WelcomeRoute
   '/capture/$captureId': typeof CaptureCaptureIdRoute
   '/capture/new': typeof CaptureNewRoute
@@ -188,11 +209,14 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/faqs': typeof FaqsRoute
+  '/features': typeof FeaturesRoute
   '/insights': typeof InsightsRoute
   '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/trades': typeof TradesRoute
   '/welcome': typeof WelcomeRoute
   '/capture/$captureId': typeof CaptureCaptureIdRoute
   '/capture/new': typeof CaptureNewRoute
@@ -215,11 +239,14 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
+  '/faqs': typeof FaqsRoute
+  '/features': typeof FeaturesRoute
   '/insights': typeof InsightsRoute
   '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/trades': typeof TradesRoute
   '/welcome': typeof WelcomeRoute
   '/capture/$captureId': typeof CaptureCaptureIdRoute
   '/capture/new': typeof CaptureNewRoute
@@ -243,11 +270,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/faqs'
+    | '/features'
     | '/insights'
     | '/messages'
     | '/pricing'
     | '/search'
     | '/settings'
+    | '/trades'
     | '/welcome'
     | '/capture/$captureId'
     | '/capture/new'
@@ -269,11 +299,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/faqs'
+    | '/features'
     | '/insights'
     | '/messages'
     | '/pricing'
     | '/search'
     | '/settings'
+    | '/trades'
     | '/welcome'
     | '/capture/$captureId'
     | '/capture/new'
@@ -295,11 +328,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/chaser'
+    | '/faqs'
+    | '/features'
     | '/insights'
     | '/messages'
     | '/pricing'
     | '/search'
     | '/settings'
+    | '/trades'
     | '/welcome'
     | '/capture/$captureId'
     | '/capture/new'
@@ -322,11 +358,14 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CalendarRoute: typeof CalendarRoute
   ChaserRoute: typeof ChaserRoute
+  FaqsRoute: typeof FaqsRoute
+  FeaturesRoute: typeof FeaturesRoute
   InsightsRoute: typeof InsightsRoute
   MessagesRoute: typeof MessagesRoute
   PricingRoute: typeof PricingRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
+  TradesRoute: typeof TradesRoute
   WelcomeRoute: typeof WelcomeRoute
   CaptureCaptureIdRoute: typeof CaptureCaptureIdRoute
   CaptureNewRoute: typeof CaptureNewRoute
@@ -350,6 +389,13 @@ declare module '@tanstack/react-router' {
       path: '/welcome'
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trades': {
+      id: '/trades'
+      path: '/trades'
+      fullPath: '/trades'
+      preLoaderRoute: typeof TradesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -385,6 +431,20 @@ declare module '@tanstack/react-router' {
       path: '/insights'
       fullPath: '/insights'
       preLoaderRoute: typeof InsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/features': {
+      id: '/features'
+      path: '/features'
+      fullPath: '/features'
+      preLoaderRoute: typeof FeaturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faqs': {
+      id: '/faqs'
+      path: '/faqs'
+      fullPath: '/faqs'
+      preLoaderRoute: typeof FaqsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chaser': {
@@ -522,11 +582,14 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CalendarRoute: CalendarRoute,
   ChaserRoute: ChaserRoute,
+  FaqsRoute: FaqsRoute,
+  FeaturesRoute: FeaturesRoute,
   InsightsRoute: InsightsRoute,
   MessagesRoute: MessagesRoute,
   PricingRoute: PricingRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
+  TradesRoute: TradesRoute,
   WelcomeRoute: WelcomeRoute,
   CaptureCaptureIdRoute: CaptureCaptureIdRoute,
   CaptureNewRoute: CaptureNewRoute,

@@ -4,8 +4,10 @@ import { Menu, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 const nav = [
-  { to: "/welcome", label: "Home" },
+  { to: "/features", label: "Features" },
   { to: "/pricing", label: "Pricing" },
+  { to: "/trades", label: "Trades" },
+  { to: "/faqs", label: "FAQs" },
   { to: "/about", label: "About" },
 ] as const;
 
