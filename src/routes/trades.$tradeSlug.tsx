@@ -50,7 +50,8 @@ export const Route = createFileRoute("/trades/$tradeSlug")({
 });
 
 function TradeDetailPage() {
-  const { trade } = Route.useLoaderData();
+  const { trade } = Route.useLoaderData() as { trade: Trade };
+
   const others = trades.filter((t) => t.slug !== trade.slug).slice(0, 4);
 
   return (
