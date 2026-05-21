@@ -113,15 +113,18 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const path = router.state.location.pathname;
-  const isMarketing = path === "/welcome" || path === "/pricing" || path === "/about";
+  const MARKETING_PATHS = new Set(["/", "/welcome", "/pricing", "/about", "/features", "/faqs", "/trades"]);
+  const isMarketing = MARKETING_PATHS.has(path);
+  const isAuth = path === "/auth";
   const isPortal = path.startsWith("/portal/") || path.startsWith("/request/");
+  const showAppChrome = !isMarketing && !isAuth && !isPortal;
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate>
         {!isPortal && <Splash />}
         <Outlet />
-        {!isMarketing && !isPortal && <BottomNav />}
-        {!isMarketing && !isPortal && <FloatingMicButton />}
+        {showAppChrome && <BottomNav />}
+        {showAppChrome && <FloatingMicButton />}
         {!isPortal && <PWAInstallBanner />}
         {!isPortal && <OfflineBanner />}
       </AuthGate>
@@ -129,7 +132,7 @@ function RootComponent() {
   );
 }
 
-const PUBLIC_ROUTES = new Set(["/auth", "/welcome", "/pricing", "/about"]);
+const PUBLIC_ROUTES = new Set(["/", "/auth", "/welcome", "/pricing", "/about", "/features", "/faqs", "/trades"]);
 
 function isPublicPath(path: string) {
   return PUBLIC_ROUTES.has(path) || path.startsWith("/portal/") || path.startsWith("/request/");
@@ -154,3 +157,4 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   if (!session && !isPublic) return null;
   return <>{children}</>;
 }
+
