@@ -121,6 +121,7 @@ function RootComponent() {
         {!isPortal && <Splash />}
         <Outlet />
         {!isMarketing && !isPortal && <BottomNav />}
+        {!isMarketing && !isPortal && <FloatingMicButton />}
         {!isPortal && <PWAInstallBanner />}
         {!isPortal && <OfflineBanner />}
       </AuthGate>
