@@ -27,8 +27,9 @@ export function SendQuoteDialog({
 
   const ensureToken = useServerFn(ensurePortalToken);
   const fetchClientCode = useServerFn(getPortalCodeForQuote);
-  const [busy, setBusy] = useState<null | "sms" | "email">(null);
+  const [busy, setBusy] = useState<null | "sms" | "email" | "wa">(null);
   const [copied, setCopied] = useState(false);
+
 
   const portalHistoryLine = async () => {
     try {
