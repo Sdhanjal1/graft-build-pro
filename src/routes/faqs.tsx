@@ -33,8 +33,9 @@ function FaqsPage() {
         <div className="mx-auto max-w-6xl px-5 py-20 md:py-28">
           <p className="text-[11px] uppercase tracking-widest text-paper/50 font-semibold">FAQs</p>
           <h1 className="mt-3 text-5xl md:text-7xl leading-[0.95] text-paper max-w-3xl">
-            Got questions? <span className="text-lime">We've got answers.</span>
+            Things tradespeople <span className="text-lime">actually ask us.</span>
           </h1>
+
         </div>
       </section>
 
