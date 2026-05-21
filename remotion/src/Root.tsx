@@ -2,6 +2,7 @@ import { Composition } from "remotion";
 import { MainVideo } from "./MainVideo";
 import { VerticalVideo } from "./VerticalVideo";
 import { SocialAd } from "./SocialAd";
+import { SocialAdV2 } from "./SocialAdV2";
 
 export const RemotionRoot = () => (
   <>
