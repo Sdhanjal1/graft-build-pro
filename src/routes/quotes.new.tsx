@@ -15,6 +15,7 @@ import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, MapPin } from "lucide-react";
 import { feedback } from "@/lib/feedback";
+import { RotatingPrompts } from "@/components/RotatingPrompts";
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
@@ -463,6 +464,9 @@ function NewQuotePage() {
           </div>
           {voiceError && (
             <p className="mt-2 text-[12px] text-status-overdue font-medium">{voiceError}</p>
+          )}
+          {!recording && !transcribing && !desc && (
+            <RotatingPrompts className="mt-2.5" />
           )}
         </div>
 
