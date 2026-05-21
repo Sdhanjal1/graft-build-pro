@@ -19,7 +19,7 @@ function AuthPage() {
   const { session } = useSession();
 
   useEffect(() => {
-    if (session) navigate({ to: "/" });
+    if (session) navigate({ to: "/app" });
   }, [session, navigate]);
 
   const submit = async (e: React.FormEvent) => {
@@ -30,12 +30,13 @@ function AuthPage() {
     try {
       if (mode === "login") {
         await signInWithPassword(email, password);
-        navigate({ to: "/" });
+        navigate({ to: "/app" });
       } else {
         await signUpWithPassword(email, password, fullName);
         setInfo("Account created — you can sign in now.");
         setMode("login");
       }
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
