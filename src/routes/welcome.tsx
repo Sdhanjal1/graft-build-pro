@@ -82,11 +82,11 @@ function WelcomePage() {
                 muted
                 loop
                 playsInline
-                controls
                 preload="metadata"
                 className="w-full h-auto block"
                 aria-label="See how Quottr works — voice to quote to paid in under a minute"
               />
+
 
             </div>
             <p className="mt-3 text-xs text-paper/50 uppercase tracking-widest font-semibold">
