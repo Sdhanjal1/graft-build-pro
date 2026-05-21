@@ -12,7 +12,7 @@ import {
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
 } from "@/lib/mock-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
@@ -175,6 +175,43 @@ function QuoteDetail() {
       setCreating(false);
     }
   };
+
+  const [takingOnSite, setTakingOnSite] = useState(false);
+  const takePaymentOnSite = async (type: PaymentRequestType, amount?: number) => {
+    setTakingOnSite(true);
+    setError(null);
+    try {
+      const amt =
+        type === "deposit" ? quote.total * 0.5 :
+        type === "full" ? quote.total :
+        (amount ?? 0);
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const result = await createCheckout({
+        data: {
+          quoteId: quote.id,
+          quoteRef: quote.ref,
+          title: quote.title,
+          amount: amt,
+          currency: "gbp",
+          requestType: type,
+          customerEmail: client?.email,
+          successUrl: `${origin}/quotes/${quote.id}?paid=1`,
+          cancelUrl: `${origin}/quotes/${quote.id}?cancelled=1`,
+        },
+      });
+      // Open Stripe Checkout in the same window — Apple Pay / Google Pay
+      // appear automatically on supported devices. The webhook will mark
+      // the invoice as paid when the customer completes the sheet.
+      window.location.href = result.url;
+    } catch (e: any) {
+      console.error(e);
+      feedback("error");
+      toast.error(e?.message ?? "Could not start payment");
+      setTakingOnSite(false);
+    }
+  };
+
+
 
   const liveQuote: Quote = { ...quote, payment_method: method, status, paid_via: paidVia, payment_request: paymentRequest };
   const sharePdf = async () => {
@@ -360,6 +397,17 @@ function QuoteDetail() {
           <PrimaryIcon className="h-5 w-5" />
           {primary.label}
         </button>
+        {(status === "accepted" || status === "sent") && (
+          <button
+            onClick={() => takePaymentOnSite("full")}
+            disabled={takingOnSite}
+            className="w-full bg-ink text-paper rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-60"
+          >
+            {takingOnSite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Nfc className="h-4 w-4" />}
+            Take payment on site
+            <span className="num text-paper/80">· {formatGBP(quote.total)}</span>
+          </button>
+        )}
         {status === "paid" && (
           <div className="w-full bg-status-paid/15 border border-status-paid/40 rounded-2xl py-3 px-4 inline-flex items-center justify-center gap-2 text-xs font-semibold text-ink">
             <CheckCircle2 className="h-4 w-4" />
@@ -391,7 +439,10 @@ function QuoteDetail() {
                 <MoreItem icon={Calendar} label="Schedule this job" onClick={() => { setMoreOpen(false); setScheduling(true); }} />
               )}
               {status === "accepted" && (
-                <MoreItem icon={Zap} label="Request payment" onClick={() => { setMoreOpen(false); setRequesting(true); }} />
+                <MoreItem icon={Zap} label="Request payment (send link)" onClick={() => { setMoreOpen(false); setRequesting(true); }} />
+              )}
+              {(status === "accepted" || status === "sent") && (
+                <MoreItem icon={Smartphone} label="Take 50% deposit on site" onClick={() => { setMoreOpen(false); takePaymentOnSite("deposit"); }} />
               )}
               {invoicedAt && (
                 <MoreItem icon={FileText} label="View final invoice" onClick={() => { setMoreOpen(false); navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } }); }} />
