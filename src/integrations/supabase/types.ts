@@ -206,8 +206,6 @@ export type Database = {
           stripe_connect_account_id: string | null
           stripe_connect_charges_enabled: boolean
           stripe_connect_payouts_enabled: boolean
-          stripe_publishable_key: string | null
-          stripe_secret_key: string | null
           town: string | null
           trade_type: string | null
           trial_started_at: string | null
@@ -238,8 +236,6 @@ export type Database = {
           stripe_connect_account_id?: string | null
           stripe_connect_charges_enabled?: boolean
           stripe_connect_payouts_enabled?: boolean
-          stripe_publishable_key?: string | null
-          stripe_secret_key?: string | null
           town?: string | null
           trade_type?: string | null
           trial_started_at?: string | null
@@ -270,8 +266,6 @@ export type Database = {
           stripe_connect_account_id?: string | null
           stripe_connect_charges_enabled?: boolean
           stripe_connect_payouts_enabled?: boolean
-          stripe_publishable_key?: string | null
-          stripe_secret_key?: string | null
           town?: string | null
           trade_type?: string | null
           trial_started_at?: string | null
