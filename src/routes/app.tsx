@@ -5,7 +5,7 @@ import {
   mockProfile, stats, formatGBP, getClient,
   todaysJobs, formatTime, getQuote,
 } from "@/lib/mock-data";
-import { Mic, ArrowRight, Sparkles } from "lucide-react";
+import { Mic, ArrowRight, Sparkles, UserPlus, MapPin } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
@@ -65,6 +65,27 @@ function AppHomePage() {
         <p className="mt-5 text-base font-semibold text-ink">Tap to start a quote</p>
         <p className="text-xs text-muted-foreground">Speak the job — we'll do the rest</p>
         <RotatingPrompts className="mt-3 text-center px-4" />
+
+        <div className="mt-6 grid grid-cols-2 gap-2.5 w-full">
+          <Link
+            to="/clients/new"
+            className="card-surface flex items-center gap-2.5 px-3.5 py-3 active:scale-[0.99] transition"
+          >
+            <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
+              <UserPlus className="h-4 w-4 text-ink" />
+            </span>
+            <span className="text-sm font-semibold text-ink leading-tight">Add customer</span>
+          </Link>
+          <Link
+            to="/capture/new"
+            className="card-surface flex items-center gap-2.5 px-3.5 py-3 active:scale-[0.99] transition"
+          >
+            <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
+              <MapPin className="h-4 w-4 text-ink" />
+            </span>
+            <span className="text-sm font-semibold text-ink leading-tight">On-site capture</span>
+          </Link>
+        </div>
       </section>
 
       <section className="px-5 mt-8">

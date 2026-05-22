@@ -13,7 +13,7 @@ import {
 } from "@/lib/mock-data";
 import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { transcribeAudio } from "@/lib/transcribe.functions";
-import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, MapPin } from "lucide-react";
+import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2 } from "lucide-react";
 import { feedback } from "@/lib/feedback";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 
@@ -377,15 +377,6 @@ function NewQuotePage() {
       )}
       <PageHeader title="New quote" subtitle="AI generator" back="/" />
 
-      <div className="px-5 -mt-2 mb-3">
-        <Link
-          to="/capture/new"
-          className="w-full inline-flex items-center justify-center gap-2 bg-ink text-lime border border-lime/40 rounded-full py-3 text-sm font-semibold active:scale-[0.99] transition"
-        >
-          <MapPin className="h-4 w-4" />
-          Start site capture instead
-        </Link>
-      </div>
 
       <form
         className="px-5 space-y-4"
