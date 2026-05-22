@@ -2,19 +2,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-// Pick the right Stripe + webhook secret pair based on environment.
-// Lovable Payments provisions sandbox creds immediately; live creds appear
-// after the user claims their account in the Payments tab.
+// Quottr's BYOK Stripe platform key. When the pro has completed Connect
+// onboarding, client-invoice payments are routed to their connected
+// account via `Stripe-Account` so funds go straight to them.
 function getStripeEnv() {
-  const liveKey = process.env.STRIPE_API_KEY;
-  if (liveKey) {
-    return { key: liveKey, env: "live" as const };
-  }
-  const sandboxKey = process.env.STRIPE_SANDBOX_API_KEY;
-  if (!sandboxKey) {
-    throw new Error("Stripe is not configured. Enable Payments in Lovable.");
-  }
-  return { key: sandboxKey, env: "sandbox" as const };
+  const byok = process.env.STRIPE_BYOK_SECRET_KEY;
+  if (byok) return { key: byok, env: "live" as const };
+  const sandbox = process.env.STRIPE_SANDBOX_API_KEY;
+  if (!sandbox) throw new Error("Stripe is not configured");
+  return { key: sandbox, env: "sandbox" as const };
 }
 
 function toFormBody(params: Record<string, string | number>) {
