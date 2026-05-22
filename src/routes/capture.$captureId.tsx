@@ -19,6 +19,7 @@ import { extractJobsFromTranscript } from "@/lib/extract-jobs.functions";
 import { generateCaptureQuote } from "@/lib/ai-capture-quote.functions";
 import { saveGeneratedQuote, TRADE_TYPES, mockProfile } from "@/lib/mock-data";
 import { feedback } from "@/lib/feedback";
+import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordingNotice";
 
 export const Route = createFileRoute("/capture/$captureId")({
   component: SiteCapturePage,
