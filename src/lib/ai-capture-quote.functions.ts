@@ -28,6 +28,7 @@ const SYSTEM_PROMPT = `You are an expert UK tradesperson estimator generating it
 The following items were captured individually on site by a tradesperson walking through a property. Treat them as a complete job list and generate a professional itemised quote. Each captured item should become one or more line items in the quote with accurate 2026 UK pricing. Group related items logically. Add appropriate materials to each labour item. Generate a professional job title summarising all the work.`;
 
 export const generateCaptureQuote = createServerFn({ method: "POST" })
+  .middleware([requireActiveSubscription])
   .inputValidator((input: unknown) => InputSchema.parse(input))
   .handler(async ({ data }): Promise<AICaptureQuote> => {
     const apiKey = process.env.ANTHROPIC_API_KEY;
