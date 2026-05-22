@@ -35,7 +35,7 @@ export function BillingSection() {
         : `Trial, ${trialDaysLeft} days left · no card yet`;
     }
     if (status === "past_due") return "Payment failed, please update card";
-    if (status === "canceled") return "Subscription canceled";
+    if (status === "canceled") return "Subscription cancelled";
     return status;
   })();
 
