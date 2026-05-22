@@ -6,7 +6,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // ---------- Pro: create/get portal token for a quote ----------
 export const ensurePortalToken = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireActiveSubscription])
   .inputValidator((d: unknown) =>
     z.object({
       quoteId: z.string().min(1).max(120),
