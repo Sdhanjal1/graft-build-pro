@@ -44,6 +44,14 @@ export async function signOut() {
   await supabase.auth.signOut();
 }
 
+export async function signInWithGoogle() {
+  const result = await lovable.auth.signInWithOAuth("google", {
+    redirect_uri: `${window.location.origin}/welcome`,
+  });
+  if (result.error) throw new Error(result.error.message || "Google sign-in failed");
+}
+
+
 export async function currentUserId(): Promise<string> {
   const { data } = await supabase.auth.getUser();
   if (!data.user) throw new Error("Not signed in");
