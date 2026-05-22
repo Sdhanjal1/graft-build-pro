@@ -31,6 +31,7 @@ import { Route as SitemapXmlRouteImport } from './routes/sitemap.xml'
 import { Route as RequestProIdRouteImport } from './routes/request.$proId'
 import { Route as QuotesNewRouteImport } from './routes/quotes.new'
 import { Route as QuotesQuoteIdRouteImport } from './routes/quotes.$quoteId'
+import { Route as QCodeRouteImport } from './routes/q.$code'
 import { Route as PortalTokenRouteImport } from './routes/portal.$token'
 import { Route as InvoicesQuoteIdRouteImport } from './routes/invoices.$quoteId'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
@@ -150,6 +151,11 @@ const QuotesQuoteIdRoute = QuotesQuoteIdRouteImport.update({
   path: '/quotes/$quoteId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QCodeRoute = QCodeRouteImport.update({
+  id: '/q/$code',
+  path: '/q/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PortalTokenRoute = PortalTokenRouteImport.update({
   id: '/portal/$token',
   path: '/portal/$token',
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
   '/portal/$token': typeof PortalTokenRoute
+  '/q/$code': typeof QCodeRoute
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
   '/request/$proId': typeof RequestProIdRoute
@@ -246,6 +253,7 @@ export interface FileRoutesByTo {
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
   '/portal/$token': typeof PortalTokenRoute
+  '/q/$code': typeof QCodeRoute
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
   '/request/$proId': typeof RequestProIdRoute
@@ -279,6 +287,7 @@ export interface FileRoutesById {
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
   '/portal/$token': typeof PortalTokenRoute
+  '/q/$code': typeof QCodeRoute
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
   '/quotes/new': typeof QuotesNewRoute
   '/request/$proId': typeof RequestProIdRoute
@@ -313,6 +322,7 @@ export interface FileRouteTypes {
     | '/clients/new'
     | '/invoices/$quoteId'
     | '/portal/$token'
+    | '/q/$code'
     | '/quotes/$quoteId'
     | '/quotes/new'
     | '/request/$proId'
@@ -345,6 +355,7 @@ export interface FileRouteTypes {
     | '/clients/new'
     | '/invoices/$quoteId'
     | '/portal/$token'
+    | '/q/$code'
     | '/quotes/$quoteId'
     | '/quotes/new'
     | '/request/$proId'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/clients/new'
     | '/invoices/$quoteId'
     | '/portal/$token'
+    | '/q/$code'
     | '/quotes/$quoteId'
     | '/quotes/new'
     | '/request/$proId'
@@ -410,6 +422,7 @@ export interface RootRouteChildren {
   ClientsNewRoute: typeof ClientsNewRoute
   InvoicesQuoteIdRoute: typeof InvoicesQuoteIdRoute
   PortalTokenRoute: typeof PortalTokenRoute
+  QCodeRoute: typeof QCodeRoute
   QuotesQuoteIdRoute: typeof QuotesQuoteIdRoute
   QuotesNewRoute: typeof QuotesNewRoute
   RequestProIdRoute: typeof RequestProIdRoute
@@ -576,6 +589,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QuotesQuoteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/q/$code': {
+      id: '/q/$code'
+      path: '/q/$code'
+      fullPath: '/q/$code'
+      preLoaderRoute: typeof QCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/portal/$token': {
       id: '/portal/$token'
       path: '/portal/$token'
@@ -668,6 +688,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientsNewRoute: ClientsNewRoute,
   InvoicesQuoteIdRoute: InvoicesQuoteIdRoute,
   PortalTokenRoute: PortalTokenRoute,
+  QCodeRoute: QCodeRoute,
   QuotesQuoteIdRoute: QuotesQuoteIdRoute,
   QuotesNewRoute: QuotesNewRoute,
   RequestProIdRoute: RequestProIdRoute,
