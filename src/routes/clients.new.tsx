@@ -48,7 +48,7 @@ function NewClientPage() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Sarah Mitchell"
+            placeholder="e.g. Customer name"
             className="w-full bg-transparent outline-none text-sm"
             autoFocus
           />

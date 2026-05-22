@@ -1118,7 +1118,7 @@ export const globalSearch = (query: string): SearchResult[] => {
       });
     }
   }
-  // Add a second reminder ~12 days out for Sarah Mitchell (q2)
+  // Add a second reminder ~12 days out for the second seeded client (q2)
   const sarah = mockJobs.find((j) => j.quote_id === "q2");
   if (!sarah) {
     const d = new Date(); d.setDate(d.getDate() + 12);
