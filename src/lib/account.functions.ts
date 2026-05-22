@@ -7,7 +7,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
  * Required by UK GDPR and Apple App Store Guideline 5.1.1(v).
  *
  * RLS-scoped tables with user_id cascade implicitly because we delete the auth
- * user — but we also explicitly clear them first so anything missing a
+ * user, but we also explicitly clear them first so anything missing a
  * foreign-key cascade (which is most of this schema) actually goes away.
  */
 export const deleteMyAccount = createServerFn({ method: "POST" })
@@ -15,7 +15,7 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { userId } = context as { userId: string };
 
-    // Tables with a user_id column — wipe before deleting the auth user.
+    // Tables with a user_id column, wipe before deleting the auth user.
     const tables = [
       "quote_messages",
       "quote_portal_tokens",

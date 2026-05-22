@@ -29,7 +29,7 @@ export const Route = createFileRoute("/app")({
   component: AppHomePage,
   head: () => ({
     meta: [
-      { title: "Quottr — App" },
+      { title: "Quottr, App" },
       { name: "description", content: "Tap to start a quote. See what you're owed at a glance." },
       { name: "robots", content: "noindex" },
     ],
@@ -88,7 +88,7 @@ function AppHomePage() {
           <Mic className="relative h-16 w-16 text-ink" strokeWidth={2.25} />
         </Link>
         <p className="mt-5 text-base font-semibold text-ink">Tap to start a quote</p>
-        <p className="text-xs text-muted-foreground">Speak the job — we'll do the rest</p>
+        <p className="text-xs text-muted-foreground">Speak the job, we'll do the rest</p>
         <RotatingPrompts className="mt-3 text-center px-4" />
 
         <div className="mt-6 grid grid-cols-2 gap-2.5 w-full">
@@ -137,7 +137,7 @@ function AppHomePage() {
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           ) : (
-            <p className="mt-2 text-xs text-muted-foreground">All paid up — nice work.</p>
+            <p className="mt-2 text-xs text-muted-foreground">All paid up, nice work.</p>
           )}
         </div>
       </section>

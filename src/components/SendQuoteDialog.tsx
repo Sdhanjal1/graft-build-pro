@@ -31,7 +31,7 @@ export function SendQuoteDialog({
   const [copied, setCopied] = useState(false);
 
 
-// Always share via the branded short domain — keeps WhatsApp/email links tidy.
+// Always share via the branded short domain, keeps WhatsApp/email links tidy.
 const SHARE_ORIGIN = "https://quottr.co.uk";
 const shortClientPortalUrl = (portal_code: string) => `${SHARE_ORIGIN}/q/${portal_code}`;
 const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
@@ -71,7 +71,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
           feedback("success");
           onClose();
           return;
-        } catch { /* user cancelled or unsupported – fall through */ }
+        } catch { /* user cancelled or unsupported - fall through */ }
       }
       window.location.href = smsHref;
       toast.success("Opening Messages…");
@@ -91,7 +91,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       const { token } = await ensureToken({ data: { quoteId, channel: "email" } });
       const url = portalUrl(token);
       const historyLine = await portalHistoryLine();
-      const subject = `Your quote ${quoteRef} — ${quoteTitle}`;
+      const subject = `Your quote ${quoteRef}, ${quoteTitle}`;
       const body =
         `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}${historyLine}\n\nThanks.`;
       const mailHref = `mailto:${customerEmail ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -130,7 +130,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
         </p>
 
         <div className="space-y-2.5">
-          {/* Option 1 — Quottr (recommended) */}
+          {/* Option 1, Quottr (recommended) */}
           <button
             onClick={handleQuottr}
             disabled={busy !== null}
@@ -147,12 +147,12 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
                 </span>
               </div>
               <p className="text-[11px] text-ink/70 mt-0.5">
-                Customer gets an SMS with a portal link. They approve, ask questions and you reply inside Quottr — separate from your personal WhatsApp.
+                Customer gets an SMS with a portal link. They approve, ask questions and you reply inside Quottr, separate from your personal WhatsApp.
               </p>
             </div>
           </button>
 
-          {/* Option 2 — Email */}
+          {/* Option 2, Email */}
           <button
             onClick={handleEmail}
             disabled={busy !== null || !customerEmail}
@@ -171,7 +171,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
             </div>
           </button>
 
-          {/* Option 3 — WhatsApp deep-link (pre-filled message, one tap to send) */}
+          {/* Option 3, WhatsApp deep-link (pre-filled message, one tap to send) */}
           <button
             onClick={async () => {
               try {
@@ -210,10 +210,10 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
             <div className="flex-1 min-w-0">
               <p className="font-bold text-sm">Send via WhatsApp</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Opens WhatsApp with the full message pre-filled — portal link, total and your details. One tap to send.
+                Opens WhatsApp with the full message pre-filled, portal link, total and your details. One tap to send.
               </p>
               <p className="text-[10px] text-muted-foreground/80 mt-1.5 italic">
-                Tip — using Quottr keeps your business communication separate from your personal WhatsApp.
+                Tip, using Quottr keeps your business communication separate from your personal WhatsApp.
               </p>
             </div>
           </button>

@@ -80,9 +80,9 @@ export type ChaseStatus = "scheduled" | "sent" | "skipped";
 export type ScheduledChase = {
   id: string;
   quote_id: string;
-  /** 7 / 14 / 21 — days after due date */
+  /** 7 / 14 / 21, days after due date */
   day_offset: number;
-  due_at: string; // ISO — when the chase becomes due
+  due_at: string; // ISO, when the chase becomes due
   status: ChaseStatus;
   /** ISO timestamp when it will auto-send if Nav doesn't act first */
   auto_send_at?: string;
@@ -91,11 +91,11 @@ export type ScheduledChase = {
 
 export const DEFAULT_CHASE_TEMPLATES = {
   first:
-    "Hi {name} — just a friendly reminder that your invoice for {job} of {amount} is due. You can pay by card here: {link} or by bank transfer to {bank}. Thanks, {business}",
+    "Hi {name}, just a friendly reminder that your invoice for {job} of {amount} is due. You can pay by card here: {link} or by bank transfer to {bank}. Thanks, {business}",
   second:
-    "Hi {name} — following up on the invoice for {job} — {amount} now 14 days overdue. Please arrange payment at your earliest convenience: {link}. {business}",
+    "Hi {name}, following up on the invoice for {job}, {amount} now 14 days overdue. Please arrange payment at your earliest convenience: {link}. {business}",
   final:
-    "Hi {name} — this is a final reminder regarding the outstanding invoice for {job} — {amount} now 21 days overdue. Please make payment today to avoid further action: {link}. {business}",
+    "Hi {name}, this is a final reminder regarding the outstanding invoice for {job}, {amount} now 21 days overdue. Please make payment today to avoid further action: {link}. {business}",
 };
 
 export const EMPTY_PROFILE = {
@@ -301,24 +301,24 @@ export const TRADE_TYPES = [
 export const QUOTE_TEMPLATES: Record<string, { label: string; prompt: string }[]> = {
   "Plumber / Heating Engineer": [
     { label: "Boiler swap", prompt: "Replace existing combi boiler with new Worcester Greenstar 30kW, fit magnetic system filter, power flush central heating system, fit new thermostat, test and commission, register warranty with manufacturer and notify Gas Safe." },
-    { label: "Bathroom suite", prompt: "Remove existing bathroom suite and install new — bath with shower over, basin and pedestal, close-coupled WC, chrome thermostatic shower valve, tile to half height around bath, all waste and supply pipework, silicone seal and make good." },
+    { label: "Bathroom suite", prompt: "Remove existing bathroom suite and install new, bath with shower over, basin and pedestal, close-coupled WC, chrome thermostatic shower valve, tile to half height around bath, all waste and supply pipework, silicone seal and make good." },
     { label: "Radiator install", prompt: "Supply and fit 2 new double-panel radiators in lounge and bedroom, including TRVs, lockshield valves and pipework alterations, balance system and bleed." },
     { label: "Leak repair", prompt: "Trace and repair leak under kitchen sink, replace flexi tails and isolation valves, test for further leaks, make good." },
   ],
   "Electrician": [
     { label: "Consumer unit", prompt: "Replace existing consumer unit with new 18th edition compliant 12-way dual RCD board, full circuit testing, issue EICR and minor works certificate, notify building control via NICEIC." },
     { label: "EV charger", prompt: "Supply and install 7.4kW tethered EV charger to external wall, run new dedicated circuit from consumer unit including isolator and Type A RCBO, commission and register with DNO." },
-    { label: "Rewire", prompt: "Full rewire of 3-bed semi — sockets, lighting, smoke alarms, consumer unit, bonding, testing and certification." },
+    { label: "Rewire", prompt: "Full rewire of 3-bed semi, sockets, lighting, smoke alarms, consumer unit, bonding, testing and certification." },
     { label: "Downlights", prompt: "Supply and install 8 x fire-rated LED downlights to kitchen ceiling on new circuit with dimmer switch, make good plasterboard." },
   ],
   "Builder / General Contractor": [
-    { label: "Single-storey extension", prompt: "Build single-storey rear extension 4m x 3m — strip foundations, blockwork cavity walls, flat roof with GRP covering, bifold doors, plastering and decorating to match." },
-    { label: "Loft conversion", prompt: "Convert loft to bedroom with en-suite — steels, dormer to rear, Velux to front, staircase, insulation to current regs, plastering and second fix." },
+    { label: "Single-storey extension", prompt: "Build single-storey rear extension 4m x 3m, strip foundations, blockwork cavity walls, flat roof with GRP covering, bifold doors, plastering and decorating to match." },
+    { label: "Loft conversion", prompt: "Convert loft to bedroom with en-suite, steels, dormer to rear, Velux to front, staircase, insulation to current regs, plastering and second fix." },
     { label: "Garden wall", prompt: "Build 1.2m brick garden wall approx 8m long including concrete strip foundation, engineering brick below DPC, facing brick above with coping stones." },
   ],
   "Carpenter / Joiner": [
-    { label: "Fitted wardrobes", prompt: "Design and install fitted wardrobes to master bedroom — full height, sliding mirror doors, internal hanging rail, shelves and drawers in spray-finished MDF." },
-    { label: "Kitchen install", prompt: "Install supplied kitchen — base and wall units, worktops, sink and tap, integrated appliances, end panels, plinths and cornice, scribe to wall." },
+    { label: "Fitted wardrobes", prompt: "Design and install fitted wardrobes to master bedroom, full height, sliding mirror doors, internal hanging rail, shelves and drawers in spray-finished MDF." },
+    { label: "Kitchen install", prompt: "Install supplied kitchen, base and wall units, worktops, sink and tap, integrated appliances, end panels, plinths and cornice, scribe to wall." },
     { label: "Internal doors", prompt: "Hang 6 x oak internal doors including ironmongery, ease and adjust, fit linings where required." },
   ],
   "Roofer": [
@@ -327,8 +327,8 @@ export const QUOTE_TEMPLATES: Record<string, { label: string; prompt: string }[]
     { label: "Gutter clean", prompt: "Clean and clear all gutters and downpipes to front and rear of property, check fall and rejoint any leaking sections, dispose of waste." },
   ],
   "Decorator": [
-    { label: "Whole house repaint", prompt: "Paint full interior of 3-bed house — walls and ceilings 2 coats emulsion, woodwork and doors 1 undercoat 2 topcoats satin, make good minor cracks and fill nail holes." },
-    { label: "External paint", prompt: "Prepare and paint external render and fascias — wash down, fill cracks, masonry stabiliser, 2 coats Sandtex masonry paint, 2 coats Dulux Weathershield to woodwork." },
+    { label: "Whole house repaint", prompt: "Paint full interior of 3-bed house, walls and ceilings 2 coats emulsion, woodwork and doors 1 undercoat 2 topcoats satin, make good minor cracks and fill nail holes." },
+    { label: "External paint", prompt: "Prepare and paint external render and fascias, wash down, fill cracks, masonry stabiliser, 2 coats Sandtex masonry paint, 2 coats Dulux Weathershield to woodwork." },
     { label: "Feature wall", prompt: "Prepare and hang feature wallpaper to lounge chimney breast, paint surrounding walls and ceiling 2 coats emulsion." },
   ],
   "Tiler": [
@@ -358,7 +358,7 @@ export type Transaction = {
   date: string;
 };
 
-// Out of scope for now — populated once payments persistence lands.
+// Out of scope for now, populated once payments persistence lands.
 export const mockTransactions: Transaction[] = [];
 
 /** Build a payment request (deposit / full / custom). */
@@ -397,7 +397,7 @@ export const buildPaymentRequestMessage = (
     "",
     `Payment terms: ${mockProfile.payment_terms}`,
     "",
-    `Thanks, ${mockProfile.full_name.split(" ")[0]} — ${mockProfile.business_name}`,
+    `Thanks, ${mockProfile.full_name.split(" ")[0]}, ${mockProfile.business_name}`,
     "",
     "Sent via Quottr.",
   ].join("\n");
@@ -408,7 +408,7 @@ export const buildInvoiceMessage = (quote: Quote, clientFirstName: string) => {
     return buildPaymentRequestMessage(quote, quote.payment_request, clientFirstName);
   }
   const lines: string[] = [
-    `Hi ${clientFirstName}, here's your invoice ${quote.ref} from ${mockProfile.business_name} for "${quote.title}" — total ${formatGBP(quote.total)}.`,
+    `Hi ${clientFirstName}, here's your invoice ${quote.ref} from ${mockProfile.business_name} for "${quote.title}", total ${formatGBP(quote.total)}.`,
     "",
   ];
   if (quote.payment_method === "card") {
@@ -423,13 +423,13 @@ export const buildInvoiceMessage = (quote: Quote, clientFirstName: string) => {
       `  Reference: ${quote.ref}`,
     );
   } else if (quote.payment_method === "cash") {
-    lines.push("Payment method: Cash on completion — please have cash ready on the day.");
+    lines.push("Payment method: Cash on completion, please have cash ready on the day.");
   }
   lines.push(
     "",
     `Payment terms: ${mockProfile.payment_terms}`,
     "",
-    `Thanks, ${mockProfile.full_name.split(" ")[0]} — ${mockProfile.business_name}`,
+    `Thanks, ${mockProfile.full_name.split(" ")[0]}, ${mockProfile.business_name}`,
     "",
     "Sent via Quottr.",
   );
@@ -457,7 +457,7 @@ export const stats = () => {
   const outstanding = mockQuotes
     .filter((q) => q.status === "accepted" || q.status === "overdue" || q.status === "pending")
     .reduce((s, q) => s + q.total, 0);
-  // Profit tracker totals — derived from the transactions log so card/bank/cash split
+  // Profit tracker totals, derived from the transactions log so card/bank/cash split
   // reflects the full trading history, not just the current quote list.
   const txByMethod = (m: PaymentMethod) =>
     mockTransactions.filter((t) => t.method === m).reduce((s, t) => s + t.amount, 0);
@@ -502,7 +502,7 @@ export const formatGBP = (n: number) => {
 // ---------- Scheduled jobs (calendar) ----------
 
 const _today = new Date();
-// Find Monday of the current week (so the seeded jobs always land on this week's Mon–Fri)
+// Find Monday of the current week (so the seeded jobs always land on this week's Mon-Fri)
 const _monday = (() => {
   const d = new Date(_today); d.setHours(0, 0, 0, 0);
   const offset = (d.getDay() + 6) % 7; // Sun=6, Mon=0
@@ -694,7 +694,7 @@ export const saveGeneratedQuote = async (input: {
   return quote;
 };
 
-/** Card processing fee helper — used in the payment summary. */
+/** Card processing fee helper, used in the payment summary. */
 export const calcCardFee = (amount: number) => {
   const pct = mockProfile.card_fee_pct;
   const fee = +(amount * (pct / 100)).toFixed(2);
@@ -899,10 +899,10 @@ export const buildQuoteWhatsAppMessage = (
 export const buildReviewRequestMessage = (clientFirstName: string) => {
   const url = mockProfile.google_review_url || "[paste your Google review link in Settings]";
   return [
-    `Hi ${clientFirstName} — thank you for choosing ${mockProfile.business_name}.`,
+    `Hi ${clientFirstName}, thank you for choosing ${mockProfile.business_name}.`,
     `We really hope you were happy with the work.`,
     "",
-    `If you have a moment it would mean the world if you left us a quick Google review — it helps other homeowners find us:`,
+    `If you have a moment it would mean the world if you left us a quick Google review, it helps other homeowners find us:`,
     url,
     "",
     `Takes 30 seconds and makes a huge difference. Thank you 🙏`,
@@ -985,7 +985,7 @@ export const buildFinalInvoiceMessage = (quote: Quote, clientFirstName: string) 
     "",
     `${mockProfile.payment_terms}`,
     "",
-    `Thanks, ${mockProfile.full_name.split(" ")[0]} — ${mockProfile.business_name}`,
+    `Thanks, ${mockProfile.full_name.split(" ")[0]}, ${mockProfile.business_name}`,
     "",
     "Sent via Quottr.",
   );
@@ -1015,7 +1015,7 @@ export const buildDepositOnAcceptMessage = (quote: Quote, clientFirstName: strin
       `  Reference: ${quote.ref}`,
     );
   } else {
-    lines.push("Cash deposit accepted — please drop off or pay on first visit.");
+    lines.push("Cash deposit accepted, please drop off or pay on first visit.");
   }
   lines.push(
     "",
@@ -1102,7 +1102,7 @@ export const globalSearch = (query: string): SearchResult[] => {
     const d = new Date(); d.setDate(d.getDate() + 25);
     jamesService.annual_reminder_at = d.toISOString();
   } else {
-    // No q1 job seeded — synthesise one so the reminder shows.
+    // No q1 job seeded, synthesise one so the reminder shows.
     const q = getQuote("q1");
     if (q) {
       const d = new Date(); d.setDate(d.getDate() + 25);

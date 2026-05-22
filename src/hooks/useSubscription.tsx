@@ -25,7 +25,7 @@ export type SubscriptionState = {
   blocked: boolean;
   /** Days remaining in trial (0 if expired or no trial). */
   trialDaysLeft: number;
-  /** Hours into the trial — used for "Day 12/14" copy. */
+  /** Hours into the trial, used for "Day 12/14" copy. */
   trialDay: number;
   /** Show amber warning banner (last 3 days of trial, no card yet). */
   showWarn: boolean;

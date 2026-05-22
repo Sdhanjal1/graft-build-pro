@@ -28,13 +28,13 @@ export function BillingSection() {
   const hasPm = !!sub?.has_payment_method;
 
   const subLabel = (() => {
-    if (status === "active") return "Active subscription — £29 / month";
+    if (status === "active") return "Active subscription, £29 / month";
     if (status === "trialing") {
       return hasPm
-        ? `Trial — ${trialDaysLeft} days left · billing starts after`
-        : `Trial — ${trialDaysLeft} days left · no card yet`;
+        ? `Trial, ${trialDaysLeft} days left · billing starts after`
+        : `Trial, ${trialDaysLeft} days left · no card yet`;
     }
-    if (status === "past_due") return "Payment failed — please update card";
+    if (status === "past_due") return "Payment failed, please update card";
     if (status === "canceled") return "Subscription canceled";
     return status;
   })();
@@ -98,7 +98,7 @@ export function BillingSection() {
     setBusy("refresh");
     try {
       const r = await refresh();
-      if (r.chargesEnabled) toast.success("Stripe ready — you can take card payments");
+      if (r.chargesEnabled) toast.success("Stripe ready, you can take card payments");
       else toast("Onboarding not complete yet", { description: "Finish the steps in Stripe" });
       await connect.refresh();
     } finally {
@@ -156,7 +156,7 @@ export function BillingSection() {
         </div>
       </div>
 
-      {/* Stripe Connect — take card payments from clients */}
+      {/* Stripe Connect, take card payments from clients */}
       <div className="card-surface p-5 space-y-3">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-lime text-ink flex items-center justify-center shrink-0">
@@ -166,7 +166,7 @@ export function BillingSection() {
             <p className="text-sm font-bold">Take card payments</p>
             <p className="text-[11px] text-muted-foreground">
               {connect.ready
-                ? "Connected — clients can pay quotes by card"
+                ? "Connected, clients can pay quotes by card"
                 : connect.accountId
                   ? "Stripe onboarding not complete"
                   : "Connect a Stripe account to accept cards on invoices"}

@@ -199,7 +199,7 @@ function QuoteDetail() {
           cancelUrl: `${origin}/quotes/${quote.id}?cancelled=1`,
         },
       });
-      // Open Stripe Checkout in the same window — Apple Pay / Google Pay
+      // Open Stripe Checkout in the same window, Apple Pay / Google Pay
       // appear automatically on supported devices. The webhook will mark
       // the invoice as paid when the customer completes the sheet.
       window.location.href = result.url;
@@ -237,7 +237,7 @@ function QuoteDetail() {
   const encoded = encodeURIComponent(messageBody);
   const phoneDigits = client?.phone.replace(/\D/g, "");
   const waHref = `https://wa.me/${phoneDigits ? "44" + phoneDigits.replace(/^0/, "") : ""}?text=${encoded}`;
-  const mailHref = `mailto:${client?.email}?subject=${encodeURIComponent(`Invoice ${quote.ref} — ${quote.title}`)}&body=${encoded}`;
+  const mailHref = `mailto:${client?.email}?subject=${encodeURIComponent(`Invoice ${quote.ref}, ${quote.title}`)}&body=${encoded}`;
 
   return (
     <AppShell>
@@ -342,7 +342,7 @@ function QuoteDetail() {
           <MethodOption
             active={method === "card"} onClick={() => setMethod("card")}
             icon={CreditCard} label="Pay by card online"
-            sub={mockProfile.stripe_connected ? "Stripe link auto-included" : "Stripe (test link) — connect Stripe in Settings to go live"}
+            sub={mockProfile.stripe_connected ? "Stripe link auto-included" : "Stripe (test link), connect Stripe in Settings to go live"}
           />
           <MethodOption
             active={method === "bank"} onClick={() => setMethod("bank")}
@@ -368,7 +368,7 @@ function QuoteDetail() {
               {paymentRequest && <span className="num text-paper/80">· {formatGBP(paymentRequest.amount)}</span>}
             </a>
             {!mockProfile.stripe_connected && (
-              <p className="text-[10px] text-muted-foreground mt-2 text-center">Test link — add your Stripe keys in Settings to go live.</p>
+              <p className="text-[10px] text-muted-foreground mt-2 text-center">Test link, add your Stripe keys in Settings to go live.</p>
             )}
           </div>
         )}
@@ -383,12 +383,12 @@ function QuoteDetail() {
         )}
         {method === "cash" && (
           <div className="mt-3 card-surface p-4">
-            <p className="text-sm"><span className="font-semibold">Cash on completion</span> — please have cash ready on the day.</p>
+            <p className="text-sm"><span className="font-semibold">Cash on completion</span>, please have cash ready on the day.</p>
           </div>
         )}
       </section>
 
-      {/* Actions — one primary + More options */}
+      {/* Actions, one primary + More options */}
       <section className="px-5 mt-6 space-y-3">
         <button
           onClick={primary.onClick}
@@ -600,10 +600,10 @@ function QuoteDetail() {
               onClick={sendDepositRequest}
               className="w-full mt-4 bg-lime text-ink rounded-full py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2"
             >
-              <MessageCircle className="h-4 w-4" /> Yes — send deposit request
+              <MessageCircle className="h-4 w-4" /> Yes, send deposit request
             </button>
             <button onClick={() => { setAskDeposit(false); setScheduling(true); }} className="w-full mt-2 text-sm text-muted-foreground py-2">
-              No — skip for now
+              No, skip for now
             </button>
           </div>
         </div>

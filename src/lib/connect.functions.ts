@@ -7,7 +7,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
  * Quottr uses a single platform Stripe account (BYOK secret key) with
  * Stripe Connect to onboard each pro as a Standard connected account.
  * Their client-invoice card payments then flow through their own Stripe
- * balance — Quottr never holds funds.
+ * balance, Quottr never holds funds.
  */
 function platformKey() {
   const key = process.env.STRIPE_BYOK_SECRET_KEY;

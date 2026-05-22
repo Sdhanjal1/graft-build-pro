@@ -6,7 +6,7 @@
  */
 
 // VAPID keys must be supplied via environment variables. The private key is
-// security-sensitive — never hardcode a fallback in source.
+// security-sensitive, never hardcode a fallback in source.
 export const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY ?? "";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY ?? "";
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:hello@quottr.app";

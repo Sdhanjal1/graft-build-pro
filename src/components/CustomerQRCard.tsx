@@ -33,7 +33,7 @@ export function CustomerQRCard() {
         <p className="text-sm font-semibold">Your customer QR code</p>
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Show this on your van, business card or invoice. Customers scan it to send you a quote request — by text or voice.
+        Show this on your van, business card or invoice. Customers scan it to send you a quote request, by text or voice.
       </p>
       <div className="bg-white border border-border rounded-2xl p-5 flex items-center justify-center">
         {origin && <QRCodeSVG value={url} size={180} bgColor="#ffffff" fgColor="#1a1a18" level="M" />}
@@ -139,7 +139,7 @@ export function PushPermissionCard() {
       {perm !== "unsupported" && !(subscribed && perm === "granted") && (
         <>
           <p className="text-xs text-muted-foreground mb-3">
-            Get an instant ping when a customer sends a new quote request — even when Quottr is closed.
+            Get an instant ping when a customer sends a new quote request, even when Quottr is closed.
             On iOS, add Quottr to your home screen first (iOS 16.4+).
           </p>
           <button

@@ -29,7 +29,7 @@ function InvoicePage() {
   const encoded = encodeURIComponent(body);
   const digits = client?.phone.replace(/\D/g, "");
   const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${encoded}`;
-  const mail = `mailto:${client?.email}?subject=${encodeURIComponent(`INVOICE ${ref} — ${mockProfile.business_name}`)}&body=${encoded}`;
+  const mail = `mailto:${client?.email}?subject=${encodeURIComponent(`INVOICE ${ref}, ${mockProfile.business_name}`)}&body=${encoded}`;
   const cardLink = quote.payment_request?.link ?? stripePaymentLink(quote);
   const dueDate = quote.invoice_due_date
     ? new Date(quote.invoice_due_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
@@ -39,7 +39,7 @@ function InvoicePage() {
     <AppShell>
       <PageHeader title="Final invoice" subtitle={ref} back={`/quotes/${quote.id}`} />
 
-      {/* Bold INVOICE banner — distinct from quote */}
+      {/* Bold INVOICE banner, distinct from quote */}
       <section className="px-5">
         <div className="rounded-3xl bg-ink text-paper overflow-hidden">
           <div className="px-6 pt-6 pb-5 flex items-start justify-between gap-3">
@@ -79,7 +79,7 @@ function InvoicePage() {
             <p className="text-[10px] text-paper/50 text-center mt-2 break-all">{cardLink}</p>
           </div>
 
-          {/* Bank details panel — always prominent on invoice */}
+          {/* Bank details panel, always prominent on invoice */}
           <div className="bg-paper/5 px-6 py-4 border-t border-paper/10">
             <div className="flex items-center gap-2 mb-2">
               <Landmark className="h-4 w-4 text-lime" />

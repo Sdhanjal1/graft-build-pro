@@ -268,7 +268,7 @@ function NewQuotePage() {
         if (liveTranscript) appendTranscript(liveTranscript);
         else
           setVoiceError(
-            "Didn't catch any audio — hold the button a moment longer and speak clearly.",
+            "Didn't catch any audio, hold the button a moment longer and speak clearly.",
           );
         liveTranscriptRef.current = "";
         return;
@@ -290,14 +290,14 @@ function NewQuotePage() {
         setVoiceError(
           err instanceof Error
             ? err.message
-            : "Could not transcribe — please try again or type the job description.",
+            : "Could not transcribe, please try again or type the job description.",
         );
       } finally {
         setTranscribing(false);
       }
     };
 
-    // No timeslice — one final ondataavailable fires on stop with the full recording.
+    // No timeslice, one final ondataavailable fires on stop with the full recording.
     mr.start();
     setRecording(true);
     setRecordSeconds(0);
@@ -530,7 +530,7 @@ function NewQuotePage() {
           <button
             type="submit"
             disabled={loading || subBlocked}
-            title={subBlocked ? "Your trial has ended — add a payment method to continue" : undefined}
+            title={subBlocked ? "Your trial has ended, add a payment method to continue" : undefined}
             className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition disabled:opacity-60"
           >
             {loading ? (
@@ -539,7 +539,7 @@ function NewQuotePage() {
               <Sparkles className="h-5 w-5" />
             )}
             {subBlocked
-              ? "Trial ended — add payment method"
+              ? "Trial ended, add payment method"
               : loading ? "Generating with Claude…" : "Generate quote"}
           </button>
         )}
@@ -746,7 +746,7 @@ function VoiceOverlay({
           <p className="text-base leading-relaxed text-paper/90">{liveTranscript}</p>
         ) : (
           <p className="text-sm text-paper/50">
-            {transcribing ? "Turning your voice into text…" : "Describe the job — boiler, bathroom, materials, time…"}
+            {transcribing ? "Turning your voice into text…" : "Describe the job, boiler, bathroom, materials, time…"}
           </p>
         )}
       </div>

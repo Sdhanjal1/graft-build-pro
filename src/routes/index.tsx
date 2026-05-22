@@ -6,9 +6,9 @@ export const Route = createFileRoute("/")({
   component: HomePage,
   head: () => ({
     meta: [
-      { title: "Quottr — Stop quoting in the evenings." },
+      { title: "Quottr, Stop quoting in the evenings." },
       { name: "description", content: "Voice to professional quote in 18 seconds. Sent via WhatsApp. Customer pays the deposit before you leave the drive." },
-      { property: "og:title", content: "Quottr — Stop quoting in the evenings." },
+      { property: "og:title", content: "Quottr, Stop quoting in the evenings." },
       { property: "og:description", content: "Voice to professional quote in 18 seconds. Sent via WhatsApp. Customer pays the deposit before you leave the drive." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.quottr.co.uk/" },
@@ -205,9 +205,9 @@ function HomePage() {
           </h2>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             {[
-              { q: "Quoted a full bathroom refit from the van in 40 seconds. Customer approved it before I got home. Deposit paid same day.", who: "Ryan T. — Gas engineer, Leeds" },
-              { q: "The site capture mode is the one. Walk round, tap what needs doing, quote it all at once. Game changer for bigger jobs.", who: "Sam R. — Plumber, Bristol" },
-              { q: "Had £3,200 outstanding for months. Quottr chased it all automatically. Got paid within two weeks without a single awkward call.", who: "Dani O. — Electrician, Glasgow" },
+              { q: "Quoted a full bathroom refit from the van in 40 seconds. Customer approved it before I got home. Deposit paid same day.", who: "Ryan T., Gas engineer, Leeds" },
+              { q: "The site capture mode is the one. Walk round, tap what needs doing, quote it all at once. Game changer for bigger jobs.", who: "Sam R., Plumber, Bristol" },
+              { q: "Had £3,200 outstanding for months. Quottr chased it all automatically. Got paid within two weeks without a single awkward call.", who: "Dani O., Electrician, Glasgow" },
             ].map((t) => (
               <figure key={t.who} className="rounded-2xl border border-ink/10 bg-paper p-6">
                 <blockquote className="text-lg leading-snug">“{t.q}”</blockquote>

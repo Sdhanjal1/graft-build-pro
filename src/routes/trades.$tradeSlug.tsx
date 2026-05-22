@@ -13,9 +13,9 @@ export const Route = createFileRoute("/trades/$tradeSlug")({
   head: ({ loaderData }) => {
     const trade = loaderData?.trade;
     if (!trade) {
-      return { meta: [{ title: "Trade — Quottr" }] };
+      return { meta: [{ title: "Trade, Quottr" }] };
     }
-    const title = `${trade.headline} — Quottr`;
+    const title = `${trade.headline}, Quottr`;
     const description = trade.intro;
     return {
       meta: [

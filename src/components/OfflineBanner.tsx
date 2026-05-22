@@ -27,7 +27,7 @@ export function OfflineBanner() {
     >
       <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-ink text-paper px-4 py-2 text-xs font-semibold shadow-[0_8px_24px_-8px_rgba(0,0,0,0.4)]">
         <WifiOff className="h-3.5 w-3.5" />
-        You're offline — changes may not save
+        You're offline, changes may not save
       </div>
     </div>
   );

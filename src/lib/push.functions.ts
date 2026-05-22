@@ -61,7 +61,7 @@ export async function notifyUser(userId: string, payload: PushPayload): Promise<
     subs.map(async (s) => {
       try {
         const res = await sendWebPush(s as any, payload);
-        // 404 / 410 — subscription is dead, clean up
+        // 404 / 410, subscription is dead, clean up
         if (res.status === 404 || res.status === 410) {
           await supabaseAdmin.from("push_subscriptions").delete().eq("endpoint", s.endpoint);
         }

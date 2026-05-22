@@ -92,10 +92,10 @@ function NewClientPage() {
             className="w-full bg-transparent outline-none text-sm font-medium"
           >
             <option>Homeowner</option>
-            <option>Homeowner — Victorian terrace</option>
-            <option>Homeowner — semi-detached</option>
-            <option>Homeowner — detached</option>
-            <option>Homeowner — flat</option>
+            <option>Homeowner, Victorian terrace</option>
+            <option>Homeowner, semi-detached</option>
+            <option>Homeowner, detached</option>
+            <option>Homeowner, flat</option>
             <option>Landlord</option>
             <option>Commercial</option>
             <option>Letting agent</option>

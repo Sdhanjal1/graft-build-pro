@@ -109,7 +109,7 @@ function RequestPage() {
       <section className="px-5 mt-5">
         <h1 className="text-2xl leading-tight">Request a quote</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Tell {pro?.business_name ?? "them"} about the job — they'll reply with a quote.
+          Tell {pro?.business_name ?? "them"} about the job, they'll reply with a quote.
         </p>
       </section>
 
@@ -285,7 +285,7 @@ function CustomerAuth({ pro }: { pro: any }) {
       if (mode === "signup") {
         await signUpWithPassword(email, password, name);
         await signInWithPassword(email, password).catch(() => {
-          setInfo("Account created — please sign in.");
+          setInfo("Account created, please sign in.");
           setMode("login");
         });
       } else {

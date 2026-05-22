@@ -60,7 +60,7 @@ export const createInvoiceCheckout = createServerFn({ method: "POST" })
       "line_items[0][price_data][currency]": data.currency.toLowerCase(),
       "line_items[0][price_data][unit_amount]": amountCents,
       "line_items[0][price_data][product_data][name]":
-        `${data.quoteRef} — ${data.title}`.slice(0, 250),
+        `${data.quoteRef}, ${data.title}`.slice(0, 250),
       success_url: data.successUrl,
       cancel_url: data.cancelUrl,
       "metadata[quote_id]": data.quoteId,

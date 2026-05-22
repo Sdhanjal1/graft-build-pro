@@ -6,9 +6,9 @@ export const Route = createFileRoute("/about")({
   component: AboutPage,
   head: () => ({
     meta: [
-      { title: "About — Quottr" },
+      { title: "About, Quottr" },
       { name: "description", content: "Quottr is built by tradespeople, for tradespeople. Our mission: kill the evening admin." },
-      { property: "og:title", content: "About — Quottr" },
+      { property: "og:title", content: "About, Quottr" },
       { property: "og:description", content: "Built by tradespeople, for tradespeople." },
       { property: "og:url", content: "https://www.quottr.co.uk/about" },
     ],
@@ -35,13 +35,13 @@ function AboutPage() {
             <span className="text-lime">Not a boardroom.</span>
           </h1>
           <p className="mt-8 max-w-2xl text-lg md:text-xl text-paper/75 leading-relaxed">
-            Quottr exists because the trades deserve software that respects their time —
+            Quottr exists because the trades deserve software that respects their time -
             not another platform designed in an office by people who've never held a spanner.
           </p>
         </div>
       </section>
 
-      {/* STORY — pull quotes */}
+      {/* STORY, pull quotes */}
       <section className="mx-auto max-w-5xl px-5 py-20 md:py-28">
         <div className="grid gap-16 md:gap-20">
           <div className="grid md:grid-cols-12 gap-8 items-start">
@@ -49,7 +49,7 @@ function AboutPage() {
             <div className="md:col-span-9 space-y-5 text-lg md:text-xl text-ink/80 leading-relaxed">
               <p>
                 A plumber finishes a 10-hour day on the tools. He gets home, eats,
-                and then sits at the kitchen table for two more hours — writing
+                and then sits at the kitchen table for two more hours, writing
                 quotes on his phone, tapping in line items, guessing at material
                 prices, hoping the customer doesn't ghost him.
               </p>
@@ -71,7 +71,7 @@ function AboutPage() {
               </p>
               <p className="mt-6 text-lg text-ink/70 leading-relaxed max-w-2xl">
                 We built Quottr around a single rule: if it can't be done in
-                under a minute, between jobs, with one hand — it isn't trade software.
+                under a minute, between jobs, with one hand, it isn't trade software.
               </p>
             </div>
           </div>
@@ -106,7 +106,7 @@ function AboutPage() {
               {
                 icon: Heart,
                 title: "Trades-first, always",
-                body: "We talk to plumbers, sparkies and gas engineers every week. Their problems write our roadmap — not investors.",
+                body: "We talk to plumbers, sparkies and gas engineers every week. Their problems write our roadmap, not investors.",
               },
             ].map((p) => (
               <div

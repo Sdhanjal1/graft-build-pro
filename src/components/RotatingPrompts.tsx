@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 
 const PROMPTS = [
   "Try: Quote Mrs Jones for a new combi boiler",
-  "Try: Full bathroom refit in Stockport — 5 days labour",
+  "Try: Full bathroom refit in Stockport, 5 days labour",
   "Try: Consumer unit replacement and EICR",
   "Try: Power flush and magnetic filter on a 3 bed",
-  "Try: Roof repair — 10 tiles, lead flashing, half day labour",
+  "Try: Roof repair, 10 tiles, lead flashing, half day labour",
   "Try: Supply and fit Worcester Bosch 30i, Gas Safe cert",
 ];
 
