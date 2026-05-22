@@ -1,12 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+// Cap base64 payload at ~10 MB (≈ 7.5 MB raw audio) to bound per-call cost.
+const MAX_AUDIO_B64_BYTES = 10 * 1024 * 1024;
 
 const InputSchema = z.object({
-  audioBase64: z.string().min(1),
+  audioBase64: z.string().min(1).max(MAX_AUDIO_B64_BYTES),
   mimeType: z.string().min(1).max(100),
 });
 
 export const transcribeAudio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input) => InputSchema.parse(input))
   .handler(async ({ data }) => {
     const apiKey = process.env.OPENAI_API_KEY;
