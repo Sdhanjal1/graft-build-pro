@@ -176,7 +176,7 @@ function WelcomePage() {
               value={profile.business_name ?? ""}
               onChange={(e) => setProfile((p) => ({ ...p, business_name: e.target.value }))}
               onBlur={() => save({ business_name: profile.business_name })}
-              placeholder="Dhanjal Plumbing Ltd"
+              placeholder="e.g. Smith Plumbing Ltd"
               className="mt-6 w-full bg-paper/10 border border-paper/15 rounded-2xl px-4 py-4 text-base outline-none focus:border-lime/50 placeholder:text-paper/30"
             />
             <PrimaryButton
