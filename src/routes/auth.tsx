@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import logo from "@/assets/quottr-logo.png";
+
 import { signInWithPassword, signUpWithPassword, useSession } from "@/lib/auth";
 
 export const Route = createFileRoute("/auth")({
@@ -45,12 +45,22 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-ink text-paper flex flex-col">
-      <div className="flex-1 flex flex-col justify-center px-6 max-w-md mx-auto w-full">
-        <div className="mb-10">
-          <img src={logo} alt="Quottr" className="h-16 w-auto mb-5" />
-          <p className="text-paper/70 mt-2 text-sm">Quote in seconds. Get paid faster.</p>
+    <div className="min-h-screen bg-ink text-paper flex flex-col relative overflow-hidden">
+      <div
+        className="absolute inset-0 opacity-40 pointer-events-none"
+        style={{ background: "radial-gradient(circle at 50% 0%, color-mix(in oklab, var(--lime) 35%, transparent), transparent 55%)" }}
+      />
+      <div className="flex-1 flex flex-col justify-center px-6 max-w-md mx-auto w-full relative">
+        <div className="mb-10 text-center">
+          <h1
+            className="text-lime leading-[0.8] tracking-tight"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4.5rem, 28vw, 8rem)" }}
+          >
+            Quottr.
+          </h1>
+          <p className="text-paper/70 mt-3 text-sm">Quote in seconds. Get paid faster.</p>
         </div>
+
 
         <form onSubmit={submit} className="space-y-3">
           {mode === "signup" && (

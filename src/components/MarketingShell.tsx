@@ -103,7 +103,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
             <p className="text-[10px] uppercase tracking-widest text-paper/50 font-semibold mb-3">Company</p>
             <ul className="space-y-2 text-sm">
               <li><Link to="/about" className="text-paper/80 hover:text-lime">About</Link></li>
-              <li><a href="mailto:hello@quottr.app" className="text-paper/80 hover:text-lime">Contact</a></li>
+              <li><a href="mailto:hello@quottr.co.uk" className="text-paper/80 hover:text-lime">Contact</a></li>
             </ul>
           </div>
         </div>
