@@ -2,13 +2,28 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
 import {
-  mockProfile, stats, formatGBP, getClient,
+  mockProfile, stats, formatGBP, getClient, mockClients,
   todaysJobs, formatTime, getQuote,
 } from "@/lib/mock-data";
-import { Mic, ArrowRight, Sparkles, UserPlus, MapPin } from "lucide-react";
+import { Mic, ArrowRight, Sparkles, UserPlus, MapPin, Phone, CreditCard } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
+
+function greetingFor(d = new Date()) {
+  const h = d.getHours();
+  if (h < 5) return "Working late";
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  if (h < 21) return "Good evening";
+  return "Evening";
+}
+
+function buzz(ms = 10) {
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    try { navigator.vibrate(ms); } catch { /* noop */ }
+  }
+}
 
 export const Route = createFileRoute("/app")({
   component: AppHomePage,
