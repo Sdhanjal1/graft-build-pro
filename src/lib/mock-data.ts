@@ -257,8 +257,6 @@ export async function saveProfileToCloud(patch: Partial<typeof mockProfile>) {
     account_number: mockProfile.account_number || null,
     payment_reference_note: mockProfile.payment_reference_note || null,
     payment_terms: mockProfile.payment_terms || null,
-    stripe_publishable_key: mockProfile.stripe_publishable_key || null,
-    stripe_secret_key: mockProfile.stripe_secret_key || null,
     logo_url: mockProfile.logo_url || null,
     quote_intro: mockProfile.quote_intro || null,
     quote_footer: mockProfile.quote_footer || null,
