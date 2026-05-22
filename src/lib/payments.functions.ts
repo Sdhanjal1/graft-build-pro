@@ -38,6 +38,21 @@ export const createInvoiceCheckout = createServerFn({ method: "POST" })
     const { key, env } = getStripeEnv();
     const amountCents = Math.round(data.amount * 100);
 
+    // Look up the pro's Connect account so client payments land in their
+    // Stripe balance directly (Quottr never holds funds).
+    const { supabase } = context;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select(
+        "stripe_connect_account_id, stripe_connect_charges_enabled",
+      )
+      .eq("id", context.userId)
+      .maybeSingle();
+    const connectAccountId =
+      profile?.stripe_connect_charges_enabled && profile?.stripe_connect_account_id
+        ? profile.stripe_connect_account_id
+        : null;
+
     const params: Record<string, string | number> = {
       mode: "payment",
       "line_items[0][quantity]": 1,
@@ -57,12 +72,18 @@ export const createInvoiceCheckout = createServerFn({ method: "POST" })
     };
     if (data.customerEmail) params["customer_email"] = data.customerEmail;
 
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    };
+    if (connectAccountId) {
+      // Direct charge on the connected account.
+      headers["Stripe-Account"] = connectAccountId;
+    }
+
     const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
+      headers,
       body: toFormBody(params),
     });
 
