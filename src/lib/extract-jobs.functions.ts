@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireActiveSubscription } from "@/lib/require-active-subscription";
 
 const InputSchema = z.object({
   transcript: z.string().min(1).max(8000),
