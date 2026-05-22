@@ -97,7 +97,7 @@ export function BillingSection() {
   const handleRefresh = async () => {
     setBusy("refresh");
     try {
-      const r = await refresh({ data: undefined as any });
+      const r = await refresh();
       if (r.chargesEnabled) toast.success("Stripe ready — you can take card payments");
       else toast("Onboarding not complete yet", { description: "Finish the steps in Stripe" });
       await connect.refresh();
