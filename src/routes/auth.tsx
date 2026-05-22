@@ -106,7 +106,7 @@ function AuthPage() {
 
         <form onSubmit={submit} className="space-y-3 mt-3">
           {mode === "signup" && (
-            <Input label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nav Dhanjal" required />
+            <Input label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. Alex Smith" required />
           )}
           <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@trade.co.uk" required />
           <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} />
