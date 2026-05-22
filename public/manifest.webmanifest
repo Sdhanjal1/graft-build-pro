@@ -21,10 +21,10 @@
       "icons": [{ "src": "/app-icon.png", "sizes": "512x512" }]
     },
     {
-      "name": "Add customer",
-      "short_name": "Add customer",
-      "description": "Save a new client",
-      "url": "/clients/new",
+      "name": "Client book",
+      "short_name": "Clients",
+      "description": "Open your client list",
+      "url": "/clients",
       "icons": [{ "src": "/app-icon.png", "sizes": "512x512" }]
     },
     {
