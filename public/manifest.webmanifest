@@ -11,5 +11,35 @@
   "icons": [
     { "src": "/app-icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/app-icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "New voice quote",
+      "short_name": "New quote",
+      "description": "Speak the job — we'll do the rest",
+      "url": "/quotes/new?voice=1",
+      "icons": [{ "src": "/app-icon.png", "sizes": "512x512" }]
+    },
+    {
+      "name": "Add customer",
+      "short_name": "Add customer",
+      "description": "Save a new client",
+      "url": "/clients/new",
+      "icons": [{ "src": "/app-icon.png", "sizes": "512x512" }]
+    },
+    {
+      "name": "On-site capture",
+      "short_name": "Capture",
+      "description": "Photo + voice on site",
+      "url": "/capture/new",
+      "icons": [{ "src": "/app-icon.png", "sizes": "512x512" }]
+    },
+    {
+      "name": "Chase unpaid",
+      "short_name": "Chase",
+      "description": "See who owes you money",
+      "url": "/chaser",
+      "icons": [{ "src": "/app-icon.png", "sizes": "512x512" }]
+    }
   ]
 }
