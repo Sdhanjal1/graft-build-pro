@@ -130,6 +130,48 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           return new Response("ok", { status: 200 });
         }
 
+        // ===== INVOICE PAYMENT EVENTS (subscription billing) =====
+        if (type === "invoice.payment_succeeded" || type === "invoice.payment_failed") {
+          const inv = evt.data?.object ?? {};
+          const subId: string | undefined = inv.subscription;
+          const customerId: string | undefined = inv.customer;
+          if (subId || customerId) {
+            const patch = type === "invoice.payment_succeeded"
+              ? { status: "active", has_payment_method: true }
+              : { status: "past_due" };
+            const query = supabaseAdmin.from("subscriptions").update(patch);
+            if (subId) {
+              await query.eq("stripe_subscription_id", subId);
+            } else if (customerId) {
+              await query.eq("stripe_customer_id", customerId);
+            }
+          }
+          return new Response("ok", { status: 200 });
+        }
+
+        // ===== SETUP MODE CHECKOUT (card added during trial) =====
+        if (type === "checkout.session.completed") {
+          const session = evt.data?.object ?? {};
+          if (session.mode === "setup") {
+            const customerId: string | undefined = session.customer;
+            const userIdMeta: string | undefined = session.metadata?.user_id;
+            if (userIdMeta) {
+              await supabaseAdmin
+                .from("subscriptions")
+                .update({ has_payment_method: true })
+                .eq("user_id", userIdMeta);
+            } else if (customerId) {
+              await supabaseAdmin
+                .from("subscriptions")
+                .update({ has_payment_method: true })
+                .eq("stripe_customer_id", customerId);
+            }
+            return new Response("ok", { status: 200 });
+          }
+          // fall through — mode=payment is handled below
+        }
+
+
         // ===== ONE-OFF INVOICE PAYMENTS (existing behaviour) =====
         const isPaid =
           type === "checkout.session.completed" ||
