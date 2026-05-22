@@ -41,6 +41,7 @@ function concat(...arrs: Uint8Array[]): Uint8Array {
 
 // ---------------- VAPID JWT (ES256) ----------------
 async function importVapidPrivateKey(): Promise<CryptoKey> {
+  assertVapidConfigured();
   // Build JWK from the public (uncompressed) + private d
   const pub = b64uToBytes(VAPID_PUBLIC_KEY);
   if (pub.length !== 65 || pub[0] !== 0x04) throw new Error("Bad VAPID public key");
