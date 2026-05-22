@@ -50,7 +50,8 @@ function AppHomePage() {
 
   const s = stats();
   const today = todaysJobs();
-  const firstName = mockProfile.full_name.split(" ")[0];
+  const firstName = mockProfile.full_name.split(" ")[0] || "there";
+  const businessName = mockProfile.business_name || "Finish setting up your profile";
   const owedColor = s.outstanding > 0 ? "text-status-overdue" : "text-lime";
   const greeting = greetingFor();
   const clientCount = mockClients.length;
@@ -66,7 +67,13 @@ function AppHomePage() {
           {greeting}
         </p>
         <h1 className="text-3xl leading-none mt-1 text-paper">{firstName}</h1>
-        <p className="mt-1.5 text-sm text-paper/60">{mockProfile.business_name}</p>
+        {mockProfile.business_name ? (
+          <p className="mt-1.5 text-sm text-paper/60">{businessName}</p>
+        ) : (
+          <Link to="/settings" className="mt-1.5 text-sm text-lime underline-offset-2 hover:underline">
+            {businessName}
+          </Link>
+        )}
       </header>
 
       <section className="px-5 mt-8 flex flex-col items-center">
