@@ -279,6 +279,7 @@ export function clearUserData() {
   mockQuotes.length = 0;
   mockJobs.length = 0;
   mockChases.length = 0;
+  Object.assign(mockProfile, EMPTY_PROFILE, { chase_templates: { ...DEFAULT_CHASE_TEMPLATES } });
   bumpVersion();
 }
 
