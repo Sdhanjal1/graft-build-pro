@@ -5,7 +5,7 @@ import {
   mockQuotes, getClient, userProfile, formatGBP, buildChaserMessage,
   buildChaseMessageForOffset, chasesDueNow, upcomingChases, markChaseSent, skipChase,
   waLink,
-} from "@/lib/mock-data";
+} from "@/lib/user-data";
 import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, PartyPopper } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { feedback } from "@/lib/feedback";

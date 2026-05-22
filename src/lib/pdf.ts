@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { formatGBP, userProfile, type Quote, type Client } from "./mock-data";
+import { formatGBP, userProfile, type Quote, type Client } from "./user-data";
 
 type Variant = "quote" | "invoice";
 

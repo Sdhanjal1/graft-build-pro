@@ -3,7 +3,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   getQuote, getClient, userProfile, formatGBP,
   invoiceRef, buildFinalInvoiceMessage, stripePaymentLink, markInvoiced,
-} from "@/lib/mock-data";
+} from "@/lib/user-data";
 import { MessageCircle, Mail, CreditCard, Landmark, Share2 } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";

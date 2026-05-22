@@ -10,7 +10,7 @@ import {
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   setQuoteStatus,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
-} from "@/lib/mock-data";
+} from "@/lib/user-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
 import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";

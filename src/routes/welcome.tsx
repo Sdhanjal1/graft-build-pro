@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, BadgeCheck, Building2, Phone, ImageIcon, CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/auth";
-import { TRADE_TYPES } from "@/lib/mock-data";
+import { TRADE_TYPES } from "@/lib/user-data";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { toast } from "sonner";
 

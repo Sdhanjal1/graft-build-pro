@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Loader2, MapPin } from "lucide-react";
 import { createSiteCapture } from "@/lib/site-captures";
-import { userProfile } from "@/lib/mock-data";
+import { userProfile } from "@/lib/user-data";
 
 export const Route = createFileRoute("/capture/new")({
   component: NewCapturePage,

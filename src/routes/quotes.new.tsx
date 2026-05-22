@@ -10,7 +10,7 @@ import {
   formatGBP,
   QUOTE_TEMPLATES,
   type LineItem,
-} from "@/lib/mock-data";
+} from "@/lib/user-data";
 import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";

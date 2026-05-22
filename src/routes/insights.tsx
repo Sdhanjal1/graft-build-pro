@@ -7,7 +7,7 @@ import {
   formatGBP,
   useDataVersion,
   type PaymentMethod,
-} from "@/lib/mock-data";
+} from "@/lib/user-data";
 import { BarChart3, ChevronLeft, ChevronRight, CreditCard, Landmark, Banknote, Trophy } from "lucide-react";
 
 export const Route = createFileRoute("/insights")({

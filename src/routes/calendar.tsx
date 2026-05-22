@@ -7,7 +7,7 @@ import {
   formatTime, formatDayLabel, formatGBP,
   buildReviewRequestMessage, markReviewRequested, waLink, userProfile,
   type ScheduledJob, type JobStatus,
-} from "@/lib/mock-data";
+} from "@/lib/user-data";
 import {
   ChevronLeft, ChevronRight, MessageCircle, Phone, Mail,
   Play, CheckCircle2, Bell, Hammer, Car, MapPin, Package, Check, CalendarOff, Star,

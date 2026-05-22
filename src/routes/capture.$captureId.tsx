@@ -17,7 +17,7 @@ import {
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { extractJobsFromTranscript } from "@/lib/extract-jobs.functions";
 import { generateCaptureQuote } from "@/lib/ai-capture-quote.functions";
-import { saveGeneratedQuote, TRADE_TYPES, userProfile } from "@/lib/mock-data";
+import { saveGeneratedQuote, TRADE_TYPES, userProfile } from "@/lib/user-data";
 import { feedback } from "@/lib/feedback";
 import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordingNotice";
 

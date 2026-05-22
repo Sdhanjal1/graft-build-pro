@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { findOrCreateClient } from "@/lib/mock-data";
+import { findOrCreateClient } from "@/lib/user-data";
 import { Save } from "lucide-react";
 
 export const Route = createFileRoute("/clients/new")({

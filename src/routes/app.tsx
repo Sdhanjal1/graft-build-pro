@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import {
   userProfile, stats, formatGBP, getClient, userClients,
   todaysJobs, formatTime, getQuote,
-} from "@/lib/mock-data";
+} from "@/lib/user-data";
 import { Mic, ArrowRight, Sparkles, UserPlus, MapPin, CreditCard } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";

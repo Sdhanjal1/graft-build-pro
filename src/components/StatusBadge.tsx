@@ -1,4 +1,4 @@
-import type { QuoteStatus } from "@/lib/mock-data";
+import type { QuoteStatus } from "@/lib/user-data";
 
 type Variant = QuoteStatus | "invoiced";
 

@@ -6,7 +6,7 @@ import {
   TRADE_TYPES,
   clearUserData,
   saveProfileToCloud,
-} from "@/lib/mock-data";
+} from "@/lib/user-data";
 import { signOut } from "@/lib/auth";
 import { getFeedbackPrefs, setFeedbackPrefs, feedback } from "@/lib/feedback";
 import {

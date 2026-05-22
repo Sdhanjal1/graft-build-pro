@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { userClients, quotesForClient, formatGBP } from "@/lib/mock-data";
+import { userClients, quotesForClient, formatGBP } from "@/lib/user-data";
 import { Search, Phone, ArrowRight, UserPlus, Users, Inbox } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useState } from "react";
