@@ -17,6 +17,7 @@ import { transcribeAudio } from "@/lib/transcribe.functions";
 import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2 } from "lucide-react";
 import { feedback } from "@/lib/feedback";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
+import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordingNotice";
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
@@ -455,6 +456,7 @@ function NewQuotePage() {
               </span>
             )}
           </div>
+          <IOSStandaloneRecordingNotice active={recording} />
           {voiceError && (
             <p className="mt-2 text-[12px] text-status-overdue font-medium">{voiceError}</p>
           )}

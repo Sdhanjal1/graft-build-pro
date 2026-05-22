@@ -6,6 +6,7 @@ import { transcribeAudio } from "@/lib/transcribe.functions";
 import { useSession, signInWithPassword, signUpWithPassword } from "@/lib/auth";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { Loader2, Mic, Square, Send, CheckCircle2, Hammer } from "lucide-react";
+import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordingNotice";
 
 export const Route = createFileRoute("/request/$proId")({
   component: RequestPage,
@@ -215,12 +216,14 @@ function VoiceRecorder({ onTranscript }: { onTranscript: (t: string) => void }) 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
-      const mr = new MediaRecorder(stream);
+      const candidates = ["audio/webm", "audio/mp4", "audio/ogg"];
+      const mimeType = candidates.find((t) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported?.(t));
+      const mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       chunksRef.current = [];
       mr.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType || mimeType || "audio/webm" });
         setProcessing(true);
         try {
           const buf = await blob.arrayBuffer();
@@ -241,6 +244,7 @@ function VoiceRecorder({ onTranscript }: { onTranscript: (t: string) => void }) 
     }
   };
 
+
   const stop = () => {
     mediaRef.current?.stop();
     setRecording(false);
@@ -258,6 +262,7 @@ function VoiceRecorder({ onTranscript }: { onTranscript: (t: string) => void }) 
       <p className="text-xs text-muted-foreground mt-3">
         {processing ? "Transcribing…" : recording ? "Tap to stop" : "Tap to record"}
       </p>
+      <IOSStandaloneRecordingNotice active={recording} />
       {err && <p className="text-xs text-status-overdue mt-2">{err}</p>}
     </div>
   );
