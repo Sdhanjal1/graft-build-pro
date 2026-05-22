@@ -113,8 +113,6 @@ export const EMPTY_PROFILE = {
   sort_code: "",
   account_number: "",
   payment_reference_note: "",
-  stripe_publishable_key: "",
-  stripe_secret_key: "",
   stripe_connected: false,
   payment_terms: "Payment due within 14 days of invoice date.",
   /** Card processing fee shown on card payment summaries */
@@ -225,9 +223,7 @@ export async function hydrateUserData() {
     mockProfile.account_number = asString(p.account_number);
     mockProfile.payment_reference_note = asString(p.payment_reference_note);
     if (asString(p.payment_terms)) mockProfile.payment_terms = asString(p.payment_terms);
-    mockProfile.stripe_publishable_key = asString(p.stripe_publishable_key);
-    mockProfile.stripe_secret_key = asString(p.stripe_secret_key);
-    mockProfile.stripe_connected = !!(p.stripe_publishable_key && p.stripe_secret_key);
+    mockProfile.stripe_connected = !!(p.stripe_connect_charges_enabled);
     mockProfile.logo_url = asString(p.logo_url);
     mockProfile.quote_intro = asString(p.quote_intro);
     mockProfile.quote_footer = asString(p.quote_footer);
@@ -261,8 +257,6 @@ export async function saveProfileToCloud(patch: Partial<typeof mockProfile>) {
     account_number: mockProfile.account_number || null,
     payment_reference_note: mockProfile.payment_reference_note || null,
     payment_terms: mockProfile.payment_terms || null,
-    stripe_publishable_key: mockProfile.stripe_publishable_key || null,
-    stripe_secret_key: mockProfile.stripe_secret_key || null,
     logo_url: mockProfile.logo_url || null,
     quote_intro: mockProfile.quote_intro || null,
     quote_footer: mockProfile.quote_footer || null,

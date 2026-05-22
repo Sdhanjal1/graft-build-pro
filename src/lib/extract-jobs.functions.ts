@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireActiveSubscription } from "@/lib/require-active-subscription";
 
 const InputSchema = z.object({
   transcript: z.string().min(1).max(8000),
@@ -15,6 +16,7 @@ export type ExtractedJobs = z.infer<typeof OutputSchema>;
 const SYSTEM_PROMPT = `You extract a clean list of individual jobs/items to quote from a tradesperson's spoken site-walk transcript. Output one concise job per array entry (5-12 words each, sentence case, no numbering, no trailing periods). Merge filler words, fix obvious speech-to-text errors, and split distinct jobs even if spoken in one sentence. Do NOT invent jobs that weren't mentioned. Do NOT include prices or quantities.`;
 
 export const extractJobsFromTranscript = createServerFn({ method: "POST" })
+  .middleware([requireActiveSubscription])
   .inputValidator((input: unknown) => InputSchema.parse(input))
   .handler(async ({ data }): Promise<ExtractedJobs> => {
     const apiKey = process.env.LOVABLE_API_KEY;
