@@ -21,7 +21,7 @@ function toFormBody(params: Record<string, string | number>) {
 }
 
 export const createInvoiceCheckout = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireActiveSubscription])
   .inputValidator(
     z.object({
       quoteId: z.string().min(1).max(128),
