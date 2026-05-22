@@ -318,6 +318,11 @@ function SettingsPage() {
         </div>
       </Section>
 
+      {/* SUBSCRIPTION & CARD PAYMENTS */}
+      <Section title="Subscription & card payments">
+        <BillingSection />
+      </Section>
+
       {/* WORKING HOURS */}
       <Section title="Working hours">
         <WorkingHoursPanel />
