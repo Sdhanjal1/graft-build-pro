@@ -185,6 +185,7 @@ export type Database = {
       profiles: {
         Row: {
           account_number: string | null
+          account_paused_at: string | null
           bank_account_name: string | null
           bank_name: string | null
           business_name: string | null
@@ -202,16 +203,21 @@ export type Database = {
           show_signature: boolean
           signature_name: string | null
           sort_code: string | null
+          stripe_connect_account_id: string | null
+          stripe_connect_charges_enabled: boolean
+          stripe_connect_payouts_enabled: boolean
           stripe_publishable_key: string | null
           stripe_secret_key: string | null
           town: string | null
           trade_type: string | null
+          trial_started_at: string | null
           updated_at: string
           vat_number: string | null
           vat_registered: boolean
         }
         Insert: {
           account_number?: string | null
+          account_paused_at?: string | null
           bank_account_name?: string | null
           bank_name?: string | null
           business_name?: string | null
@@ -229,16 +235,21 @@ export type Database = {
           show_signature?: boolean
           signature_name?: string | null
           sort_code?: string | null
+          stripe_connect_account_id?: string | null
+          stripe_connect_charges_enabled?: boolean
+          stripe_connect_payouts_enabled?: boolean
           stripe_publishable_key?: string | null
           stripe_secret_key?: string | null
           town?: string | null
           trade_type?: string | null
+          trial_started_at?: string | null
           updated_at?: string
           vat_number?: string | null
           vat_registered?: boolean
         }
         Update: {
           account_number?: string | null
+          account_paused_at?: string | null
           bank_account_name?: string | null
           bank_name?: string | null
           business_name?: string | null
@@ -256,10 +267,14 @@ export type Database = {
           show_signature?: boolean
           signature_name?: string | null
           sort_code?: string | null
+          stripe_connect_account_id?: string | null
+          stripe_connect_charges_enabled?: boolean
+          stripe_connect_payouts_enabled?: boolean
           stripe_publishable_key?: string | null
           stripe_secret_key?: string | null
           town?: string | null
           trade_type?: string | null
+          trial_started_at?: string | null
           updated_at?: string
           vat_number?: string | null
           vat_registered?: boolean
@@ -567,6 +582,63 @@ export type Database = {
           updated_at?: string
           user_id?: string
           vat_registered?: boolean
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          environment: string
+          has_payment_method: boolean
+          id: string
+          price_id: string | null
+          product_id: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          trial_end: string
+          trial_start: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          has_payment_method?: boolean
+          id?: string
+          price_id?: string | null
+          product_id?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string
+          trial_start?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          has_payment_method?: boolean
+          id?: string
+          price_id?: string | null
+          product_id?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string
+          trial_start?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
