@@ -312,20 +312,9 @@ function SettingsPage() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold">Stripe</p>
               <p className="text-[11px] text-paper/60">
-                {stripeConnected ? "Connected — live links" : "Not connected"}
+                {stripeConnected ? "Connected — taking card payments" : "Connect below to take card payments"}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                const next = prompt("Stripe publishable key (pk_…)", stripe.publishable || "") ?? stripe.publishable;
-                const sec = prompt("Stripe secret key (sk_…)", stripe.secret || "") ?? stripe.secret;
-                saveStripe({ publishable: next, secret: sec });
-              }}
-              className="text-xs font-bold bg-lime text-ink px-3.5 py-2 rounded-full"
-            >
-              Manage
-            </button>
           </div>
         </div>
       </Section>
