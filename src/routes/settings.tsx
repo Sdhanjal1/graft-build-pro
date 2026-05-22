@@ -22,6 +22,7 @@ import { BusinessLogo } from "@/components/BusinessLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BillingSection } from "@/components/BillingSection";
+import { deleteMyAccount } from "@/lib/account.functions";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -33,6 +34,25 @@ function SettingsPage() {
     await signOut();
     clearUserData();
     navigate({ to: "/auth" });
+  };
+  const deleteAccount = useServerFn(deleteMyAccount);
+  const [deleting, setDeleting] = useState(false);
+  const handleDeleteAccount = async () => {
+    const first = confirm("Permanently delete your account and all your data? This cannot be undone.");
+    if (!first) return;
+    const second = prompt('Type DELETE to confirm.');
+    if (second !== "DELETE") return;
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      await signOut();
+      clearUserData();
+      toast.success("Account deleted.");
+      navigate({ to: "/" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not delete account.");
+      setDeleting(false);
+    }
   };
 
   // --- Business profile (editable) ---
@@ -379,16 +399,12 @@ function SettingsPage() {
             Sign out
           </button>
           <button
-            onClick={() => {
-              if (confirm("Permanently delete your account? This cannot be undone.")) {
-                // TODO: wire account deletion
-                alert("Account deletion isn't enabled yet. Please contact support.");
-              }
-            }}
-            className="px-5 py-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left"
+            onClick={handleDeleteAccount}
+            disabled={deleting}
+            className="px-5 py-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left disabled:opacity-60"
           >
             <Trash2 className="h-5 w-5" />
-            Delete account
+            {deleting ? "Deleting…" : "Delete account"}
           </button>
         </div>
       </Section>
