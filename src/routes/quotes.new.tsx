@@ -456,6 +456,7 @@ function NewQuotePage() {
               </span>
             )}
           </div>
+          <IOSStandaloneRecordingNotice active={recording} />
           {voiceError && (
             <p className="mt-2 text-[12px] text-status-overdue font-medium">{voiceError}</p>
           )}
