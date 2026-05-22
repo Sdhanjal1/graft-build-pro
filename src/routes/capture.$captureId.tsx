@@ -488,6 +488,9 @@ function SiteCapturePage() {
             <Type className="h-5 w-5" />
           </button>
         </div>
+        <div className="mt-2 flex justify-center">
+          <IOSStandaloneRecordingNotice active={recording} />
+        </div>
       </div>
 
       {/* Type-item sheet */}
