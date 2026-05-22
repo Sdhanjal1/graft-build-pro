@@ -5,7 +5,7 @@ import {
   mockProfile, stats, formatGBP, getClient,
   todaysJobs, formatTime, getQuote,
 } from "@/lib/mock-data";
-import { Mic, ArrowRight, Sparkles } from "lucide-react";
+import { Mic, ArrowRight, Sparkles, UserPlus, MapPin } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
