@@ -2,19 +2,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-// Pick the right Stripe + webhook secret pair based on environment.
-// Lovable Payments provisions sandbox creds immediately; live creds appear
-// after the user claims their account in the Payments tab.
+// Quottr's BYOK Stripe platform key. When the pro has completed Connect
+// onboarding, client-invoice payments are routed to their connected
+// account via `Stripe-Account` so funds go straight to them.
 function getStripeEnv() {
-  const liveKey = process.env.STRIPE_API_KEY;
-  if (liveKey) {
-    return { key: liveKey, env: "live" as const };
-  }
-  const sandboxKey = process.env.STRIPE_SANDBOX_API_KEY;
-  if (!sandboxKey) {
-    throw new Error("Stripe is not configured. Enable Payments in Lovable.");
-  }
-  return { key: sandboxKey, env: "sandbox" as const };
+  const byok = process.env.STRIPE_BYOK_SECRET_KEY;
+  if (byok) return { key: byok, env: "live" as const };
+  const sandbox = process.env.STRIPE_SANDBOX_API_KEY;
+  if (!sandbox) throw new Error("Stripe is not configured");
+  return { key: sandbox, env: "sandbox" as const };
 }
 
 function toFormBody(params: Record<string, string | number>) {
@@ -42,6 +38,21 @@ export const createInvoiceCheckout = createServerFn({ method: "POST" })
     const { key, env } = getStripeEnv();
     const amountCents = Math.round(data.amount * 100);
 
+    // Look up the pro's Connect account so client payments land in their
+    // Stripe balance directly (Quottr never holds funds).
+    const { supabase } = context;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select(
+        "stripe_connect_account_id, stripe_connect_charges_enabled",
+      )
+      .eq("id", context.userId)
+      .maybeSingle();
+    const connectAccountId =
+      profile?.stripe_connect_charges_enabled && profile?.stripe_connect_account_id
+        ? profile.stripe_connect_account_id
+        : null;
+
     const params: Record<string, string | number> = {
       mode: "payment",
       "line_items[0][quantity]": 1,
@@ -61,12 +72,18 @@ export const createInvoiceCheckout = createServerFn({ method: "POST" })
     };
     if (data.customerEmail) params["customer_email"] = data.customerEmail;
 
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    };
+    if (connectAccountId) {
+      // Direct charge on the connected account.
+      headers["Stripe-Account"] = connectAccountId;
+    }
+
     const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
+      headers,
       body: toFormBody(params),
     });
 
@@ -81,7 +98,6 @@ export const createInvoiceCheckout = createServerFn({ method: "POST" })
     }
 
     // Log a pending payment row so the dashboard can show it.
-    const { supabase } = context;
     await supabase.from("invoice_payments").insert({
       user_id: context.userId,
       quote_id: data.quoteId,

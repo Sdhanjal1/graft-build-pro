@@ -40,6 +40,7 @@ import { Route as CaptureNewRouteImport } from './routes/capture.new'
 import { Route as CaptureCaptureIdRouteImport } from './routes/capture.$captureId'
 import { Route as PortalCCodeRouteImport } from './routes/portal.c.$code'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicPaymentsConnectWebhookRouteImport } from './routes/api/public/payments/connect-webhook'
 
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
@@ -197,6 +198,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPaymentsConnectWebhookRoute =
+  ApiPublicPaymentsConnectWebhookRouteImport.update({
+    id: '/api/public/payments/connect-webhook',
+    path: '/api/public/payments/connect-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/clients/': typeof ClientsIndexRoute
   '/quotes/': typeof QuotesIndexRoute
   '/portal/c/$code': typeof PortalCCodeRoute
+  '/api/public/payments/connect-webhook': typeof ApiPublicPaymentsConnectWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -262,6 +270,7 @@ export interface FileRoutesByTo {
   '/clients': typeof ClientsIndexRoute
   '/quotes': typeof QuotesIndexRoute
   '/portal/c/$code': typeof PortalCCodeRoute
+  '/api/public/payments/connect-webhook': typeof ApiPublicPaymentsConnectWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
@@ -296,6 +305,7 @@ export interface FileRoutesById {
   '/clients/': typeof ClientsIndexRoute
   '/quotes/': typeof QuotesIndexRoute
   '/portal/c/$code': typeof PortalCCodeRoute
+  '/api/public/payments/connect-webhook': typeof ApiPublicPaymentsConnectWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
@@ -331,6 +341,7 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/quotes/'
     | '/portal/c/$code'
+    | '/api/public/payments/connect-webhook'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -364,6 +375,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/quotes'
     | '/portal/c/$code'
+    | '/api/public/payments/connect-webhook'
     | '/api/public/payments/webhook'
   id:
     | '__root__'
@@ -397,6 +409,7 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/quotes/'
     | '/portal/c/$code'
+    | '/api/public/payments/connect-webhook'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -430,6 +443,7 @@ export interface RootRouteChildren {
   ClientsIndexRoute: typeof ClientsIndexRoute
   QuotesIndexRoute: typeof QuotesIndexRoute
   PortalCCodeRoute: typeof PortalCCodeRoute
+  ApiPublicPaymentsConnectWebhookRoute: typeof ApiPublicPaymentsConnectWebhookRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
@@ -652,6 +666,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/connect-webhook': {
+      id: '/api/public/payments/connect-webhook'
+      path: '/api/public/payments/connect-webhook'
+      fullPath: '/api/public/payments/connect-webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsConnectWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -696,6 +717,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientsIndexRoute: ClientsIndexRoute,
   QuotesIndexRoute: QuotesIndexRoute,
   PortalCCodeRoute: PortalCCodeRoute,
+  ApiPublicPaymentsConnectWebhookRoute: ApiPublicPaymentsConnectWebhookRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
