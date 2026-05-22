@@ -6,6 +6,7 @@ import { transcribeAudio } from "@/lib/transcribe.functions";
 import { useSession, signInWithPassword, signUpWithPassword } from "@/lib/auth";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { Loader2, Mic, Square, Send, CheckCircle2, Hammer } from "lucide-react";
+import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordingNotice";
 
 export const Route = createFileRoute("/request/$proId")({
   component: RequestPage,
