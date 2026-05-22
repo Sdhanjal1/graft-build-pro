@@ -117,6 +117,7 @@ function NewQuotePage() {
   const [error, setError] = useState<string | null>(null);
   const generateFn = useServerFn(generateAIQuote);
   const transcribeFn = useServerFn(transcribeAudio);
+  const { canUse: subActive, blocked: subBlocked } = useSubscription();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
