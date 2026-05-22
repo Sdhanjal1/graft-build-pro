@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
-  mockProfile,
+  userProfile,
   TRADE_TYPES,
   clearUserData,
   saveProfileToCloud,
@@ -57,31 +57,31 @@ function SettingsPage() {
 
   // --- Business profile (editable) ---
   const [profile, setProfile] = useState({
-    business_name: mockProfile.business_name,
-    full_name: mockProfile.full_name,
-    phone: mockProfile.phone,
-    email: mockProfile.email,
-    town: mockProfile.town,
-    trade_type: mockProfile.trade_type,
-    registration_number: mockProfile.registration_number,
-    vat_number: mockProfile.vat_number,
-    logo_url: mockProfile.logo_url,
-    quote_intro: mockProfile.quote_intro,
-    quote_footer: mockProfile.quote_footer,
-    signature_name: mockProfile.signature_name || mockProfile.full_name,
-    show_signature: mockProfile.show_signature,
+    business_name: userProfile.business_name,
+    full_name: userProfile.full_name,
+    phone: userProfile.phone,
+    email: userProfile.email,
+    town: userProfile.town,
+    trade_type: userProfile.trade_type,
+    registration_number: userProfile.registration_number,
+    vat_number: userProfile.vat_number,
+    logo_url: userProfile.logo_url,
+    quote_intro: userProfile.quote_intro,
+    quote_footer: userProfile.quote_footer,
+    signature_name: userProfile.signature_name || userProfile.full_name,
+    show_signature: userProfile.show_signature,
   });
   const saveProfile = (patch: Partial<typeof profile>) => setProfile((p) => ({ ...p, ...patch }));
 
-  const [vatRegistered, setVatRegistered] = useState(mockProfile.vat_registered);
+  const [vatRegistered, setVatRegistered] = useState(userProfile.vat_registered);
   const [bank, setBank] = useState({
-    account_name: mockProfile.bank_account_name,
-    bank_name: mockProfile.bank_name,
-    sort_code: mockProfile.sort_code,
-    account_number: mockProfile.account_number,
-    payment_reference_note: mockProfile.payment_reference_note,
+    account_name: userProfile.bank_account_name,
+    bank_name: userProfile.bank_name,
+    sort_code: userProfile.sort_code,
+    account_number: userProfile.account_number,
+    payment_reference_note: userProfile.payment_reference_note,
   });
-  const [terms, setTerms] = useState(mockProfile.payment_terms);
+  const [terms, setTerms] = useState(userProfile.payment_terms);
 
   // Debounced cloud-save
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -105,7 +105,7 @@ function SettingsPage() {
 
   const saveBank = (patch: Partial<typeof bank>) => setBank((b) => ({ ...b, ...patch }));
 
-  const stripeConnected = !!mockProfile.stripe_connected;
+  const stripeConnected = !!userProfile.stripe_connected;
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -674,14 +674,14 @@ function ReferMate() {
 }
 
 function AutoChasePanel() {
-  const [enabled, setEnabled] = useState(mockProfile.auto_chase_enabled);
-  const [offsets, setOffsets] = useState(mockProfile.chase_offsets.join(", "));
-  const [t, setT] = useState({ ...mockProfile.chase_templates });
+  const [enabled, setEnabled] = useState(userProfile.auto_chase_enabled);
+  const [offsets, setOffsets] = useState(userProfile.chase_offsets.join(", "));
+  const [t, setT] = useState({ ...userProfile.chase_templates });
   const save = () => {
-    mockProfile.auto_chase_enabled = enabled;
+    userProfile.auto_chase_enabled = enabled;
     const parsed = offsets.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => n > 0);
-    if (parsed.length === 3) mockProfile.chase_offsets = parsed;
-    mockProfile.chase_templates = { ...t };
+    if (parsed.length === 3) userProfile.chase_offsets = parsed;
+    userProfile.chase_templates = { ...t };
     toast.success("Auto-chase settings saved");
   };
   return (
@@ -712,14 +712,14 @@ function AutoChasePanel() {
 }
 
 function GoogleReviewPanel() {
-  const [url, setUrl] = useState(mockProfile.google_review_url);
+  const [url, setUrl] = useState(userProfile.google_review_url);
   return (
     <div className="card-surface p-4 space-y-2">
       <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Your Google review link</p>
       <input
         value={url}
         onChange={(e) => setUrl(e.target.value)}
-        onBlur={() => { mockProfile.google_review_url = url; toast.success("Review link saved"); }}
+        onBlur={() => { userProfile.google_review_url = url; toast.success("Review link saved"); }}
         placeholder="https://g.page/r/..."
         className="w-full rounded-2xl bg-secondary px-3 py-2 text-sm"
       />

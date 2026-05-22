@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { formatGBP, mockProfile, type Quote, type Client } from "./mock-data";
+import { formatGBP, userProfile, type Quote, type Client } from "./mock-data";
 
 type Variant = "quote" | "invoice";
 
@@ -26,11 +26,11 @@ function header(doc: jsPDF, variant: Variant, quote: Quote) {
   doc.setTextColor("#FFFFFF");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text(mockProfile.business_name, 92, 38);
+  doc.text(userProfile.business_name, 92, 38);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor("#BBBBBB");
-  const meta = [mockProfile.registration_number, mockProfile.vat_registered ? `VAT ${mockProfile.vat_number}` : null]
+  const meta = [userProfile.registration_number, userProfile.vat_registered ? `VAT ${userProfile.vat_number}` : null]
     .filter(Boolean)
     .join("  ·  ");
   doc.text(meta, 92, 54);
@@ -55,7 +55,7 @@ function footer(doc: jsPDF) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(MUTED);
-  doc.text(`${mockProfile.business_name} · ${mockProfile.phone} · ${mockProfile.email}`, 40, h - 32);
+  doc.text(`${userProfile.business_name} · ${userProfile.phone} · ${userProfile.email}`, 40, h - 32);
   doc.text("Generated with Quottr", w - 40, h - 32, { align: "right" });
 }
 
@@ -139,7 +139,7 @@ export function generateQuotePdf(quote: Quote, client: Client | undefined, varia
   let afterTable = (doc as any).lastAutoTable.finalY + 16;
   const boxX = w - 240;
   const boxW = 200;
-  const showVat = mockProfile.vat_registered && quote.vat_amount > 0;
+  const showVat = userProfile.vat_registered && quote.vat_amount > 0;
   const rows: Array<[string, string]> = [["Subtotal", formatGBP(quote.subtotal)]];
   if (showVat) rows.push(["VAT (20%)", formatGBP(quote.vat_amount)]);
   rows.push([variant === "invoice" ? "Amount due" : "Total", formatGBP(quote.total)]);
@@ -176,11 +176,11 @@ export function generateQuotePdf(quote: Quote, client: Client | undefined, varia
   doc.setFontSize(9.5);
   doc.setTextColor(INK);
   const payLines = [
-    `Bank: ${mockProfile.bank_name}`,
-    `Account name: ${mockProfile.bank_account_name}`,
-    `Sort code: ${mockProfile.sort_code}   Account no: ${mockProfile.account_number}`,
+    `Bank: ${userProfile.bank_name}`,
+    `Account name: ${userProfile.bank_account_name}`,
+    `Sort code: ${userProfile.sort_code}   Account no: ${userProfile.account_number}`,
     `Reference: ${quote.ref}`,
-    mockProfile.payment_terms,
+    userProfile.payment_terms,
   ];
   payLines.forEach((l) => {
     doc.text(l, 40, afterTable);
@@ -204,7 +204,7 @@ export async function downloadOrShareQuotePdf(quote: Quote, client: Client | und
       await nav.share({
         files: [file],
         title: filename,
-        text: `${variant === "invoice" ? "Invoice" : "Quote"} ${quote.ref} from ${mockProfile.business_name}`,
+        text: `${variant === "invoice" ? "Invoice" : "Quote"} ${quote.ref} from ${userProfile.business_name}`,
       });
       return { shared: true };
     } catch (e) {

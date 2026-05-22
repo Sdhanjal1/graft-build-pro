@@ -1,7 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
-  getQuote, getClient, mockProfile, formatGBP,
+  getQuote, getClient, userProfile, formatGBP,
   invoiceRef, buildFinalInvoiceMessage, stripePaymentLink, markInvoiced,
 } from "@/lib/mock-data";
 import { MessageCircle, Mail, CreditCard, Landmark, Share2 } from "lucide-react";
@@ -29,7 +29,7 @@ function InvoicePage() {
   const encoded = encodeURIComponent(body);
   const digits = client?.phone.replace(/\D/g, "");
   const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${encoded}`;
-  const mail = `mailto:${client?.email}?subject=${encodeURIComponent(`INVOICE ${ref}, ${mockProfile.business_name}`)}&body=${encoded}`;
+  const mail = `mailto:${client?.email}?subject=${encodeURIComponent(`INVOICE ${ref}, ${userProfile.business_name}`)}&body=${encoded}`;
   const cardLink = quote.payment_request?.link ?? stripePaymentLink(quote);
   const dueDate = quote.invoice_due_date
     ? new Date(quote.invoice_due_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
@@ -44,12 +44,12 @@ function InvoicePage() {
         <div className="rounded-3xl bg-ink text-paper overflow-hidden">
           <div className="px-6 pt-6 pb-5 flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 min-w-0">
-              <BusinessLogo logoUrl={mockProfile.logo_url} businessName={mockProfile.business_name} size="md" />
+              <BusinessLogo logoUrl={userProfile.logo_url} businessName={userProfile.business_name} size="md" />
               <div className="min-w-0">
                 <p className="text-[10px] uppercase tracking-[0.3em] text-lime font-bold">Invoice</p>
                 <h1 className="text-5xl mt-1 leading-none text-paper">{ref}</h1>
-                <p className="text-xs text-paper/60 mt-2 truncate">{mockProfile.business_name}</p>
-                <p className="text-[10px] text-paper/50 truncate">{mockProfile.registration_number} · VAT {mockProfile.vat_number}</p>
+                <p className="text-xs text-paper/60 mt-2 truncate">{userProfile.business_name}</p>
+                <p className="text-[10px] text-paper/50 truncate">{userProfile.registration_number} · VAT {userProfile.vat_number}</p>
               </div>
             </div>
             <QuottrLogo className="h-6 w-auto opacity-60" />
@@ -86,10 +86,10 @@ function InvoicePage() {
               <p className="text-[10px] uppercase tracking-widest text-paper/60 font-bold">Or pay by bank transfer</p>
             </div>
             <div className="grid grid-cols-2 gap-y-1.5 gap-x-3 text-xs">
-              <span className="text-paper/60">Account</span><span className="font-semibold text-paper">{mockProfile.bank_account_name}</span>
-              <span className="text-paper/60">Bank</span><span className="font-semibold text-paper">{mockProfile.bank_name}</span>
-              <span className="text-paper/60">Sort code</span><span className="num font-semibold text-paper">{mockProfile.sort_code}</span>
-              <span className="text-paper/60">Account no.</span><span className="num font-semibold text-paper">{mockProfile.account_number}</span>
+              <span className="text-paper/60">Account</span><span className="font-semibold text-paper">{userProfile.bank_account_name}</span>
+              <span className="text-paper/60">Bank</span><span className="font-semibold text-paper">{userProfile.bank_name}</span>
+              <span className="text-paper/60">Sort code</span><span className="num font-semibold text-paper">{userProfile.sort_code}</span>
+              <span className="text-paper/60">Account no.</span><span className="num font-semibold text-paper">{userProfile.account_number}</span>
               <span className="text-paper/60">Reference</span><span className="font-bold text-lime">{ref}</span>
             </div>
           </div>
@@ -141,7 +141,7 @@ function InvoicePage() {
           </div>
           <div className="px-5 py-3 border-t border-border bg-card">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Payment terms</p>
-            <p className="text-xs text-muted-foreground mt-1">{mockProfile.payment_terms}</p>
+            <p className="text-xs text-muted-foreground mt-1">{userProfile.payment_terms}</p>
           </div>
         </div>
       </section>

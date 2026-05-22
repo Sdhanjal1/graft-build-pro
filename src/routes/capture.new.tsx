@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Loader2, MapPin } from "lucide-react";
 import { createSiteCapture } from "@/lib/site-captures";
-import { mockProfile } from "@/lib/mock-data";
+import { userProfile } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/capture/new")({
   component: NewCapturePage,
@@ -25,8 +25,8 @@ function NewCapturePage() {
       const c = await createSiteCapture({
         customerName: withName && !looksLikeAddress ? v : undefined,
         address: withName && looksLikeAddress ? v : undefined,
-        tradeType: mockProfile.trade_type,
-        vatRegistered: mockProfile.vat_registered,
+        tradeType: userProfile.trade_type,
+        vatRegistered: userProfile.vat_registered,
       });
       navigate({ to: "/capture/$captureId", params: { captureId: c.id }, replace: true });
     } catch (e) {
