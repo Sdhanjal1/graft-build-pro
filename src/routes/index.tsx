@@ -6,9 +6,9 @@ export const Route = createFileRoute("/")({
   component: HomePage,
   head: () => ({
     meta: [
-      { title: "Quottr, Stop quoting in the evenings." },
+      { title: "Quottr: stop quoting in the evenings" },
       { name: "description", content: "Voice to professional quote in 18 seconds. Sent via WhatsApp. Customer pays the deposit before you leave the drive." },
-      { property: "og:title", content: "Quottr, Stop quoting in the evenings." },
+      { property: "og:title", content: "Quottr: stop quoting in the evenings" },
       { property: "og:description", content: "Voice to professional quote in 18 seconds. Sent via WhatsApp. Customer pays the deposit before you leave the drive." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.quottr.co.uk/" },

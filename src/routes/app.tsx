@@ -29,7 +29,7 @@ export const Route = createFileRoute("/app")({
   component: AppHomePage,
   head: () => ({
     meta: [
-      { title: "Quottr, App" },
+      { title: "Quottr app" },
       { name: "description", content: "Tap to start a quote. See what you're owed at a glance." },
       { name: "robots", content: "noindex" },
     ],
