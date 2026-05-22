@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireActiveSubscription } from "@/lib/require-active-subscription";
 
 const InputSchema = z.object({
   description: z.string().min(1).max(4000),
@@ -23,6 +24,7 @@ export type AIGeneratedQuote = z.infer<typeof QuoteSchema>;
 const SYSTEM_PROMPT = `You are an expert UK tradesperson estimator generating itemised quotes for small trade businesses in 2026. Use realistic current UK market prices (GBP, ex-VAT) for parts, materials and labour. Labour rates: plumber/heating engineer £55-£75/hr, electrician £55-£75/hr, builder £45-£65/hr. Always include separate line items for materials and labour. Be specific about brands/models where appropriate (Worcester Bosch, Vaillant, Drayton, Geberit, etc). Keep titles concise (under 80 chars). Return between 2 and 8 line items.`;
 
 export const generateAIQuote = createServerFn({ method: "POST" })
+  .middleware([requireActiveSubscription])
   .inputValidator((input: unknown) => InputSchema.parse(input))
   .handler(async ({ data }): Promise<AIGeneratedQuote> => {
     const apiKey = process.env.ANTHROPIC_API_KEY;

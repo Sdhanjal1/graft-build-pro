@@ -16,7 +16,7 @@ import { Splash } from "@/components/Splash";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { useSession } from "@/lib/auth";
-import { hydrateUserData } from "@/lib/mock-data";
+import { hydrateUserData, clearUserData } from "@/lib/mock-data";
 
 function NotFoundComponent() {
   return (
@@ -150,6 +150,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       router.navigate({ to: "/auth" });
     } else if (session) {
       void hydrateUserData();
+    } else {
+      // Signed out — clear cached user data so it doesn't bleed into the next session.
+      clearUserData();
     }
   }, [session, loading, isPublic, router]);
 
