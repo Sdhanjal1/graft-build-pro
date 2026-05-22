@@ -69,7 +69,7 @@ function ChaserPage() {
                       <p className="text-xs font-semibold text-ink truncate">{quote.ref} · {c?.name}</p>
                     </div>
                     <p className="text-xs text-ink/70 truncate mt-1">
-                      Chase ready to send to {c?.name} — {formatGBP(quote.total)} — {chase.day_offset} days overdue
+                      Chase ready to send to {c?.name}, {formatGBP(quote.total)}, {chase.day_offset} days overdue
                     </p>
                     {autoIn !== null && (
                       <p className="text-[10px] text-ink/60 mt-1">
@@ -130,7 +130,7 @@ function ChaserPage() {
           const chase = encodeURIComponent(buildChaserMessage(q, firstName));
           const digits = c?.phone.replace(/\D/g, "");
           const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${chase}`;
-          const subject = encodeURIComponent(`Overdue invoice ${q.ref} — ${mockProfile.business_name}`);
+          const subject = encodeURIComponent(`Overdue invoice ${q.ref}, ${mockProfile.business_name}`);
           const mail = `mailto:${c?.email}?subject=${subject}&body=${chase}`;
           const days = daysOverdue(q.due_date);
           return (

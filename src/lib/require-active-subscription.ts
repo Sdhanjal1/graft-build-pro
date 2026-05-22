@@ -7,7 +7,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * Allowed when ANY of:
  *  - status === "trialing" AND trial_end is in the future
  *  - status === "active"
- *  - status === "past_due"   (Stripe is retrying — keep them working during dunning)
+ *  - status === "past_due"   (Stripe is retrying, keep them working during dunning)
  *
  * Otherwise throws an Error with `status: 402` so the caller can show an
  * "Add a payment method to continue" prompt. Customers using magic-link
@@ -27,7 +27,7 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
       .maybeSingle();
 
     if (error) {
-      // Don't block on transient DB errors — log and let the request through.
+      // Don't block on transient DB errors, log and let the request through.
       console.error("[requireActiveSubscription] subscription lookup failed", error);
       return next();
     }

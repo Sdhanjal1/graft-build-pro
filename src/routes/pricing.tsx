@@ -6,9 +6,9 @@ export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   head: () => ({
     meta: [
-      { title: "Pricing — Quottr" },
+      { title: "Pricing, Quottr" },
       { name: "description", content: "One simple plan. £29/month after a 14-day free trial. No card required to start. Cancel anytime." },
-      { property: "og:title", content: "Pricing — Quottr" },
+      { property: "og:title", content: "Pricing, Quottr" },
       { property: "og:description", content: "One price. Everything included. No contracts." },
       { property: "og:url", content: "https://www.quottr.co.uk/pricing" },
     ],
@@ -91,12 +91,12 @@ function PricingPage() {
             to="/auth"
             className="mt-9 w-full inline-flex items-center justify-center gap-2 bg-lime text-ink font-semibold px-6 py-4 rounded-full hover:brightness-95 transition text-base"
           >
-            Start free trial — no card needed <ArrowRight className="h-4 w-4" />
+            Start free trial, no card needed <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
 
         <p className="mt-5 text-center text-xs text-ink/55 max-w-md mx-auto leading-relaxed">
-          After your 14 day trial — £29/month. Cancel anytime. No contracts. No per-quote fees. No hidden charges.
+          After your 14 day trial, £29/month. Cancel anytime. No contracts. No per-quote fees. No hidden charges.
         </p>
       </section>
 
@@ -105,7 +105,7 @@ function PricingPage() {
           {[
             "No card required to start your free trial",
             "Cancel before 14 days and pay nothing",
-            "Everything is included — nothing locked behind upgrades",
+            "Everything is included, nothing locked behind upgrades",
           ].map((line) => (
             <li
               key={line}

@@ -8,9 +8,9 @@ export const Route = createFileRoute("/trades")({
   component: TradesPage,
   head: () => ({
     meta: [
-      { title: "Trades — Quottr" },
+      { title: "Trades, Quottr" },
       { name: "description", content: "Built for plumbers, gas engineers, electricians, joiners, roofers, decorators and every trade in between." },
-      { property: "og:title", content: "Trades — Quottr" },
+      { property: "og:title", content: "Trades, Quottr" },
       { property: "og:description", content: "Quottr is built for tradespeople. See which trades use it day-to-day." },
       { property: "og:url", content: "https://www.quottr.co.uk/trades" },
     ],
@@ -29,7 +29,7 @@ function TradesPage() {
               Built by trades. <span className="text-lime">For trades.</span>
             </h1>
             <p className="mt-5 text-lg text-paper/75 max-w-xl">
-              If you wear boots, lift tools, or quote on the doorstep — Quottr was built for you.
+              If you wear boots, lift tools, or quote on the doorstep, Quottr was built for you.
             </p>
           </div>
           <div className="relative">

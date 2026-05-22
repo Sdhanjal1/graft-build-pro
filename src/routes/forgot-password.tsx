@@ -6,7 +6,7 @@ export const Route = createFileRoute("/forgot-password")({
   component: ForgotPasswordPage,
   head: () => ({
     meta: [
-      { title: "Reset your password — Quottr" },
+      { title: "Reset your password, Quottr" },
       { name: "description", content: "Reset the password for your Quottr account." },
     ],
   }),

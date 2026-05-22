@@ -168,7 +168,7 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             }
             return new Response("ok", { status: 200 });
           }
-          // fall through — mode=payment is handled below
+          // fall through, mode=payment is handled below
         }
 
 

@@ -312,7 +312,7 @@ function SettingsPage() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold">Stripe</p>
               <p className="text-[11px] text-paper/60">
-                {stripeConnected ? "Connected — taking card payments" : "Connect below to take card payments"}
+                {stripeConnected ? "Connected, taking card payments" : "Connect below to take card payments"}
               </p>
             </div>
           </div>
@@ -360,14 +360,14 @@ function SettingsPage() {
       {/* INTEGRATIONS */}
       <Section title="Integrations">
         <div className="card-surface divide-y divide-border">
-          <SettingRow icon={Key} label="Claude API key" status="Optional — fallback quote generator is active" />
+          <SettingRow icon={Key} label="Claude API key" status="Optional, fallback quote generator is active" />
           <SettingRow icon={Key} label="OpenAI Whisper key" status="Add to enable voice-to-text" />
           <SettingRow icon={CreditCard} label="Stripe Connect" status={stripeConnected ? "Connected" : "Add to take card payments"} />
         </div>
       </Section>
 
 
-      {/* FEEDBACK (haptics/sound — keep) */}
+      {/* FEEDBACK (haptics/sound, keep) */}
       <Section title="Feedback">
         <FeedbackToggles />
       </Section>
@@ -488,7 +488,7 @@ function WorkingHoursPanel() {
                 onChange={(e) => updateDay(key, { start: e.target.value })}
                 className="flex-1 bg-secondary rounded-xl px-3 py-2 text-sm outline-none disabled:opacity-40"
               />
-              <span className="text-muted-foreground text-xs">–</span>
+              <span className="text-muted-foreground text-xs">-</span>
               <input
                 type="time"
                 disabled={!d.enabled}
@@ -627,7 +627,7 @@ function SettingRow({ icon: Icon, label, status }: { icon: React.ComponentType<{
 function ReferMate() {
   const code = "MATE20";
   const shareText =
-    `I use Quottr to quote on the spot and get paid faster — try it. ` +
+    `I use Quottr to quote on the spot and get paid faster, try it. ` +
     `Use my code ${code} for £20 off your first month: https://quottr.app/?ref=${code}`;
   const onShare = async () => {
     if (typeof navigator !== "undefined" && (navigator as Navigator & { share?: (data: ShareData) => Promise<void> }).share) {
@@ -656,7 +656,7 @@ function ReferMate() {
         <p className="text-xs uppercase tracking-widest text-paper/60 font-semibold">Refer a mate</p>
       </div>
       <h3 className="text-2xl mt-1 leading-tight">Give £20 off, get £20 off</h3>
-      <p className="text-xs text-paper/70 mt-1">Share Quottr with another tradesperson — when they sign up you both get £20 off your next month.</p>
+      <p className="text-xs text-paper/70 mt-1">Share Quottr with another tradesperson, when they sign up you both get £20 off your next month.</p>
       <div className="mt-3 flex items-center gap-2">
         <div className="flex-1 bg-paper/10 rounded-full px-4 py-2.5">
           <p className="text-[10px] uppercase tracking-widest text-paper/50 font-semibold">Your code</p>

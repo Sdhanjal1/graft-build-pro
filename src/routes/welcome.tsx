@@ -71,7 +71,7 @@ function WelcomePage() {
       .update(patch)
       .eq("id", session.user.id);
     setSaving(false);
-    if (error) toast.error("Couldn't save — try again");
+    if (error) toast.error("Couldn't save, try again");
   };
 
   const handleLogoUpload = async (file: File) => {
@@ -228,7 +228,7 @@ function WelcomePage() {
 
             <div className="mt-8 space-y-2">
               <PrimaryButton onClick={finish}>
-                {profile.logo_url ? "Finish — open Quottr" : "Finish — I'll add later"}
+                {profile.logo_url ? "Finish, open Quottr" : "Finish, I'll add later"}
               </PrimaryButton>
               {!profile.logo_url && (
                 <button onClick={finish} className="w-full text-xs text-paper/50 py-2">

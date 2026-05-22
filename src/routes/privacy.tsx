@@ -5,7 +5,7 @@ export const Route = createFileRoute("/privacy")({
   component: PrivacyPage,
   head: () => ({
     meta: [
-      { title: "Privacy Policy — Quottr" },
+      { title: "Privacy Policy, Quottr" },
       { name: "description", content: "How Quottr collects, uses and protects the personal data of UK tradespeople and their clients." },
     ],
   }),
@@ -35,16 +35,16 @@ function PrivacyPage() {
 
           <Section title="What we collect">
             <ul className="list-disc pl-5 space-y-1.5">
-              <li><strong>Account data</strong> — name, email address, password (hashed), business name, trade.</li>
-              <li><strong>Customer data you upload</strong> — your clients' names, addresses, emails, phone numbers, job notes, photos and voice notes.</li>
-              <li><strong>Payment data</strong> — handled by Stripe; we never see or store full card numbers.</li>
-              <li><strong>Usage data</strong> — pages visited, features used, device type, IP address, for product analytics and security.</li>
+              <li><strong>Account data</strong>, name, email address, password (hashed), business name, trade.</li>
+              <li><strong>Customer data you upload</strong>, your clients' names, addresses, emails, phone numbers, job notes, photos and voice notes.</li>
+              <li><strong>Payment data</strong>, handled by Stripe; we never see or store full card numbers.</li>
+              <li><strong>Usage data</strong>, pages visited, features used, device type, IP address, for product analytics and security.</li>
             </ul>
           </Section>
 
           <Section title="How we use it">
             <ul className="list-disc pl-5 space-y-1.5">
-              <li>To provide the service — generating quotes, sending them to your clients, taking payment.</li>
+              <li>To provide the service, generating quotes, sending them to your clients, taking payment.</li>
               <li>To improve the product and fix bugs.</li>
               <li>To send service emails (receipts, password resets, important account notices).</li>
               <li>To detect fraud and keep accounts secure.</li>
@@ -57,10 +57,10 @@ function PrivacyPage() {
           <Section title="Who we share it with">
             <p>Only the processors we need to run the service:</p>
             <ul className="list-disc pl-5 space-y-1.5 mt-2">
-              <li><strong>Supabase</strong> — database and authentication (EU hosting).</li>
-              <li><strong>Stripe</strong> — payment processing.</li>
-              <li><strong>OpenAI / Anthropic / Google</strong> — AI processing of voice notes and quote text.</li>
-              <li><strong>Resend</strong> — sending transactional email.</li>
+              <li><strong>Supabase</strong>, database and authentication (EU hosting).</li>
+              <li><strong>Stripe</strong>, payment processing.</li>
+              <li><strong>OpenAI / Anthropic / Google</strong>, AI processing of voice notes and quote text.</li>
+              <li><strong>Resend</strong>, sending transactional email.</li>
             </ul>
             <p className="mt-3">
               We use AI providers strictly for processing your inputs into quotes. Your data is not used to train their models.

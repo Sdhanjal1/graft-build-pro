@@ -6,9 +6,9 @@ export const Route = createFileRoute("/faqs")({
   component: FaqsPage,
   head: () => ({
     meta: [
-      { title: "FAQs — Quottr" },
-      { name: "description", content: "Common questions about Quottr — pricing, voice quoting, payments, data and more." },
-      { property: "og:title", content: "FAQs — Quottr" },
+      { title: "FAQs, Quottr" },
+      { name: "description", content: "Common questions about Quottr, pricing, voice quoting, payments, data and more." },
+      { property: "og:title", content: "FAQs, Quottr" },
       { property: "og:description", content: "Everything you wanted to ask about Quottr." },
       { property: "og:url", content: "https://www.quottr.co.uk/faqs" },
     ],
@@ -18,10 +18,10 @@ export const Route = createFileRoute("/faqs")({
 
 const faqs = [
   { q: "Do I need to type anything?", a: "Nope. Talk to Quottr like you'd talk to your apprentice. We turn your voice note into a priced, branded quote." },
-  { q: "What does it cost?", a: "Free for 14 days, no card needed. After that, one flat subscription — see the Pricing page for current rates." },
+  { q: "What does it cost?", a: "Free for 14 days, no card needed. After that, one flat subscription, see the Pricing page for current rates." },
   { q: "How do customers pay?", a: "Card, Apple Pay, Google Pay or bank transfer. Deposits land in your account, not next month." },
   { q: "Will it work in a loft / cellar / no-signal site?", a: "Yes. Capture offline, send when you're back in signal. Nothing gets lost." },
-  { q: "Can I use my own branding?", a: "Yes — logo, colours, business details, VAT number. Quotes look like you, not us." },
+  { q: "Can I use my own branding?", a: "Yes, logo, colours, business details, VAT number. Quotes look like you, not us." },
   { q: "Does it integrate with my accounting?", a: "Xero, QuickBooks, FreeAgent and Sage. Plug it in once, never re-enter a number." },
   { q: "What about chasing late payers?", a: "Quottr nudges them at day 7, 14 and 21 with polite, on-brand reminders. You never have to send 'just chasing this' again." },
   { q: "Is my data safe?", a: "Yes. UK-hosted, encrypted at rest and in transit. You own your data and can export it any time." },
@@ -48,7 +48,7 @@ function FaqsPage() {
                 <h3 className="text-xl md:text-2xl pr-6">{f.q}</h3>
                 <span className="h-8 w-8 rounded-full bg-ink/5 group-hover:bg-lime/40 transition flex items-center justify-center shrink-0 text-ink text-lg leading-none">
                   <span className="group-open:hidden">+</span>
-                  <span className="hidden group-open:inline">–</span>
+                  <span className="hidden group-open:inline">-</span>
                 </span>
               </summary>
               <p className="mt-3 text-base text-ink/70 leading-relaxed max-w-2xl">{f.a}</p>

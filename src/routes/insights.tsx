@@ -14,7 +14,7 @@ export const Route = createFileRoute("/insights")({
   component: InsightsPage,
   head: () => ({
     meta: [
-      { title: "Insights — Quottr" },
+      { title: "Insights, Quottr" },
       { name: "description", content: "Track quoted, collected and outstanding revenue month by month." },
     ],
   }),
@@ -74,7 +74,7 @@ function InsightsPage() {
 
   return (
     <AppShell>
-      {/* Header — dark ink */}
+      {/* Header, dark ink */}
       <header className="bg-ink text-paper rounded-b-3xl px-5 pt-8 pb-6">
         <div className="flex items-center gap-2 mb-3">
           <BarChart3 className="h-4 w-4 text-lime" />

@@ -6,10 +6,10 @@ export const Route = createFileRoute("/features")({
   component: FeaturesPage,
   head: () => ({
     meta: [
-      { title: "Features — Quottr" },
+      { title: "Features, Quottr" },
       { name: "description", content: "Voice quoting, site capture, WhatsApp send, auto chasers and more. Everything Quottr does for tradespeople." },
-      { property: "og:title", content: "Features — Quottr" },
-      { property: "og:description", content: "Everything Quottr does — voice quoting, WhatsApp send, auto chasers, Google review requests, and more." },
+      { property: "og:title", content: "Features, Quottr" },
+      { property: "og:description", content: "Everything Quottr does, voice quoting, WhatsApp send, auto chasers, Google review requests, and more." },
       { property: "og:url", content: "https://www.quottr.co.uk/features" },
     ],
     links: [{ rel: "canonical", href: "https://www.quottr.co.uk/features" }],
@@ -25,7 +25,7 @@ const features = [
   { icon: BellRing, title: "Auto chasers", body: "Polite reminders go out at day 7, 14 and 21. You never have to ask twice." },
   { icon: Calendar, title: "Job diary", body: "Accepted quotes drop straight into your calendar. No double-bookings." },
   { icon: Star, title: "Google review requests", body: "When a job is marked complete, Quottr asks for a review. Your ranking does the rest." },
-  { icon: Zap, title: "Annual reminders", body: "Boiler services, gas certs, water tests — Quottr tells you when to call them back." },
+  { icon: Zap, title: "Annual reminders", body: "Boiler services, gas certs, water tests, Quottr tells you when to call them back." },
 ];
 
 function FeaturesPage() {

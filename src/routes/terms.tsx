@@ -5,8 +5,8 @@ export const Route = createFileRoute("/terms")({
   component: TermsPage,
   head: () => ({
     meta: [
-      { title: "Terms of Service — Quottr" },
-      { name: "description", content: "The rules of using Quottr — plain English, for UK tradespeople." },
+      { title: "Terms of Service, Quottr" },
+      { name: "description", content: "The rules of using Quottr, plain English, for UK tradespeople." },
     ],
   }),
 });
@@ -34,7 +34,7 @@ function TermsPage() {
 
           <Section title="Your account">
             <p>You must be 18+ and provide accurate details. You're responsible for keeping your password safe and for
-              everything that happens on your account. One person per account — sharing logins is not permitted.</p>
+              everything that happens on your account. One person per account, sharing logins is not permitted.</p>
           </Section>
 
           <Section title="What you can do">
@@ -52,7 +52,7 @@ function TermsPage() {
           </Section>
 
           <Section title="Your content">
-            <p>You own everything you put into Quottr — your quotes, clients, photos, voice notes. We just store it and
+            <p>You own everything you put into Quottr, your quotes, clients, photos, voice notes. We just store it and
               process it so the service can work. See the{" "}
               <a className="underline hover:text-ink" href="/privacy">Privacy Policy</a> for details.
             </p>
@@ -62,7 +62,7 @@ function TermsPage() {
             <p>
               Quottr uses AI to turn your voice notes and site photos into draft quotes. <strong>You are responsible for
               reviewing every quote before you send it.</strong> We don't guarantee that AI-generated pricing is accurate
-              for your job — it's a starting point, not a substitute for your trade judgement.
+              for your job, it's a starting point, not a substitute for your trade judgement.
             </p>
           </Section>
 

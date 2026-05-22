@@ -51,7 +51,7 @@ function CalendarPage() {
     if (view === "week") {
       const start = startOfWeek(anchor);
       const end = new Date(start); end.setDate(end.getDate() + 6);
-      return `${start.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${end.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+      return `${start.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} - ${end.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
     }
     return anchor.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
   }, [view, anchor]);
@@ -135,7 +135,7 @@ function TomorrowReminder({ onOpen }: { onOpen: (id: string) => void }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Tomorrow · {formatTime(j.starts_at)}</p>
-          <p className="text-sm font-semibold truncate">{q.title} — {c.name}</p>
+          <p className="text-sm font-semibold truncate">{q.title}, {c.name}</p>
           <p className="text-[11px] text-paper/60 truncate">{c.address}</p>
         </div>
         <ChevronRight className="h-4 w-4 text-paper/60 shrink-0" />
@@ -328,7 +328,7 @@ function JobSheet({ job, onClose, onChange }: { job: ScheduledJob; onClose: () =
   if (!q || !c) return null;
 
   const phoneDigits = c.phone.replace(/\D/g, "");
-  const waHref = `https://wa.me/${phoneDigits ? "44" + phoneDigits.replace(/^0/, "") : ""}?text=${encodeURIComponent(`Hi ${c.name.split(" ")[0]}, just confirming our visit ${formatDayLabel(new Date(job.starts_at))} at ${formatTime(job.starts_at)}. — Quottr`)}`;
+  const waHref = `https://wa.me/${phoneDigits ? "44" + phoneDigits.replace(/^0/, "") : ""}?text=${encodeURIComponent(`Hi ${c.name.split(" ")[0]}, just confirming our visit ${formatDayLabel(new Date(job.starts_at))} at ${formatTime(job.starts_at)}., Quottr`)}`;
 
   const advance = () => {
     if (job.status === "scheduled") { setJobStatus(job.id, "in_progress"); onChange(); }
@@ -397,7 +397,7 @@ function JobSheet({ job, onClose, onChange }: { job: ScheduledJob; onClose: () =
               <div className={`rounded-2xl p-3 ${q.payment_request ? "bg-lime text-ink" : "bg-secondary"}`}>
                 <p className="text-[10px] uppercase tracking-widest font-bold opacity-70">Deposit</p>
                 <p className="num text-xl">
-                  {q.payment_request ? formatGBP(q.payment_request.amount) : "—"}
+                  {q.payment_request ? formatGBP(q.payment_request.amount) : "-"}
                 </p>
               </div>
             </div>
@@ -448,7 +448,7 @@ function JobSheet({ job, onClose, onChange }: { job: ScheduledJob; onClose: () =
               className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2"
             >
               {job.status === "scheduled" ? (
-                <><Play className="h-4 w-4" /> I'm on site — start job</>
+                <><Play className="h-4 w-4" /> I'm on site, start job</>
               ) : (
                 <><CheckCircle2 className="h-4 w-4" /> Mark job complete</>
               )}
@@ -468,7 +468,7 @@ function JobSheet({ job, onClose, onChange }: { job: ScheduledJob; onClose: () =
           )}
         </div>
 
-        {/* Bottom sheet over sheet — annual reminder + payment prompt */}
+        {/* Bottom sheet over sheet, annual reminder + payment prompt */}
         {askAnnual && (
           <CompletePrompt
             job={job}
@@ -546,7 +546,7 @@ function CompletePrompt({
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => { requestReview(); onClose(); }} className="bg-lime text-ink rounded-full py-2.5 text-xs font-bold">
-                Yes — send review request
+                Yes, send review request
               </button>
               <button onClick={onClose} className="bg-card border border-border rounded-full py-2.5 text-xs font-bold">
                 Not now

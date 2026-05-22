@@ -77,7 +77,7 @@ export function generateQuotePdf(quote: Quote, client: Client | undefined, varia
   doc.setTextColor(INK);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text(client?.name ?? "—", 40, y);
+  doc.text(client?.name ?? "-", 40, y);
   const issueDate = new Date(variant === "invoice" ? (quote.invoiced_at ?? quote.created_at) : quote.created_at);
   doc.setFont("helvetica", "normal");
   doc.text(issueDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }), w - 40, y, { align: "right" });
@@ -208,7 +208,7 @@ export async function downloadOrShareQuotePdf(quote: Quote, client: Client | und
       });
       return { shared: true };
     } catch (e) {
-      // user cancelled or share failed — fall through to download
+      // user cancelled or share failed, fall through to download
       if ((e as DOMException)?.name === "AbortError") return { shared: false, cancelled: true };
     }
   }

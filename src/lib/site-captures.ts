@@ -150,7 +150,7 @@ export async function deleteCaptureItem(id: string): Promise<void> {
 }
 
 export async function deleteCapture(id: string): Promise<void> {
-  // No FK cascade — remove items first, then the capture.
+  // No FK cascade, remove items first, then the capture.
   await supabase.from("site_capture_items").delete().eq("capture_id", id);
   const { error } = await supabase.from("site_captures").delete().eq("id", id);
   if (error) throw error;

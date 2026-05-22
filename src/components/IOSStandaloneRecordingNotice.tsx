@@ -22,7 +22,7 @@ export function IOSStandaloneRecordingNotice({ active }: { active: boolean }) {
 
   return (
     <p className="text-xs text-muted-foreground mt-2 text-center max-w-xs">
-      Keep Quottr open while recording — iOS pauses audio if you switch apps or lock the screen.
+      Keep Quottr open while recording, iOS pauses audio if you switch apps or lock the screen.
     </p>
   );
 }

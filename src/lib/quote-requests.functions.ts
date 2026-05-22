@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { notifyUser } from "@/lib/push.functions";
 
-// Public — fetch a pro's basic info from their id (used on the request page before auth)
+// Public, fetch a pro's basic info from their id (used on the request page before auth)
 export const getProPublicInfo = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ proId: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {

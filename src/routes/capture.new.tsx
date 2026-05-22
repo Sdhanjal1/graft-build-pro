@@ -89,7 +89,7 @@ function NewCapturePage() {
             onClick={() => start(false)}
             className="w-full text-center text-xs font-semibold text-paper/60 py-2 active:text-paper transition disabled:opacity-60"
           >
-            Skip — use date & time as title
+            Skip, use date & time as title
           </button>
         </form>
       </main>

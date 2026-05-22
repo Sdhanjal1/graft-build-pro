@@ -53,7 +53,7 @@ export function TrialBanner() {
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-red-900">Your trial has ended</p>
             <p className="text-red-800 mt-0.5">
-              Add a card to keep using Quottr — £29/month.
+              Add a card to keep using Quottr, £29/month.
             </p>
             <div className="mt-3 flex gap-2">
               <button
@@ -82,7 +82,7 @@ export function TrialBanner() {
               : `${trialDaysLeft} days left in trial`}
           </p>
           <p className="text-amber-800 mt-0.5">
-            Add a card now — you won't be charged until the trial ends.
+            Add a card now, you won't be charged until the trial ends.
           </p>
           <div className="mt-3">
             <button

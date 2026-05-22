@@ -9,7 +9,7 @@ export const Route = createFileRoute("/search")({
   component: SearchPage,
   head: () => ({
     meta: [
-      { title: "Search — Quottr" },
+      { title: "Search, Quottr" },
       { name: "description", content: "Search across clients, quotes and jobs." },
     ],
   }),
