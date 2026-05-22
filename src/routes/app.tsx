@@ -5,7 +5,7 @@ import {
   mockProfile, stats, formatGBP, getClient, mockClients,
   todaysJobs, formatTime, getQuote,
 } from "@/lib/mock-data";
-import { Mic, ArrowRight, Sparkles, UserPlus, MapPin, Phone, CreditCard } from "lucide-react";
+import { Mic, ArrowRight, Sparkles, UserPlus, MapPin, CreditCard } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
@@ -54,7 +54,6 @@ function AppHomePage() {
   const owedColor = s.outstanding > 0 ? "text-status-overdue" : "text-lime";
   const greeting = greetingFor();
   const clientCount = mockClients.length;
-  const lastClient = mockClients.find((c) => c.phone);
 
   return (
     <AppShell>
