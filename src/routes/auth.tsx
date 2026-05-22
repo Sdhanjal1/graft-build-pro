@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import logo from "@/assets/quottr-logo.png";
+
 import { signInWithPassword, signUpWithPassword, useSession } from "@/lib/auth";
 
 export const Route = createFileRoute("/auth")({
