@@ -1,11 +1,15 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
+import { TrialBanner } from "@/components/TrialBanner";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-paper">
-      <div className="mx-auto max-w-md min-h-screen pb-28">{children}</div>
+      <div className="mx-auto max-w-md min-h-screen pb-28">
+        <TrialBanner />
+        {children}
+      </div>
     </div>
   );
 }
