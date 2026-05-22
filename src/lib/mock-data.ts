@@ -98,21 +98,21 @@ export const DEFAULT_CHASE_TEMPLATES = {
     "Hi {name} — this is a final reminder regarding the outstanding invoice for {job} — {amount} now 21 days overdue. Please make payment today to avoid further action: {link}. {business}",
 };
 
-export const mockProfile = {
-  business_name: "Cosy Plumbing & Heating",
-  full_name: "Nav Dhanjal",
-  phone: "07700 900456",
-  email: "nav@cosyplumbing.co.uk",
+export const EMPTY_PROFILE = {
+  business_name: "",
+  full_name: "",
+  phone: "",
+  email: "",
   town: "",
-  trade_type: "Plumber / Heating Engineer",
-  registration_number: "Gas Safe 543219",
-  vat_number: "GB 234 5678 90",
-  vat_registered: true,
-  bank_account_name: "Cosy Plumbing & Heating",
-  bank_name: "Lloyds Bank",
-  sort_code: "12-34-56",
-  account_number: "12345678",
-  payment_reference_note: "Please use the quote reference (e.g. QTR-006) as the payment reference.",
+  trade_type: "",
+  registration_number: "",
+  vat_number: "",
+  vat_registered: false,
+  bank_account_name: "",
+  bank_name: "",
+  sort_code: "",
+  account_number: "",
+  payment_reference_note: "",
   stripe_publishable_key: "",
   stripe_secret_key: "",
   stripe_connected: false,
@@ -133,6 +133,8 @@ export const mockProfile = {
   // ---- Google reviews ----
   google_review_url: "",
 };
+
+export const mockProfile = { ...EMPTY_PROFILE };
 
 
 export const mockClients: Client[] = [];
