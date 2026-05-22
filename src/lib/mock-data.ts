@@ -191,7 +191,10 @@ const rowToQuote = (r: DbQuote): Quote => ({
 
 export async function hydrateUserData() {
   const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return;
+  if (!userData.user) {
+    clearUserData();
+    return;
+  }
   const [clientsRes, quotesRes, profileRes] = await Promise.all([
     supabase.from("clients").select("*").order("created_at", { ascending: false }),
     supabase.from("quotes").select("*").order("created_at", { ascending: false }),
@@ -201,34 +204,37 @@ export async function hydrateUserData() {
   (clientsRes.data ?? []).forEach((c) => mockClients.push(rowToClient(c as DbClient)));
   mockQuotes.length = 0;
   (quotesRes.data ?? []).forEach((q) => mockQuotes.push(rowToQuote(q as unknown as DbQuote)));
+  // Reset to empty defaults so the previous user's data (or seed defaults)
+  // never bleeds into a new session.
+  Object.assign(mockProfile, EMPTY_PROFILE, { chase_templates: { ...DEFAULT_CHASE_TEMPLATES } });
   const p = profileRes.data as Record<string, unknown> | null;
+  const asString = (v: unknown) => (typeof v === "string" ? v : "");
   if (p) {
-    const set = (k: keyof typeof mockProfile, v: unknown) => {
-      if (v !== null && v !== undefined && v !== "") (mockProfile as Record<string, unknown>)[k as string] = v;
-    };
-    set("business_name", p.business_name);
-    set("full_name", p.full_name);
-    set("phone", p.phone);
-    set("email", p.email ?? userData.user.email);
-    set("town", p.town);
-    set("trade_type", p.trade_type);
-    set("registration_number", p.registration_number);
-    set("vat_number", p.vat_number);
-    if (typeof p.vat_registered === "boolean") mockProfile.vat_registered = p.vat_registered;
-    set("bank_account_name", p.bank_account_name);
-    set("bank_name", p.bank_name);
-    set("sort_code", p.sort_code);
-    set("account_number", p.account_number);
-    set("payment_reference_note", p.payment_reference_note);
-    set("payment_terms", p.payment_terms);
-    set("stripe_publishable_key", p.stripe_publishable_key);
-    set("stripe_secret_key", p.stripe_secret_key);
+    mockProfile.business_name = asString(p.business_name);
+    mockProfile.full_name = asString(p.full_name);
+    mockProfile.phone = asString(p.phone);
+    mockProfile.email = asString(p.email) || userData.user.email || "";
+    mockProfile.town = asString(p.town);
+    mockProfile.trade_type = asString(p.trade_type);
+    mockProfile.registration_number = asString(p.registration_number);
+    mockProfile.vat_number = asString(p.vat_number);
+    mockProfile.vat_registered = !!p.vat_registered;
+    mockProfile.bank_account_name = asString(p.bank_account_name);
+    mockProfile.bank_name = asString(p.bank_name);
+    mockProfile.sort_code = asString(p.sort_code);
+    mockProfile.account_number = asString(p.account_number);
+    mockProfile.payment_reference_note = asString(p.payment_reference_note);
+    if (asString(p.payment_terms)) mockProfile.payment_terms = asString(p.payment_terms);
+    mockProfile.stripe_publishable_key = asString(p.stripe_publishable_key);
+    mockProfile.stripe_secret_key = asString(p.stripe_secret_key);
     mockProfile.stripe_connected = !!(p.stripe_publishable_key && p.stripe_secret_key);
-    set("logo_url", p.logo_url);
-    set("quote_intro", p.quote_intro);
-    set("quote_footer", p.quote_footer);
-    set("signature_name", p.signature_name);
+    mockProfile.logo_url = asString(p.logo_url);
+    mockProfile.quote_intro = asString(p.quote_intro);
+    mockProfile.quote_footer = asString(p.quote_footer);
+    mockProfile.signature_name = asString(p.signature_name);
     if (typeof p.show_signature === "boolean") mockProfile.show_signature = p.show_signature;
+  } else {
+    mockProfile.email = userData.user.email || "";
   }
   bumpVersion();
 }
