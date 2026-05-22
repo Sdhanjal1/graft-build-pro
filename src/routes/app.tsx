@@ -85,17 +85,6 @@ function AppHomePage() {
         <p className="text-xs text-muted-foreground">Speak the job — we'll do the rest</p>
         <RotatingPrompts className="mt-3 text-center px-4" />
 
-        {lastClient && (
-          <a
-            href={`tel:${lastClient.phone.replace(/\s/g, "")}`}
-            onClick={() => buzz(8)}
-            className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink text-paper px-4 py-2 text-xs font-semibold active:scale-[0.98] transition"
-          >
-            <Phone className="h-3.5 w-3.5 text-lime" />
-            Call {lastClient.name.split(" ")[0]}
-          </a>
-        )}
-
         <div className="mt-6 grid grid-cols-2 gap-2.5 w-full">
           <Link
             to="/clients/new"
