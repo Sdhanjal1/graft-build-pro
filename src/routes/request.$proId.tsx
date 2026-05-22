@@ -215,12 +215,14 @@ function VoiceRecorder({ onTranscript }: { onTranscript: (t: string) => void }) 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
-      const mr = new MediaRecorder(stream);
+      const candidates = ["audio/webm", "audio/mp4", "audio/ogg"];
+      const mimeType = candidates.find((t) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported?.(t));
+      const mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       chunksRef.current = [];
       mr.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType || mimeType || "audio/webm" });
         setProcessing(true);
         try {
           const buf = await blob.arrayBuffer();
@@ -240,6 +242,7 @@ function VoiceRecorder({ onTranscript }: { onTranscript: (t: string) => void }) 
       setErr(e instanceof Error ? e.message : "Microphone access denied");
     }
   };
+
 
   const stop = () => {
     mediaRef.current?.stop();
