@@ -262,6 +262,7 @@ function VoiceRecorder({ onTranscript }: { onTranscript: (t: string) => void }) 
       <p className="text-xs text-muted-foreground mt-3">
         {processing ? "Transcribing…" : recording ? "Tap to stop" : "Tap to record"}
       </p>
+      <IOSStandaloneRecordingNotice active={recording} />
       {err && <p className="text-xs text-status-overdue mt-2">{err}</p>}
     </div>
   );
