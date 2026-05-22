@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
+
 
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null);
@@ -41,6 +43,14 @@ export async function signUpWithPassword(email: string, password: string, fullNa
 export async function signOut() {
   await supabase.auth.signOut();
 }
+
+export async function signInWithGoogle() {
+  const result = await lovable.auth.signInWithOAuth("google", {
+    redirect_uri: `${window.location.origin}/welcome`,
+  });
+  if (result.error) throw new Error(result.error.message || "Google sign-in failed");
+}
+
 
 export async function currentUserId(): Promise<string> {
   const { data } = await supabase.auth.getUser();
