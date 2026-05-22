@@ -150,6 +150,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       router.navigate({ to: "/auth" });
     } else if (session) {
       void hydrateUserData();
+    } else {
+      // Signed out — clear cached user data so it doesn't bleed into the next session.
+      clearUserData();
     }
   }, [session, loading, isPublic, router]);
 
