@@ -67,7 +67,7 @@ export const listQuoteMessages = createServerFn({ method: "POST" })
 
 // ---------- Pro: send a message into the thread ----------
 export const sendProMessage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireActiveSubscription])
   .inputValidator((d: unknown) =>
     z.object({
       quoteId: z.string().min(1).max(120),
