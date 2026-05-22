@@ -81,10 +81,6 @@ function SettingsPage() {
     account_number: mockProfile.account_number,
     payment_reference_note: mockProfile.payment_reference_note,
   });
-  const [stripe, setStripe] = useState({
-    publishable: mockProfile.stripe_publishable_key,
-    secret: mockProfile.stripe_secret_key,
-  });
   const [terms, setTerms] = useState(mockProfile.payment_terms);
 
   // Debounced cloud-save
@@ -100,20 +96,16 @@ function SettingsPage() {
         sort_code: bank.sort_code,
         account_number: bank.account_number,
         payment_reference_note: bank.payment_reference_note,
-        stripe_publishable_key: stripe.publishable,
-        stripe_secret_key: stripe.secret,
-        stripe_connected: !!(stripe.publishable && stripe.secret),
         payment_terms: terms,
       });
     }, 600);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile, vatRegistered, bank, stripe, terms]);
+  }, [profile, vatRegistered, bank, terms]);
 
   const saveBank = (patch: Partial<typeof bank>) => setBank((b) => ({ ...b, ...patch }));
-  const saveStripe = (patch: Partial<typeof stripe>) => setStripe((s) => ({ ...s, ...patch }));
 
-  const stripeConnected = !!(stripe.publishable && stripe.secret);
+  const stripeConnected = !!mockProfile.stripe_connected;
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
