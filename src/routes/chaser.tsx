@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
-  mockQuotes, getClient, mockProfile, formatGBP, buildChaserMessage,
+  mockQuotes, getClient, userProfile, formatGBP, buildChaserMessage,
   buildChaseMessageForOffset, chasesDueNow, upcomingChases, markChaseSent, skipChase,
   waLink,
-} from "@/lib/mock-data";
+} from "@/lib/user-data";
 import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, PartyPopper } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { feedback } from "@/lib/feedback";
@@ -130,7 +130,7 @@ function ChaserPage() {
           const chase = encodeURIComponent(buildChaserMessage(q, firstName));
           const digits = c?.phone.replace(/\D/g, "");
           const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${chase}`;
-          const subject = encodeURIComponent(`Overdue invoice ${q.ref}, ${mockProfile.business_name}`);
+          const subject = encodeURIComponent(`Overdue invoice ${q.ref}, ${userProfile.business_name}`);
           const mail = `mailto:${c?.email}?subject=${subject}&body=${chase}`;
           const days = daysOverdue(q.due_date);
           return (

@@ -5,7 +5,7 @@ import { ensurePortalToken } from "@/lib/messages.functions";
 import { getPortalCodeForQuote } from "@/lib/portal.functions";
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
-import { buildQuoteWhatsAppMessage, getQuote, waLink } from "@/lib/mock-data";
+import { buildQuoteWhatsAppMessage, getQuote, waLink } from "@/lib/user-data";
 
 type Props = {
   open: boolean;

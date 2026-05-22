@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { mockClients, quotesForClient, formatGBP } from "@/lib/mock-data";
+import { userClients, quotesForClient, formatGBP } from "@/lib/user-data";
 import { Search, Phone, ArrowRight, UserPlus, Users, Inbox } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useState } from "react";
@@ -11,7 +11,7 @@ export const Route = createFileRoute("/clients/")({
 
 function ClientsPage() {
   const [q, setQ] = useState("");
-  const filtered = mockClients.filter(
+  const filtered = userClients.filter(
     (c) =>
       c.name.toLowerCase().includes(q.toLowerCase()) ||
       c.address.toLowerCase().includes(q.toLowerCase()),
@@ -48,7 +48,7 @@ function ClientsPage() {
 
       <div className="px-5 mt-4 space-y-2.5">
         {filtered.length === 0 && (
-          mockClients.length === 0 ? (
+          userClients.length === 0 ? (
             <EmptyState
               icon={Users}
               title="No clients yet"

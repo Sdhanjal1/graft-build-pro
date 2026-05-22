@@ -1,11 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireActiveSubscription } from "@/lib/require-active-subscription";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // ---------- Pro: create/get portal token for a quote ----------
 export const ensurePortalToken = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireActiveSubscription])
   .inputValidator((d: unknown) =>
     z.object({
       quoteId: z.string().min(1).max(120),
@@ -66,7 +67,7 @@ export const listQuoteMessages = createServerFn({ method: "POST" })
 
 // ---------- Pro: send a message into the thread ----------
 export const sendProMessage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireActiveSubscription])
   .inputValidator((d: unknown) =>
     z.object({
       quoteId: z.string().min(1).max(120),

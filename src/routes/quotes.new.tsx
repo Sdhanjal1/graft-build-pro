@@ -4,13 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   TRADE_TYPES,
-  mockProfile,
-  mockClients,
+  userProfile,
+  userClients,
   saveGeneratedQuote,
   formatGBP,
   QUOTE_TEMPLATES,
   type LineItem,
-} from "@/lib/mock-data";
+} from "@/lib/user-data";
 import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
@@ -95,17 +95,17 @@ function NewQuotePage() {
   const navigate = useNavigate();
   const { voice: voiceParam } = Route.useSearch();
   const [desc, setDesc] = useState("");
-  const [trade, setTrade] = useState(mockProfile.trade_type);
-  const [vat, setVat] = useState(mockProfile.vat_registered);
+  const [trade, setTrade] = useState(userProfile.trade_type);
+  const [vat, setVat] = useState(userProfile.vat_registered);
   const [clientName, setClientName] = useState("");
   const [clientOpen, setClientOpen] = useState(false);
   const clientMatches = (() => {
     const q = clientName.trim().toLowerCase();
     const list = q
-      ? mockClients.filter((c) =>
+      ? userClients.filter((c) =>
           `${c.name} ${c.address}`.toLowerCase().includes(q) && c.name.toLowerCase() !== q,
         )
-      : mockClients;
+      : userClients;
     return list.slice(0, 6);
   })();
   const [recording, setRecording] = useState(false);
@@ -559,9 +559,9 @@ function NewQuotePage() {
           <div className="card-surface overflow-hidden">
             <div className="bg-ink text-paper p-4">
               <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
-              <p className="font-bold mt-0.5">{mockProfile.business_name}</p>
+              <p className="font-bold mt-0.5">{userProfile.business_name}</p>
               <p className="text-[10px] text-paper/60">
-                {mockProfile.registration_number} · VAT {mockProfile.vat_number}
+                {userProfile.registration_number} · VAT {userProfile.vat_number}
               </p>
               <input
                 value={draft.title}

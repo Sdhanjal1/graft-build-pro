@@ -17,7 +17,7 @@ import {
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { extractJobsFromTranscript } from "@/lib/extract-jobs.functions";
 import { generateCaptureQuote } from "@/lib/ai-capture-quote.functions";
-import { saveGeneratedQuote, TRADE_TYPES, mockProfile } from "@/lib/mock-data";
+import { saveGeneratedQuote, TRADE_TYPES, userProfile } from "@/lib/user-data";
 import { feedback } from "@/lib/feedback";
 import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordingNotice";
 
@@ -258,7 +258,7 @@ function SiteCapturePage() {
       const draft = await generateFn({
         data: {
           items: items.map((i) => i.description),
-          trade: capture.trade_type || mockProfile.trade_type,
+          trade: capture.trade_type || userProfile.trade_type,
           vatRegistered: capture.vat_registered,
           customerName: capture.customer_name ?? undefined,
           address: capture.address ?? undefined,
@@ -584,7 +584,7 @@ function SiteCapturePage() {
                     Trade type
                   </label>
                   <select
-                    value={capture.trade_type ?? mockProfile.trade_type}
+                    value={capture.trade_type ?? userProfile.trade_type}
                     onChange={(e) => updateField({ trade_type: e.target.value })}
                     className="mt-1 w-full bg-transparent outline-none text-sm font-medium"
                   >

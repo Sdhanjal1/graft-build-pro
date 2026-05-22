@@ -5,9 +5,9 @@ import {
   mockJobs, getQuote, getClient, jobsForDay, jobsForRange,
   setJobStatus, toggleMaterial, setAnnualReminder, estimateTravelMinutes,
   formatTime, formatDayLabel, formatGBP,
-  buildReviewRequestMessage, markReviewRequested, waLink, mockProfile,
+  buildReviewRequestMessage, markReviewRequested, waLink, userProfile,
   type ScheduledJob, type JobStatus,
-} from "@/lib/mock-data";
+} from "@/lib/user-data";
 import {
   ChevronLeft, ChevronRight, MessageCircle, Phone, Mail,
   Play, CheckCircle2, Bell, Hammer, Car, MapPin, Package, Check, CalendarOff, Star,
@@ -492,7 +492,7 @@ function CompletePrompt({
     const text = buildReviewRequestMessage(first);
     window.open(waLink(c.phone, text), "_blank");
     markReviewRequested(c.id);
-    if (!mockProfile.google_review_url) {
+    if (!userProfile.google_review_url) {
       toast.info("Add your Google review link in Settings for a one-tap link");
     } else {
       toast.success(`Review request sent to ${first}`);

@@ -2,9 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
 import {
-  mockProfile, stats, formatGBP, getClient, mockClients,
+  userProfile, stats, formatGBP, getClient, userClients,
   todaysJobs, formatTime, getQuote,
-} from "@/lib/mock-data";
+} from "@/lib/user-data";
 import { Mic, ArrowRight, Sparkles, UserPlus, MapPin, CreditCard } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
@@ -50,11 +50,11 @@ function AppHomePage() {
 
   const s = stats();
   const today = todaysJobs();
-  const firstName = mockProfile.full_name.split(" ")[0] || "there";
-  const businessName = mockProfile.business_name || "Finish setting up your profile";
+  const firstName = userProfile.full_name.split(" ")[0] || "there";
+  const businessName = userProfile.business_name || "Finish setting up your profile";
   const owedColor = s.outstanding > 0 ? "text-status-overdue" : "text-lime";
   const greeting = greetingFor();
-  const clientCount = mockClients.length;
+  const clientCount = userClients.length;
 
   return (
     <AppShell>
@@ -67,7 +67,7 @@ function AppHomePage() {
           {greeting}
         </p>
         <h1 className="text-3xl leading-none mt-1 text-paper">{firstName}</h1>
-        {mockProfile.business_name ? (
+        {userProfile.business_name ? (
           <p className="mt-1.5 text-sm text-paper/60">{businessName}</p>
         ) : (
           <Link to="/settings" className="mt-1.5 text-sm text-lime underline-offset-2 hover:underline">

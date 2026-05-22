@@ -132,10 +132,10 @@ export const EMPTY_PROFILE = {
   google_review_url: "",
 };
 
-export const mockProfile = { ...EMPTY_PROFILE };
+export const userProfile = { ...EMPTY_PROFILE };
 
 
-export const mockClients: Client[] = [];
+export const userClients: Client[] = [];
 
 // ---------- Reactive version (bumps re-render of consumers after async writes) ----------
 let _dataVersion = 0;
@@ -198,70 +198,70 @@ export async function hydrateUserData() {
     supabase.from("quotes").select("*").order("created_at", { ascending: false }),
     supabase.from("profiles").select("*").eq("id", userData.user.id).maybeSingle(),
   ]);
-  mockClients.length = 0;
-  (clientsRes.data ?? []).forEach((c) => mockClients.push(rowToClient(c as DbClient)));
+  userClients.length = 0;
+  (clientsRes.data ?? []).forEach((c) => userClients.push(rowToClient(c as DbClient)));
   mockQuotes.length = 0;
   (quotesRes.data ?? []).forEach((q) => mockQuotes.push(rowToQuote(q as unknown as DbQuote)));
   // Reset to empty defaults so the previous user's data (or seed defaults)
   // never bleeds into a new session.
-  Object.assign(mockProfile, EMPTY_PROFILE, { chase_templates: { ...DEFAULT_CHASE_TEMPLATES } });
+  Object.assign(userProfile, EMPTY_PROFILE, { chase_templates: { ...DEFAULT_CHASE_TEMPLATES } });
   const p = profileRes.data as Record<string, unknown> | null;
   const asString = (v: unknown) => (typeof v === "string" ? v : "");
   if (p) {
-    mockProfile.business_name = asString(p.business_name);
-    mockProfile.full_name = asString(p.full_name);
-    mockProfile.phone = asString(p.phone);
-    mockProfile.email = asString(p.email) || userData.user.email || "";
-    mockProfile.town = asString(p.town);
-    mockProfile.trade_type = asString(p.trade_type);
-    mockProfile.registration_number = asString(p.registration_number);
-    mockProfile.vat_number = asString(p.vat_number);
-    mockProfile.vat_registered = !!p.vat_registered;
-    mockProfile.bank_account_name = asString(p.bank_account_name);
-    mockProfile.bank_name = asString(p.bank_name);
-    mockProfile.sort_code = asString(p.sort_code);
-    mockProfile.account_number = asString(p.account_number);
-    mockProfile.payment_reference_note = asString(p.payment_reference_note);
-    if (asString(p.payment_terms)) mockProfile.payment_terms = asString(p.payment_terms);
-    mockProfile.stripe_connected = !!(p.stripe_connect_charges_enabled);
-    mockProfile.logo_url = asString(p.logo_url);
-    mockProfile.quote_intro = asString(p.quote_intro);
-    mockProfile.quote_footer = asString(p.quote_footer);
-    mockProfile.signature_name = asString(p.signature_name);
-    if (typeof p.show_signature === "boolean") mockProfile.show_signature = p.show_signature;
+    userProfile.business_name = asString(p.business_name);
+    userProfile.full_name = asString(p.full_name);
+    userProfile.phone = asString(p.phone);
+    userProfile.email = asString(p.email) || userData.user.email || "";
+    userProfile.town = asString(p.town);
+    userProfile.trade_type = asString(p.trade_type);
+    userProfile.registration_number = asString(p.registration_number);
+    userProfile.vat_number = asString(p.vat_number);
+    userProfile.vat_registered = !!p.vat_registered;
+    userProfile.bank_account_name = asString(p.bank_account_name);
+    userProfile.bank_name = asString(p.bank_name);
+    userProfile.sort_code = asString(p.sort_code);
+    userProfile.account_number = asString(p.account_number);
+    userProfile.payment_reference_note = asString(p.payment_reference_note);
+    if (asString(p.payment_terms)) userProfile.payment_terms = asString(p.payment_terms);
+    userProfile.stripe_connected = !!(p.stripe_connect_charges_enabled);
+    userProfile.logo_url = asString(p.logo_url);
+    userProfile.quote_intro = asString(p.quote_intro);
+    userProfile.quote_footer = asString(p.quote_footer);
+    userProfile.signature_name = asString(p.signature_name);
+    if (typeof p.show_signature === "boolean") userProfile.show_signature = p.show_signature;
   } else {
-    mockProfile.email = userData.user.email || "";
+    userProfile.email = userData.user.email || "";
   }
   bumpVersion();
 }
 
-/** Persist current `mockProfile` fields to Supabase (upsert by user id). */
-export async function saveProfileToCloud(patch: Partial<typeof mockProfile>) {
-  Object.assign(mockProfile, patch);
+/** Persist current `userProfile` fields to Supabase (upsert by user id). */
+export async function saveProfileToCloud(patch: Partial<typeof userProfile>) {
+  Object.assign(userProfile, patch);
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return;
   const row = {
     id: userData.user.id,
-    business_name: mockProfile.business_name || null,
-    full_name: mockProfile.full_name || null,
-    phone: mockProfile.phone || null,
-    email: mockProfile.email || null,
-    town: mockProfile.town || null,
-    trade_type: mockProfile.trade_type || null,
-    registration_number: mockProfile.registration_number || null,
-    vat_number: mockProfile.vat_number || null,
-    vat_registered: mockProfile.vat_registered,
-    bank_account_name: mockProfile.bank_account_name || null,
-    bank_name: mockProfile.bank_name || null,
-    sort_code: mockProfile.sort_code || null,
-    account_number: mockProfile.account_number || null,
-    payment_reference_note: mockProfile.payment_reference_note || null,
-    payment_terms: mockProfile.payment_terms || null,
-    logo_url: mockProfile.logo_url || null,
-    quote_intro: mockProfile.quote_intro || null,
-    quote_footer: mockProfile.quote_footer || null,
-    signature_name: mockProfile.signature_name || null,
-    show_signature: mockProfile.show_signature,
+    business_name: userProfile.business_name || null,
+    full_name: userProfile.full_name || null,
+    phone: userProfile.phone || null,
+    email: userProfile.email || null,
+    town: userProfile.town || null,
+    trade_type: userProfile.trade_type || null,
+    registration_number: userProfile.registration_number || null,
+    vat_number: userProfile.vat_number || null,
+    vat_registered: userProfile.vat_registered,
+    bank_account_name: userProfile.bank_account_name || null,
+    bank_name: userProfile.bank_name || null,
+    sort_code: userProfile.sort_code || null,
+    account_number: userProfile.account_number || null,
+    payment_reference_note: userProfile.payment_reference_note || null,
+    payment_terms: userProfile.payment_terms || null,
+    logo_url: userProfile.logo_url || null,
+    quote_intro: userProfile.quote_intro || null,
+    quote_footer: userProfile.quote_footer || null,
+    signature_name: userProfile.signature_name || null,
+    show_signature: userProfile.show_signature,
   };
   const { error } = await supabase.from("profiles").upsert(row, { onConflict: "id" });
   if (error) console.error("[profile] save failed", error);
@@ -269,11 +269,11 @@ export async function saveProfileToCloud(patch: Partial<typeof mockProfile>) {
 }
 
 export function clearUserData() {
-  mockClients.length = 0;
+  userClients.length = 0;
   mockQuotes.length = 0;
   mockJobs.length = 0;
   mockChases.length = 0;
-  Object.assign(mockProfile, EMPTY_PROFILE, { chase_templates: { ...DEFAULT_CHASE_TEMPLATES } });
+  Object.assign(userProfile, EMPTY_PROFILE, { chase_templates: { ...DEFAULT_CHASE_TEMPLATES } });
   bumpVersion();
 }
 
@@ -338,7 +338,7 @@ export const QUOTE_TEMPLATES: Record<string, { label: string; prompt: string }[]
   ],
 };
 
-export const getClient = (id: string) => mockClients.find((c) => c.id === id);
+export const getClient = (id: string) => userClients.find((c) => c.id === id);
 export const getQuote = (id: string) => mockQuotes.find((q) => q.id === id);
 export const quotesForClient = (id: string) => mockQuotes.filter((q) => q.client_id === id);
 
@@ -390,14 +390,14 @@ export const buildPaymentRequestMessage = (
   clientFirstName: string,
 ) => {
   return [
-    `Hi ${clientFirstName}, please find your invoice ${quote.ref} from ${mockProfile.business_name}.`,
+    `Hi ${clientFirstName}, please find your invoice ${quote.ref} from ${userProfile.business_name}.`,
     "",
     `To pay your ${pr.label} of ${formatGBP(pr.amount)} securely by card tap here:`,
     pr.link,
     "",
-    `Payment terms: ${mockProfile.payment_terms}`,
+    `Payment terms: ${userProfile.payment_terms}`,
     "",
-    `Thanks, ${mockProfile.full_name.split(" ")[0]}, ${mockProfile.business_name}`,
+    `Thanks, ${userProfile.full_name.split(" ")[0]}, ${userProfile.business_name}`,
     "",
     "Sent via Quottr.",
   ].join("\n");
@@ -408,7 +408,7 @@ export const buildInvoiceMessage = (quote: Quote, clientFirstName: string) => {
     return buildPaymentRequestMessage(quote, quote.payment_request, clientFirstName);
   }
   const lines: string[] = [
-    `Hi ${clientFirstName}, here's your invoice ${quote.ref} from ${mockProfile.business_name} for "${quote.title}", total ${formatGBP(quote.total)}.`,
+    `Hi ${clientFirstName}, here's your invoice ${quote.ref} from ${userProfile.business_name} for "${quote.title}", total ${formatGBP(quote.total)}.`,
     "",
   ];
   if (quote.payment_method === "card") {
@@ -416,10 +416,10 @@ export const buildInvoiceMessage = (quote: Quote, clientFirstName: string) => {
   } else if (quote.payment_method === "bank") {
     lines.push(
       "Pay by bank transfer:",
-      `  Account name: ${mockProfile.bank_account_name}`,
-      `  Bank: ${mockProfile.bank_name}`,
-      `  Sort code: ${mockProfile.sort_code}`,
-      `  Account number: ${mockProfile.account_number}`,
+      `  Account name: ${userProfile.bank_account_name}`,
+      `  Bank: ${userProfile.bank_name}`,
+      `  Sort code: ${userProfile.sort_code}`,
+      `  Account number: ${userProfile.account_number}`,
       `  Reference: ${quote.ref}`,
     );
   } else if (quote.payment_method === "cash") {
@@ -427,9 +427,9 @@ export const buildInvoiceMessage = (quote: Quote, clientFirstName: string) => {
   }
   lines.push(
     "",
-    `Payment terms: ${mockProfile.payment_terms}`,
+    `Payment terms: ${userProfile.payment_terms}`,
     "",
-    `Thanks, ${mockProfile.full_name.split(" ")[0]}, ${mockProfile.business_name}`,
+    `Thanks, ${userProfile.full_name.split(" ")[0]}, ${userProfile.business_name}`,
     "",
     "Sent via Quottr.",
   );
@@ -439,9 +439,9 @@ export const buildInvoiceMessage = (quote: Quote, clientFirstName: string) => {
 /** Standard chaser copy used by /chaser */
 export const buildChaserMessage = (quote: Quote, clientFirstName: string) =>
   [
-    `Hi ${clientFirstName}, I hope you're well. Just following up on invoice ${quote.ref} from ${mockProfile.business_name} for ${formatGBP(quote.total)}.`,
+    `Hi ${clientFirstName}, I hope you're well. Just following up on invoice ${quote.ref} from ${userProfile.business_name} for ${formatGBP(quote.total)}.`,
     "Could you let me know when payment will be made?",
-    `Many thanks, ${mockProfile.full_name.split(" ")[0]}`,
+    `Many thanks, ${userProfile.full_name.split(" ")[0]}`,
     "",
     "Sent via Quottr.",
   ].join("\n");
@@ -474,7 +474,7 @@ export const stats = () => {
   const bestJob = topJobs[0];
   return {
     totalQuoted,
-    clientCount: mockClients.length,
+    clientCount: userClients.length,
     quoteCount: mockQuotes.length,
     overdueCount: overdue.length,
     overdueAmount,
@@ -619,7 +619,7 @@ export const findOrCreateClient = async (
   opts?: Partial<Client>,
 ): Promise<Client> => {
   const trimmed = name.trim() || "New client";
-  const existing = mockClients.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
+  const existing = userClients.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
   if (existing) return existing;
   const user_id = await requireUserId();
   const insertPayload = {
@@ -638,7 +638,7 @@ export const findOrCreateClient = async (
     .single();
   if (error) throw error;
   const client = rowToClient(data as DbClient);
-  mockClients.unshift(client);
+  userClients.unshift(client);
   bumpVersion();
   return client;
 };
@@ -696,7 +696,7 @@ export const saveGeneratedQuote = async (input: {
 
 /** Card processing fee helper, used in the payment summary. */
 export const calcCardFee = (amount: number) => {
-  const pct = mockProfile.card_fee_pct;
+  const pct = userProfile.card_fee_pct;
   const fee = +(amount * (pct / 100)).toFixed(2);
   return { pct, fee, net: +(amount - fee).toFixed(2) };
 };
@@ -752,9 +752,9 @@ export const mockChases: ScheduledChase[] = [];
 /** Ensure chases exist for an overdue/accepted invoice, honouring per-invoice + profile toggles. */
 export const ensureChasesFor = (quote: Quote) => {
   if (!quote.due_date) return;
-  const enabled = quote.auto_chase_enabled ?? mockProfile.auto_chase_enabled;
+  const enabled = quote.auto_chase_enabled ?? userProfile.auto_chase_enabled;
   if (!enabled) return;
-  const offsets = (mockProfile.chase_offsets?.length ? mockProfile.chase_offsets : [7, 14, 21]);
+  const offsets = (userProfile.chase_offsets?.length ? userProfile.chase_offsets : [7, 14, 21]);
   const dueMs = new Date(quote.due_date).getTime();
   offsets.forEach((d) => {
     const exists = mockChases.find((c) => c.quote_id === quote.id && c.day_offset === d);
@@ -795,7 +795,7 @@ export const chasesForQuote = (quoteId: string) =>
 /** Chases due now (scheduled and past due_at). Auto-stamps auto_send_at on first sight. */
 export const chasesDueNow = () => {
   const now = Date.now();
-  const windowMs = (mockProfile.chase_auto_send_after_hours ?? 4) * 3600 * 1000;
+  const windowMs = (userProfile.chase_auto_send_after_hours ?? 4) * 3600 * 1000;
   const due = mockChases
     .filter((c) => c.status === "scheduled" && new Date(c.due_at).getTime() <= now)
     .map((c) => ({ chase: c, quote: getQuote(c.quote_id) }))
@@ -826,21 +826,21 @@ export const buildChaseMessageForOffset = (
   clientFirstName: string,
   offset: number,
 ) => {
-  const offsets = mockProfile.chase_offsets ?? [7, 14, 21];
-  const t = mockProfile.chase_templates ?? DEFAULT_CHASE_TEMPLATES;
+  const offsets = userProfile.chase_offsets ?? [7, 14, 21];
+  const t = userProfile.chase_templates ?? DEFAULT_CHASE_TEMPLATES;
   const tpl =
     offset === offsets[0] ? t.first
     : offset === offsets[1] ? t.second
     : t.final;
   const link = quote.payment_request?.link ?? stripePaymentLink(quote);
-  const bank = `${mockProfile.bank_account_name} · sort ${mockProfile.sort_code} · ${mockProfile.account_number}`;
+  const bank = `${userProfile.bank_account_name} · sort ${userProfile.sort_code} · ${userProfile.account_number}`;
   return tpl
     .replaceAll("{name}", clientFirstName)
     .replaceAll("{job}", quote.title)
     .replaceAll("{amount}", formatGBP(quote.total))
     .replaceAll("{link}", link)
     .replaceAll("{bank}", bank)
-    .replaceAll("{business}", mockProfile.business_name);
+    .replaceAll("{business}", userProfile.business_name);
 };
 
 
@@ -883,30 +883,30 @@ export const buildQuoteWhatsAppMessage = (
   const first = client?.name?.split(" ")[0] ?? "there";
   return [
     `Hi ${first} 👋`,
-    `Your quote from ${mockProfile.business_name} is ready.`,
-    `Total: ${formatGBP(quote.total)}${mockProfile.vat_registered ? " inc VAT" : ""}`,
+    `Your quote from ${userProfile.business_name} is ready.`,
+    `Total: ${formatGBP(quote.total)}${userProfile.vat_registered ? " inc VAT" : ""}`,
     "",
     `View, approve and pay your deposit here:`,
     portalUrl,
     "",
     `Quote valid for 30 days. Any questions just reply.`,
-    `${mockProfile.business_name} · ${mockProfile.phone}`,
+    `${userProfile.business_name} · ${userProfile.phone}`,
   ].join("\n");
 };
 
 // ---------- Google review request ----------
 
 export const buildReviewRequestMessage = (clientFirstName: string) => {
-  const url = mockProfile.google_review_url || "[paste your Google review link in Settings]";
+  const url = userProfile.google_review_url || "[paste your Google review link in Settings]";
   return [
-    `Hi ${clientFirstName}, thank you for choosing ${mockProfile.business_name}.`,
+    `Hi ${clientFirstName}, thank you for choosing ${userProfile.business_name}.`,
     `We really hope you were happy with the work.`,
     "",
     `If you have a moment it would mean the world if you left us a quick Google review, it helps other homeowners find us:`,
     url,
     "",
     `Takes 30 seconds and makes a huge difference. Thank you 🙏`,
-    mockProfile.business_name,
+    userProfile.business_name,
   ].join("\n");
 };
 
@@ -965,7 +965,7 @@ export const buildFinalInvoiceMessage = (quote: Quote, clientFirstName: string) 
   const ref = invoiceRef(quote);
   const due = quote.invoice_due_date ?? "";
   const lines = [
-    `Hi ${clientFirstName}, please find your INVOICE ${ref} from ${mockProfile.business_name}.`,
+    `Hi ${clientFirstName}, please find your INVOICE ${ref} from ${userProfile.business_name}.`,
     "",
     `Job: ${quote.title}`,
     `Amount due: ${formatGBP(quote.total)}`,
@@ -979,13 +979,13 @@ export const buildFinalInvoiceMessage = (quote: Quote, clientFirstName: string) 
   }
   lines.push(
     `Or by bank transfer:`,
-    `  ${mockProfile.bank_account_name}`,
-    `  ${mockProfile.bank_name} · sort ${mockProfile.sort_code} · ${mockProfile.account_number}`,
+    `  ${userProfile.bank_account_name}`,
+    `  ${userProfile.bank_name} · sort ${userProfile.sort_code} · ${userProfile.account_number}`,
     `  Reference: ${ref}`,
     "",
-    `${mockProfile.payment_terms}`,
+    `${userProfile.payment_terms}`,
     "",
-    `Thanks, ${mockProfile.full_name.split(" ")[0]}, ${mockProfile.business_name}`,
+    `Thanks, ${userProfile.full_name.split(" ")[0]}, ${userProfile.business_name}`,
     "",
     "Sent via Quottr.",
   );
@@ -1000,7 +1000,7 @@ export const buildDepositOnAcceptMessage = (quote: Quote, clientFirstName: strin
   const link = stripePaymentLink(quote, amount);
   const method = quote.payment_method ?? "card";
   const lines = [
-    `Hi ${clientFirstName}, thanks for accepting your quote ${quote.ref} from ${mockProfile.business_name}!`,
+    `Hi ${clientFirstName}, thanks for accepting your quote ${quote.ref} from ${userProfile.business_name}!`,
     "",
     `To get you booked in, please pay a 50% deposit of ${formatGBP(amount)}.`,
     "",
@@ -1010,8 +1010,8 @@ export const buildDepositOnAcceptMessage = (quote: Quote, clientFirstName: strin
   } else if (method === "bank") {
     lines.push(
       "Bank transfer:",
-      `  ${mockProfile.bank_account_name}`,
-      `  ${mockProfile.bank_name} · sort ${mockProfile.sort_code} · ${mockProfile.account_number}`,
+      `  ${userProfile.bank_account_name}`,
+      `  ${userProfile.bank_name} · sort ${userProfile.sort_code} · ${userProfile.account_number}`,
       `  Reference: ${quote.ref}`,
     );
   } else {
@@ -1021,7 +1021,7 @@ export const buildDepositOnAcceptMessage = (quote: Quote, clientFirstName: strin
     "",
     `Once received I'll confirm your booking date. Any questions just shout.`,
     "",
-    `Thanks, ${mockProfile.full_name.split(" ")[0]}`,
+    `Thanks, ${userProfile.full_name.split(" ")[0]}`,
     "",
     "Sent via Quottr.",
   );
@@ -1047,12 +1047,12 @@ export const annualRemindersDue = (withinDays = 30) => {
 
 export const buildAnnualReminderMessage = (clientFirstName: string) => {
   return [
-    `Hi ${clientFirstName}, it's ${mockProfile.full_name.split(" ")[0]} from ${mockProfile.business_name}.`,
+    `Hi ${clientFirstName}, it's ${userProfile.full_name.split(" ")[0]} from ${userProfile.business_name}.`,
     "",
     "Your annual boiler service is due next month. Would you like to book in?",
     "Just reply YES and I'll get you booked.",
     "",
-    `Many thanks, ${mockProfile.full_name.split(" ")[0]}`,
+    `Many thanks, ${userProfile.full_name.split(" ")[0]}`,
     "",
     "Sent via Quottr.",
   ].join("\n");
@@ -1067,7 +1067,7 @@ export const globalSearch = (query: string): SearchResult[] => {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   const results: SearchResult[] = [];
-  mockClients.forEach((c) => {
+  userClients.forEach((c) => {
     const blob = `${c.name} ${c.address} ${c.phone} ${c.email}`.toLowerCase();
     if (blob.includes(q)) results.push({ kind: "client", id: c.id, title: c.name, subtitle: c.address });
   });

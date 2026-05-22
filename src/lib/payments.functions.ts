@@ -80,6 +80,11 @@ export const createInvoiceCheckout = createServerFn({ method: "POST" })
     if (connectAccountId) {
       // Direct charge on the connected account.
       headers["Stripe-Account"] = connectAccountId;
+      // Quottr platform fee: 0.5% of the transaction, min 50p, max £25.
+      // Only applied when routing to a connected account, so funds still
+      // go to the pro and Quottr keeps the small platform cut.
+      const feeAmount = Math.max(50, Math.min(2500, Math.round(amountCents * 0.005)));
+      params["payment_intent_data[application_fee_amount]"] = feeAmount;
     }
 
     const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {

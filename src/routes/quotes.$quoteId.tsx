@@ -4,13 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
-  getQuote, getClient, mockProfile, formatGBP,
+  getQuote, getClient, userProfile, formatGBP,
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   scheduleJob, getJobByQuote, formatDayLabel, formatTime,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   setQuoteStatus,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
-} from "@/lib/mock-data";
+} from "@/lib/user-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
 import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
@@ -242,10 +242,10 @@ function QuoteDetail() {
   return (
     <AppShell>
       <div className="bg-ink text-paper px-5 pt-6 pb-5 flex items-center gap-3">
-        <BusinessLogo logoUrl={mockProfile.logo_url} businessName={mockProfile.business_name} size="md" />
+        <BusinessLogo logoUrl={userProfile.logo_url} businessName={userProfile.business_name} size="md" />
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-paper truncate">{mockProfile.business_name}</p>
-          <p className="text-[10px] text-paper/60 truncate">{mockProfile.registration_number} · VAT {mockProfile.vat_number}</p>
+          <p className="text-xs font-semibold text-paper truncate">{userProfile.business_name}</p>
+          <p className="text-[10px] text-paper/60 truncate">{userProfile.registration_number} · VAT {userProfile.vat_number}</p>
         </div>
         <QuottrLogo className="h-5 w-auto opacity-60" />
       </div>
@@ -273,10 +273,10 @@ function QuoteDetail() {
         </section>
       )}
 
-      {mockProfile.quote_intro && (
+      {userProfile.quote_intro && (
         <section className="px-5 mt-4">
           <div className="card-surface p-5">
-            <p className="text-sm leading-relaxed italic text-muted-foreground">{mockProfile.quote_intro}</p>
+            <p className="text-sm leading-relaxed italic text-muted-foreground">{userProfile.quote_intro}</p>
           </div>
         </section>
       )}
@@ -306,7 +306,7 @@ function QuoteDetail() {
           </ul>
           <div className="px-5 py-4 border-t border-border bg-secondary/40 space-y-1.5">
             <Row label="Subtotal" value={formatGBP(quote.subtotal)} />
-            {mockProfile.vat_registered && <Row label="VAT (20%)" value={formatGBP(quote.vat_amount)} />}
+            {userProfile.vat_registered && <Row label="VAT (20%)" value={formatGBP(quote.vat_amount)} />}
             <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
               <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
               <span className="num text-3xl text-ink">{formatGBP(quote.total)}</span>
@@ -315,19 +315,19 @@ function QuoteDetail() {
         </div>
       </section>
 
-      {(mockProfile.quote_footer || (mockProfile.show_signature && (mockProfile.signature_name || mockProfile.full_name))) && (
+      {(userProfile.quote_footer || (userProfile.show_signature && (userProfile.signature_name || userProfile.full_name))) && (
         <section className="px-5 mt-3">
           <div className="px-1 space-y-2">
-            {mockProfile.quote_footer && (
-              <p className="text-[11px] text-muted-foreground leading-relaxed">{mockProfile.quote_footer}</p>
+            {userProfile.quote_footer && (
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{userProfile.quote_footer}</p>
             )}
-            {mockProfile.show_signature && (mockProfile.signature_name || mockProfile.full_name) && (
+            {userProfile.show_signature && (userProfile.signature_name || userProfile.full_name) && (
               <p className="text-[11px] text-muted-foreground">
                 Signed{" "}
                 <span className="text-sm text-ink" style={{ fontFamily: "'Caveat', 'Bradley Hand', cursive" }}>
-                  {mockProfile.signature_name || mockProfile.full_name}
+                  {userProfile.signature_name || userProfile.full_name}
                 </span>
-                {" · "}{mockProfile.business_name}
+                {" · "}{userProfile.business_name}
               </p>
             )}
           </div>
@@ -342,12 +342,12 @@ function QuoteDetail() {
           <MethodOption
             active={method === "card"} onClick={() => setMethod("card")}
             icon={CreditCard} label="Pay by card online"
-            sub={mockProfile.stripe_connected ? "Stripe link auto-included" : "Stripe (test link), connect Stripe in Settings to go live"}
+            sub={userProfile.stripe_connected ? "Stripe link auto-included" : "Stripe (test link), connect Stripe in Settings to go live"}
           />
           <MethodOption
             active={method === "bank"} onClick={() => setMethod("bank")}
             icon={Landmark} label="Pay by bank transfer"
-            sub={`${mockProfile.bank_name} · sort ${mockProfile.sort_code}`}
+            sub={`${userProfile.bank_name} · sort ${userProfile.sort_code}`}
           />
           <MethodOption
             active={method === "cash"} onClick={() => setMethod("cash")}
@@ -367,7 +367,7 @@ function QuoteDetail() {
               <CreditCard className="h-4 w-4" /> Pay by card
               {paymentRequest && <span className="num text-paper/80">· {formatGBP(paymentRequest.amount)}</span>}
             </a>
-            {!mockProfile.stripe_connected && (
+            {!userProfile.stripe_connected && (
               <p className="text-[10px] text-muted-foreground mt-2 text-center">Test link, add your Stripe keys in Settings to go live.</p>
             )}
           </div>
@@ -375,9 +375,9 @@ function QuoteDetail() {
         {method === "bank" && (
           <div className="mt-3 card-surface p-4 space-y-2">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Bank details</p>
-            <BankRow k="Account name" v={mockProfile.bank_account_name} />
-            <BankRow k="Sort code" v={mockProfile.sort_code} />
-            <BankRow k="Account no." v={mockProfile.account_number} />
+            <BankRow k="Account name" v={userProfile.bank_account_name} />
+            <BankRow k="Sort code" v={userProfile.sort_code} />
+            <BankRow k="Account no." v={userProfile.account_number} />
             <BankRow k="Reference" v={quote.ref} />
           </div>
         )}
