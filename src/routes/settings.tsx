@@ -21,6 +21,7 @@ import { CustomerQRCard, PushPermissionCard } from "@/components/CustomerQRCard"
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { BillingSection } from "@/components/BillingSection";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
