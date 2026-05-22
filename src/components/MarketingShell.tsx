@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { QuottrWordmark } from "@/components/QuottrLogo";
+import { CookieBanner } from "@/components/CookieBanner";
 import { Menu, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
@@ -104,16 +105,22 @@ export function MarketingShell({ children }: { children: ReactNode }) {
             <ul className="space-y-2 text-sm">
               <li><Link to="/about" className="text-paper/80 hover:text-lime">About</Link></li>
               <li><a href="mailto:hello@quottr.co.uk" className="text-paper/80 hover:text-lime">Contact</a></li>
+              <li><Link to="/privacy" className="text-paper/80 hover:text-lime">Privacy</Link></li>
+              <li><Link to="/terms" className="text-paper/80 hover:text-lime">Terms</Link></li>
             </ul>
           </div>
         </div>
         <div className="border-t border-paper/10">
           <div className="mx-auto max-w-6xl px-5 py-5 text-xs text-paper/50 flex flex-col md:flex-row justify-between gap-2">
             <span>© {new Date().getFullYear()} Quottr. All rights reserved.</span>
-            <span>Made for the trades.</span>
+            <span className="flex gap-4">
+              <Link to="/privacy" className="hover:text-paper">Privacy</Link>
+              <Link to="/terms" className="hover:text-paper">Terms</Link>
+            </span>
           </div>
         </div>
       </footer>
+      <CookieBanner />
     </div>
   );
 }
