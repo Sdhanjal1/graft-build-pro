@@ -15,7 +15,7 @@ export function BottomNav() {
   if (hide) return null;
 
   const isActive = (to: string) =>
-    to === "/" ? pathname === "/" : pathname.startsWith(to);
+    to === "/app" ? pathname === "/app" : pathname.startsWith(to);
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 safe-bottom">
