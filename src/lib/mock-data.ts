@@ -223,9 +223,7 @@ export async function hydrateUserData() {
     mockProfile.account_number = asString(p.account_number);
     mockProfile.payment_reference_note = asString(p.payment_reference_note);
     if (asString(p.payment_terms)) mockProfile.payment_terms = asString(p.payment_terms);
-    mockProfile.stripe_publishable_key = asString(p.stripe_publishable_key);
-    mockProfile.stripe_secret_key = asString(p.stripe_secret_key);
-    mockProfile.stripe_connected = !!(p.stripe_publishable_key && p.stripe_secret_key);
+    mockProfile.stripe_connected = !!(p.stripe_connect_charges_enabled);
     mockProfile.logo_url = asString(p.logo_url);
     mockProfile.quote_intro = asString(p.quote_intro);
     mockProfile.quote_footer = asString(p.quote_footer);
