@@ -52,6 +52,9 @@ function AppHomePage() {
   const today = todaysJobs();
   const firstName = mockProfile.full_name.split(" ")[0];
   const owedColor = s.outstanding > 0 ? "text-status-overdue" : "text-lime";
+  const greeting = greetingFor();
+  const clientCount = mockClients.length;
+  const lastClient = mockClients.find((c) => c.phone);
 
   return (
     <AppShell>
@@ -61,7 +64,7 @@ function AppHomePage() {
           You talk. Quottr quotes.
         </p>
         <p className="mt-6 text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-          Good morning
+          {greeting}
         </p>
         <h1 className="text-3xl leading-none mt-1 text-paper">{firstName}</h1>
         <p className="mt-1.5 text-sm text-paper/60">{mockProfile.business_name}</p>
@@ -71,6 +74,7 @@ function AppHomePage() {
         <Link
           to="/quotes/new"
           search={{ voice: 1 }}
+          onClick={() => buzz(12)}
           aria-label="Tap to start a quote"
           className="relative h-40 w-40 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_50px_-12px_rgba(200,224,74,0.55)] active:scale-95 transition"
         >
@@ -81,6 +85,17 @@ function AppHomePage() {
         <p className="text-xs text-muted-foreground">Speak the job — we'll do the rest</p>
         <RotatingPrompts className="mt-3 text-center px-4" />
 
+        {lastClient && (
+          <a
+            href={`tel:${lastClient.phone.replace(/\s/g, "")}`}
+            onClick={() => buzz(8)}
+            className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink text-paper px-4 py-2 text-xs font-semibold active:scale-[0.98] transition"
+          >
+            <Phone className="h-3.5 w-3.5 text-lime" />
+            Call {lastClient.name.split(" ")[0]}
+          </a>
+        )}
+
         <div className="mt-6 grid grid-cols-2 gap-2.5 w-full">
           <Link
             to="/clients/new"
@@ -89,7 +104,14 @@ function AppHomePage() {
             <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
               <UserPlus className="h-4 w-4 text-ink" />
             </span>
-            <span className="text-sm font-semibold text-ink leading-tight">Add customer</span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-semibold text-ink leading-tight">Add customer</span>
+              {clientCount > 0 && (
+                <span className="block text-[10px] text-muted-foreground mt-0.5">
+                  {clientCount} saved
+                </span>
+              )}
+            </span>
           </Link>
           <Link
             to="/capture/new"
@@ -124,6 +146,27 @@ function AppHomePage() {
           )}
         </div>
       </section>
+
+      <section className="px-5 mt-3">
+        <Link
+          to="/chaser"
+          className="card-surface flex items-center gap-3 p-4 active:scale-[0.99] transition"
+        >
+          <span className="h-10 w-10 rounded-full bg-ink flex items-center justify-center shrink-0">
+            <CreditCard className="h-5 w-5 text-lime" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-semibold text-ink leading-tight">
+              Take a payment on site
+            </span>
+            <span className="block text-[11px] text-muted-foreground mt-0.5">
+              Send a tap-to-pay link before you leave
+            </span>
+          </span>
+          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+        </Link>
+      </section>
+
 
       {today.length > 0 && (
         <section className="px-5 mt-4">
