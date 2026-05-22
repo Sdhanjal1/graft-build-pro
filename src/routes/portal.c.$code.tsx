@@ -18,6 +18,29 @@ import {
 
 export const Route = createFileRoute("/portal/c/$code")({
   component: ClientPortalPage,
+  head: ({ params }) => ({
+    meta: [
+      { title: "Your quote from Quottr" },
+      {
+        name: "description",
+        content: "View, accept and pay your quote securely online.",
+      },
+      { property: "og:title", content: "Your quote is ready to view" },
+      {
+        property: "og:description",
+        content: "Tap to view, accept and pay your quote securely online.",
+      },
+      { property: "og:image", content: "https://quottr.co.uk/og-quottr.jpg" },
+      { name: "twitter:image", content: "https://quottr.co.uk/og-quottr.jpg" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
+      {
+        property: "og:url",
+        content: `https://quottr.co.uk/portal/c/${params.code}`,
+      },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
 });
 
 function formatGBP(n: number) {
