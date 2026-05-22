@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireActiveSubscription } from "@/lib/require-active-subscription";
 
 // Quottr's BYOK Stripe platform key. When the pro has completed Connect
 // onboarding, client-invoice payments are routed to their connected
