@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/MarketingShell";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Clock, Wrench, Zap, Heart } from "lucide-react";
 
 export const Route = createFileRoute("/about")({
   component: AboutPage,
@@ -19,57 +19,177 @@ export const Route = createFileRoute("/about")({
 function AboutPage() {
   return (
     <MarketingShell>
-      <section className="bg-ink text-paper">
-        <div className="mx-auto max-w-4xl px-5 py-20 md:py-28">
+      {/* HERO */}
+      <section className="bg-ink text-paper relative overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-40 pointer-events-none"
+          style={{ background: "radial-gradient(circle at 20% 0%, color-mix(in oklab, var(--lime) 35%, transparent), transparent 55%)" }}
+        />
+        <div className="mx-auto max-w-6xl px-5 py-24 md:py-32 relative">
           <p className="text-[11px] uppercase tracking-widest text-paper/60 font-semibold">Our story</p>
-          <h1 className="mt-3 text-5xl md:text-7xl leading-[0.95] text-paper">
-            Built for a plumber <span className="text-lime">called Nav.</span>
+          <h1
+            className="mt-4 text-paper leading-[0.82] tracking-tight"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.5rem, 12vw, 11rem)" }}
+          >
+            Built in a van. <br />
+            <span className="text-lime">Not a boardroom.</span>
           </h1>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-3xl px-5 py-20">
-        <div className="space-y-6 text-lg md:text-xl text-ink/80 leading-relaxed">
-          <p>
-            Quottr started because my brother <strong>Nav</strong> — a plumber with 15 years
-            experience — was spending every evening writing quotes on his phone.
-          </p>
-          <p>He hated it.</p>
-          <p>
-            We built Quottr in a <strong>week</strong>. He sent his first AI-generated quote
-            before leaving a customer's drive.
-          </p>
-          <p className="text-2xl md:text-3xl text-ink" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            That was the moment we knew this was real.
+          <p className="mt-8 max-w-2xl text-lg md:text-xl text-paper/75 leading-relaxed">
+            Quottr exists because the trades deserve software that respects their time —
+            not another platform designed in an office by people who've never held a spanner.
           </p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-4xl px-5 pb-20 grid gap-12 md:grid-cols-2">
-        <div>
-          <h2 className="text-3xl">What we believe</h2>
-          <p className="mt-4 text-ink/70 leading-relaxed">
-            Tradespeople deserve software that respects their time. No 40-click onboarding,
-            no enterprise jargon, no "upgrade to unlock". Just the fastest path from job-on-site
-            to money-in-bank.
-          </p>
-        </div>
-        <div>
-          <h2 className="text-3xl">What we won't do</h2>
-          <p className="mt-4 text-ink/70 leading-relaxed">
-            We won't charge per quote. We won't lock features behind enterprise plans you don't need.
-            And we'll never make you sit through a sales demo to use the product.
-          </p>
+      {/* STORY — pull quotes */}
+      <section className="mx-auto max-w-5xl px-5 py-20 md:py-28">
+        <div className="grid gap-16 md:gap-20">
+          <div className="grid md:grid-cols-12 gap-8 items-start">
+            <p className="md:col-span-3 text-[11px] uppercase tracking-widest text-ink/50 font-semibold pt-2">The problem</p>
+            <div className="md:col-span-9 space-y-5 text-lg md:text-xl text-ink/80 leading-relaxed">
+              <p>
+                A plumber finishes a 10-hour day on the tools. He gets home, eats,
+                and then sits at the kitchen table for two more hours — writing
+                quotes on his phone, tapping in line items, guessing at material
+                prices, hoping the customer doesn't ghost him.
+              </p>
+              <p className="text-ink">
+                That's the trades tax. Every evening, every weekend, every holiday.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-12 gap-8 items-start">
+            <p className="md:col-span-3 text-[11px] uppercase tracking-widest text-ink/50 font-semibold pt-2">The fix</p>
+            <div className="md:col-span-9">
+              <p
+                className="text-3xl md:text-5xl leading-[1.05] text-ink"
+                style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+              >
+                One voice note from the van.<br />
+                <span className="text-ink/50">A professional quote, sent before the kettle boils.</span>
+              </p>
+              <p className="mt-6 text-lg text-ink/70 leading-relaxed max-w-2xl">
+                We built Quottr around a single rule: if it can't be done in
+                under a minute, between jobs, with one hand — it isn't trade software.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-4xl px-5 pb-24">
-        <div className="rounded-3xl bg-card border border-ink/10 p-10 text-center">
-          <h2 className="text-3xl md:text-4xl">Ready to give it a go?</h2>
-          <p className="mt-3 text-ink/70">14 days free. No card. Cancel any time.</p>
+      {/* PILLARS */}
+      <section className="bg-card border-y border-ink/10">
+        <div className="mx-auto max-w-6xl px-5 py-20 md:py-28">
+          <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">What we stand for</p>
+          <h2 className="mt-3 text-4xl md:text-6xl leading-[0.95] max-w-3xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+            Four promises. <span className="text-ink/40">No small print.</span>
+          </h2>
+
+          <div className="mt-14 grid gap-6 md:grid-cols-2">
+            {[
+              {
+                icon: Clock,
+                title: "Your evenings back",
+                body: "Every feature we ship is judged by one question: does it give a trades person their night back? If not, it doesn't go in.",
+              },
+              {
+                icon: Wrench,
+                title: "Built for muddy hands",
+                body: "Voice-first. One-thumb operation. Works under a sink, in a loft, in the rain. No 40-click onboarding. No menus inside menus.",
+              },
+              {
+                icon: Zap,
+                title: "Honest pricing",
+                body: "One price. No per-quote fees. No 'upgrade to unlock'. No surprise enterprise tier you didn't ask for.",
+              },
+              {
+                icon: Heart,
+                title: "Trades-first, always",
+                body: "We talk to plumbers, sparkies and gas engineers every week. Their problems write our roadmap — not investors.",
+              },
+            ].map((p) => (
+              <div
+                key={p.title}
+                className="group rounded-3xl border border-ink/10 bg-paper p-8 hover:border-ink/30 transition"
+              >
+                <div className="h-12 w-12 rounded-2xl bg-lime flex items-center justify-center group-hover:scale-105 transition">
+                  <p.icon className="h-5 w-5 text-ink" />
+                </div>
+                <h3
+                  className="mt-6 text-2xl md:text-3xl text-ink uppercase leading-tight"
+                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                >
+                  {p.title}
+                </h3>
+                <p className="mt-3 text-[15px] text-ink/70 leading-relaxed">{p.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* NUMBERS */}
+      <section className="bg-ink text-paper">
+        <div className="mx-auto max-w-6xl px-5 py-20 md:py-24">
+          <div className="grid gap-10 md:grid-cols-3 text-center md:text-left">
+            {[
+              { n: "18s", l: "Voice note to professional quote" },
+              { n: "£0", l: "Per-quote fees. Ever." },
+              { n: "14d", l: "Free trial. No card required." },
+            ].map((s) => (
+              <div key={s.n} className="border-t border-paper/15 pt-6 md:pt-8">
+                <div
+                  className="text-lime leading-none"
+                  style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4rem, 10vw, 7rem)" }}
+                >
+                  {s.n}
+                </div>
+                <p className="mt-3 text-sm uppercase tracking-widest text-paper/60 font-semibold">{s.l}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* WON'T DO */}
+      <section className="mx-auto max-w-5xl px-5 py-20 md:py-24">
+        <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">What we'll never do</p>
+        <ul className="mt-8 divide-y divide-ink/10 border-y border-ink/10">
+          {[
+            "Charge you per quote.",
+            "Lock essential features behind an 'enterprise' tier.",
+            "Make you sit through a sales demo to use the product.",
+            "Sell your data to suppliers, lenders, or anyone else.",
+            "Ship features the trades didn't ask for.",
+          ].map((line, i) => (
+            <li key={i} className="flex items-baseline gap-6 py-5 md:py-6">
+              <span className="text-lime text-sm font-semibold tracking-widest w-8 shrink-0">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="text-xl md:text-3xl text-ink leading-tight" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                {line}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* CTA */}
+      <section className="mx-auto max-w-6xl px-5 pb-24">
+        <div className="rounded-3xl bg-lime text-ink p-10 md:p-16 relative overflow-hidden">
+          <h2
+            className="text-5xl md:text-7xl leading-[0.9]"
+            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+          >
+            Get your evenings back.
+          </h2>
+          <p className="mt-4 text-ink/80 text-lg max-w-xl">
+            14 days free. No card required. Cancel any time.
+          </p>
           <Link
             to="/auth"
-            className="mt-6 inline-flex items-center gap-2 bg-ink text-paper font-semibold px-6 py-3.5 rounded-full hover:bg-ink/90"
+            className="mt-8 inline-flex items-center gap-2 bg-ink text-paper font-semibold px-7 py-4 rounded-full hover:bg-ink/90 transition"
           >
             Start free <ArrowRight className="h-4 w-4" />
           </Link>
@@ -78,4 +198,3 @@ function AboutPage() {
     </MarketingShell>
   );
 }
-
