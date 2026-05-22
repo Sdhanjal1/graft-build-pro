@@ -13,7 +13,7 @@ import {
 } from "@/lib/mock-data";
 import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { transcribeAudio } from "@/lib/transcribe.functions";
-import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, MapPin } from "lucide-react";
+import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2 } from "lucide-react";
 import { feedback } from "@/lib/feedback";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 
