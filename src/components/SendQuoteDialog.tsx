@@ -31,12 +31,16 @@ export function SendQuoteDialog({
   const [copied, setCopied] = useState(false);
 
 
+// Always share via the branded short domain — keeps WhatsApp/email links tidy.
+const SHARE_ORIGIN = "https://quottr.co.uk";
+const shortClientPortalUrl = (portal_code: string) => `${SHARE_ORIGIN}/q/${portal_code}`;
+const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
+
   const portalHistoryLine = async () => {
     try {
       const { portal_code } = await fetchClientCode({ data: { quoteId } });
       if (!portal_code) return "";
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      return `\n\nView your quotes and service history: ${origin}/portal/c/${portal_code}`;
+      return `\n\nView your quotes and service history: ${shortClientPortalUrl(portal_code)}`;
     } catch {
       return "";
     }
@@ -46,8 +50,8 @@ export function SendQuoteDialog({
 
   const firstName = customerName?.split(" ")[0] ?? "there";
 
-  const portalUrl = (token: string) =>
-    `${typeof window !== "undefined" ? window.location.origin : ""}/portal/${token}`;
+  const portalUrl = (token: string) => shortQuotePortalUrl(token);
+
 
   const handleQuottr = async () => {
     try {
@@ -178,14 +182,14 @@ export function SendQuoteDialog({
                 try {
                   const { portal_code } = await fetchClientCode({ data: { quoteId } });
                   if (portal_code) {
-                    const origin = typeof window !== "undefined" ? window.location.origin : "";
-                    portalUrl = `${origin}/portal/c/${portal_code}`;
+                    portalUrl = shortClientPortalUrl(portal_code);
                   }
                 } catch { /* fall back below */ }
                 if (!portalUrl) {
                   const { token } = await ensureToken({ data: { quoteId, channel: "whatsapp" } });
-                  portalUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/portal/${token}`;
+                  portalUrl = shortQuotePortalUrl(token);
                 }
+
                 const text = buildQuoteWhatsAppMessage(q, { name: customerName ?? "" }, portalUrl);
                 window.open(waLink(customerPhone, text), "_blank");
                 feedback("success");
