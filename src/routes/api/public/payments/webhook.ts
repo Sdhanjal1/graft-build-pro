@@ -78,6 +78,59 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
         }
 
         const type: string = evt.type ?? evt.event_type ?? "";
+
+        // ===== SUBSCRIPTION LIFECYCLE =====
+        if (
+          type === "customer.subscription.created" ||
+          type === "customer.subscription.updated" ||
+          type === "customer.subscription.deleted"
+        ) {
+          const subObj = evt.data?.object ?? {};
+          const userIdMeta: string | undefined = subObj.metadata?.user_id;
+          const item = subObj.items?.data?.[0];
+          const periodStart = item?.current_period_start ?? subObj.current_period_start;
+          const periodEnd = item?.current_period_end ?? subObj.current_period_end;
+          const status = type === "customer.subscription.deleted" ? "canceled" : subObj.status;
+          const hasPm = Boolean(subObj.default_payment_method);
+
+          // Find user by metadata first, fall back to customer id lookup.
+          let userId = userIdMeta;
+          if (!userId && subObj.customer) {
+            const { data: row } = await supabaseAdmin
+              .from("subscriptions")
+              .select("user_id")
+              .eq("stripe_customer_id", subObj.customer)
+              .maybeSingle();
+            userId = row?.user_id;
+          }
+          if (!userId) {
+            console.warn("[payments/webhook] subscription event without user_id", subObj.id);
+            return new Response("ok", { status: 200 });
+          }
+
+          await supabaseAdmin
+            .from("subscriptions")
+            .update({
+              status,
+              stripe_subscription_id: subObj.id,
+              stripe_customer_id: subObj.customer,
+              price_id: item?.price?.lookup_key ?? item?.price?.id ?? null,
+              product_id: item?.price?.product ?? null,
+              current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
+              current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+              trial_end: subObj.trial_end
+                ? new Date(subObj.trial_end * 1000).toISOString()
+                : undefined,
+              cancel_at_period_end: Boolean(subObj.cancel_at_period_end),
+              has_payment_method: hasPm,
+              environment: env === "live" ? "live" : "sandbox",
+            })
+            .eq("user_id", userId);
+
+          return new Response("ok", { status: 200 });
+        }
+
+        // ===== ONE-OFF INVOICE PAYMENTS (existing behaviour) =====
         const isPaid =
           type === "checkout.session.completed" ||
           type === "payment_intent.succeeded" ||
@@ -102,6 +155,12 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
         const amountCents: number | undefined =
           obj.amount_total ?? obj.amount_received ?? obj.amount;
         const currency: string = (obj.currency ?? "gbp").toLowerCase();
+
+        // Subscription checkout sessions land here too (mode=subscription).
+        // The subscription.* events handle the row; skip invoice insert.
+        if (metadata.kind === "quottr_subscription") {
+          return new Response("ok", { status: 200 });
+        }
 
         if (!quoteId || !userId) {
           console.warn("[payments/webhook] missing quote_id/user_id in metadata", { type, sessionId });
