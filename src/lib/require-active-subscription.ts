@@ -27,9 +27,14 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
       .maybeSingle();
 
     if (error) {
-      // Don't block on transient DB errors, log and let the request through.
+      // Fail closed: do not grant access to paid features when we can't
+      // verify subscription state.
       console.error("[requireActiveSubscription] subscription lookup failed", error);
-      return next();
+      const err = new Error(
+        "We couldn't verify your subscription right now. Please try again in a moment.",
+      ) as Error & { status?: number };
+      err.status = 503;
+      throw err;
     }
 
     const now = Date.now();
