@@ -85,7 +85,7 @@ export function BillingSection() {
   const handleOpenDashboard = async () => {
     setBusy("dash");
     try {
-      const { url } = await openDashboard({ data: undefined as any });
+      const { url } = await openDashboard();
       window.open(url, "_blank");
     } catch (e: any) {
       toast.error(e.message ?? "Couldn't open Stripe dashboard");
