@@ -113,8 +113,6 @@ export const EMPTY_PROFILE = {
   sort_code: "",
   account_number: "",
   payment_reference_note: "",
-  stripe_publishable_key: "",
-  stripe_secret_key: "",
   stripe_connected: false,
   payment_terms: "Payment due within 14 days of invoice date.",
   /** Card processing fee shown on card payment summaries */
