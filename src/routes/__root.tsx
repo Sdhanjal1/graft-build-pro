@@ -16,7 +16,7 @@ import { Splash } from "@/components/Splash";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { useSession } from "@/lib/auth";
-import { hydrateUserData } from "@/lib/mock-data";
+import { hydrateUserData, clearUserData } from "@/lib/mock-data";
 
 function NotFoundComponent() {
   return (
