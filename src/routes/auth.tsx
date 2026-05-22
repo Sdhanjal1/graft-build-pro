@@ -38,9 +38,15 @@ function AuthPage() {
           return;
         }
         await signUpWithPassword(email, password, fullName);
-        // Auto sign-in (no email confirmation) — go straight to onboarding
-        await signInWithPassword(email, password);
-        navigate({ to: "/welcome" });
+        // Try to auto sign-in. If email confirmation is required, fall back to a notice.
+        try {
+          await signInWithPassword(email, password);
+          navigate({ to: "/welcome" });
+        } catch {
+          setError("Account created. Please check your email to confirm, then sign in.");
+          setMode("login");
+        }
+
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
