@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { signInWithPassword, signUpWithPassword, useSession } from "@/lib/auth";
@@ -80,6 +80,12 @@ function AuthPage() {
             {busy ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
           </button>
         </form>
+
+        {mode === "login" && (
+          <Link to="/forgot-password" className="mt-4 text-xs text-paper/60 hover:text-paper text-center w-full block">
+            Forgot password?
+          </Link>
+        )}
 
         <button
           type="button"

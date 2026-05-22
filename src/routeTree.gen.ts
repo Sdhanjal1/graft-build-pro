@@ -11,11 +11,15 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as TradesRouteImport } from './routes/trades'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as InsightsRouteImport } from './routes/insights'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as FaqsRouteImport } from './routes/faqs'
 import { Route as ChaserRouteImport } from './routes/chaser'
@@ -52,6 +56,11 @@ const TradesRoute = TradesRouteImport.update({
   path: '/trades',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -60,6 +69,16 @@ const SettingsRoute = SettingsRouteImport.update({
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -75,6 +94,11 @@ const MessagesRoute = MessagesRouteImport.update({
 const InsightsRoute = InsightsRouteImport.update({
   id: '/insights',
   path: '/insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeaturesRoute = FeaturesRouteImport.update({
@@ -214,11 +238,15 @@ export interface FileRoutesByFullPath {
   '/chaser': typeof ChaserRoute
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/insights': typeof InsightsRoute
   '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
   '/trades': typeof TradesRouteWithChildren
   '/welcome': typeof WelcomeRoute
   '/capture/$captureId': typeof CaptureCaptureIdRoute
@@ -248,11 +276,15 @@ export interface FileRoutesByTo {
   '/chaser': typeof ChaserRoute
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/insights': typeof InsightsRoute
   '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
   '/trades': typeof TradesRouteWithChildren
   '/welcome': typeof WelcomeRoute
   '/capture/$captureId': typeof CaptureCaptureIdRoute
@@ -283,11 +315,15 @@ export interface FileRoutesById {
   '/chaser': typeof ChaserRoute
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/insights': typeof InsightsRoute
   '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
   '/trades': typeof TradesRouteWithChildren
   '/welcome': typeof WelcomeRoute
   '/capture/$captureId': typeof CaptureCaptureIdRoute
@@ -319,11 +355,15 @@ export interface FileRouteTypes {
     | '/chaser'
     | '/faqs'
     | '/features'
+    | '/forgot-password'
     | '/insights'
     | '/messages'
     | '/pricing'
+    | '/privacy'
+    | '/reset-password'
     | '/search'
     | '/settings'
+    | '/terms'
     | '/trades'
     | '/welcome'
     | '/capture/$captureId'
@@ -353,11 +393,15 @@ export interface FileRouteTypes {
     | '/chaser'
     | '/faqs'
     | '/features'
+    | '/forgot-password'
     | '/insights'
     | '/messages'
     | '/pricing'
+    | '/privacy'
+    | '/reset-password'
     | '/search'
     | '/settings'
+    | '/terms'
     | '/trades'
     | '/welcome'
     | '/capture/$captureId'
@@ -387,11 +431,15 @@ export interface FileRouteTypes {
     | '/chaser'
     | '/faqs'
     | '/features'
+    | '/forgot-password'
     | '/insights'
     | '/messages'
     | '/pricing'
+    | '/privacy'
+    | '/reset-password'
     | '/search'
     | '/settings'
+    | '/terms'
     | '/trades'
     | '/welcome'
     | '/capture/$captureId'
@@ -422,11 +470,15 @@ export interface RootRouteChildren {
   ChaserRoute: typeof ChaserRoute
   FaqsRoute: typeof FaqsRoute
   FeaturesRoute: typeof FeaturesRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   InsightsRoute: typeof InsightsRoute
   MessagesRoute: typeof MessagesRoute
   PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
+  TermsRoute: typeof TermsRoute
   TradesRoute: typeof TradesRouteWithChildren
   WelcomeRoute: typeof WelcomeRoute
   CaptureCaptureIdRoute: typeof CaptureCaptureIdRoute
@@ -463,6 +515,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TradesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -475,6 +534,20 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -496,6 +569,13 @@ declare module '@tanstack/react-router' {
       path: '/insights'
       fullPath: '/insights'
       preLoaderRoute: typeof InsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/features': {
@@ -696,11 +776,15 @@ const rootRouteChildren: RootRouteChildren = {
   ChaserRoute: ChaserRoute,
   FaqsRoute: FaqsRoute,
   FeaturesRoute: FeaturesRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   InsightsRoute: InsightsRoute,
   MessagesRoute: MessagesRoute,
   PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
+  TermsRoute: TermsRoute,
   TradesRoute: TradesRouteWithChildren,
   WelcomeRoute: WelcomeRoute,
   CaptureCaptureIdRoute: CaptureCaptureIdRoute,
