@@ -5,13 +5,17 @@
  * Reference: RFC 8030 (Web Push), RFC 8291 (encryption), RFC 8292 (VAPID).
  */
 
-// Generated VAPID keys for this project. Override via env if you ever rotate.
-export const VAPID_PUBLIC_KEY =
-  process.env.VAPID_PUBLIC_KEY ||
-  "BIFmGPzyIrAymtAXRoIcqDLhbDmdoIeYH-_ymNRcePbS7gPAEDYwNkEJQzhAW7fWArFDYkPo0eXgHq6lqNzoIxI";
-const VAPID_PRIVATE_KEY =
-  process.env.VAPID_PRIVATE_KEY || "zAOMfUxN_VF5vZCtRvxwm1s2eeWuJ21SjmDoS4lUki0";
+// VAPID keys must be supplied via environment variables. The private key is
+// security-sensitive — never hardcode a fallback in source.
+export const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY ?? "";
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY ?? "";
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:hello@quottr.app";
+
+function assertVapidConfigured() {
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    throw new Error("VAPID keys are not configured (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY).");
+  }
+}
 
 // ---------------- base64url helpers ----------------
 function b64uToBytes(s: string): Uint8Array {
