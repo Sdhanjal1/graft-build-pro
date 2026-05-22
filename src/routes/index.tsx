@@ -205,7 +205,7 @@ function HomePage() {
           </h2>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             {[
-              { q: "Quoted a full bathroom refit from the van in 40 seconds. Customer approved it before I got home. Deposit paid same day.", who: "Nav P. — Gas engineer, Leeds" },
+              { q: "Quoted a full bathroom refit from the van in 40 seconds. Customer approved it before I got home. Deposit paid same day.", who: "Ryan T. — Gas engineer, Leeds" },
               { q: "The site capture mode is the one. Walk round, tap what needs doing, quote it all at once. Game changer for bigger jobs.", who: "Sam R. — Plumber, Bristol" },
               { q: "Had £3,200 outstanding for months. Quottr chased it all automatically. Got paid within two weeks without a single awkward call.", who: "Dani O. — Electrician, Glasgow" },
             ].map((t) => (
