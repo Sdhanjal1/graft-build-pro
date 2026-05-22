@@ -98,7 +98,6 @@ export const createInvoiceCheckout = createServerFn({ method: "POST" })
     }
 
     // Log a pending payment row so the dashboard can show it.
-    const { supabase } = context;
     await supabase.from("invoice_payments").insert({
       user_id: context.userId,
       quote_id: data.quoteId,
