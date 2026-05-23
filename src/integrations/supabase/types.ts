@@ -92,6 +92,7 @@ export type Database = {
           portal_active: boolean
           portal_code: string | null
           property_type: string | null
+          reminder_last_sent_at: string | null
           service_due_date: string | null
           service_type: string | null
           updated_at: string
@@ -108,6 +109,7 @@ export type Database = {
           portal_active?: boolean
           portal_code?: string | null
           property_type?: string | null
+          reminder_last_sent_at?: string | null
           service_due_date?: string | null
           service_type?: string | null
           updated_at?: string
@@ -124,6 +126,7 @@ export type Database = {
           portal_active?: boolean
           portal_code?: string | null
           property_type?: string | null
+          reminder_last_sent_at?: string | null
           service_due_date?: string | null
           service_type?: string | null
           updated_at?: string
