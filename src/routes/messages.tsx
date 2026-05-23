@@ -6,6 +6,7 @@ import { getInbox } from "@/lib/messages.functions";
 import { getMyIncomingRequests, markRequestRead } from "@/lib/quote-requests.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { MessageSquare, Inbox, Mic, FileText, Sparkles } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 
 export const Route = createFileRoute("/messages")({
   component: MessagesInbox,
@@ -136,13 +137,12 @@ function MessagesInbox() {
       <section className="px-5 mt-5">
         <h2 className="text-xl mb-2.5">Messages</h2>
         {!loading && threads.length === 0 && requests.length === 0 && (
-          <div className="card-surface p-8 text-center">
-            <Inbox className="h-8 w-8 mx-auto text-muted-foreground" />
-            <p className="mt-3 font-semibold">Quiet out there</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Share your QR code and let customers come to you while you're on the tools.
-            </p>
-          </div>
+          <EmptyState
+            icon={Inbox}
+            title="Quiet out there"
+            body="Share your QR code and let customers come to you while you're on the tools."
+            cta={{ label: "Get your QR code", to: "/settings" }}
+          />
         )}
 
         <ul className="space-y-2 pb-24">

@@ -8,7 +8,8 @@ import {
   useDataVersion,
   type PaymentMethod,
 } from "@/lib/user-data";
-import { BarChart3, ChevronLeft, ChevronRight, CreditCard, Landmark, Banknote, Trophy } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight, CreditCard, Landmark, Banknote, Trophy, LineChart } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 
 export const Route = createFileRoute("/insights")({
   component: InsightsPage,
