@@ -395,11 +395,36 @@ function SettingsPage() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="px-5 mt-5">
-      <h2 className="text-xl mb-2.5">{title}</h2>
-      {children}
+    <section className="px-5 mt-3">
+      <button
+        type="button"
+        onClick={() => {
+          feedback("tap");
+          setOpen((o) => !o);
+        }}
+        className="w-full flex items-center justify-between py-2 text-left"
+        aria-expanded={open}
+      >
+        <h2 className="text-xl">{title}</h2>
+        <span
+          className="text-muted-foreground text-xl leading-none transition-transform"
+          style={{ transform: open ? "rotate(90deg)" : "rotate(0deg)" }}
+        >
+          ›
+        </span>
+      </button>
+      {open && <div className="mt-1">{children}</div>}
     </section>
   );
 }
