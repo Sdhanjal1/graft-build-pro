@@ -34,7 +34,7 @@ export function PullToRefresh({
       setPull(eased);
       if (eased >= THRESHOLD && !triggered.current) {
         triggered.current = true;
-        feedback("light");
+        feedback("tap");
       }
     };
     const onTouchEnd = async () => {
