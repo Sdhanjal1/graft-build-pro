@@ -51,16 +51,14 @@ function WelcomePage() {
         navigate({ to: "/app" });
         return;
       }
-      setProfile({
-        full_name: data?.full_name ?? (session.user.user_metadata?.full_name as string ?? ""),
-        business_name: data?.business_name ?? "",
-        trade_type: data?.trade_type ?? "",
-        phone: data?.phone ?? "",
-        logo_url: data?.logo_url ?? "",
-      });
-      setChecking(false);
+      // New users go through the dedicated onboarding wizard.
+      navigate({ to: "/onboarding" });
     })();
   }, [session, loading, navigate]);
+
+  // The old welcome wizard is no longer used as a fallback below; keep the
+  // form state harmless so the file still type-checks while the redirect runs.
+  void [profile, setProfile, checking, setChecking, saving, setSaving, uploading, setUploading];
 
   const save = async (patch: Partial<Profile>) => {
     if (!session) return;
