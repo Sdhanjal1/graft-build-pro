@@ -1,5 +1,6 @@
 import { useRef, useState, type ReactNode, type PointerEvent } from "react";
 import { Trash2 } from "lucide-react";
+import { feedback } from "@/lib/feedback";
 
 /**
  * Swipe-to-delete row. Drag the content left to reveal a delete action.
@@ -50,10 +51,12 @@ export function SwipeRow({
   async function handleDelete() {
     if (busy) return;
     setBusy(true);
+    feedback("warn");
     try {
       await onDelete();
     } catch (e) {
       console.error("swipe delete failed", e);
+      feedback("error");
       setOffset(0);
       setBusy(false);
     }
