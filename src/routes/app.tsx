@@ -44,6 +44,14 @@ function AppHomePage() {
     if (!loading && !session) navigate({ to: "/auth" });
   }, [loading, session, navigate]);
 
+  // First-run: send brand-new users to the onboarding wizard.
+  useEffect(() => {
+    if (loading || !session) return;
+    if (!userProfile.business_name) {
+      navigate({ to: "/onboarding" });
+    }
+  }, [loading, session, navigate]);
+
   if (loading || !session) {
     return <div className="min-h-screen bg-ink" />;
   }
