@@ -115,10 +115,14 @@ export const getPortalData = createServerFn({ method: "POST" })
     }
 
     const [{ data: quote }, { data: messages }, { data: profile }] = await Promise.all([
-      supabaseAdmin.from("quotes").select("*").eq("id", tk.quote_id).maybeSingle(),
+      supabaseAdmin
+        .from("quotes")
+        .select("id, ref, title, job_description, line_items, subtotal, vat_amount, total, vat_registered, status, created_at, due_date")
+        .eq("id", tk.quote_id)
+        .maybeSingle(),
       supabaseAdmin
         .from("quote_messages")
-        .select("*")
+        .select("id, sender, body, created_at")
         .eq("quote_id", tk.quote_id)
         .order("created_at", { ascending: true }),
       supabaseAdmin
