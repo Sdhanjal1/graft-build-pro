@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { getClientPortalData, postClientPortalMessage } from "@/lib/portal.functions";
+import {
+  getClientPortalData,
+  postClientPortalMessage,
+  respondQuoteFromPortal,
+} from "@/lib/portal.functions";
+import { downloadPortalPdf } from "@/lib/portal-pdf";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import {
@@ -14,6 +19,8 @@ import {
   Bell,
   MessageSquare,
   Sparkles,
+  Check,
+  X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/portal/c/$code")({
@@ -73,6 +80,7 @@ function ClientPortalPage() {
   const { code } = Route.useParams();
   const fetchData = useServerFn(getClientPortalData);
   const postMsg = useServerFn(postClientPortalMessage);
+  const respondQuote = useServerFn(respondQuoteFromPortal);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +93,8 @@ function ClientPortalPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
+  const pollRef = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -111,8 +121,30 @@ function ClientPortalPage() {
 
   useEffect(() => {
     void load();
+    // Poll every 15s so customer sees pro replies + status changes
+    pollRef.current = window.setInterval(() => void load(), 15000) as unknown as number;
+    return () => {
+      if (pollRef.current) window.clearInterval(pollRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
+
+  const onRespond = async (quoteId: string, response: "accepted" | "declined") => {
+    const confirmMsg =
+      response === "accepted"
+        ? "Accept this quote? Your tradesperson will be notified."
+        : "Decline this quote?";
+    if (!confirm(confirmMsg)) return;
+    setRespondingId(quoteId);
+    try {
+      await respondQuote({ data: { code, quoteId, response } });
+      await load();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not update quote");
+    } finally {
+      setRespondingId(null);
+    }
+  };
 
   const confirmName = () => {
     const first = firstName.trim();
