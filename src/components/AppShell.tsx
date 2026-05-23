@@ -1,14 +1,23 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useRouter } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { TrialBanner } from "@/components/TrialBanner";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  onRefresh,
+}: {
+  children: React.ReactNode;
+  onRefresh?: () => void | Promise<void>;
+}) {
+  const router = useRouter();
+  const handleRefresh = onRefresh ?? (() => router.invalidate());
   return (
     <div className="min-h-screen bg-paper">
       <div className="mx-auto max-w-md min-h-screen pb-28">
         <TrialBanner />
-        {children}
+        <PullToRefresh onRefresh={handleRefresh}>{children}</PullToRefresh>
       </div>
     </div>
   );
