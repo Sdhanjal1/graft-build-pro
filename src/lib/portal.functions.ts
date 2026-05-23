@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { notifyUser } from "@/lib/push.functions";
 
 // ---------- Public: fetch portal data by client code ----------
 export const getClientPortalData = createServerFn({ method: "POST" })
@@ -46,6 +47,7 @@ export const getClientPortalData = createServerFn({ method: "POST" })
       client: {
         id: client.id,
         name: client.name,
+        address: client.address,
         service_due_date: client.service_due_date,
         service_type: client.service_type,
       },
@@ -83,7 +85,84 @@ export const postClientPortalMessage = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+
+    // Push notify the pro (don't block on failure)
+    try {
+      const { data: c } = await supabaseAdmin
+        .from("clients")
+        .select("name")
+        .eq("id", client.id)
+        .maybeSingle();
+      await notifyUser(client.user_id, {
+        title: `New message from ${c?.name ?? "a customer"}`,
+        body: data.body.slice(0, 140),
+        url: `/clients/${client.id}`,
+        tag: `portal-msg-${client.id}`,
+      });
+    } catch (e) {
+      console.error("portal push notify failed", e);
+    }
+
     return { message: msg };
+  });
+
+// ---------- Public: customer accepts or declines a quote ----------
+export const respondQuoteFromPortal = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({
+      code: z.string().min(8).max(32),
+      quoteId: z.string().uuid(),
+      response: z.enum(["accepted", "declined"]),
+    }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { data: client } = await supabaseAdmin
+      .from("clients")
+      .select("id, user_id, name, portal_active")
+      .eq("portal_code", data.code)
+      .maybeSingle();
+    if (!client || !client.portal_active) throw new Error("Portal not available");
+
+    const { data: quote } = await supabaseAdmin
+      .from("quotes")
+      .select("id, status, title, total, ref")
+      .eq("id", data.quoteId)
+      .eq("client_id", client.id)
+      .eq("portal_visible", true)
+      .maybeSingle();
+    if (!quote) throw new Error("Quote not found");
+    if (!["pending", "sent"].includes(quote.status)) {
+      throw new Error(`Quote already ${quote.status}`);
+    }
+
+    const { error } = await supabaseAdmin
+      .from("quotes")
+      .update({ status: data.response })
+      .eq("id", quote.id);
+    if (error) throw new Error(error.message);
+
+    const note =
+      data.response === "accepted"
+        ? `✅ ${client.name ?? "Customer"} accepted quote ${quote.ref ?? ""}`.trim()
+        : `❌ ${client.name ?? "Customer"} declined quote ${quote.ref ?? ""}`.trim();
+    await supabaseAdmin.from("client_portal_messages").insert({
+      client_id: client.id,
+      user_id: client.user_id,
+      sender: "customer",
+      body: note,
+    });
+    try {
+      await notifyUser(client.user_id, {
+        title: data.response === "accepted" ? "Quote accepted 🎉" : "Quote declined",
+        body: `${quote.title} · £${Number(quote.total).toFixed(2)}`,
+        url: `/quotes/${quote.id}`,
+        tag: `quote-${quote.id}-${data.response}`,
+      });
+    } catch (e) {
+      console.error("portal push notify failed", e);
+    }
+
+    return { ok: true, status: data.response };
   });
 
 // ---------- Pro: regenerate portal code ----------

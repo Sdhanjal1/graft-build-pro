@@ -46,6 +46,7 @@ import { Route as CaptureCaptureIdRouteImport } from './routes/capture.$captureI
 import { Route as PortalCCodeRouteImport } from './routes/portal.c.$code'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaymentsConnectWebhookRouteImport } from './routes/api/public/payments/connect-webhook'
+import { Route as ApiPublicHooksServiceRemindersRouteImport } from './routes/api/public/hooks/service-reminders'
 
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
@@ -234,6 +235,12 @@ const ApiPublicPaymentsConnectWebhookRoute =
     path: '/api/public/payments/connect-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksServiceRemindersRoute =
+  ApiPublicHooksServiceRemindersRouteImport.update({
+    id: '/api/public/hooks/service-reminders',
+    path: '/api/public/hooks/service-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -271,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/clients/': typeof ClientsIndexRoute
   '/quotes/': typeof QuotesIndexRoute
   '/portal/c/$code': typeof PortalCCodeRoute
+  '/api/public/hooks/service-reminders': typeof ApiPublicHooksServiceRemindersRoute
   '/api/public/payments/connect-webhook': typeof ApiPublicPaymentsConnectWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -310,6 +318,7 @@ export interface FileRoutesByTo {
   '/clients': typeof ClientsIndexRoute
   '/quotes': typeof QuotesIndexRoute
   '/portal/c/$code': typeof PortalCCodeRoute
+  '/api/public/hooks/service-reminders': typeof ApiPublicHooksServiceRemindersRoute
   '/api/public/payments/connect-webhook': typeof ApiPublicPaymentsConnectWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -350,6 +359,7 @@ export interface FileRoutesById {
   '/clients/': typeof ClientsIndexRoute
   '/quotes/': typeof QuotesIndexRoute
   '/portal/c/$code': typeof PortalCCodeRoute
+  '/api/public/hooks/service-reminders': typeof ApiPublicHooksServiceRemindersRoute
   '/api/public/payments/connect-webhook': typeof ApiPublicPaymentsConnectWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -391,6 +401,7 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/quotes/'
     | '/portal/c/$code'
+    | '/api/public/hooks/service-reminders'
     | '/api/public/payments/connect-webhook'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -430,6 +441,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/quotes'
     | '/portal/c/$code'
+    | '/api/public/hooks/service-reminders'
     | '/api/public/payments/connect-webhook'
     | '/api/public/payments/webhook'
   id:
@@ -469,6 +481,7 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/quotes/'
     | '/portal/c/$code'
+    | '/api/public/hooks/service-reminders'
     | '/api/public/payments/connect-webhook'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
@@ -508,6 +521,7 @@ export interface RootRouteChildren {
   ClientsIndexRoute: typeof ClientsIndexRoute
   QuotesIndexRoute: typeof QuotesIndexRoute
   PortalCCodeRoute: typeof PortalCCodeRoute
+  ApiPublicHooksServiceRemindersRoute: typeof ApiPublicHooksServiceRemindersRoute
   ApiPublicPaymentsConnectWebhookRoute: typeof ApiPublicPaymentsConnectWebhookRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
@@ -773,6 +787,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsConnectWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/service-reminders': {
+      id: '/api/public/hooks/service-reminders'
+      path: '/api/public/hooks/service-reminders'
+      fullPath: '/api/public/hooks/service-reminders'
+      preLoaderRoute: typeof ApiPublicHooksServiceRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -822,6 +843,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientsIndexRoute: ClientsIndexRoute,
   QuotesIndexRoute: QuotesIndexRoute,
   PortalCCodeRoute: PortalCCodeRoute,
+  ApiPublicHooksServiceRemindersRoute: ApiPublicHooksServiceRemindersRoute,
   ApiPublicPaymentsConnectWebhookRoute: ApiPublicPaymentsConnectWebhookRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
