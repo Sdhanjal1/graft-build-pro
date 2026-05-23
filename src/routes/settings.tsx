@@ -162,7 +162,7 @@ function SettingsPage() {
       />
 
       {/* BRANDING */}
-      <Section title="Branding">
+      <Section title="Branding" defaultOpen>
         <div className="card-surface p-5 space-y-4">
           {profile.logo_url ? (
             <div className="flex flex-col items-center gap-3">
@@ -272,7 +272,7 @@ function SettingsPage() {
 
 
       {/* BUSINESS */}
-      <Section title="Business">
+      <Section title="Business" defaultOpen>
         <div className="card-surface p-5 space-y-3.5">
           <EditField icon={Building2}  label="Business name" value={profile.business_name} onChange={(v) => saveProfile({ business_name: v })} />
           <EditField icon={User}       label="Your name"     value={profile.full_name}     onChange={(v) => saveProfile({ full_name: v })} />
