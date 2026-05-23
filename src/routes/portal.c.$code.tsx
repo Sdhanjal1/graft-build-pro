@@ -388,17 +388,60 @@ function ClientPortalPage() {
                         <span className="text-muted-foreground">Total</span>
                         <span className="num text-lg">{formatGBP(q.total)}</span>
                       </div>
-                      {(q.status === "paid" || q.status === "accepted") && (
-                        <div className="px-4 py-3 border-t border-border">
+                      {(q.status === "pending" || q.status === "sent") && (
+                        <div className="px-4 py-3 border-t border-border grid grid-cols-2 gap-2">
                           <button
-                            onClick={() => window.print()}
-                            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-ink text-paper py-2.5 text-xs font-semibold"
+                            onClick={() => onRespond(q.id, "declined")}
+                            disabled={respondingId === q.id}
+                            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border py-2.5 text-xs font-semibold disabled:opacity-50"
                           >
-                            <Download className="h-3.5 w-3.5" />
-                            Download PDF
+                            <X className="h-3.5 w-3.5" />
+                            Decline
+                          </button>
+                          <button
+                            onClick={() => onRespond(q.id, "accepted")}
+                            disabled={respondingId === q.id}
+                            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-lime text-ink py-2.5 text-xs font-bold disabled:opacity-50"
+                          >
+                            {respondingId === q.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Check className="h-3.5 w-3.5" />
+                            )}
+                            Accept quote
                           </button>
                         </div>
                       )}
+                      <div className="px-4 py-3 border-t border-border">
+                        <button
+                          onClick={() =>
+                            void downloadPortalPdf(
+                              {
+                                ref: q.ref,
+                                title: q.title,
+                                job_description: q.job_description,
+                                status: q.status,
+                                subtotal: Number(q.subtotal) || 0,
+                                vat_amount: Number(q.vat_amount) || 0,
+                                total: Number(q.total) || 0,
+                                vat_registered: q.vat_registered,
+                                created_at: q.created_at,
+                                line_items: lineItems,
+                              },
+                              {
+                                name: client.name,
+                                address: (client as any).address ?? null,
+                              },
+                              profile as any,
+                              q.status === "paid" ? "invoice" : "quote",
+                            )
+                          }
+                          className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-ink text-paper py-2.5 text-xs font-semibold"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Download PDF
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
