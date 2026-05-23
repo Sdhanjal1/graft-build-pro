@@ -43,6 +43,8 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
   const [docs, setDocs] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadKind, setUploadKind] =
+    useState<"certificate" | "service" | "warranty" | "other">("certificate");
   const [serviceType, setServiceType] = useState("");
   const [serviceDate, setServiceDate] = useState("");
 
@@ -152,7 +154,7 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
         data: {
           clientId,
           title: file.name,
-          kind: "other",
+          kind: uploadKind,
           file_url: pub.publicUrl,
         },
       });
@@ -272,28 +274,40 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
 
       {/* Documents */}
       <div className="card-surface p-5 space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
             Documents in portal
           </p>
-          <label className="rounded-full bg-lime text-ink px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer">
-            {uploading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Upload className="h-3.5 w-3.5" />
-            )}
-            Upload
-            <input
-              type="file"
-              className="hidden"
-              accept="application/pdf,image/*"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void onUpload(f);
-                e.target.value = "";
-              }}
-            />
-          </label>
+          <div className="flex items-center gap-2">
+            <select
+              value={uploadKind}
+              onChange={(e) => setUploadKind(e.target.value as typeof uploadKind)}
+              className="bg-secondary rounded-full px-2.5 py-1.5 text-xs font-semibold outline-none"
+            >
+              <option value="certificate">Certificate</option>
+              <option value="service">Service report</option>
+              <option value="warranty">Warranty</option>
+              <option value="other">Other</option>
+            </select>
+            <label className="rounded-full bg-lime text-ink px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer">
+              {uploading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Upload className="h-3.5 w-3.5" />
+              )}
+              Upload
+              <input
+                type="file"
+                className="hidden"
+                accept="application/pdf,image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void onUpload(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </div>
         </div>
         {docs.length === 0 ? (
           <p className="text-xs text-muted-foreground py-3 text-center">No documents yet.</p>
