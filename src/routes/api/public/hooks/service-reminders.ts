@@ -7,7 +7,12 @@ import { notifyUser } from "@/lib/push.functions";
 export const Route = createFileRoute("/api/public/hooks/service-reminders")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const secret = process.env.CRON_SECRET;
+        const auth = request.headers.get("authorization");
+        if (!secret || auth !== `Bearer ${secret}`) {
+          return new Response("Unauthorized", { status: 401 });
+        }
         const now = new Date();
         const horizon = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
         const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);

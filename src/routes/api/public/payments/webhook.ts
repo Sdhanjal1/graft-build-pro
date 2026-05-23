@@ -29,6 +29,8 @@ function verify(rawBody: string, sigHeader: string | null, secret: string) {
   if (sigHeader.includes("t=") && sigHeader.includes("v1=")) {
     const { t, v1 } = parseStripeSig(sigHeader);
     if (!t || v1.length === 0) return false;
+    const ts = parseInt(t, 10);
+    if (isNaN(ts) || Math.abs(Date.now() / 1000 - ts) > 300) return false;
     const expected = createHmac("sha256", secret).update(`${t}.${rawBody}`).digest("hex");
     return v1.some((sig) => {
       try {
