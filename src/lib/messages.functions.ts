@@ -118,6 +118,8 @@ export const getPortalData = createServerFn({ method: "POST" })
       supabaseAdmin
         .from("quotes")
         .select("id, ref, title, job_description, line_items, subtotal, vat_amount, total, vat_registered, status, created_at, due_date, client_id")
+        .eq("id", tk.quote_id)
+        .maybeSingle(),
       supabaseAdmin
         .from("quote_messages")
         .select("id, sender, body, created_at")
