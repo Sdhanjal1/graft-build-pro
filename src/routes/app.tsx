@@ -5,7 +5,7 @@ import {
   userProfile, stats, formatGBP, getClient, userClients,
   todaysJobs, formatTime, getQuote,
 } from "@/lib/user-data";
-import { Mic, ArrowRight, Sparkles, UserPlus, MapPin, CreditCard } from "lucide-react";
+import { Mic, ArrowRight, Sparkles, UserPlus, MapPin } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
@@ -142,25 +142,8 @@ function AppHomePage() {
         </div>
       </section>
 
-      <section className="px-5 mt-3">
-        <Link
-          to="/chaser"
-          className="card-surface flex items-center gap-3 p-4 active:scale-[0.99] transition"
-        >
-          <span className="h-10 w-10 rounded-full bg-ink flex items-center justify-center shrink-0">
-            <CreditCard className="h-5 w-5 text-lime" />
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className="block text-sm font-semibold text-ink leading-tight">
-              Take a payment on site
-            </span>
-            <span className="block text-[11px] text-muted-foreground mt-0.5">
-              Send a tap-to-pay link before you leave
-            </span>
-          </span>
-          <ArrowRight className="h-4 w-4 text-muted-foreground" />
-        </Link>
-      </section>
+
+
 
 
       {today.length > 0 && (

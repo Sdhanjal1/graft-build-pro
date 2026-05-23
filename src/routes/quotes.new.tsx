@@ -15,6 +15,7 @@ import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2 } from "lucide-react";
+import { RotatingStatus, QUOTE_GEN_MESSAGES } from "@/components/RotatingStatus";
 import { feedback } from "@/lib/feedback";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordingNotice";
@@ -540,7 +541,7 @@ function NewQuotePage() {
             )}
             {subBlocked
               ? "Trial ended, add payment method"
-              : loading ? "Generating with Claude…" : "Generate quote"}
+              : loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : "Generate quote"}
           </button>
         )}
 
@@ -674,7 +675,7 @@ function NewQuotePage() {
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
-              {loading ? "Generating…" : "Regenerate"}
+              {loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : "Regenerate"}
             </button>
             <button
               type="button"

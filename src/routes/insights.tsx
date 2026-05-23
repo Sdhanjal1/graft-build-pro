@@ -8,7 +8,8 @@ import {
   useDataVersion,
   type PaymentMethod,
 } from "@/lib/user-data";
-import { BarChart3, ChevronLeft, ChevronRight, CreditCard, Landmark, Banknote, Trophy } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight, CreditCard, Landmark, Banknote, Trophy, LineChart } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 
 export const Route = createFileRoute("/insights")({
   component: InsightsPage,
@@ -112,6 +113,17 @@ function InsightsPage() {
         )}
       </header>
 
+      {totalQuoted === 0 && collected === 0 && monthTx.length === 0 ? (
+        <section className="px-5 mt-6">
+          <EmptyState
+            icon={LineChart}
+            title="No data yet"
+            body="Send a few quotes and the numbers will start telling a story."
+            cta={{ label: "New quote", to: "/quotes/new" }}
+          />
+        </section>
+      ) : (
+      <>
       {/* Top summary card */}
       <section className="px-5 -mt-4">
         <div className="rounded-2xl bg-ink text-paper p-5 relative overflow-hidden shadow-elegant">
@@ -220,6 +232,8 @@ function InsightsPage() {
           )}
         </div>
       </section>
+      </>
+      )}
     </AppShell>
   );
 }
