@@ -232,6 +232,8 @@ function InsightsPage() {
           )}
         </div>
       </section>
+      </>
+      )}
     </AppShell>
   );
 }
