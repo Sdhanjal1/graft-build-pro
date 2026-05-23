@@ -47,6 +47,7 @@ export const getClientPortalData = createServerFn({ method: "POST" })
       client: {
         id: client.id,
         name: client.name,
+        address: client.address,
         service_due_date: client.service_due_date,
         service_type: client.service_type,
       },
