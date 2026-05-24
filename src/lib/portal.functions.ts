@@ -269,7 +269,7 @@ export const listClientDocuments = createServerFn({ method: "POST" })
       .eq("client_id", data.clientId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return { documents: rows ?? [] };
+    return { documents: await signDocs(rows ?? []) };
   });
 
 // ---------- Pro: add document (file already uploaded to storage) ----------
