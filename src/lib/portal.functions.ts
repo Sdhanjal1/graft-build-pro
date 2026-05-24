@@ -84,8 +84,6 @@ export const getClientPortalData = createServerFn({ method: "POST" })
       },
       profile: profile ?? null,
       quotes: quotes ?? [],
-      profile: profile ?? null,
-      quotes: quotes ?? [],
       documents: await signDocs(documents ?? []),
       messages: messages ?? [],
     };
