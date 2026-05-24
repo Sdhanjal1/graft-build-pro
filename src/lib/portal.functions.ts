@@ -4,6 +4,37 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { notifyUser } from "@/lib/push.functions";
 
+const CLIENT_DOCS_BUCKET = "client-docs";
+const SIGNED_URL_TTL = 60 * 60; // 1 hour
+
+// Convert a stored file_url (either a storage path or a legacy public URL)
+// into a short-lived signed download URL. Returns null on failure.
+function storagePathFromStored(stored: string): string | null {
+  if (!stored) return null;
+  const marker = `/${CLIENT_DOCS_BUCKET}/`;
+  const idx = stored.indexOf(marker);
+  if (idx >= 0) return stored.slice(idx + marker.length);
+  // Already a path
+  return stored.replace(/^\/+/, "");
+}
+
+async function signClientDoc(stored: string): Promise<string> {
+  const path = storagePathFromStored(stored);
+  if (!path) return stored;
+  const { data, error } = await supabaseAdmin.storage
+    .from(CLIENT_DOCS_BUCKET)
+    .createSignedUrl(path, SIGNED_URL_TTL);
+  if (error || !data) return "";
+  return data.signedUrl;
+}
+
+async function signDocs<T extends { file_url: string }>(rows: T[]): Promise<T[]> {
+  return Promise.all(
+    rows.map(async (r) => ({ ...r, file_url: await signClientDoc(r.file_url) })),
+  );
+}
+
+
 // ---------- Public: fetch portal data by client code ----------
 export const getClientPortalData = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ code: z.string().min(8).max(32) }).parse(d))
