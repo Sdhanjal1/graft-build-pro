@@ -149,13 +149,12 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
         .from("client-docs")
         .upload(path, file, { upsert: false });
       if (error) throw error;
-      const { data: pub } = supabase.storage.from("client-docs").getPublicUrl(path);
       const r = await addDoc({
         data: {
           clientId,
           title: file.name,
           kind: uploadKind,
-          file_url: pub.publicUrl,
+          file_url: path,
         },
       });
       setDocs([r.document, ...docs]);
