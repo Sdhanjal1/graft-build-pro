@@ -249,7 +249,7 @@ export const addClientDocument = createServerFn({ method: "POST" })
       clientId: z.string().uuid(),
       title: z.string().min(1).max(200),
       kind: z.enum(["certificate", "service", "warranty", "other"]).default("other"),
-      file_url: z.string().url(),
+      file_url: z.string().min(1).max(1024),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
