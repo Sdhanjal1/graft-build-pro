@@ -296,7 +296,7 @@ export const addClientDocument = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
-    return { document: row };
+    return { document: { ...row, file_url: await signClientDoc(row.file_url) } };
   });
 
 // ---------- Pro: delete document ----------
