@@ -77,7 +77,7 @@ function AppHomePage() {
       <div className="flex flex-col min-h-[calc(100dvh-7rem)]">
       {/* Ink header: greeting + £ outstanding */}
 
-      <header className="bg-ink text-paper rounded-b-3xl px-5 pt-7 pb-8">
+      <header className="bg-ink text-paper rounded-b-3xl px-5 pt-5 pb-6">
         <div className="flex items-center justify-between">
           <QuottrWordmark className="text-3xl" />
           <Link
@@ -103,7 +103,7 @@ function AppHomePage() {
 
         {/* Stat pills */}
         {hasActions && (
-          <div className="mt-5 flex gap-2 flex-wrap">
+          <div className="mt-4 flex gap-2 flex-wrap">
             {pendingQuotes.length > 0 && (
               <StatPill icon={FileText} count={pendingQuotes.length} label="to send" tone="pending" />
             )}
@@ -119,7 +119,7 @@ function AppHomePage() {
 
       {/* Action queue cards */}
       {hasActions ? (
-        <section className="px-5 mt-5 space-y-3">
+        <section className="px-5 mt-3 space-y-2">
           {pendingQuotes.length > 0 && (
             <ActionCard
               to="/quotes"
@@ -155,8 +155,8 @@ function AppHomePage() {
           )}
         </section>
       ) : (
-        <section className="px-5 mt-6">
-          <div className="card-surface p-6 text-center">
+        <section className="px-5 mt-4">
+          <div className="card-surface p-5 text-center">
             <div className="h-12 w-12 rounded-full bg-lime/15 flex items-center justify-center mx-auto">
               <Sparkles className="h-6 w-6 text-ink" />
             </div>
@@ -170,9 +170,9 @@ function AppHomePage() {
 
       {/* Today's jobs */}
       {today.length > 0 && (
-        <section className="px-5 mt-5">
+        <section className="px-5 mt-3">
           <div className="card-surface p-4">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-2">
               <Clock className="h-4 w-4 text-lime" />
               <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
                 Today's jobs
@@ -209,26 +209,26 @@ function AppHomePage() {
       )}
 
       {/* Voice-first hero CTA — big central mic */}
-      <section className="px-5 mt-6 flex-1 flex">
+      <section className="px-5 mt-4 flex-1 flex">
         <Link
           to="/quotes/new"
           search={{ voice: 1 }}
           onClick={() => buzz(12)}
-          className="flex flex-col w-full rounded-3xl bg-ink text-paper p-6 active:scale-[0.99] transition shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center"
+          className="flex flex-col w-full rounded-3xl bg-ink text-paper p-5 active:scale-[0.99] transition shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center"
         >
           <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
             Tap to start
           </p>
           <p className="text-2xl font-semibold leading-tight mt-1">New voice quote</p>
 
-          <div className="flex-1 flex items-center justify-center my-4">
-            <span className="relative h-32 w-32 rounded-full bg-lime flex items-center justify-center shadow-[0_16px_40px_-12px_rgba(200,224,74,0.7)]">
+          <div className="flex-1 flex items-center justify-center my-3">
+            <span className="relative h-24 w-24 rounded-full bg-lime flex items-center justify-center shadow-[0_16px_40px_-12px_rgba(200,224,74,0.7)]">
               <span className="absolute inset-0 rounded-full bg-lime/40 animate-ping" />
-              <Mic className="relative h-14 w-14 text-ink" strokeWidth={2.5} />
+              <Mic className="relative h-12 w-12 text-ink" strokeWidth={2.5} />
             </span>
           </div>
 
-          <div className="pt-3 border-t border-paper/10">
+          <div className="pt-2 border-t border-paper/10">
             <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">
               Try saying
             </p>
@@ -239,11 +239,11 @@ function AppHomePage() {
 
 
       {/* Quick shortcuts — pinned just above bottom nav */}
-      <section className="px-5 mt-3 mb-3">
-        <div className="grid grid-cols-2 gap-2.5">
+      <section className="px-5 mt-2 mb-2">
+        <div className="grid grid-cols-2 gap-2">
           <Link
             to="/clients"
-            className="card-surface flex items-center gap-2.5 px-3.5 py-3 active:scale-[0.99] transition"
+            className="card-surface flex items-center gap-2.5 px-3 py-2.5 active:scale-[0.99] transition"
           >
             <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
               <UserPlus className="h-4 w-4 text-ink" />
@@ -259,7 +259,7 @@ function AppHomePage() {
           </Link>
           <Link
             to="/capture/new"
-            className="card-surface flex items-center gap-2.5 px-3.5 py-3 active:scale-[0.99] transition"
+            className="card-surface flex items-center gap-2.5 px-3 py-2.5 active:scale-[0.99] transition"
           >
             <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
               <MapPin className="h-4 w-4 text-ink" />
@@ -342,7 +342,7 @@ function ActionCard({
   return (
     <Link
       to={to}
-      className={`card-surface p-4 flex items-center gap-3 active:scale-[0.99] transition ${borderCls}`}
+      className={`card-surface p-3 flex items-center gap-3 active:scale-[0.99] transition ${borderCls}`}
     >
       <div className={`h-10 w-10 rounded-full ${iconBg} flex items-center justify-center shrink-0`}>
         <Icon className={`h-5 w-5 ${iconColor}`} />
