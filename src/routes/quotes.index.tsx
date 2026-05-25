@@ -125,11 +125,11 @@ function QuotesPage() {
               <Link
                 to="/quotes/$quoteId"
                 params={{ quoteId: quote.id }}
-                className="card-surface p-4 flex items-center gap-4 bg-card"
+                className="card-surface py-5 px-4 flex items-center gap-4 bg-card"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="num text-5xl leading-none text-ink">{formatGBP(quote.total)}</p>
-                  <p className="font-semibold text-xs mt-2 truncate text-ink">
+                  <p className="text-[32px] font-bold leading-none text-ink">{formatGBP(quote.total)}</p>
+                  <p className="text-sm mt-2 truncate text-ink">
                     {c && c.name && c.name.toLowerCase() !== "new client"
                       ? c.name
                       : <span className="text-status-pending">Tap to assign client</span>}
