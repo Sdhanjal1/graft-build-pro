@@ -208,27 +208,27 @@ function AppHomePage() {
         </section>
       )}
 
-      {/* Voice-first hero CTA — grows to fill remaining space */}
+      {/* Voice-first hero CTA — big central mic */}
       <section className="px-5 mt-6 flex-1 flex">
         <Link
           to="/quotes/new"
           search={{ voice: 1 }}
           onClick={() => buzz(12)}
-          className="flex flex-col w-full rounded-3xl bg-ink text-paper p-5 active:scale-[0.99] transition shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)]"
+          className="flex flex-col w-full rounded-3xl bg-ink text-paper p-6 active:scale-[0.99] transition shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center"
         >
-          <div className="flex items-center gap-4">
-            <span className="h-14 w-14 rounded-full bg-lime flex items-center justify-center shrink-0 shadow-[0_8px_24px_-8px_rgba(200,224,74,0.7)]">
-              <Mic className="h-7 w-7 text-ink" strokeWidth={2.5} />
+          <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+            Tap to start
+          </p>
+          <p className="text-2xl font-semibold leading-tight mt-1">New voice quote</p>
+
+          <div className="flex-1 flex items-center justify-center my-4">
+            <span className="relative h-32 w-32 rounded-full bg-lime flex items-center justify-center shadow-[0_16px_40px_-12px_rgba(200,224,74,0.7)]">
+              <span className="absolute inset-0 rounded-full bg-lime/40 animate-ping" />
+              <Mic className="relative h-14 w-14 text-ink" strokeWidth={2.5} />
             </span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-                Tap to start
-              </p>
-              <p className="text-lg font-semibold leading-tight mt-0.5">New voice quote</p>
-            </div>
-            <ArrowRight className="h-5 w-5 text-paper/60" />
           </div>
-          <div className="flex-1 mt-4 pt-4 border-t border-paper/10 flex flex-col justify-center">
+
+          <div className="pt-3 border-t border-paper/10">
             <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">
               Try saying
             </p>
@@ -236,6 +236,7 @@ function AppHomePage() {
           </div>
         </Link>
       </section>
+
 
       {/* Quick shortcuts — pinned just above bottom nav */}
       <section className="px-5 mt-3 mb-3">
