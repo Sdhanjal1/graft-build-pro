@@ -2,11 +2,31 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
-import { StatusBadge } from "@/components/StatusBadge";
+
 import { SwipeRow } from "@/components/SwipeRow";
-import { mockQuotes, getClient, formatGBP, deleteQuote, useDataVersion, type QuoteStatus } from "@/lib/user-data";
+import { mockQuotes, getClient, formatGBP, deleteQuote, useDataVersion, buildChaserMessage, waLink, type QuoteStatus } from "@/lib/user-data";
 import { Search, FileText, Inbox } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+
+const STATUS_DOT: Record<QuoteStatus, string> = {
+  pending: "bg-status-pending",
+  sent: "bg-status-sent",
+  accepted: "bg-status-accepted",
+  declined: "bg-status-overdue",
+  paid: "bg-status-paid",
+  overdue: "bg-status-overdue",
+};
+
+const STATUS_LABEL: Record<QuoteStatus, string> = {
+  pending: "Draft",
+  sent: "Sent",
+  accepted: "Accepted",
+  declined: "Declined",
+  paid: "Paid",
+  overdue: "Overdue",
+};
+
+const UNPAID: QuoteStatus[] = ["sent", "accepted", "overdue"];
 
 export const Route = createFileRoute("/quotes/")({
   component: QuotesPage,
@@ -78,6 +98,15 @@ function QuotesPage() {
         )}
         {filtered.map((quote) => {
           const c = getClient(quote.client_id);
+          const isUnpaid = UNPAID.includes(quote.status);
+          const chaseHandler = isUnpaid && c?.phone
+            ? () => {
+                const first = c.name?.split(" ")[0] ?? "there";
+                const msg = buildChaserMessage(quote, first);
+                window.open(waLink(c.phone, msg), "_blank");
+                toast.success("Chaser opened in WhatsApp");
+              }
+            : undefined;
           return (
             <SwipeRow
               key={quote.id}
@@ -90,25 +119,32 @@ function QuotesPage() {
                   throw e;
                 }
               }}
+              onChase={chaseHandler}
+              chaseLabel="Chase"
             >
               <Link
                 to="/quotes/$quoteId"
                 params={{ quoteId: quote.id }}
-                className="card-surface p-4 flex items-center gap-3"
+                className="card-surface p-4 flex items-center gap-4 bg-card"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{quote.ref}</p>
-                    <StatusBadge status={quote.status} />
-                  </div>
-                  <p className="font-semibold text-sm mt-1 truncate">{quote.title}</p>
-                  {c && c.name && c.name.toLowerCase() !== "new client" ? (
-                    <p className="text-xs font-bold text-ink truncate">{c.name}</p>
-                  ) : (
-                    <p className="text-xs font-semibold text-status-pending truncate">Tap to assign client</p>
-                  )}
+                  <p className="num text-3xl leading-none text-ink">{formatGBP(quote.total)}</p>
+                  <p className="font-semibold text-sm mt-1.5 truncate text-ink">
+                    {c && c.name && c.name.toLowerCase() !== "new client"
+                      ? c.name
+                      : <span className="text-status-pending">Tap to assign client</span>}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">{quote.title}</p>
                 </div>
-                <p className="num text-2xl text-ink">{formatGBP(quote.total)}</p>
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT[quote.status]}`}
+                    aria-label={STATUS_LABEL[quote.status]}
+                  />
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    {STATUS_LABEL[quote.status]}
+                  </span>
+                </div>
               </Link>
             </SwipeRow>
           );

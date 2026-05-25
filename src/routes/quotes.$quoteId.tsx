@@ -376,39 +376,69 @@ function QuoteDetail() {
         )}
       </section>
 
-      {/* Actions, one primary + More options */}
-      <section className="px-5 mt-6 space-y-3">
-        <button
-          onClick={primary.onClick}
-          className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2"
-        >
-          <PrimaryIcon className="h-5 w-5" />
-          {primary.label}
-        </button>
-        {(status === "accepted" || status === "sent") && (
-          <button
-            onClick={() => takePaymentOnSite("full")}
-            disabled={takingOnSite}
-            className="w-full bg-ink text-paper rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-60"
-          >
-            {takingOnSite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Nfc className="h-4 w-4" />}
-            Take payment on site
-            <span className="num text-paper/80">· {formatGBP(quote.total)}</span>
-          </button>
-        )}
-        {status === "paid" && (
-          <div className="w-full bg-status-paid/15 border border-status-paid/40 rounded-2xl py-3 px-4 inline-flex items-center justify-center gap-2 text-xs font-semibold text-ink">
-            <CheckCircle2 className="h-4 w-4" />
-            Paid via {paidVia === "card" ? "card" : paidVia === "bank" ? "bank transfer" : "cash"}
+      {/* Spacer so content isn't hidden behind sticky bar */}
+      <div className="h-36" aria-hidden />
+
+      {/* Sticky bottom action bar — Send · Mark Paid · Chase always visible */}
+      <div className="fixed bottom-0 inset-x-0 z-40 pointer-events-none">
+        <div className="mx-auto max-w-md px-4 pb-4 pt-3 pointer-events-auto bg-gradient-to-t from-paper via-paper to-paper/0">
+          <div className="card-surface bg-paper shadow-lg p-2.5 flex items-center gap-2">
+            <button
+              onClick={primary.onClick}
+              className="flex-1 bg-lime text-ink rounded-full py-3 font-bold inline-flex items-center justify-center gap-2 text-sm"
+            >
+              <PrimaryIcon className="h-4 w-4" />
+              {primary.label}
+            </button>
+            {status !== "paid" && (
+              <button
+                onClick={() => setAskingPaid(true)}
+                aria-label="Mark as paid"
+                className="h-12 w-12 rounded-full bg-ink text-paper inline-flex items-center justify-center shrink-0"
+              >
+                <CheckCircle2 className="h-5 w-5" />
+              </button>
+            )}
+            {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
+              <button
+                onClick={() => {
+                  const first = client.name.split(" ")[0] ?? "there";
+                  const msg = `Hi ${first}, just following up on ${quote.ref} for ${formatGBP(quote.total)}. Could you let me know when payment will be made? Thanks.`;
+                  const digits = client.phone.replace(/\D/g, "");
+                  window.open(`https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${encodeURIComponent(msg)}`, "_blank");
+                }}
+                aria-label="Send chaser"
+                className="h-12 w-12 rounded-full bg-secondary text-ink inline-flex items-center justify-center shrink-0"
+              >
+                <MessageCircle className="h-5 w-5" />
+              </button>
+            )}
+            <button
+              onClick={() => setMoreOpen(true)}
+              aria-label="More options"
+              className="h-12 w-12 rounded-full bg-secondary text-ink inline-flex items-center justify-center shrink-0 font-bold"
+            >
+              ⋯
+            </button>
           </div>
-        )}
-        <button
-          onClick={() => setMoreOpen(true)}
-          className="w-full text-center text-sm text-muted-foreground underline underline-offset-4 py-1"
-        >
-          More options
-        </button>
-      </section>
+          {(status === "accepted" || status === "sent") && (
+            <button
+              onClick={() => takePaymentOnSite("full")}
+              disabled={takingOnSite}
+              className="w-full mt-2 bg-ink/90 text-paper rounded-full py-2.5 font-semibold inline-flex items-center justify-center gap-2 text-xs disabled:opacity-60"
+            >
+              {takingOnSite ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Nfc className="h-3.5 w-3.5" />}
+              Take payment on site · {formatGBP(quote.total)}
+            </button>
+          )}
+          {status === "paid" && (
+            <div className="w-full mt-2 bg-status-paid/15 border border-status-paid/40 rounded-full py-2 px-4 inline-flex items-center justify-center gap-2 text-xs font-semibold text-ink">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Paid via {paidVia === "card" ? "card" : paidVia === "bank" ? "bank transfer" : "cash"}
+            </div>
+          )}
+        </div>
+      </div>
 
       {moreOpen && (
         <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setMoreOpen(false)}>
