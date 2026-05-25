@@ -206,8 +206,37 @@ function AppHomePage() {
         </section>
       )}
 
+      {/* Voice-first hero CTA */}
+      <section className="px-5 mt-6">
+        <Link
+          to="/quotes/new"
+          search={{ voice: 1 }}
+          onClick={() => buzz(12)}
+          className="block rounded-3xl bg-ink text-paper p-5 active:scale-[0.99] transition shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)]"
+        >
+          <div className="flex items-center gap-4">
+            <span className="h-14 w-14 rounded-full bg-lime flex items-center justify-center shrink-0 shadow-[0_8px_24px_-8px_rgba(200,224,74,0.7)]">
+              <Mic className="h-7 w-7 text-ink" strokeWidth={2.5} />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+                Tap to start
+              </p>
+              <p className="text-lg font-semibold leading-tight mt-0.5">New voice quote</p>
+            </div>
+            <ArrowRight className="h-5 w-5 text-paper/60" />
+          </div>
+          <div className="mt-4 pt-4 border-t border-paper/10">
+            <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">
+              Try saying
+            </p>
+            <RotatingPrompts className="mt-1 text-sm text-paper/85 leading-snug" />
+          </div>
+        </Link>
+      </section>
+
       {/* Quick shortcuts */}
-      <section className="px-5 mt-5">
+      <section className="px-5 mt-3 mb-8">
         <div className="grid grid-cols-2 gap-2.5">
           <Link
             to="/clients"
@@ -217,7 +246,7 @@ function AppHomePage() {
               <UserPlus className="h-4 w-4 text-ink" />
             </span>
             <span className="flex-1 min-w-0">
-              <span className="block text-sm font-semibold text-ink leading-tight">Client book</span>
+              <span className="block text-sm font-semibold text-ink leading-tight truncate">Clients</span>
               {clientCount > 0 && (
                 <span className="block text-[10px] text-muted-foreground mt-0.5">
                   {clientCount} saved
@@ -232,29 +261,10 @@ function AppHomePage() {
             <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
               <MapPin className="h-4 w-4 text-ink" />
             </span>
-            <span className="text-sm font-semibold text-ink leading-tight">On-site capture</span>
+            <span className="text-sm font-semibold text-ink leading-tight truncate">On-site</span>
           </Link>
         </div>
       </section>
-
-      {/* Voice prompt */}
-      <section className="px-5 mt-6 mb-8">
-        <div className="card-surface p-5 text-center">
-          <p className="text-xs text-muted-foreground">Not sure what to quote?</p>
-          <RotatingPrompts className="mt-2 text-center px-4" />
-        </div>
-      </section>
-
-      {/* Floating mic button */}
-      <Link
-        to="/quotes/new"
-        search={{ voice: 1 }}
-        onClick={() => buzz(12)}
-        aria-label="Tap to start a quote"
-        className="fixed bottom-24 right-5 z-40 h-14 w-14 rounded-full bg-lime flex items-center justify-center shadow-[0_8px_24px_-8px_rgba(200,224,74,0.6)] active:scale-95 transition"
-      >
-        <Mic className="h-6 w-6 text-ink" strokeWidth={2.25} />
-      </Link>
     </AppShell>
   );
 }
