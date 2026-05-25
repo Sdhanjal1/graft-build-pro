@@ -558,7 +558,7 @@ function NewQuotePage() {
             type="button"
             onClick={startRecordingForClip}
             disabled={recording || transcribing}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-lime text-ink py-3 text-sm font-bold shadow-[0_4px_14px_-4px_rgb(0_0_0/0.25)] active:scale-[0.98] transition disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-ink text-paper py-3 text-sm font-bold active:scale-[0.98] transition disabled:opacity-60"
           >
             {transcribing ? (
               <>
@@ -566,7 +566,7 @@ function NewQuotePage() {
               </>
             ) : (
               <>
-                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-ink text-lime">
+                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-lime text-ink">
                   <Plus className="h-4 w-4" strokeWidth={3} />
                 </span>
                 {clips.length === 0 ? "Add first clip" : "Add another clip"}
