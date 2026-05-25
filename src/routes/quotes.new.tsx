@@ -621,7 +621,7 @@ function NewQuotePage() {
             className="mt-2 w-full bg-transparent outline-none text-sm text-paper placeholder:text-paper/80"
           />
           {clientOpen && (
-            <ul className="absolute left-3 right-3 top-full mt-2 z-50 bg-paper text-ink rounded-2xl shadow-[0_16px_40px_-12px_rgb(0_0_0/0.35)] border border-border max-h-64 overflow-auto">
+            <ul className="absolute left-3 right-3 bottom-full mb-2 z-50 bg-paper text-ink rounded-2xl shadow-[0_16px_40px_-12px_rgb(0_0_0/0.35)] border border-border max-h-64 overflow-auto">
               {clientName.trim() && (
                 <li>
                   <button
