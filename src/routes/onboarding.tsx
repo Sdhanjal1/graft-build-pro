@@ -180,11 +180,19 @@ function OnboardingWizard() {
                       feedback("tap");
                       setTrade(t.id);
                     }}
-                    className={`card-surface px-4 py-5 flex flex-col items-center gap-2 transition active:scale-95 ${
-                      active ? "ring-2 ring-lime bg-lime/10" : ""
+                    aria-pressed={active}
+                    className={`relative rounded-[var(--radius-lg)] px-4 py-5 flex flex-col items-center gap-2 transition active:scale-95 ${
+                      active
+                        ? "bg-lime text-ink ring-2 ring-ink shadow-[0_8px_24px_-8px_rgba(200,224,74,0.7)]"
+                        : "card-surface"
                     }`}
                   >
-                    <Icon className="h-6 w-6 text-ink" />
+                    {active && (
+                      <span className="absolute top-2 right-2 h-5 w-5 rounded-full bg-ink flex items-center justify-center">
+                        <Check className="h-3 w-3 text-lime" strokeWidth={4} />
+                      </span>
+                    )}
+                    <Icon className={`h-6 w-6 ${active ? "text-ink" : "text-ink"}`} />
                     <span className="text-sm font-semibold text-ink">{t.id}</span>
                   </button>
                 );
