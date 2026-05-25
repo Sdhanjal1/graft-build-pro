@@ -96,22 +96,30 @@ function AppHomePage() {
           <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
             You are owed
           </p>
-          <p className={`num text-6xl mt-1 leading-none ${s.outstanding > 0 ? "text-lime" : "text-paper"}`}>
-            {formatGBP(s.outstanding)}
-          </p>
+          {s.outstanding > 0 ? (
+            <Link to="/chaser" className="block mt-1 active:opacity-80 transition">
+              <p className={`num text-6xl leading-none text-lime`}>
+                {formatGBP(s.outstanding)}
+              </p>
+            </Link>
+          ) : (
+            <p className="num text-6xl mt-1 leading-none text-paper">
+              {formatGBP(s.outstanding)}
+            </p>
+          )}
         </div>
 
         {/* Stat pills */}
         {hasActions && (
           <div className="mt-4 flex gap-2 flex-wrap">
             {pendingQuotes.length > 0 && (
-              <StatPill icon={FileText} count={pendingQuotes.length} label="to send" tone="pending" />
+              <StatPill icon={FileText} count={pendingQuotes.length} label="to send" tone="pending" to="/quotes" />
             )}
             {awaitingQuotes.length > 0 && (
-              <StatPill icon={Clock} count={awaitingQuotes.length} label="awaiting" tone="neutral" />
+              <StatPill icon={Clock} count={awaitingQuotes.length} label="awaiting" tone="neutral" to="/chaser" />
             )}
             {overdueQuotes.length > 0 && (
-              <StatPill icon={AlertTriangle} count={overdueQuotes.length} label="overdue" tone="overdue" />
+              <StatPill icon={AlertTriangle} count={overdueQuotes.length} label="overdue" tone="overdue" to="/chaser" />
             )}
           </div>
         )}
@@ -281,11 +289,13 @@ function StatPill({
   count,
   label,
   tone,
+  to,
 }: {
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   count: number;
   label: string;
   tone: "pending" | "neutral" | "overdue";
+  to: string;
 }) {
   const toneCls =
     tone === "pending"
@@ -294,10 +304,13 @@ function StatPill({
       ? "bg-status-overdue/20 text-status-overdue"
       : "bg-paper/10 text-paper/80";
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${toneCls}`}>
+    <Link
+      to={to}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold active:opacity-80 transition ${toneCls}`}
+    >
       <Icon className="h-3 w-3" />
       {count} {label}
-    </span>
+    </Link>
   );
 }
 
