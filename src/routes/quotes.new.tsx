@@ -592,66 +592,89 @@ function NewQuotePage() {
           </select>
         </div>
 
-        <label className="card-surface p-4 flex items-center justify-between cursor-pointer">
-          <div>
-            <p className="font-semibold text-sm">VAT registered</p>
-            <p className="text-xs text-muted-foreground">Add 20% VAT to quote total</p>
-          </div>
-          <input
-            type="checkbox"
-            checked={vat}
-            onChange={(e) => setVat(e.target.checked)}
-            className="h-6 w-11 appearance-none rounded-full bg-secondary checked:bg-lime relative cursor-pointer transition
-              before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:h-5 before:w-5 before:rounded-full before:bg-white before:transition
-              checked:before:translate-x-5"
-          />
-        </label>
-
-        <div className="p-4 bg-ink text-paper relative rounded-[var(--radius-lg)] shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)] mb-3">
-          <label className="text-xs uppercase tracking-widest text-paper font-bold">
-            Customer
-          </label>
-          <input
-            value={clientName}
-            onChange={(e) => { setClientName(e.target.value); setClientOpen(true); }}
-            onFocus={() => setClientOpen(true)}
-            onBlur={() => setTimeout(() => setClientOpen(false), 150)}
-            placeholder="Type to search or add a customer"
-            className="mt-2 w-full bg-transparent outline-none text-sm text-paper placeholder:text-paper/80"
-          />
-          {clientOpen && (
-            <ul className="absolute left-3 right-3 bottom-full mb-2 z-50 bg-paper text-ink rounded-2xl shadow-[0_16px_40px_-12px_rgb(0_0_0/0.35)] border border-border max-h-64 overflow-auto">
-              {clientName.trim() && (
-                <li>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => setClientOpen(false)}
-                    className="w-full text-left px-4 py-3 bg-lime text-ink flex items-center gap-2 font-bold"
-                  >
-                    <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-ink text-lime shrink-0">
-                      <Plus className="h-4 w-4" strokeWidth={3} />
-                    </span>
-                    Add new customer
-                  </button>
-                </li>
-              )}
-              {clientMatches.map((c) => (
-                <li key={c.id}>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { setClientName(c.name); setClientOpen(false); }}
-                    className="w-full text-left px-4 py-2.5 hover:bg-secondary flex flex-col gap-0.5"
-                  >
-                    <span className="text-sm font-semibold">{c.name}</span>
-                    {c.address && <span className="text-[11px] text-muted-foreground truncate">{c.address}</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => { setCustomerMode("existing"); setPickerOpen(true); }}
+            className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition border ${
+              customerMode === "existing"
+                ? "bg-lime text-ink border-transparent shadow-[0_4px_14px_-4px_rgb(0_0_0/0.2)]"
+                : "bg-card text-ink border-border"
+            }`}
+          >
+            Existing customer
+          </button>
+          <button
+            type="button"
+            onClick={() => { setCustomerMode("new"); setClientName(""); setClientPhone(""); }}
+            className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition border inline-flex items-center justify-center gap-1.5 ${
+              customerMode === "new"
+                ? "bg-lime text-ink border-transparent shadow-[0_4px_14px_-4px_rgb(0_0_0/0.2)]"
+                : "bg-card text-ink border-border"
+            }`}
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.5} /> New customer
+          </button>
         </div>
+
+        {customerMode === "existing" && clientName && (
+          <div className="card-surface p-4 flex items-center justify-between">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Customer</p>
+              <p className="text-sm font-semibold truncate mt-0.5">{clientName}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="text-xs font-bold text-ink underline underline-offset-2 shrink-0 ml-3"
+            >
+              Change
+            </button>
+          </div>
+        )}
+
+        {customerMode === "new" && (
+          <div className="card-surface p-4 space-y-3">
+            <div>
+              <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                Name
+              </label>
+              <input
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                placeholder="Customer name"
+                className="mt-1.5 w-full bg-transparent outline-none text-sm border-b border-border pb-1.5"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                Phone number
+              </label>
+              <input
+                value={clientPhone}
+                onChange={(e) => setClientPhone(e.target.value)}
+                inputMode="tel"
+                placeholder="07XXX XXXXXX"
+                className="mt-1.5 w-full bg-transparent outline-none text-sm border-b border-border pb-1.5"
+              />
+            </div>
+          </div>
+        )}
+
+        {pickerOpen && (
+          <CustomerPicker
+            search={customerSearch}
+            onSearch={setCustomerSearch}
+            clients={filteredClients}
+            onPick={(c) => {
+              setClientName(c.name);
+              setCustomerMode("existing");
+              setPickerOpen(false);
+            }}
+            onClose={() => setPickerOpen(false)}
+          />
+        )}
 
         {!draft && (
           <button
