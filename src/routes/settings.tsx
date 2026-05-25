@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getWorkingHours, saveWorkingHours, type WorkingHours } from "@/lib/working-hours.functions";
-import { CustomerQRCard, PushPermissionCard } from "@/components/CustomerQRCard";
+import { PushPermissionCard } from "@/components/CustomerQRCard";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -315,13 +315,6 @@ function SettingsPage() {
             </div>
           </Section>
 
-          <Section title="Get more jobs">
-            <CustomerQRCard />
-          </Section>
-
-          <Section title="Refer a mate">
-            <ReferMate />
-          </Section>
 
           <Section title="Auto-chase">
             <AutoChasePanel />

@@ -1,18 +1,17 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getQuote, getClient, userProfile, formatGBP,
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
-  scheduleJob, getJobByQuote, formatDayLabel, formatTime,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   setQuoteStatus, updateQuoteLineItems,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem,
 } from "@/lib/user-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
@@ -62,8 +61,7 @@ function QuoteDetail() {
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | undefined>(quote.payment_request);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [scheduling, setScheduling] = useState(false);
-  const [job, setJob] = useState(() => getJobByQuote(quote.id));
+  // (scheduling removed)
   const [askDeposit, setAskDeposit] = useState(false);
   const [askInvoice, setAskInvoice] = useState(false);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
@@ -71,14 +69,7 @@ function QuoteDetail() {
   const [assignOpen, setAssignOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const navigate = useNavigate();
-  const defaultSchedule = useMemo(() => {
-    const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0);
-    // Format for <input type="datetime-local">: yyyy-MM-ddTHH:mm
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }, []);
-  const [schedAt, setSchedAt] = useState(defaultSchedule);
-  const [schedHrs, setSchedHrs] = useState("4");
+  // (schedule defaults removed)
 
   const createCheckout = useServerFn(createInvoiceCheckout);
 
@@ -110,13 +101,7 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
     }
   };
-  const confirmSchedule = () => {
-    const iso = new Date(schedAt).toISOString();
-    const hours = Math.max(0.5, Number(schedHrs) || 4);
-    const j = scheduleJob(quote.id, iso, Math.round(hours * 60));
-    setJob(j);
-    setScheduling(false);
-  };
+  // (confirmSchedule removed)
   const markPaid = (m: PaymentMethod) => {
     quote.paid_via = m; quote.status = "paid";
     setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
@@ -142,7 +127,6 @@ function QuoteDetail() {
     const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${text}`;
     window.open(wa, "_blank");
     setAskDeposit(false);
-    setScheduling(true);
   };
   const issueInvoice = async () => {
     try {
@@ -484,9 +468,6 @@ function QuoteDetail() {
               {status === "pending" && (
                 <MoreItem icon={Send} label="Mark as sent" onClick={() => { setMoreOpen(false); markSent(); }} />
               )}
-              {status === "accepted" && !job && (
-                <MoreItem icon={Calendar} label="Schedule this job" onClick={() => { setMoreOpen(false); setScheduling(true); }} />
-              )}
               {status === "accepted" && (
                 <MoreItem icon={Zap} label="Request payment (send link)" onClick={() => { setMoreOpen(false); setRequesting(true); }} />
               )}
@@ -594,50 +575,6 @@ function QuoteDetail() {
         </div>
       )}
 
-      {/* Bottom sheet: schedule this job */}
-      {scheduling && (
-        <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setScheduling(false)}>
-          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
-            <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
-            <h3 className="text-2xl">Schedule this job?</h3>
-            <p className="text-xs text-muted-foreground mb-4">
-              Pop it in your calendar so you don't forget. We'll remind you the day before.
-            </p>
-            <div className="space-y-3">
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Date & time</span>
-                <input
-                  type="datetime-local"
-                  value={schedAt}
-                  onChange={(e) => setSchedAt(e.target.value)}
-                  className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
-                />
-              </label>
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Estimated duration (hours)</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0.5"
-                  step="0.5"
-                  value={schedHrs}
-                  onChange={(e) => setSchedHrs(e.target.value)}
-                  className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium num"
-                />
-              </label>
-            </div>
-            <button
-              onClick={confirmSchedule}
-              className="w-full mt-4 bg-lime text-ink rounded-full py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2"
-            >
-              <Calendar className="h-4 w-4" /> Add to calendar
-            </button>
-            <button onClick={() => setScheduling(false)} className="w-full mt-2 text-sm text-muted-foreground py-2">
-              Not now
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Bottom sheet: deposit on acceptance */}
       {askDeposit && (
@@ -658,7 +595,7 @@ function QuoteDetail() {
             >
               <MessageCircle className="h-4 w-4" /> Yes, send deposit request
             </button>
-            <button onClick={() => { setAskDeposit(false); setScheduling(true); }} className="w-full mt-2 text-sm text-muted-foreground py-2">
+            <button onClick={() => setAskDeposit(false)} className="w-full mt-2 text-sm text-muted-foreground py-2">
               No, skip for now
             </button>
           </div>
