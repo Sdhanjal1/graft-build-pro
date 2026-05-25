@@ -8,15 +8,13 @@ import {
   saveProfileToCloud,
 } from "@/lib/user-data";
 import { signOut } from "@/lib/auth";
-import { getFeedbackPrefs, setFeedbackPrefs, feedback } from "@/lib/feedback";
+import { feedback } from "@/lib/feedback";
 import {
-  Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut,
-  CreditCard, MapPin, Gift, Share2, Vibrate, Volume2, Clock,
-  CheckCircle2, FileText, MessageSquare, AlertTriangle, Trash2, Bell,
+  Building2, User, Phone, BadgeCheck, Receipt, LogOut,
+  CheckCircle2, FileText, MessageSquare, AlertTriangle, Trash2,
   Camera, ImageIcon, Pencil, PenLine,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { getWorkingHours, saveWorkingHours, type WorkingHours } from "@/lib/working-hours.functions";
 import { PushPermissionCard } from "@/components/CustomerQRCard";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,8 +103,6 @@ function SettingsPage() {
 
   const saveBank = (patch: Partial<typeof bank>) => setBank((b) => ({ ...b, ...patch }));
 
-  const stripeConnected = !!userProfile.stripe_connected;
-
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -169,8 +165,6 @@ function SettingsPage() {
           <EditField icon={Building2}  label="Business name" value={profile.business_name} onChange={(v) => saveProfile({ business_name: v })} />
           <EditField icon={User}       label="Your name"     value={profile.full_name}     onChange={(v) => saveProfile({ full_name: v })} />
           <EditField icon={Phone}      label="Phone"         value={profile.phone}         onChange={(v) => saveProfile({ phone: v })} />
-          <EditField icon={Mail}       label="Email"         value={profile.email}         onChange={(v) => saveProfile({ email: v })} />
-          <EditField icon={MapPin}     label="Town"          value={profile.town}          onChange={(v) => saveProfile({ town: v })} placeholder="e.g. Manchester" />
           <SelectField icon={BadgeCheck} label="Trade type"  value={profile.trade_type}    onChange={(v) => saveProfile({ trade_type: v })} options={TRADE_TYPES} />
         </div>
       </Section>
@@ -304,36 +298,11 @@ function SettingsPage() {
             </div>
           </Section>
 
-          <Section title="Working hours">
-            <WorkingHoursPanel />
-          </Section>
-
           <Section title="Notifications">
             <div className="space-y-3">
               <PushPermissionCard />
               <NotificationToggles />
             </div>
-          </Section>
-
-
-          <Section title="Auto-chase">
-            <AutoChasePanel />
-          </Section>
-
-          <Section title="Google reviews">
-            <GoogleReviewPanel />
-          </Section>
-
-          <Section title="Integrations">
-            <div className="card-surface divide-y divide-border">
-              <SettingRow icon={Key} label="Claude API key" status="Optional, fallback quote generator is active" />
-              <SettingRow icon={Key} label="OpenAI Whisper key" status="Add to enable voice-to-text" />
-              <SettingRow icon={CreditCard} label="Stripe Connect" status={stripeConnected ? "Connected" : "Add to take card payments"} />
-            </div>
-          </Section>
-
-          <Section title="Feedback">
-            <FeedbackToggles />
           </Section>
 
           <Section title="Danger zone">
@@ -408,112 +377,7 @@ function NotificationToggles() {
   );
 }
 
-function WorkingHoursPanel() {
-  const fetchWh = useServerFn(getWorkingHours);
-  const saveWh = useServerFn(saveWorkingHours);
-  const [wh, setWh] = useState<WorkingHours | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => { void fetchWh().then(setWh).catch(() => setWh(null)); }, []);
-
-  useEffect(() => {
-    if (!wh) return;
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => { void saveWh({ data: wh }).catch(() => {}); }, 700);
-    return () => { if (timer.current) clearTimeout(timer.current); };
-  }, [wh]);
-
-  if (!wh) return <div className="card-surface p-5 text-sm text-muted-foreground">Loading…</div>;
-
-  const days: Array<{ key: keyof WorkingHours["schedule"]; label: string }> = [
-    { key: "mon", label: "Mon" }, { key: "tue", label: "Tue" }, { key: "wed", label: "Wed" },
-    { key: "thu", label: "Thu" }, { key: "fri", label: "Fri" }, { key: "sat", label: "Sat" }, { key: "sun", label: "Sun" },
-  ];
-
-  const updateDay = (k: keyof WorkingHours["schedule"], patch: Partial<WorkingHours["schedule"]["mon"]>) =>
-    setWh({ ...wh, schedule: { ...wh.schedule, [k]: { ...wh.schedule[k], ...patch } } });
-
-  return (
-    <div className="card-surface p-5 space-y-4">
-      <label className="flex items-center justify-between cursor-pointer">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center"><Clock className="h-4 w-4" /></div>
-          <div>
-            <p className="font-semibold text-sm">Do Not Disturb</p>
-            <p className="text-xs text-muted-foreground">Pause notifications outside working hours</p>
-          </div>
-        </div>
-        <input
-          type="checkbox"
-          checked={wh.dnd_enabled}
-          onChange={(e) => setWh({ ...wh, dnd_enabled: e.target.checked })}
-          className="h-6 w-11 appearance-none rounded-full bg-secondary checked:bg-lime relative cursor-pointer transition
-            before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:h-5 before:w-5 before:rounded-full before:bg-white before:transition
-            checked:before:translate-x-5"
-        />
-      </label>
-
-      <div className="space-y-2">
-        {days.map(({ key, label }) => {
-          const d = wh.schedule[key];
-          return (
-            <div key={key} className="flex items-center gap-2">
-              <label className="w-20 flex items-center gap-2 text-sm font-semibold">
-                <input
-                  type="checkbox"
-                  checked={d.enabled}
-                  onChange={(e) => updateDay(key, { enabled: e.target.checked })}
-                  className="h-4 w-4 accent-lime"
-                />
-                {label}
-              </label>
-              <input
-                type="time"
-                disabled={!d.enabled}
-                value={d.start}
-                onChange={(e) => updateDay(key, { start: e.target.value })}
-                className="flex-1 bg-secondary rounded-xl px-3 py-2 text-sm outline-none disabled:opacity-40"
-              />
-              <span className="text-muted-foreground text-xs">-</span>
-              <input
-                type="time"
-                disabled={!d.enabled}
-                value={d.end}
-                onChange={(e) => updateDay(key, { end: e.target.value })}
-                className="flex-1 bg-secondary rounded-xl px-3 py-2 text-sm outline-none disabled:opacity-40"
-              />
-            </div>
-          );
-        })}
-      </div>
-
-      <label className="block">
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Auto-reply (sent outside hours)</span>
-        <textarea
-          value={wh.auto_reply}
-          onChange={(e) => setWh({ ...wh, auto_reply: e.target.value })}
-          rows={2}
-          className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
-        />
-      </label>
-    </div>
-  );
-}
-
-function FeedbackToggles() {
-  const [prefs, setPrefs] = useState(() => getFeedbackPrefs());
-  const update = (patch: Partial<typeof prefs>) => {
-    setPrefs((p) => ({ ...p, ...patch }));
-    setFeedbackPrefs(patch);
-    feedback("tap");
-  };
-  return (
-    <div className="card-surface divide-y divide-border">
-      <ToggleRow icon={Vibrate} label="Haptics" hint="Subtle vibration on actions" checked={prefs.haptics} onChange={(v) => update({ haptics: v })} />
-      <ToggleRow icon={Volume2} label="Sound" hint="Soft confirmation tones" checked={prefs.sound} onChange={(v) => update({ sound: v })} />
-    </div>
-  );
-}
 
 function ToggleRow({
   icon: Icon, label, hint, checked, onChange, flush,
@@ -595,124 +459,9 @@ function Input({ label, value, onChange }: { label: string; value: string; onCha
   );
 }
 
-function SettingRow({ icon: Icon, label, status }: { icon: React.ComponentType<{ className?: string }>; label: string; status: string }) {
-  return (
-    <div className="px-5 py-4 flex items-center gap-3">
-      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center">
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold">{label}</p>
-        <p className="text-xs text-muted-foreground">{status}</p>
-      </div>
-      <span className="text-xs font-semibold text-ink bg-lime px-3 py-1.5 rounded-full">Add</span>
-    </div>
-  );
-}
 
-function ReferMate() {
-  const code = "MATE20";
-  const shareText =
-    `I use Quottr to quote on the spot and get paid faster, try it. ` +
-    `Use my code ${code} for £20 off your first month: https://quottr.app/?ref=${code}`;
-  const onShare = async () => {
-    if (typeof navigator !== "undefined" && (navigator as Navigator & { share?: (data: ShareData) => Promise<void> }).share) {
-      try {
-        await (navigator as Navigator & { share: (data: ShareData) => Promise<void> }).share({
-          title: "Quottr",
-          text: shareText,
-        });
-        return;
-      } catch {
-        // fall through
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(shareText);
-      alert("Share message copied to clipboard");
-    } catch {
-      // no-op
-    }
-  };
-  return (
-    <div className="rounded-2xl bg-ink text-paper p-5 relative overflow-hidden">
-      <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-lime/30 blur-2xl" />
-      <div className="flex items-center gap-2">
-        <Gift className="h-4 w-4 text-lime" />
-        <p className="text-xs uppercase tracking-widest text-paper/60 font-semibold">Refer a mate</p>
-      </div>
-      <h3 className="text-2xl mt-1 leading-tight">Give £20 off, get £20 off</h3>
-      <p className="text-xs text-paper/70 mt-1">Share Quottr with another tradesperson, when they sign up you both get £20 off your next month.</p>
-      <div className="mt-3 flex items-center gap-2">
-        <div className="flex-1 bg-paper/10 rounded-full px-4 py-2.5">
-          <p className="text-[10px] uppercase tracking-widest text-paper/50 font-semibold">Your code</p>
-          <p className="num text-base text-lime leading-none">{code}</p>
-        </div>
-        <button
-          onClick={onShare}
-          className="bg-lime text-ink rounded-full px-4 py-3 text-sm font-bold inline-flex items-center gap-2"
-        >
-          <Share2 className="h-4 w-4" /> Share
-        </button>
-      </div>
-    </div>
-  );
-}
 
-function AutoChasePanel() {
-  const [enabled, setEnabled] = useState(userProfile.auto_chase_enabled);
-  const [offsets, setOffsets] = useState(userProfile.chase_offsets.join(", "));
-  const [t, setT] = useState({ ...userProfile.chase_templates });
-  const save = () => {
-    userProfile.auto_chase_enabled = enabled;
-    const parsed = offsets.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => n > 0);
-    if (parsed.length === 3) userProfile.chase_offsets = parsed;
-    userProfile.chase_templates = { ...t };
-    toast.success("Auto-chase settings saved");
-  };
-  return (
-    <div className="card-surface p-4 space-y-3">
-      <label className="flex items-center justify-between">
-        <span className="text-sm font-semibold">Auto-chase overdue invoices</span>
-        <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="h-5 w-5 accent-lime" />
-      </label>
-      <div>
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1">Chase days (after due date)</p>
-        <input value={offsets} onChange={(e) => setOffsets(e.target.value)} placeholder="7, 14, 21" className="w-full rounded-2xl bg-secondary px-3 py-2 text-sm" />
-      </div>
-      {(["first", "second", "final"] as const).map((k) => (
-        <div key={k}>
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1">{k} chase template</p>
-          <textarea
-            value={t[k]}
-            onChange={(e) => setT({ ...t, [k]: e.target.value })}
-            rows={3}
-            className="w-full rounded-2xl bg-secondary px-3 py-2 text-xs font-mono"
-          />
-        </div>
-      ))}
-      <p className="text-[10px] text-muted-foreground">Variables: {"{name} {job} {amount} {link} {bank} {business}"}</p>
-      <button onClick={save} className="w-full bg-ink text-paper rounded-full py-2.5 text-xs font-bold">Save chase settings</button>
-    </div>
-  );
-}
 
-function GoogleReviewPanel() {
-  const [url, setUrl] = useState(userProfile.google_review_url);
-  return (
-    <div className="card-surface p-4 space-y-2">
-      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Your Google review link</p>
-      <input
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        onBlur={() => { userProfile.google_review_url = url; toast.success("Review link saved"); }}
-        placeholder="https://g.page/r/..."
-        className="w-full rounded-2xl bg-secondary px-3 py-2 text-sm"
-      />
-      <p className="text-[11px] text-muted-foreground">Used in review requests sent after a job is marked complete.</p>
-    </div>
-  );
-}
 
 
 
