@@ -500,20 +500,6 @@ function WorkingHoursPanel() {
   );
 }
 
-function FeedbackToggles() {
-  const [prefs, setPrefs] = useState(() => getFeedbackPrefs());
-  const update = (patch: Partial<typeof prefs>) => {
-    setPrefs((p) => ({ ...p, ...patch }));
-    setFeedbackPrefs(patch);
-    feedback("tap");
-  };
-  return (
-    <div className="card-surface divide-y divide-border">
-      <ToggleRow icon={Vibrate} label="Haptics" hint="Subtle vibration on actions" checked={prefs.haptics} onChange={(v) => update({ haptics: v })} />
-      <ToggleRow icon={Volume2} label="Sound" hint="Soft confirmation tones" checked={prefs.sound} onChange={(v) => update({ sound: v })} />
-    </div>
-  );
-}
 
 function ToggleRow({
   icon: Icon, label, hint, checked, onChange, flush,
