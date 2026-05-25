@@ -697,22 +697,6 @@ function AutoChasePanel() {
   );
 }
 
-function GoogleReviewPanel() {
-  const [url, setUrl] = useState(userProfile.google_review_url);
-  return (
-    <div className="card-surface p-4 space-y-2">
-      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Your Google review link</p>
-      <input
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        onBlur={() => { userProfile.google_review_url = url; toast.success("Review link saved"); }}
-        placeholder="https://g.page/r/..."
-        className="w-full rounded-2xl bg-secondary px-3 py-2 text-sm"
-      />
-      <p className="text-[11px] text-muted-foreground">Used in review requests sent after a job is marked complete.</p>
-    </div>
-  );
-}
 
 
 
