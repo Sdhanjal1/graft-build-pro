@@ -5,7 +5,7 @@ import {
   userProfile, stats, formatGBP, getClient, userClients, mockQuotes,
   todaysJobs, formatTime, getQuote,
 } from "@/lib/user-data";
-import { Mic, ArrowRight, UserPlus, MapPin, FileText, Bell, AlertTriangle, Clock, Send, Sparkles } from "lucide-react";
+import { Mic, ArrowRight, UserPlus, FileText, Bell, AlertTriangle, Clock, Send, Sparkles } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
@@ -246,35 +246,24 @@ function AppHomePage() {
       </section>
 
 
-      {/* Quick shortcuts — pinned just above bottom nav */}
+      {/* Quick shortcut — pinned just above bottom nav */}
       <section className="px-5 mt-2 mb-2">
-        <div className="grid grid-cols-2 gap-2">
-          <Link
-            to="/clients"
-            className="card-surface flex items-center gap-2.5 px-3 py-2.5 active:scale-[0.99] transition"
-          >
-            <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
-              <UserPlus className="h-4 w-4 text-ink" />
-            </span>
-            <span className="flex-1 min-w-0">
-              <span className="block text-sm font-semibold text-ink leading-tight truncate">Clients</span>
-              {clientCount > 0 && (
-                <span className="block text-[10px] text-muted-foreground mt-0.5">
-                  {clientCount} saved
-                </span>
-              )}
-            </span>
-          </Link>
-          <Link
-            to="/capture/new"
-            className="card-surface flex items-center gap-2.5 px-3 py-2.5 active:scale-[0.99] transition"
-          >
-            <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
-              <MapPin className="h-4 w-4 text-ink" />
-            </span>
-            <span className="text-sm font-semibold text-ink leading-tight truncate">On-site</span>
-          </Link>
-        </div>
+        <Link
+          to="/clients"
+          className="card-surface flex items-center gap-2.5 px-3 py-2.5 active:scale-[0.99] transition"
+        >
+          <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
+            <UserPlus className="h-4 w-4 text-ink" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-semibold text-ink leading-tight truncate">Clients</span>
+            {clientCount > 0 && (
+              <span className="block text-[10px] text-muted-foreground mt-0.5">
+                {clientCount} saved
+              </span>
+            )}
+          </span>
+        </Link>
       </section>
       </div>
     </AppShell>

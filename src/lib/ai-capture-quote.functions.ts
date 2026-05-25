@@ -79,7 +79,7 @@ Unit prices must be ex-VAT in GBP. Quantities can be decimal. Every line item MU
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5",
+        model: "claude-sonnet-4-6",
         max_tokens: 3072,
         system: systemPrompt,
         messages: [{ role: "user", content: userPrompt }],

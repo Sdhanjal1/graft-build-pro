@@ -22,6 +22,20 @@ import { SendQuoteDialog } from "@/components/SendQuoteDialog";
 import { listQuoteMessages, sendProMessage } from "@/lib/messages.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef } from "react";
+import confetti from "canvas-confetti";
+
+function celebratePaid(amount: number) {
+  try {
+    const audio = new Audio("/cash.mp3");
+    audio.volume = 0.7;
+    void audio.play().catch(() => {});
+  } catch { /* noop */ }
+  try {
+    confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ["#c8e04a", "#0a0a0a", "#ffffff"] });
+    setTimeout(() => confetti({ particleCount: 80, spread: 100, origin: { y: 0.55 } }), 180);
+  } catch { /* noop */ }
+  toast.success(`${formatGBP(amount)} in. Nice.`);
+}
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
@@ -104,6 +118,7 @@ function QuoteDetail() {
     setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
     setAskInvoice(true);
     feedback("success");
+    celebratePaid(quote.total);
   };
   const duplicate = async () => {
     try {
@@ -270,6 +285,18 @@ function QuoteDetail() {
               <p className="text-xs text-muted-foreground truncate">{client.address}</p>
             </div>
           </Link>
+        </section>
+      )}
+
+      {status === "pending" && (
+        <section className="px-5 mt-3">
+          <button
+            onClick={() => setSendOpen(true)}
+            className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 text-base shadow-[0_8px_24px_-8px_rgba(200,224,74,0.6)] active:scale-[0.99] transition"
+          >
+            <Send className="h-4 w-4" />
+            Send to {client?.name?.split(" ")[0] ?? "client"}
+          </button>
         </section>
       )}
 
