@@ -606,7 +606,7 @@ function NewQuotePage() {
         </label>
 
         <div className="card-surface p-4 bg-ink text-paper relative">
-          <label className="text-xs uppercase tracking-widest text-paper/60 font-semibold">
+          <label className="text-xs uppercase tracking-widest text-paper/80 font-semibold">
             Client
           </label>
           <input
@@ -615,7 +615,7 @@ function NewQuotePage() {
             onFocus={() => setClientOpen(true)}
             onBlur={() => setTimeout(() => setClientOpen(false), 150)}
             placeholder="Type to search or add new"
-            className="mt-2 w-full bg-transparent outline-none text-sm placeholder:text-paper/40"
+            className="mt-2 w-full bg-transparent outline-none text-sm text-paper placeholder:text-paper/70"
           />
           {clientOpen && clientMatches.length > 0 && (
             <ul className="absolute left-3 right-3 top-full mt-1 z-20 bg-paper text-ink rounded-2xl shadow-elegant border border-border max-h-64 overflow-auto">
