@@ -413,7 +413,7 @@ function NewQuotePage() {
 
 
         <form
-        className="px-5 space-y-4 pb-36"
+        className="px-5 space-y-4 pb-48"
         onSubmit={(e) => {
           e.preventDefault();
           if (draft) save();
