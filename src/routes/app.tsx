@@ -256,7 +256,7 @@ function AppHomePage() {
             <UserPlus className="h-4 w-4 text-ink" />
           </span>
           <span className="flex-1 min-w-0">
-            <span className="block text-sm font-semibold text-ink leading-tight truncate">Clients</span>
+            <span className="block text-sm font-semibold text-ink leading-tight truncate">Customers</span>
             {clientCount > 0 && (
               <span className="block text-[10px] text-muted-foreground mt-0.5">
                 {clientCount} saved

@@ -34,14 +34,14 @@ function NewClientPage() {
       });
       navigate({ to: "/clients/$clientId", params: { clientId: c.id } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save client");
+      setError(err instanceof Error ? err.message : "Could not save customer");
       setSaving(false);
     }
   };
 
   return (
     <AppShell>
-      <PageHeader title="New client" subtitle="Add to client book" back="/clients" />
+      <PageHeader title="New customer" subtitle="Add to customer book" back="/clients" />
 
       <form className="px-5 space-y-3" onSubmit={save}>
         <Field label="Full name" required>
@@ -117,7 +117,7 @@ function NewClientPage() {
           disabled={!name.trim()}
           className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 disabled:opacity-40"
         >
-          <Save className="h-5 w-5" /> Save client
+          <Save className="h-5 w-5" /> Save customer
         </button>
       </form>
     </AppShell>

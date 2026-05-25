@@ -8,7 +8,7 @@ import { CustomerPortalPanel } from "@/components/CustomerPortalPanel";
 
 export const Route = createFileRoute("/clients/$clientId")({
   component: ClientDetail,
-  notFoundComponent: () => <div className="p-8 text-center">Client not found</div>,
+  notFoundComponent: () => <div className="p-8 text-center">Customer not found</div>,
 });
 
 function ClientDetail() {
@@ -22,7 +22,7 @@ function ClientDetail() {
 
   return (
     <AppShell>
-      <PageHeader title={client.name} subtitle="Client" back="/clients" />
+      <PageHeader title={client.name} subtitle="Customer" back="/clients" />
 
       <section className="px-5 grid grid-cols-2 gap-3">
         <div className="card-surface p-4">
