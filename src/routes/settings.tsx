@@ -304,36 +304,11 @@ function SettingsPage() {
             </div>
           </Section>
 
-          <Section title="Working hours">
-            <WorkingHoursPanel />
-          </Section>
-
           <Section title="Notifications">
             <div className="space-y-3">
               <PushPermissionCard />
               <NotificationToggles />
             </div>
-          </Section>
-
-
-          <Section title="Auto-chase">
-            <AutoChasePanel />
-          </Section>
-
-          <Section title="Google reviews">
-            <GoogleReviewPanel />
-          </Section>
-
-          <Section title="Integrations">
-            <div className="card-surface divide-y divide-border">
-              <SettingRow icon={Key} label="Claude API key" status="Optional, fallback quote generator is active" />
-              <SettingRow icon={Key} label="OpenAI Whisper key" status="Add to enable voice-to-text" />
-              <SettingRow icon={CreditCard} label="Stripe Connect" status={stripeConnected ? "Connected" : "Add to take card payments"} />
-            </div>
-          </Section>
-
-          <Section title="Feedback">
-            <FeedbackToggles />
           </Section>
 
           <Section title="Danger zone">
