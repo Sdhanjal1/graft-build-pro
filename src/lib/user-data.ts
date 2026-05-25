@@ -1022,6 +1022,22 @@ export const updateQuoteLineItems = async (
   return q;
 };
 
+export const assignClientToQuote = async (
+  quoteId: string,
+  clientId: string,
+): Promise<Quote | null> => {
+  const q = getQuote(quoteId);
+  if (!q) return null;
+  const { error } = await supabase
+    .from("quotes")
+    .update({ client_id: clientId })
+    .eq("id", quoteId);
+  if (error) throw error;
+  q.client_id = clientId;
+  bumpVersion();
+  return q;
+};
+
 export const invoiceRef = (q: Quote) => q.ref.replace(/^QTR/i, "INV");
 
 export const buildFinalInvoiceMessage = (quote: Quote, clientFirstName: string) => {
