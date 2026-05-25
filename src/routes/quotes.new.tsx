@@ -14,7 +14,7 @@ import {
 import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
-import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2 } from "lucide-react";
+import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, MapPin } from "lucide-react";
 import { RotatingStatus, QUOTE_GEN_MESSAGES } from "@/components/RotatingStatus";
 import { feedback } from "@/lib/feedback";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
