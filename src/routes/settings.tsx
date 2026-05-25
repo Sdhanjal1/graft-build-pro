@@ -659,43 +659,6 @@ function ReferMate() {
   );
 }
 
-function AutoChasePanel() {
-  const [enabled, setEnabled] = useState(userProfile.auto_chase_enabled);
-  const [offsets, setOffsets] = useState(userProfile.chase_offsets.join(", "));
-  const [t, setT] = useState({ ...userProfile.chase_templates });
-  const save = () => {
-    userProfile.auto_chase_enabled = enabled;
-    const parsed = offsets.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => n > 0);
-    if (parsed.length === 3) userProfile.chase_offsets = parsed;
-    userProfile.chase_templates = { ...t };
-    toast.success("Auto-chase settings saved");
-  };
-  return (
-    <div className="card-surface p-4 space-y-3">
-      <label className="flex items-center justify-between">
-        <span className="text-sm font-semibold">Auto-chase overdue invoices</span>
-        <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="h-5 w-5 accent-lime" />
-      </label>
-      <div>
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1">Chase days (after due date)</p>
-        <input value={offsets} onChange={(e) => setOffsets(e.target.value)} placeholder="7, 14, 21" className="w-full rounded-2xl bg-secondary px-3 py-2 text-sm" />
-      </div>
-      {(["first", "second", "final"] as const).map((k) => (
-        <div key={k}>
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1">{k} chase template</p>
-          <textarea
-            value={t[k]}
-            onChange={(e) => setT({ ...t, [k]: e.target.value })}
-            rows={3}
-            className="w-full rounded-2xl bg-secondary px-3 py-2 text-xs font-mono"
-          />
-        </div>
-      ))}
-      <p className="text-[10px] text-muted-foreground">Variables: {"{name} {job} {amount} {link} {bank} {business}"}</p>
-      <button onClick={save} className="w-full bg-ink text-paper rounded-full py-2.5 text-xs font-bold">Save chase settings</button>
-    </div>
-  );
-}
 
 
 
