@@ -92,10 +92,14 @@ export const Route = createFileRoute("/quotes/new")({
 
 type Draft = { title: string; line_items: LineItem[] } | null;
 
+type Clip = { id: string; transcript: string };
+
 function NewQuotePage() {
   const navigate = useNavigate();
   const { voice: voiceParam } = Route.useSearch();
+  const [mode, setMode] = useState<"speak" | "onsite">("speak");
   const [desc, setDesc] = useState("");
+  const [clips, setClips] = useState<Clip[]>([]);
   const [trade, setTrade] = useState(userProfile.trade_type);
   const [vat, setVat] = useState(userProfile.vat_registered);
   const [clientName, setClientName] = useState("");
@@ -128,6 +132,7 @@ function NewQuotePage() {
   const streamRef = useRef<MediaStream | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const recordTargetRef = useRef<"desc" | "clip">("desc");
 
   useEffect(() => {
     return () => {
