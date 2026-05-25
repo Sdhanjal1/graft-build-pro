@@ -103,15 +103,14 @@ function NewQuotePage() {
   const [trade, setTrade] = useState(userProfile.trade_type);
   const [vat, setVat] = useState(userProfile.vat_registered);
   const [clientName, setClientName] = useState("");
-  const [clientOpen, setClientOpen] = useState(false);
-  const clientMatches = (() => {
-    const q = clientName.trim().toLowerCase();
-    const list = q
-      ? userClients.filter((c) =>
-          `${c.name} ${c.address}`.toLowerCase().includes(q) && c.name.toLowerCase() !== q,
-        )
-      : userClients;
-    return list.slice(0, 6);
+  const [clientPhone, setClientPhone] = useState("");
+  const [customerMode, setCustomerMode] = useState<"none" | "existing" | "new">("none");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const filteredClients = (() => {
+    const q = customerSearch.trim().toLowerCase();
+    if (!q) return userClients;
+    return userClients.filter((c) => `${c.name} ${c.address}`.toLowerCase().includes(q));
   })();
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
