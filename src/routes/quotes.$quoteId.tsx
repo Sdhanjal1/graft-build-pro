@@ -8,8 +8,8 @@ import {
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   scheduleJob, getJobByQuote, formatDayLabel, formatTime,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
-  setQuoteStatus,
-  type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote,
+  setQuoteStatus, updateQuoteLineItems,
+  type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem,
 } from "@/lib/user-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
 import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, Calendar, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc } from "lucide-react";
@@ -293,25 +293,13 @@ function QuoteDetail() {
           <div className="px-5 pt-4 pb-2">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Itemised</p>
           </div>
-          <ul>
-            {quote.line_items.map((li, i) => (
-              <li key={i} className="px-5 py-3 flex items-start gap-3 border-t border-border first:border-t-0">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{li.description}</p>
-                  <p className="text-xs text-muted-foreground">{li.qty} × {formatGBP(li.unit_price)}</p>
-                </div>
-                <p className="num text-base">{formatGBP(li.qty * li.unit_price)}</p>
-              </li>
-            ))}
-          </ul>
-          <div className="px-5 py-4 border-t border-border bg-secondary/40 space-y-1.5">
-            <Row label="Subtotal" value={formatGBP(quote.subtotal)} />
-            {userProfile.vat_registered && <Row label="VAT (20%)" value={formatGBP(quote.vat_amount)} />}
-            <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
-              <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
-              <span className="num text-3xl text-ink">{formatGBP(quote.total)}</span>
-            </div>
-          </div>
+          <LineItemsEditor
+            quote={quote}
+            vatRegistered={userProfile.vat_registered}
+            onChange={(items) => {
+              quote.line_items = items;
+            }}
+          />
         </div>
       </section>
 
