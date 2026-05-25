@@ -412,8 +412,8 @@ function NewQuotePage() {
       <PageHeader title="New quote" subtitle="AI generator" back="/" />
 
 
-      <form
-        className="px-5 space-y-4"
+        <form
+        className="px-5 space-y-4 pb-36"
         onSubmit={(e) => {
           e.preventDefault();
           if (draft) save();
@@ -605,8 +605,8 @@ function NewQuotePage() {
           />
         </label>
 
-        <div className="card-surface p-4 bg-ink text-paper relative">
-          <label className="text-xs uppercase tracking-widest text-paper/80 font-semibold">
+        <div className="p-4 bg-ink text-paper relative rounded-[var(--radius-lg)] shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]">
+          <label className="text-xs uppercase tracking-widest text-paper font-bold">
             Client
           </label>
           <input
@@ -615,7 +615,7 @@ function NewQuotePage() {
             onFocus={() => setClientOpen(true)}
             onBlur={() => setTimeout(() => setClientOpen(false), 150)}
             placeholder="Type to search or add new"
-            className="mt-2 w-full bg-transparent outline-none text-sm text-paper placeholder:text-paper/70"
+            className="mt-2 w-full bg-transparent outline-none text-sm text-paper placeholder:text-paper/80"
           />
           {clientOpen && clientMatches.length > 0 && (
             <ul className="absolute left-3 right-3 top-full mt-1 z-20 bg-paper text-ink rounded-2xl shadow-elegant border border-border max-h-64 overflow-auto">
