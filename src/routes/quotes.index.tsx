@@ -4,9 +4,31 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { SwipeRow } from "@/components/SwipeRow";
-import { mockQuotes, getClient, formatGBP, deleteQuote, useDataVersion, type QuoteStatus } from "@/lib/user-data";
+import { mockQuotes, getClient, formatGBP, deleteQuote, useDataVersion, buildChaserMessage, waLink, type QuoteStatus } from "@/lib/user-data";
 import { Search, FileText, Inbox } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+
+const STATUS_DOT: Record<QuoteStatus, string> = {
+  pending: "bg-status-pending",
+  sent: "bg-status-sent",
+  accepted: "bg-status-accepted",
+  declined: "bg-status-overdue",
+  invoiced: "bg-status-sent",
+  paid: "bg-status-paid",
+  overdue: "bg-status-overdue",
+};
+
+const STATUS_LABEL: Record<QuoteStatus, string> = {
+  pending: "Draft",
+  sent: "Sent",
+  accepted: "Accepted",
+  declined: "Declined",
+  invoiced: "Invoiced",
+  paid: "Paid",
+  overdue: "Overdue",
+};
+
+const UNPAID: QuoteStatus[] = ["sent", "accepted", "invoiced", "overdue"];
 
 export const Route = createFileRoute("/quotes/")({
   component: QuotesPage,
