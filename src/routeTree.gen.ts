@@ -13,18 +13,15 @@ import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as TradesRouteImport } from './routes/trades'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as SearchRouteImport } from './routes/search'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MessagesRouteImport } from './routes/messages'
-import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as FaqsRouteImport } from './routes/faqs'
 import { Route as ChaserRouteImport } from './routes/chaser'
-import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AboutRouteImport } from './routes/about'
@@ -68,11 +65,6 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SearchRoute = SearchRouteImport.update({
-  id: '/search',
-  path: '/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -98,11 +90,6 @@ const MessagesRoute = MessagesRouteImport.update({
   path: '/messages',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InsightsRoute = InsightsRouteImport.update({
-  id: '/insights',
-  path: '/insights',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
@@ -121,11 +108,6 @@ const FaqsRoute = FaqsRouteImport.update({
 const ChaserRoute = ChaserRouteImport.update({
   id: '/chaser',
   path: '/chaser',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CalendarRoute = CalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -247,18 +229,15 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/app': typeof AppRoute
   '/auth': typeof AuthRoute
-  '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/insights': typeof InsightsRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
   '/trades': typeof TradesRouteWithChildren
@@ -287,18 +266,15 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/app': typeof AppRoute
   '/auth': typeof AuthRoute
-  '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/insights': typeof InsightsRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
   '/trades': typeof TradesRouteWithChildren
@@ -328,18 +304,15 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/app': typeof AppRoute
   '/auth': typeof AuthRoute
-  '/calendar': typeof CalendarRoute
   '/chaser': typeof ChaserRoute
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/insights': typeof InsightsRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
   '/trades': typeof TradesRouteWithChildren
@@ -370,18 +343,15 @@ export interface FileRouteTypes {
     | '/about'
     | '/app'
     | '/auth'
-    | '/calendar'
     | '/chaser'
     | '/faqs'
     | '/features'
     | '/forgot-password'
-    | '/insights'
     | '/messages'
     | '/onboarding'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
-    | '/search'
     | '/settings'
     | '/terms'
     | '/trades'
@@ -410,18 +380,15 @@ export interface FileRouteTypes {
     | '/about'
     | '/app'
     | '/auth'
-    | '/calendar'
     | '/chaser'
     | '/faqs'
     | '/features'
     | '/forgot-password'
-    | '/insights'
     | '/messages'
     | '/onboarding'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
-    | '/search'
     | '/settings'
     | '/terms'
     | '/trades'
@@ -450,18 +417,15 @@ export interface FileRouteTypes {
     | '/about'
     | '/app'
     | '/auth'
-    | '/calendar'
     | '/chaser'
     | '/faqs'
     | '/features'
     | '/forgot-password'
-    | '/insights'
     | '/messages'
     | '/onboarding'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
-    | '/search'
     | '/settings'
     | '/terms'
     | '/trades'
@@ -491,18 +455,15 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AppRoute: typeof AppRoute
   AuthRoute: typeof AuthRoute
-  CalendarRoute: typeof CalendarRoute
   ChaserRoute: typeof ChaserRoute
   FaqsRoute: typeof FaqsRoute
   FeaturesRoute: typeof FeaturesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
-  InsightsRoute: typeof InsightsRoute
   MessagesRoute: typeof MessagesRoute
   OnboardingRoute: typeof OnboardingRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   TermsRoute: typeof TermsRoute
   TradesRoute: typeof TradesRouteWithChildren
@@ -556,13 +517,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/search': {
-      id: '/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof SearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -598,13 +552,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MessagesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/insights': {
-      id: '/insights'
-      path: '/insights'
-      fullPath: '/insights'
-      preLoaderRoute: typeof InsightsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/forgot-password': {
       id: '/forgot-password'
       path: '/forgot-password'
@@ -631,13 +578,6 @@ declare module '@tanstack/react-router' {
       path: '/chaser'
       fullPath: '/chaser'
       preLoaderRoute: typeof ChaserRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/calendar': {
-      id: '/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -813,18 +753,15 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AppRoute: AppRoute,
   AuthRoute: AuthRoute,
-  CalendarRoute: CalendarRoute,
   ChaserRoute: ChaserRoute,
   FaqsRoute: FaqsRoute,
   FeaturesRoute: FeaturesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
-  InsightsRoute: InsightsRoute,
   MessagesRoute: MessagesRoute,
   OnboardingRoute: OnboardingRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   TermsRoute: TermsRoute,
   TradesRoute: TradesRouteWithChildren,
@@ -850,3 +787,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

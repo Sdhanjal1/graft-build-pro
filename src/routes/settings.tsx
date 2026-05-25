@@ -315,13 +315,6 @@ function SettingsPage() {
             </div>
           </Section>
 
-          <Section title="Get more jobs">
-            <CustomerQRCard />
-          </Section>
-
-          <Section title="Refer a mate">
-            <ReferMate />
-          </Section>
 
           <Section title="Auto-chase">
             <AutoChasePanel />
