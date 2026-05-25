@@ -127,7 +127,6 @@ function QuoteDetail() {
     const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${text}`;
     window.open(wa, "_blank");
     setAskDeposit(false);
-    setScheduling(true);
   };
   const issueInvoice = async () => {
     try {
@@ -596,7 +595,7 @@ function QuoteDetail() {
             >
               <MessageCircle className="h-4 w-4" /> Yes, send deposit request
             </button>
-            <button onClick={() => { setAskDeposit(false); setScheduling(true); }} className="w-full mt-2 text-sm text-muted-foreground py-2">
+            <button onClick={() => setAskDeposit(false)} className="w-full mt-2 text-sm text-muted-foreground py-2">
               No, skip for now
             </button>
           </div>
