@@ -19,6 +19,7 @@ import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
 import { SendQuoteDialog } from "@/components/SendQuoteDialog";
+import { AssignClientDialog } from "@/components/AssignClientDialog";
 import { listQuoteMessages, sendProMessage } from "@/lib/messages.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef } from "react";
