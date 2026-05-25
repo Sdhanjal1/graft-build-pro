@@ -144,6 +144,8 @@ function SettingsPage() {
 
   const removeLogo = () => saveProfile({ logo_url: "" });
 
+  const [showMore, setShowMore] = useState(false);
+
   return (
     <AppShell>
       <PageHeader title="Settings" subtitle="Configuration" />
@@ -161,118 +163,8 @@ function SettingsPage() {
         }}
       />
 
-      {/* BRANDING */}
-      <Section title="Branding" defaultOpen>
-        <div className="card-surface p-5 space-y-4">
-          {profile.logo_url ? (
-            <div className="flex flex-col items-center gap-3">
-              <BusinessLogo logoUrl={profile.logo_url} businessName={profile.business_name} size="xl" />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  {uploading ? "Uploading…" : "Change logo"}
-                </button>
-                <button
-                  type="button"
-                  onClick={removeLogo}
-                  className="text-xs font-bold bg-secondary text-ink px-4 py-2 rounded-full flex items-center gap-1.5"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Remove logo
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground text-center">Appears on all quotes, invoices and PDFs</p>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="w-full rounded-2xl border-2 border-dashed border-lime/60 bg-ink text-paper px-5 py-8 flex flex-col items-center gap-2 hover:bg-ink/90 transition disabled:opacity-50"
-            >
-              <div className="h-14 w-14 rounded-full bg-lime text-ink flex items-center justify-center">
-                <Camera className="h-6 w-6" />
-              </div>
-              <p className="font-bold text-sm">{uploading ? "Uploading…" : "Your business logo"}</p>
-              <p className="text-xs text-paper/60 text-center max-w-[260px]">
-                Appears on all quotes, invoices and PDFs. Tap to upload or take a photo.
-              </p>
-              <p className="text-[10px] uppercase tracking-widest text-paper/40 mt-1">PNG or JPG · max 5MB</p>
-            </button>
-          )}
-
-          {!profile.logo_url && (
-            <div className="flex items-center gap-3 rounded-2xl bg-secondary p-3">
-              <BusinessLogo businessName={profile.business_name} size="md" />
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Placeholder used until you upload</p>
-                <p className="text-sm font-semibold truncate">{profile.business_name || "Your business"}</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </Section>
-
-      {/* QUOTE APPEARANCE */}
-      <Section title="Quote appearance">
-        <div className="card-surface p-5 space-y-4">
-          <EditField icon={Building2} label="Business name on quotes" value={profile.business_name} onChange={(v) => saveProfile({ business_name: v })} />
-
-          <label className="block">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
-              <ImageIcon className="h-3 w-3" /> Opening message on quotes
-            </span>
-            <textarea
-              value={profile.quote_intro}
-              onChange={(e) => saveProfile({ quote_intro: e.target.value })}
-              placeholder="Thank you for the opportunity to quote for your works. Please find our detailed quotation below."
-              rows={3}
-              className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
-            />
-            <span className="text-[11px] text-muted-foreground">Appears at the top of every quote. Leave blank to skip.</span>
-          </label>
-
-          <label className="block">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
-              <FileText className="h-3 w-3" /> Footer message
-            </span>
-            <textarea
-              value={profile.quote_footer}
-              onChange={(e) => saveProfile({ quote_footer: e.target.value })}
-              placeholder="All works carried out to current British Standards. Payment due within 14 days of invoice."
-              rows={3}
-              className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
-            />
-            <span className="text-[11px] text-muted-foreground">Appears at the bottom of every quote and invoice.</span>
-          </label>
-
-          <EditField
-            icon={PenLine}
-            label="Your name on quotes"
-            value={profile.signature_name}
-            onChange={(v) => saveProfile({ signature_name: v })}
-            placeholder={profile.full_name}
-          />
-          <ToggleRow
-            icon={PenLine}
-            label="Show signature on quotes"
-            hint="Adds a signature line at the bottom"
-            checked={profile.show_signature}
-            onChange={(v) => saveProfile({ show_signature: v })}
-            flush
-          />
-        </div>
-      </Section>
-
-
-
-      {/* BUSINESS */}
-      <Section title="Business" defaultOpen>
+      {/* BUSINESS PROFILE — always open */}
+      <Section title="Business profile" defaultOpen>
         <div className="card-surface p-5 space-y-3.5">
           <EditField icon={Building2}  label="Business name" value={profile.business_name} onChange={(v) => saveProfile({ business_name: v })} />
           <EditField icon={User}       label="Your name"     value={profile.full_name}     onChange={(v) => saveProfile({ full_name: v })} />
@@ -280,115 +172,191 @@ function SettingsPage() {
           <EditField icon={Mail}       label="Email"         value={profile.email}         onChange={(v) => saveProfile({ email: v })} />
           <EditField icon={MapPin}     label="Town"          value={profile.town}          onChange={(v) => saveProfile({ town: v })} placeholder="e.g. Manchester" />
           <SelectField icon={BadgeCheck} label="Trade type"  value={profile.trade_type}    onChange={(v) => saveProfile({ trade_type: v })} options={TRADE_TYPES} />
-          <EditField icon={BadgeCheck} label="Gas Safe registration number" value={profile.registration_number} onChange={(v) => saveProfile({ registration_number: v })} />
-          <EditField icon={Receipt}    label="VAT number"    value={profile.vat_number}    onChange={(v) => saveProfile({ vat_number: v })} />
-          <ToggleRow
-            icon={Receipt}
-            label="VAT registered"
-            hint="Adds 20% VAT to every quote"
-            checked={vatRegistered}
-            onChange={setVatRegistered}
-            flush
-          />
         </div>
       </Section>
 
-      {/* PAYMENTS */}
-      <Section title="Payments">
-        <div className="card-surface p-5 space-y-3">
-          <Input label="Bank account name"        value={bank.account_name}           onChange={(v) => saveBank({ account_name: v })} />
-          <Input label="Bank name"                value={bank.bank_name}              onChange={(v) => saveBank({ bank_name: v })} />
-          <div className="grid grid-cols-2 gap-2.5">
-            <Input label="Sort code"              value={bank.sort_code}              onChange={(v) => saveBank({ sort_code: v })} />
-            <Input label="Account number"         value={bank.account_number}         onChange={(v) => saveBank({ account_number: v })} />
-          </div>
-          <Input label="Payment reference instructions" value={bank.payment_reference_note} onChange={(v) => saveBank({ payment_reference_note: v })} />
-          <Input label="Payment terms"            value={terms}                       onChange={setTerms} />
-
-          <div className="rounded-2xl bg-ink text-paper p-4 flex items-center gap-3 mt-2">
-            <div className="h-10 w-10 rounded-full bg-lime text-ink flex items-center justify-center shrink-0">
-              <CreditCard className="h-4 w-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold">Stripe</p>
-              <p className="text-[11px] text-paper/60">
-                {stripeConnected ? "Connected, taking card payments" : "Connect below to take card payments"}
-              </p>
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      {/* SUBSCRIPTION & CARD PAYMENTS */}
-      <Section title="Subscription & card payments">
+      {/* BILLING — always open */}
+      <Section title="Billing" defaultOpen>
         <BillingSection />
       </Section>
 
-      {/* WORKING HOURS */}
-      <Section title="Working hours">
-        <WorkingHoursPanel />
-      </Section>
-
-      {/* NOTIFICATIONS */}
-      <Section title="Notifications">
-        <div className="space-y-3">
-          <PushPermissionCard />
-          <NotificationToggles />
-        </div>
-      </Section>
-
-      {/* GET MORE JOBS */}
-      <Section title="Get more jobs">
-        <CustomerQRCard />
-      </Section>
-
-      {/* REFER A MATE */}
-      <Section title="Refer a mate">
-        <ReferMate />
-      </Section>
-
-      {/* AUTO-CHASE */}
-      <Section title="Auto-chase">
-        <AutoChasePanel />
-      </Section>
-
-      {/* GOOGLE REVIEWS */}
-      <Section title="Google reviews">
-        <GoogleReviewPanel />
-      </Section>
-
-      {/* INTEGRATIONS */}
-      <Section title="Integrations">
-        <div className="card-surface divide-y divide-border">
-          <SettingRow icon={Key} label="Claude API key" status="Optional, fallback quote generator is active" />
-          <SettingRow icon={Key} label="OpenAI Whisper key" status="Add to enable voice-to-text" />
-          <SettingRow icon={CreditCard} label="Stripe Connect" status={stripeConnected ? "Connected" : "Add to take card payments"} />
-        </div>
-      </Section>
-
-
-      {/* FEEDBACK (haptics/sound, keep) */}
-      <Section title="Feedback">
-        <FeedbackToggles />
-      </Section>
-
-      {/* ACCOUNT */}
-      <Section title="Account">
-        <div className="card-surface divide-y divide-border">
+      {/* SIGN OUT — always visible */}
+      <section className="px-5 mt-3">
+        <div className="card-surface">
           <button onClick={handleSignOut} className="px-5 py-4 flex items-center gap-3 font-semibold w-full text-left">
             <LogOut className="h-5 w-5" />
             Sign out
           </button>
-          <button
-            onClick={handleDeleteAccount}
-            disabled={deleting}
-            className="px-5 py-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left disabled:opacity-60"
-          >
-            <Trash2 className="h-5 w-5" />
-            {deleting ? "Deleting…" : "Delete account"}
-          </button>
         </div>
-      </Section>
+      </section>
+
+      {/* MORE SETTINGS */}
+      <section className="px-5 mt-4">
+        <button
+          type="button"
+          onClick={() => { feedback("tap"); setShowMore((s) => !s); }}
+          className="w-full card-surface px-5 py-4 flex items-center justify-between text-left"
+          aria-expanded={showMore}
+        >
+          <span className="text-sm font-bold text-ink">More settings</span>
+          <span
+            className="text-muted-foreground text-xl leading-none transition-transform"
+            style={{ transform: showMore ? "rotate(90deg)" : "rotate(0deg)" }}
+          >
+            ›
+          </span>
+        </button>
+      </section>
+
+      {showMore && (
+        <>
+          <Section title="Branding">
+            <div className="card-surface p-5 space-y-4">
+              {profile.logo_url ? (
+                <div className="flex flex-col items-center gap-3">
+                  <BusinessLogo logoUrl={profile.logo_url} businessName={profile.business_name} size="xl" />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      {uploading ? "Uploading…" : "Change logo"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={removeLogo}
+                      className="text-xs font-bold bg-secondary text-ink px-4 py-2 rounded-full flex items-center gap-1.5"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Remove logo
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full rounded-2xl border-2 border-dashed border-lime/60 bg-ink text-paper px-5 py-8 flex flex-col items-center gap-2 hover:bg-ink/90 transition disabled:opacity-50"
+                >
+                  <div className="h-14 w-14 rounded-full bg-lime text-ink flex items-center justify-center">
+                    <Camera className="h-6 w-6" />
+                  </div>
+                  <p className="font-bold text-sm">{uploading ? "Uploading…" : "Your business logo"}</p>
+                  <p className="text-xs text-paper/60 text-center max-w-[260px]">
+                    Appears on all quotes, invoices and PDFs. Tap to upload or take a photo.
+                  </p>
+                </button>
+              )}
+            </div>
+          </Section>
+
+          <Section title="Quote appearance">
+            <div className="card-surface p-5 space-y-4">
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
+                  <ImageIcon className="h-3 w-3" /> Opening message on quotes
+                </span>
+                <textarea
+                  value={profile.quote_intro}
+                  onChange={(e) => saveProfile({ quote_intro: e.target.value })}
+                  rows={3}
+                  className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
+                  <FileText className="h-3 w-3" /> Footer message
+                </span>
+                <textarea
+                  value={profile.quote_footer}
+                  onChange={(e) => saveProfile({ quote_footer: e.target.value })}
+                  rows={3}
+                  className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+                />
+              </label>
+              <EditField icon={PenLine} label="Your name on quotes" value={profile.signature_name} onChange={(v) => saveProfile({ signature_name: v })} placeholder={profile.full_name} />
+              <ToggleRow icon={PenLine} label="Show signature on quotes" hint="Adds a signature line at the bottom" checked={profile.show_signature} onChange={(v) => saveProfile({ show_signature: v })} flush />
+            </div>
+          </Section>
+
+          <Section title="VAT & registration">
+            <div className="card-surface p-5 space-y-3.5">
+              <EditField icon={BadgeCheck} label="Gas Safe registration number" value={profile.registration_number} onChange={(v) => saveProfile({ registration_number: v })} />
+              <EditField icon={Receipt} label="VAT number" value={profile.vat_number} onChange={(v) => saveProfile({ vat_number: v })} />
+              <ToggleRow icon={Receipt} label="VAT registered" hint="Adds 20% VAT to every quote" checked={vatRegistered} onChange={setVatRegistered} flush />
+            </div>
+          </Section>
+
+          <Section title="Bank details">
+            <div className="card-surface p-5 space-y-3">
+              <Input label="Bank account name" value={bank.account_name} onChange={(v) => saveBank({ account_name: v })} />
+              <Input label="Bank name" value={bank.bank_name} onChange={(v) => saveBank({ bank_name: v })} />
+              <div className="grid grid-cols-2 gap-2.5">
+                <Input label="Sort code" value={bank.sort_code} onChange={(v) => saveBank({ sort_code: v })} />
+                <Input label="Account number" value={bank.account_number} onChange={(v) => saveBank({ account_number: v })} />
+              </div>
+              <Input label="Payment reference instructions" value={bank.payment_reference_note} onChange={(v) => saveBank({ payment_reference_note: v })} />
+              <Input label="Payment terms" value={terms} onChange={setTerms} />
+            </div>
+          </Section>
+
+          <Section title="Working hours">
+            <WorkingHoursPanel />
+          </Section>
+
+          <Section title="Notifications">
+            <div className="space-y-3">
+              <PushPermissionCard />
+              <NotificationToggles />
+            </div>
+          </Section>
+
+          <Section title="Get more jobs">
+            <CustomerQRCard />
+          </Section>
+
+          <Section title="Refer a mate">
+            <ReferMate />
+          </Section>
+
+          <Section title="Auto-chase">
+            <AutoChasePanel />
+          </Section>
+
+          <Section title="Google reviews">
+            <GoogleReviewPanel />
+          </Section>
+
+          <Section title="Integrations">
+            <div className="card-surface divide-y divide-border">
+              <SettingRow icon={Key} label="Claude API key" status="Optional, fallback quote generator is active" />
+              <SettingRow icon={Key} label="OpenAI Whisper key" status="Add to enable voice-to-text" />
+              <SettingRow icon={CreditCard} label="Stripe Connect" status={stripeConnected ? "Connected" : "Add to take card payments"} />
+            </div>
+          </Section>
+
+          <Section title="Feedback">
+            <FeedbackToggles />
+          </Section>
+
+          <Section title="Danger zone">
+            <div className="card-surface">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="px-5 py-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left disabled:opacity-60"
+              >
+                <Trash2 className="h-5 w-5" />
+                {deleting ? "Deleting…" : "Delete account"}
+              </button>
+            </div>
+          </Section>
+        </>
+      )}
 
       <div className="h-6" />
     </AppShell>
