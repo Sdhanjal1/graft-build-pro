@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireActiveSubscription } from "@/lib/require-active-subscription";
 
 // Cap base64 payload at ~10 MB (≈ 7.5 MB raw audio) to bound per-call cost.
 const MAX_AUDIO_B64_BYTES = 10 * 1024 * 1024;
