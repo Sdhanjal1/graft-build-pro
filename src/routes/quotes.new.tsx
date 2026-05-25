@@ -882,9 +882,18 @@ function VoiceOverlay({
         type="button"
         onClick={onStop}
         disabled={transcribing}
-        className="mt-6 inline-flex items-center justify-center gap-2 bg-paper text-ink rounded-full px-8 py-4 text-sm font-bold active:scale-[0.99] transition disabled:opacity-60"
+        className="mt-6 relative inline-flex items-center justify-center gap-3 bg-lime text-ink rounded-full pl-5 pr-7 py-5 text-base font-bold w-full max-w-xs ring-4 ring-lime/20 shadow-[0_18px_50px_-10px_rgba(200,224,74,0.7)] active:scale-[0.98] transition disabled:opacity-60"
       >
-        <Square className="h-4 w-4 fill-ink" />
+        {!transcribing && (
+          <span className="pointer-events-none absolute inset-0 rounded-full bg-lime/40 animate-ping -z-10" />
+        )}
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink">
+          {transcribing ? (
+            <Loader2 className="h-4 w-4 text-lime animate-spin" />
+          ) : (
+            <Square className="h-3.5 w-3.5 fill-lime text-lime" />
+          )}
+        </span>
         {transcribing ? "Please wait…" : "Stop recording"}
       </button>
     </div>
