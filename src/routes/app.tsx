@@ -113,13 +113,13 @@ function AppHomePage() {
         {hasActions && (
           <div className="mt-4 flex gap-2 flex-wrap">
             {pendingQuotes.length > 0 && (
-              <StatPill icon={FileText} count={pendingQuotes.length} label="to send" tone="pending" />
+              <StatPill icon={FileText} count={pendingQuotes.length} label="to send" tone="pending" to="/quotes" />
             )}
             {awaitingQuotes.length > 0 && (
-              <StatPill icon={Clock} count={awaitingQuotes.length} label="awaiting" tone="neutral" />
+              <StatPill icon={Clock} count={awaitingQuotes.length} label="awaiting" tone="neutral" to="/chaser" />
             )}
             {overdueQuotes.length > 0 && (
-              <StatPill icon={AlertTriangle} count={overdueQuotes.length} label="overdue" tone="overdue" />
+              <StatPill icon={AlertTriangle} count={overdueQuotes.length} label="overdue" tone="overdue" to="/chaser" />
             )}
           </div>
         )}
