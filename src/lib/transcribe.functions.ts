@@ -11,7 +11,7 @@ const InputSchema = z.object({
 });
 
 export const transcribeAudio = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireActiveSubscription])
   .inputValidator((input) => InputSchema.parse(input))
   .handler(async ({ data }) => {
     const apiKey = process.env.OPENAI_API_KEY;
