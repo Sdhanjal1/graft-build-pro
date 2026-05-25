@@ -13,7 +13,6 @@ const STATUS_DOT: Record<QuoteStatus, string> = {
   sent: "bg-status-sent",
   accepted: "bg-status-accepted",
   declined: "bg-status-overdue",
-  invoiced: "bg-status-sent",
   paid: "bg-status-paid",
   overdue: "bg-status-overdue",
 };
@@ -23,12 +22,11 @@ const STATUS_LABEL: Record<QuoteStatus, string> = {
   sent: "Sent",
   accepted: "Accepted",
   declined: "Declined",
-  invoiced: "Invoiced",
   paid: "Paid",
   overdue: "Overdue",
 };
 
-const UNPAID: QuoteStatus[] = ["sent", "accepted", "invoiced", "overdue"];
+const UNPAID: QuoteStatus[] = ["sent", "accepted", "overdue"];
 
 export const Route = createFileRoute("/quotes/")({
   component: QuotesPage,
