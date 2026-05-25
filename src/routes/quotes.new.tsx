@@ -600,10 +600,8 @@ function NewQuotePage() {
           <button
             type="button"
             onClick={() => { setCustomerMode("existing"); setPickerOpen(true); }}
-            className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition border ${
-              customerMode === "existing"
-                ? "bg-lime text-ink border-transparent shadow-[0_4px_14px_-4px_rgb(0_0_0/0.2)]"
-                : "bg-card text-ink border-border"
+            className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border ${
+              customerMode === "existing" ? "border-ink" : "border-ink/25 text-ink"
             }`}
           >
             Existing customer
@@ -611,10 +609,8 @@ function NewQuotePage() {
           <button
             type="button"
             onClick={() => { setCustomerMode("new"); setClientName(""); setClientPhone(""); }}
-            className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition border inline-flex items-center justify-center gap-1.5 ${
-              customerMode === "new"
-                ? "bg-lime text-ink border-transparent shadow-[0_4px_14px_-4px_rgb(0_0_0/0.2)]"
-                : "bg-card text-ink border-border"
+            className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border inline-flex items-center justify-center gap-1.5 ${
+              customerMode === "new" ? "border-ink" : "border-ink/25 text-ink"
             }`}
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} /> New customer
