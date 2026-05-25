@@ -22,18 +22,20 @@ import { SendQuoteDialog } from "@/components/SendQuoteDialog";
 import { listQuoteMessages, sendProMessage } from "@/lib/messages.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef } from "react";
-import confetti from "canvas-confetti";
 
 function celebratePaid(amount: number) {
+  if (typeof window === "undefined") return;
   try {
     const audio = new Audio("/cash.mp3");
     audio.volume = 0.7;
     void audio.play().catch(() => {});
   } catch { /* noop */ }
-  try {
-    confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ["#c8e04a", "#0a0a0a", "#ffffff"] });
-    setTimeout(() => confetti({ particleCount: 80, spread: 100, origin: { y: 0.55 } }), 180);
-  } catch { /* noop */ }
+  void import("canvas-confetti").then(({ default: confetti }) => {
+    try {
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ["#c8e04a", "#0a0a0a", "#ffffff"] });
+      setTimeout(() => confetti({ particleCount: 80, spread: 100, origin: { y: 0.55 } }), 180);
+    } catch { /* noop */ }
+  }).catch(() => {});
   toast.success(`${formatGBP(amount)} in. Nice.`);
 }
 
