@@ -695,3 +695,136 @@ function MoreItem({
     </li>
   );
 }
+
+function badgeClass(source: LineItem["source"]) {
+  if (source === "voice") return "bg-lime/30 text-ink";
+  if (source === "learned") return "bg-lime/15 text-ink";
+  return "bg-secondary text-muted-foreground";
+}
+function badgeText(source: LineItem["source"]) {
+  if (source === "voice") return "Your price";
+  if (source === "learned") return "Your usual price";
+  if (source === "ai") return "Quottr suggested";
+  return null;
+}
+
+function LineItemsEditor({
+  quote,
+  vatRegistered,
+  onChange,
+}: {
+  quote: Quote;
+  vatRegistered: boolean;
+  onChange?: (items: LineItem[]) => void;
+}) {
+  const [items, setItems] = useState<LineItem[]>(quote.line_items.map((li) => ({ ...li })));
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [draftPrice, setDraftPrice] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const subtotal = +items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
+  const vat = vatRegistered ? +(subtotal * 0.2).toFixed(2) : 0;
+  const total = +(subtotal + vat).toFixed(2);
+
+  const beginEdit = (i: number) => {
+    setEditingIdx(i);
+    setDraftPrice(String(items[i].unit_price));
+  };
+  const commitEdit = async () => {
+    if (editingIdx === null) return;
+    const parsed = Number(draftPrice);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setEditingIdx(null);
+      return;
+    }
+    const next = items.map((li, idx) =>
+      idx === editingIdx ? { ...li, unit_price: +parsed.toFixed(2), source: "voice" as const } : li,
+    );
+    setItems(next);
+    setEditingIdx(null);
+    onChange?.(next);
+    setSaving(true);
+    try {
+      await updateQuoteLineItems(quote.id, next, vatRegistered);
+      feedback("success");
+    } catch (e) {
+      console.error(e);
+      feedback("error");
+      toast.error(e instanceof Error ? e.message : "Could not save price");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <ul>
+        {items.map((li, i) => {
+          const label = badgeText(li.source);
+          const editing = editingIdx === i;
+          return (
+            <li
+              key={i}
+              className="px-5 py-3 flex items-start gap-3 border-t border-border first:border-t-0"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-medium">{li.description}</p>
+                  {label && (
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeClass(li.source)}`}
+                    >
+                      {label}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {li.qty} × {formatGBP(li.unit_price)}
+                </p>
+              </div>
+              {editing ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">£</span>
+                  <input
+                    autoFocus
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    value={draftPrice}
+                    onChange={(e) => setDraftPrice(e.target.value)}
+                    onBlur={commitEdit}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitEdit();
+                      if (e.key === "Escape") setEditingIdx(null);
+                    }}
+                    className="w-20 text-right bg-paper border border-border rounded-md px-2 py-1 text-sm num outline-none focus:border-ink"
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => beginEdit(i)}
+                  className="num text-base text-ink hover:underline focus:outline-none"
+                  aria-label="Edit price"
+                >
+                  {formatGBP(li.qty * li.unit_price)}
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <div className="px-5 py-4 border-t border-border bg-secondary/40 space-y-1.5">
+        <Row label="Subtotal" value={formatGBP(subtotal)} />
+        {vatRegistered && <Row label="VAT (20%)" value={formatGBP(vat)} />}
+        <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
+          <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
+          <span className="num text-3xl text-ink">{formatGBP(total)}</span>
+        </div>
+        {saving && (
+          <p className="text-[10px] text-muted-foreground pt-1">Saving…</p>
+        )}
+      </div>
+    </>
+  );
+}
