@@ -38,8 +38,6 @@ import { Route as PortalTokenRouteImport } from './routes/portal.$token'
 import { Route as InvoicesQuoteIdRouteImport } from './routes/invoices.$quoteId'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
 import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
-import { Route as CaptureNewRouteImport } from './routes/capture.new'
-import { Route as CaptureCaptureIdRouteImport } from './routes/capture.$captureId'
 import { Route as PortalCCodeRouteImport } from './routes/portal.c.$code'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaymentsConnectWebhookRouteImport } from './routes/api/public/payments/connect-webhook'
@@ -190,16 +188,6 @@ const ClientsClientIdRoute = ClientsClientIdRouteImport.update({
   path: '/clients/$clientId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CaptureNewRoute = CaptureNewRouteImport.update({
-  id: '/capture/new',
-  path: '/capture/new',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CaptureCaptureIdRoute = CaptureCaptureIdRouteImport.update({
-  id: '/capture/$captureId',
-  path: '/capture/$captureId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PortalCCodeRoute = PortalCCodeRouteImport.update({
   id: '/portal/c/$code',
   path: '/portal/c/$code',
@@ -242,8 +230,6 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/trades': typeof TradesRouteWithChildren
   '/welcome': typeof WelcomeRoute
-  '/capture/$captureId': typeof CaptureCaptureIdRoute
-  '/capture/new': typeof CaptureNewRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
@@ -279,8 +265,6 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/trades': typeof TradesRouteWithChildren
   '/welcome': typeof WelcomeRoute
-  '/capture/$captureId': typeof CaptureCaptureIdRoute
-  '/capture/new': typeof CaptureNewRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
@@ -317,8 +301,6 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/trades': typeof TradesRouteWithChildren
   '/welcome': typeof WelcomeRoute
-  '/capture/$captureId': typeof CaptureCaptureIdRoute
-  '/capture/new': typeof CaptureNewRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
@@ -356,8 +338,6 @@ export interface FileRouteTypes {
     | '/terms'
     | '/trades'
     | '/welcome'
-    | '/capture/$captureId'
-    | '/capture/new'
     | '/clients/$clientId'
     | '/clients/new'
     | '/invoices/$quoteId'
@@ -393,8 +373,6 @@ export interface FileRouteTypes {
     | '/terms'
     | '/trades'
     | '/welcome'
-    | '/capture/$captureId'
-    | '/capture/new'
     | '/clients/$clientId'
     | '/clients/new'
     | '/invoices/$quoteId'
@@ -430,8 +408,6 @@ export interface FileRouteTypes {
     | '/terms'
     | '/trades'
     | '/welcome'
-    | '/capture/$captureId'
-    | '/capture/new'
     | '/clients/$clientId'
     | '/clients/new'
     | '/invoices/$quoteId'
@@ -468,8 +444,6 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   TradesRoute: typeof TradesRouteWithChildren
   WelcomeRoute: typeof WelcomeRoute
-  CaptureCaptureIdRoute: typeof CaptureCaptureIdRoute
-  CaptureNewRoute: typeof CaptureNewRoute
   ClientsClientIdRoute: typeof ClientsClientIdRoute
   ClientsNewRoute: typeof ClientsNewRoute
   InvoicesQuoteIdRoute: typeof InvoicesQuoteIdRoute
@@ -692,20 +666,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsClientIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/capture/new': {
-      id: '/capture/new'
-      path: '/capture/new'
-      fullPath: '/capture/new'
-      preLoaderRoute: typeof CaptureNewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/capture/$captureId': {
-      id: '/capture/$captureId'
-      path: '/capture/$captureId'
-      fullPath: '/capture/$captureId'
-      preLoaderRoute: typeof CaptureCaptureIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/portal/c/$code': {
       id: '/portal/c/$code'
       path: '/portal/c/$code'
@@ -766,8 +726,6 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   TradesRoute: TradesRouteWithChildren,
   WelcomeRoute: WelcomeRoute,
-  CaptureCaptureIdRoute: CaptureCaptureIdRoute,
-  CaptureNewRoute: CaptureNewRoute,
   ClientsClientIdRoute: ClientsClientIdRoute,
   ClientsNewRoute: ClientsNewRoute,
   InvoicesQuoteIdRoute: InvoicesQuoteIdRoute,

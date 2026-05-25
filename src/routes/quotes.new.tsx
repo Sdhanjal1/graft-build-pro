@@ -14,7 +14,7 @@ import {
 import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
-import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2 } from "lucide-react";
+import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, MapPin } from "lucide-react";
 import { RotatingStatus, QUOTE_GEN_MESSAGES } from "@/components/RotatingStatus";
 import { feedback } from "@/lib/feedback";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
@@ -92,10 +92,14 @@ export const Route = createFileRoute("/quotes/new")({
 
 type Draft = { title: string; line_items: LineItem[] } | null;
 
+type Clip = { id: string; transcript: string };
+
 function NewQuotePage() {
   const navigate = useNavigate();
   const { voice: voiceParam } = Route.useSearch();
+  const [mode, setMode] = useState<"speak" | "onsite">("speak");
   const [desc, setDesc] = useState("");
+  const [clips, setClips] = useState<Clip[]>([]);
   const [trade, setTrade] = useState(userProfile.trade_type);
   const [vat, setVat] = useState(userProfile.vat_registered);
   const [clientName, setClientName] = useState("");
@@ -128,6 +132,7 @@ function NewQuotePage() {
   const streamRef = useRef<MediaStream | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const recordTargetRef = useRef<"desc" | "clip">("desc");
 
   useEffect(() => {
     return () => {
@@ -168,6 +173,10 @@ function NewQuotePage() {
   const appendTranscript = (text: string) => {
     const clean = text.trim();
     if (!clean) return;
+    if (recordTargetRef.current === "clip") {
+      setClips((prev) => [...prev, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, transcript: clean }]);
+      return;
+    }
     setDesc((prev) => (prev ? `${prev.trim()} ${clean}` : clean));
     requestAnimationFrame(() => {
       const el = textareaRef.current;
@@ -314,17 +323,37 @@ function NewQuotePage() {
     }, 1000);
   };
 
+  const startRecordingForClip = () => {
+    if (transcribing || recording) return;
+    feedback("tap");
+    recordTargetRef.current = "clip";
+    startRecording();
+  };
+
   const toggleRecord = () => {
     if (transcribing) return;
     feedback("tap");
     if (recording) stopRecording();
-    else startRecording();
+    else {
+      recordTargetRef.current = "desc";
+      startRecording();
+    }
   };
 
+  const combinedClipsText = () =>
+    clips
+      .map((c, i) => `Task ${i + 1}: ${c.transcript.trim()}`)
+      .filter((s) => s.trim().length > 0)
+      .join("\n");
+
   const generate = async () => {
-    const text = desc.trim();
+    const text = mode === "onsite" ? combinedClipsText() : desc.trim();
     if (!text) {
-      setError("Please describe the job before generating a quote.");
+      setError(
+        mode === "onsite"
+          ? "Record at least one clip before generating a quote."
+          : "Please describe the job before generating a quote.",
+      );
       return;
     }
     setError(null);
@@ -332,6 +361,7 @@ function NewQuotePage() {
     try {
       const g = await generateFn({ data: { description: text, trade, vatRegistered: vat } });
       setDraft(g);
+      if (mode === "onsite") setDesc(text);
       feedback("success");
     } catch (e) {
       console.error(e);
@@ -390,6 +420,28 @@ function NewQuotePage() {
           else generate();
         }}
       >
+        <div className="grid grid-cols-2 gap-1 p-1 bg-secondary rounded-full text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setMode("speak")}
+            className={`rounded-full py-2 inline-flex items-center justify-center gap-1.5 transition ${
+              mode === "speak" ? "bg-ink text-paper" : "text-muted-foreground"
+            }`}
+          >
+            <Mic className="h-3.5 w-3.5" /> Speak it
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("onsite")}
+            className={`rounded-full py-2 inline-flex items-center justify-center gap-1.5 transition ${
+              mode === "onsite" ? "bg-ink text-paper" : "text-muted-foreground"
+            }`}
+          >
+            <MapPin className="h-3.5 w-3.5" /> On site
+          </button>
+        </div>
+
+        {mode === "speak" && (
         <div className="card-surface p-4">
           <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
             Describe the job
@@ -465,6 +517,63 @@ function NewQuotePage() {
             <RotatingPrompts className="mt-2.5" />
           )}
         </div>
+        )}
+
+        {mode === "onsite" && (
+        <div className="card-surface p-4 space-y-3">
+          <div>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+              Walk the job
+            </label>
+            <p className="text-xs text-muted-foreground mt-1">
+              Tap + and record a short clip for each task or room. We'll combine them into one quote.
+            </p>
+          </div>
+
+          {clips.length > 0 && (
+            <ul className="space-y-2">
+              {clips.map((c, i) => (
+                <li key={c.id} className="rounded-2xl bg-secondary px-3 py-2.5 flex items-start gap-2">
+                  <span className="num text-[11px] font-bold text-muted-foreground mt-0.5 shrink-0 w-5">
+                    {i + 1}.
+                  </span>
+                  <p className="flex-1 text-sm leading-snug">{c.transcript}</p>
+                  <button
+                    type="button"
+                    onClick={() => setClips((prev) => prev.filter((x) => x.id !== c.id))}
+                    className="text-muted-foreground hover:text-status-overdue p-1 -mr-1 shrink-0"
+                    aria-label="Remove clip"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <button
+            type="button"
+            onClick={startRecordingForClip}
+            disabled={recording || transcribing}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-ink text-paper py-3 text-sm font-semibold disabled:opacity-60"
+          >
+            {transcribing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Transcribing…
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" /> {clips.length === 0 ? "Add first clip" : "Add another clip"}
+              </>
+            )}
+          </button>
+
+          <IOSStandaloneRecordingNotice active={recording} />
+          {voiceError && (
+            <p className="text-[12px] text-status-overdue font-medium">{voiceError}</p>
+          )}
+        </div>
+        )}
 
         <div className="card-surface p-4">
           <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
