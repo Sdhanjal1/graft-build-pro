@@ -857,6 +857,75 @@ function NewQuotePage() {
   );
 }
 
+type PickerClient = { id: string; name: string; address?: string };
+
+function CustomerPicker({
+  search,
+  onSearch,
+  clients,
+  onPick,
+  onClose,
+}: {
+  search: string;
+  onSearch: (v: string) => void;
+  clients: PickerClient[];
+  onPick: (c: PickerClient) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[70] bg-paper flex flex-col">
+      <div className="bg-ink text-paper px-4 pt-5 pb-4 rounded-b-3xl">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-10 w-10 rounded-full bg-paper/10 border border-paper/15 flex items-center justify-center"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5 text-paper" />
+          </button>
+          <h2 className="text-xl font-display tracking-wide">Choose customer</h2>
+        </div>
+        <div className="mt-4 flex items-center gap-2 bg-paper/10 rounded-full px-4 py-2.5">
+          <Search className="h-4 w-4 text-paper/60 shrink-0" />
+          <input
+            value={search}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder="Search by name or address"
+            autoFocus
+            className="flex-1 bg-transparent outline-none text-sm text-paper placeholder:text-paper/50"
+          />
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {clients.length === 0 ? (
+          <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+            No customers match.
+          </p>
+        ) : (
+          <ul className="px-2">
+            {clients.map((c) => (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  onClick={() => onPick(c)}
+                  className="w-full text-left px-3 py-4 border-b border-border flex flex-col gap-0.5 active:bg-secondary"
+                >
+                  <span className="text-base font-semibold">{c.name}</span>
+                  {c.address && (
+                    <span className="text-xs text-muted-foreground truncate">{c.address}</span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between text-sm">
