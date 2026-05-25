@@ -19,6 +19,7 @@ import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
 import { SendQuoteDialog } from "@/components/SendQuoteDialog";
+import { AssignClientDialog } from "@/components/AssignClientDialog";
 import { listQuoteMessages, sendProMessage } from "@/lib/messages.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef } from "react";
@@ -67,6 +68,7 @@ function QuoteDetail() {
   const [askInvoice, setAskInvoice] = useState(false);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
   const [sendOpen, setSendOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const navigate = useNavigate();
   const defaultSchedule = useMemo(() => {
@@ -293,11 +295,11 @@ function QuoteDetail() {
       {status === "pending" && (
         <section className="px-5 mt-3">
           <button
-            onClick={() => setSendOpen(true)}
+            onClick={() => (client ? setSendOpen(true) : setAssignOpen(true))}
             className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 text-base shadow-[0_8px_24px_-8px_rgba(200,224,74,0.6)] active:scale-[0.99] transition"
           >
             <Send className="h-4 w-4" />
-            Send to {client?.name?.split(" ")[0] ?? "client"}
+            {client ? `Send to ${client.name.split(" ")[0]}` : "Add client to send"}
           </button>
         </section>
       )}
@@ -512,6 +514,13 @@ function QuoteDetail() {
         customerPhone={client?.phone}
         customerEmail={client?.email}
         whatsappHref={waHref}
+      />
+
+      <AssignClientDialog
+        open={assignOpen}
+        onClose={() => setAssignOpen(false)}
+        quoteId={quote.id}
+        onAssigned={() => setSendOpen(true)}
       />
 
       {/* Bottom sheet: how did the customer pay? */}
