@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireActiveSubscription } from "@/lib/require-active-subscription";
+import { fetchTopPatterns, patternsForPrompt } from "@/lib/pricing-patterns.functions";
 
 const InputSchema = z.object({
   description: z.string().min(1).max(4000),
@@ -12,6 +13,7 @@ const LineItemSchema = z.object({
   description: z.string().min(1).max(240),
   qty: z.number().positive().max(1000),
   unit_price: z.number().nonnegative().max(100000),
+  source: z.enum(["voice", "learned", "ai"]).optional().default("ai"),
 });
 
 const QuoteSchema = z.object({
@@ -23,14 +25,40 @@ export type AIGeneratedQuote = z.infer<typeof QuoteSchema>;
 
 const SYSTEM_PROMPT = `You are an expert UK tradesperson estimator generating itemised quotes for small trade businesses in 2026. Use realistic current UK market prices (GBP, ex-VAT) for parts, materials and labour. Labour rates: plumber/heating engineer £55-£75/hr, electrician £55-£75/hr, builder £45-£65/hr. Always include separate line items for materials and labour. Be specific about brands/models where appropriate (Worcester Bosch, Vaillant, Drayton, Geberit, etc). Keep titles concise (under 80 chars). Return between 2 and 8 line items.
 
-Input may come from voice transcripts recorded on a noisy job site, in a van, or while driving. Expect filler words, false starts, traffic noise, radio chatter, power tools, and unrelated background conversation. Ignore anything that isn't clearly part of the job description and focus only on trade-relevant materials, labour and scope.`;
+Input may come from voice transcripts recorded on a noisy job site, in a van, or while driving. Expect filler words, false starts, traffic noise, radio chatter, power tools, and unrelated background conversation. Ignore anything that isn't clearly part of the job description and focus only on trade-relevant materials, labour and scope.
+
+PRICING RULES — VERY IMPORTANT:
+
+When the tradesperson mentions specific prices in their voice note, use those exact prices in the quote. Do not override or suggest alternative prices when the tradesperson has stated their own.
+
+Examples of price patterns to detect:
+- "Worcester Bosch for £1,200"
+- "6 hours labour at £65 an hour"
+- "Magnetic filter £85"
+- "Charging £450 for the power flush"
+- "Three radiators at £150 each"
+
+If the tradesperson speaks a price, use it. If they describe an item without a price, use current UK trade pricing estimates.
+
+SOURCE FIELD — REQUIRED ON EVERY LINE ITEM:
+
+Mark each line item with a "source" field:
+- "voice" — the price came from the tradesperson's voice note
+- "learned" — the price came from their typical pricing block below (when provided)
+- "ai" — you estimated the price using general UK trade pricing knowledge
+
+This field is shown to the tradesperson so they can verify which prices came from their voice and which were estimated.`;
 
 export const generateAIQuote = createServerFn({ method: "POST" })
   .middleware([requireActiveSubscription])
   .inputValidator((input: unknown) => InputSchema.parse(input))
-  .handler(async ({ data }): Promise<AIGeneratedQuote> => {
+  .handler(async ({ data, context }): Promise<AIGeneratedQuote> => {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
+
+    const { supabase, userId } = context as { supabase: any; userId: string };
+    const patterns = await fetchTopPatterns(supabase, userId, 50);
+    const systemPrompt = SYSTEM_PROMPT + patternsForPrompt(patterns);
 
     const userPrompt = `Generate an itemised quote for this job.
 
@@ -44,11 +72,11 @@ Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
 {
   "title": "Concise quote title",
   "line_items": [
-    { "description": "Item or labour description", "qty": 1, "unit_price": 0 }
+    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai" }
   ]
 }
 
-Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 hours).`;
+Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 hours). Every line item MUST include a source field.`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -60,7 +88,7 @@ Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 h
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
         max_tokens: 2048,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: [{ role: "user", content: userPrompt }],
       }),
     });
