@@ -323,17 +323,37 @@ function NewQuotePage() {
     }, 1000);
   };
 
+  const startRecordingForClip = () => {
+    if (transcribing || recording) return;
+    feedback("tap");
+    recordTargetRef.current = "clip";
+    startRecording();
+  };
+
   const toggleRecord = () => {
     if (transcribing) return;
     feedback("tap");
     if (recording) stopRecording();
-    else startRecording();
+    else {
+      recordTargetRef.current = "desc";
+      startRecording();
+    }
   };
 
+  const combinedClipsText = () =>
+    clips
+      .map((c, i) => `Task ${i + 1}: ${c.transcript.trim()}`)
+      .filter((s) => s.trim().length > 0)
+      .join("\n");
+
   const generate = async () => {
-    const text = desc.trim();
+    const text = mode === "onsite" ? combinedClipsText() : desc.trim();
     if (!text) {
-      setError("Please describe the job before generating a quote.");
+      setError(
+        mode === "onsite"
+          ? "Record at least one clip before generating a quote."
+          : "Please describe the job before generating a quote.",
+      );
       return;
     }
     setError(null);
@@ -341,6 +361,7 @@ function NewQuotePage() {
     try {
       const g = await generateFn({ data: { description: text, trade, vatRegistered: vat } });
       setDraft(g);
+      if (mode === "onsite") setDesc(text);
       feedback("success");
     } catch (e) {
       console.error(e);
