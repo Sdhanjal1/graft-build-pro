@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getWorkingHours, saveWorkingHours, type WorkingHours } from "@/lib/working-hours.functions";
-import { CustomerQRCard, PushPermissionCard } from "@/components/CustomerQRCard";
+import { PushPermissionCard } from "@/components/CustomerQRCard";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
