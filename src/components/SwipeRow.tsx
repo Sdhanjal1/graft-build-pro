@@ -1,20 +1,24 @@
 import { useRef, useState, type ReactNode, type PointerEvent } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, Send } from "lucide-react";
 import { feedback } from "@/lib/feedback";
 
 /**
- * Swipe-to-delete row. Drag the content left to reveal a delete action.
- * Tap the red action to confirm. Releasing without crossing the threshold snaps back.
+ * Swipe row. Swipe LEFT to reveal a destructive action (delete).
+ * Optionally, swipe RIGHT to reveal a positive action (e.g. send chaser).
  */
 export function SwipeRow({
   children,
   onDelete,
+  onChase,
   confirmLabel = "Delete",
+  chaseLabel = "Chase",
   className = "",
 }: {
   children: ReactNode;
   onDelete: () => void | Promise<void>;
+  onChase?: () => void | Promise<void>;
   confirmLabel?: string;
+  chaseLabel?: string;
   className?: string;
 }) {
   const [offset, setOffset] = useState(0);
@@ -23,7 +27,7 @@ export function SwipeRow({
   const startOffset = useRef(0);
   const moved = useRef(false);
 
-  const REVEAL = 88; // width of action
+  const REVEAL = 88;
   const THRESHOLD = 40;
 
   function onPointerDown(e: PointerEvent<HTMLDivElement>) {
@@ -35,13 +39,17 @@ export function SwipeRow({
     if (startX.current === null) return;
     const dx = e.clientX - startX.current;
     if (Math.abs(dx) > 6) moved.current = true;
-    const next = Math.min(0, Math.max(-REVEAL - 20, startOffset.current + dx));
+    const minX = -REVEAL - 20;
+    const maxX = onChase ? REVEAL + 20 : 0;
+    const next = Math.min(maxX, Math.max(minX, startOffset.current + dx));
     setOffset(next);
   }
   function onPointerUp() {
     if (startX.current === null) return;
     startX.current = null;
-    setOffset(offset < -THRESHOLD ? -REVEAL : 0);
+    if (offset < -THRESHOLD) setOffset(-REVEAL);
+    else if (onChase && offset > THRESHOLD) setOffset(REVEAL);
+    else setOffset(0);
   }
   function onPointerCancel() {
     startX.current = null;
@@ -62,8 +70,36 @@ export function SwipeRow({
     }
   }
 
+  async function handleChase() {
+    if (busy || !onChase) return;
+    setBusy(true);
+    feedback("success");
+    try {
+      await onChase();
+      setOffset(0);
+    } catch (e) {
+      console.error("swipe chase failed", e);
+      feedback("error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className={`relative overflow-hidden rounded-2xl ${className}`}>
+      {onChase && (
+        <button
+          type="button"
+          onClick={handleChase}
+          disabled={busy}
+          aria-label={chaseLabel}
+          className="absolute inset-y-0 left-0 flex items-center justify-center gap-1.5 bg-lime text-ink text-xs font-bold uppercase tracking-wider"
+          style={{ width: 88 }}
+        >
+          <Send className="h-4 w-4" />
+          {chaseLabel}
+        </button>
+      )}
       <button
         type="button"
         onClick={handleDelete}
@@ -91,6 +127,9 @@ export function SwipeRow({
           transform: `translateX(${offset}px)`,
           transition: startX.current === null ? "transform 200ms ease" : "none",
           touchAction: "pan-y",
+          position: "relative",
+          zIndex: 1,
+          background: "var(--background, transparent)",
         }}
       >
         {children}
