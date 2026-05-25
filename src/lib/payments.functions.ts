@@ -42,6 +42,18 @@ export const createInvoiceCheckout = createServerFn({ method: "POST" })
     // Look up the pro's Connect account so client payments land in their
     // Stripe balance directly (Quottr never holds funds).
     const { supabase } = context;
+
+    // Verify the quote belongs to the authenticated user before creating
+    // a Stripe session that references it in metadata.
+    const { data: ownedQuote, error: ownedQuoteError } = await supabase
+      .from("quotes")
+      .select("id")
+      .eq("id", data.quoteId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (ownedQuoteError) throw ownedQuoteError;
+    if (!ownedQuote) throw new Error("Quote not found");
+
     const { data: profile } = await supabase
       .from("profiles")
       .select(
