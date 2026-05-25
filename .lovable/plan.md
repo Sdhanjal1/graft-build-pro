@@ -1,99 +1,115 @@
-# Customer Portal — Magic Link Implementation
+## Overview
 
-A per-client permanent portal at `/portal/[12-char-code]` showing all their quotes, documents, and a messaging thread — no login required.
+Three related changes to make AI-generated quotes match how each tradesperson actually prices their work:
 
-## Scope
+1. **Honour spoken prices** — when a voice note says "Worcester for £1,200", use it.
+2. **Pricing memory** — remember each tradesperson's typical prices and reuse them on the next quote.
+3. **Show provenance** — badge every line item as *Your price* / *Your usual price* / *Quottr suggested* so it's clear where each number came from.
 
-Replaces the current per-quote portal token model with a per-client portal code. Existing `/portal/$token` (per-quote thread) stays for backward compatibility; new client-wide portal lives at `/portal/c/$code`.
+Everything stays in the current design (dark ink, lime green, Bebas headings, DM Sans body).
 
-## Database changes (one migration)
+---
 
-1. **`clients`** — add columns:
-   - `portal_code text unique` (12-char alphanumeric, auto-generated)
-   - `portal_active boolean default true`
-   - `service_due_date date null`
-   - `service_type text null`
-2. **`quotes`** — add `portal_visible boolean default true`
-3. **New table `client_documents`**:
-   - `id`, `user_id`, `client_id`, `title`, `kind` (cert/service/warranty/other), `file_url`, `portal_visible boolean default true`, timestamps
-   - RLS: owner-only manage
-4. **New table `client_portal_messages`** (client-wide thread, distinct from per-quote `quote_messages`):
-   - `id`, `user_id`, `client_id`, `sender` (pro/customer), `body`, `read_at`, timestamps
-   - RLS: owner-only manage
-5. **Storage bucket `client-docs`** (public read), RLS on objects: owner write under `{user_id}/...`
-6. **Trigger**: on `clients` insert, populate `portal_code` if null (12-char base36 random).
-7. **Backfill**: existing clients get a `portal_code`.
+## 1. Database — `user_pricing_patterns`
 
-## Server functions (new file `src/lib/portal.functions.ts`)
+New migration creates one table:
 
-- `getClientPortalData({ code })` — public (admin client). Returns: `{ client: { first_name, business_name_pro, logo_url, service_due_date, service_type }, quotes: [...portal_visible & completed-ish], documents: [...portal_visible], messages: [...] }`. Returns 404 if `portal_active=false` or code unknown.
-- `postClientPortalMessage({ code, body, firstName?, lastName? })` — public. Inserts customer message; optionally updates `clients.name` once if blank.
-- `regeneratePortalCode({ clientId })` — auth, regenerates code.
-- `togglePortalActive({ clientId, active })` — auth.
-- `toggleQuotePortalVisible({ quoteId, visible })` — auth.
-- `toggleDocumentPortalVisible({ documentId, visible })` — auth.
-- `listClientDocuments({ clientId })` / `uploadClientDocument` / `deleteClientDocument` — auth.
-- `sendProClientMessage({ clientId, body })` / `listClientPortalMessages({ clientId })` — auth.
+- `id`, `user_id` (uuid, references `auth.users`)
+- `item_description` (text, normalised lowercase)
+- `item_category` (text — boiler / labour / materials / fitting / other)
+- `typical_price` (numeric, rolling average)
+- `price_count` (int, how many quotes contributed)
+- `price_min`, `price_max` (numeric)
+- `last_quoted_at`, `created_at`, `updated_at` (timestamptz)
+- Unique `(user_id, item_description)`
+- Index on `(user_id, price_count desc)` for fast top-N lookups
+- RLS: users see/manage only their own rows
 
-## Customer-facing route — `src/routes/portal.c.$code.tsx`
+No trigger — updates happen inside the server function so we can compute the rolling average atomically.
 
-Public route. Flow:
-1. Fetch portal data via server fn.
-2. Check `localStorage[`quottr_portal_${code}_name`]` — if missing, show name confirmation card (first + last name → Confirm). Save to localStorage; POST to server so pro sees the customer name.
-3. Header: business logo (via `BusinessLogo`), business name, "Hi {firstName}".
-4. Gold service-due card if `service_due_date` within 60 days → tap opens message composer.
-5. **Your quotes & jobs** — list cards (date, title, total, StatusBadge). Tap to expand line items; Download PDF button per quote (links to existing invoice/quote PDF).
-6. **Your documents** — list visible docs with download button.
-7. **Messages** — simple thread (pro/customer bubbles), composer at bottom.
-8. **Request a new quote** — big lime button → `/request/$proId`.
-9. Footer: "Powered by Quottr" → quottr.co.uk.
+---
 
-Design: dark ink bg, lime green CTAs, Bebas Neue headings, DM Sans body — matches existing portal route.
+## 2. AI quote generation — `src/lib/ai-quote.functions.ts` and `ai-capture-quote.functions.ts`
 
-## Pro-side controls — `src/routes/clients.$clientId.tsx`
+**Schema change:** add `source: 'voice' | 'learned' | 'ai'` to each line item in the Claude response. Default `'ai'` if Claude omits it.
 
-Add a **Customer portal** section:
-- Portal URL display + Copy + Share buttons
-- Regenerate link button (confirm dialog)
-- Preview portal button (opens `/portal/c/{code}` in new tab)
-- Portal active toggle
-- Documents list with per-row visibility toggle + upload button + delete
-- Quotes list (existing) with per-row "Show in portal" toggle
-- Service reminder fields (service type, due date)
+**System prompt additions:**
+- Tell Claude to use exact prices the tradesperson speaks ("Worcester for £1,200", "6 hours at £65", etc.) and mark those `source: 'voice'`.
+- Inject the user's top 50 pricing patterns (by `price_count desc`) as a "Your typical pricing" block. Tell Claude to use these where applicable and mark them `source: 'learned'`. Anything else estimated by Claude is `'ai'`.
 
-## Quote send messaging
+Both `generateAIQuote` and `generateCaptureQuote` fetch patterns via the authenticated supabase client from `requireSupabaseAuth` middleware (already in `requireActiveSubscription` chain — verify or add).
 
-Update `SendQuoteDialog` (and any SMS/email body builder) to append:
-```
-View your quotes and service history: https://quottr.co.uk/portal/c/{portal_code}
-```
-when sending. Use the client's `portal_code` from the quote's `client_id`.
+---
 
-## Files
+## 3. Persisting prices after save
 
-**Created**
-- `supabase/migrations/<ts>_customer_portal.sql`
-- `src/lib/portal.functions.ts`
-- `src/routes/portal.c.$code.tsx`
-- `src/components/portal/PortalQuoteCard.tsx` (expandable card)
-- `src/components/portal/PortalNameGate.tsx`
-- `src/components/portal/PortalMessageThread.tsx`
+In `saveGeneratedQuote` (and the capture-quote save path), upsert each line item into `user_pricing_patterns`:
 
-**Edited**
-- `src/routes/clients.$clientId.tsx` — portal management UI
-- `src/components/SendQuoteDialog.tsx` — append portal link
-- `src/integrations/supabase/types.ts` — regenerates after migration
+- Normalise description: lowercase, collapse whitespace, strip leading qty markers.
+- If row exists: `typical_price = (typical_price * price_count + new_price) / (price_count + 1)`, bump `price_count`, update min/max, set `last_quoted_at = now()`.
+- Else insert with `price_count = 1`.
+- Skip rows with `unit_price = 0`.
+- Infer `item_category` with a simple keyword map (boiler / radiator / labour / hour / fitting / fall back to "materials").
 
-## Security notes (as specified)
+Runs as part of the same server function that saves the quote, so it's atomic from the user's POV.
 
-- 12-char base36 = ~62 bits, unguessable enough for non-financial data.
-- Public route, no PII shown beyond what client already knows (their own quotes/docs).
-- No bank/card details exposed.
-- Pro can regenerate code to invalidate shared links.
-- `portal_active=false` returns "Portal disabled" page.
+---
 
-## Not in scope
+## 4. UI — line item badges on quote detail
 
-- Real-time messaging (simple poll on load, per spec).
-- Replacing existing `/portal/$token` per-quote portal.
-- Email/SMS sending infra (we only append the URL to message bodies — the user's existing flow handles delivery).
+In `src/routes/quotes.$quoteId.tsx`, next to each line item description, render a small badge based on `li.source`:
+
+- `voice` → lime/30 background, ink text — "Your price"
+- `learned` → lime/15 background, ink text — "Your usual price"
+- `ai` → secondary background, muted text — "Quottr suggested"
+
+Tapping a line opens an inline price editor (numeric input). Saving updates the line item, recomputes totals, sets `source = 'voice'`, and persists via existing quote update path. Editing also feeds the pattern table (treated as a new voice-priced entry).
+
+Old quotes with no `source` field render as `'ai'` (no badge spam — only show badge when source is known).
+
+---
+
+## 5. Rotating prompts
+
+Update `src/components/RotatingPrompts.tsx` so every example demonstrates speaking prices:
+
+- "Try: Quote Mrs Jones for a combi boiler, Worcester 30i for £1,250, 8 hours labour at £65"
+- "Try: Bathroom refit, suite £850, tiles £450, labour £1,200, four days"
+- "Try: Consumer unit replacement, £450 parts, full day labour £400"
+- Plus 2–3 more in the same shape (radiators, EICR, roof repair).
+
+---
+
+## 6. Insights — "Your pricing patterns"
+
+New section in `src/routes/insights.tsx` below the existing transactions list:
+
+- Total items in pricing memory (count of rows)
+- Top 5 most-quoted items (by `price_count`) with their `typical_price`
+- Average labour rate (avg of `typical_price` where `item_category = 'labour'`)
+- Average markup (placeholder — only shown if we have enough data; skip if unclear)
+- Simple "trend" hint per top item: ↑ / → / ↓ based on `price_max` vs `typical_price` and `last_quoted_at` recency
+
+Data comes from a new `getPricingInsights` server function. No charts — keep it to a clean list matching the existing card style.
+
+---
+
+## Files to change
+
+- **new migration** — `user_pricing_patterns` table + RLS
+- **new** `src/lib/pricing-patterns.functions.ts` — `getTopPatterns`, `upsertPatternsFromQuote`, `getPricingInsights`
+- `src/lib/ai-quote.functions.ts` — prompt + schema + inject patterns
+- `src/lib/ai-capture-quote.functions.ts` — same
+- `src/lib/user-data.ts` — extend `LineItem` with `source`; call upsert from `saveGeneratedQuote`
+- `src/routes/quotes.$quoteId.tsx` — badges + inline price edit
+- `src/routes/quotes.new.tsx` — render `source` on draft preview
+- `src/routes/insights.tsx` — new "Your pricing patterns" section
+- `src/components/RotatingPrompts.tsx` — new examples
+
+## Out of scope
+
+- No back-fill of patterns from historical quotes (only forward from now).
+- No category management UI — categories are inferred and used only for the labour-rate stat.
+- No editing/deleting patterns directly — they self-correct via new quotes.
+
+Approve and I'll start with the migration.

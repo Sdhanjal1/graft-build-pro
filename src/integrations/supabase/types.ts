@@ -639,6 +639,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_pricing_patterns: {
+        Row: {
+          created_at: string
+          id: string
+          item_category: string
+          item_description: string
+          last_quoted_at: string
+          price_count: number
+          price_max: number
+          price_min: number
+          typical_price: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_category?: string
+          item_description: string
+          last_quoted_at?: string
+          price_count?: number
+          price_max?: number
+          price_min?: number
+          typical_price?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_category?: string
+          item_description?: string
+          last_quoted_at?: string
+          price_count?: number
+          price_max?: number
+          price_min?: number
+          typical_price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       working_hours: {
         Row: {
           auto_reply: string
