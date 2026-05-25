@@ -103,8 +103,6 @@ function SettingsPage() {
 
   const saveBank = (patch: Partial<typeof bank>) => setBank((b) => ({ ...b, ...patch }));
 
-  const stripeConnected = !!userProfile.stripe_connected;
-
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
 
