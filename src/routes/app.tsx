@@ -289,11 +289,13 @@ function StatPill({
   count,
   label,
   tone,
+  to,
 }: {
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   count: number;
   label: string;
   tone: "pending" | "neutral" | "overdue";
+  to: string;
 }) {
   const toneCls =
     tone === "pending"
@@ -302,10 +304,13 @@ function StatPill({
       ? "bg-status-overdue/20 text-status-overdue"
       : "bg-paper/10 text-paper/80";
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${toneCls}`}>
+    <Link
+      to={to}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold active:opacity-80 transition ${toneCls}`}
+    >
       <Icon className="h-3 w-3" />
       {count} {label}
-    </span>
+    </Link>
   );
 }
 
