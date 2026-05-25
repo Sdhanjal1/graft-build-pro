@@ -21,12 +21,12 @@ function ClientsPage() {
     <AppShell>
       <header className="px-5 pt-8 pb-4 flex items-end justify-between">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Client book</p>
-          <h1 className="text-4xl leading-none mt-1">Clients</h1>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Customer book</p>
+          <h1 className="text-4xl leading-none mt-1">Customers</h1>
         </div>
         <Link
           to="/clients/new"
-          aria-label="Add new client"
+          aria-label="Add new customer"
           className="h-11 px-4 rounded-full bg-lime text-ink inline-flex items-center gap-1.5 font-bold text-sm active:scale-95 transition"
         >
           <UserPlus className="h-4 w-4" />
@@ -40,7 +40,7 @@ function ClientsPage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search clients"
+            placeholder="Search customers"
             className="bg-transparent flex-1 outline-none text-sm placeholder:text-muted-foreground"
           />
         </div>
@@ -51,12 +51,12 @@ function ClientsPage() {
           userClients.length === 0 ? (
             <EmptyState
               icon={Users}
-              title="No clients yet"
+              title="No customers yet"
               body="They'll be here once you send your first quote."
-              cta={{ label: "Add client", to: "/clients/new" }}
+              cta={{ label: "Add customer", to: "/clients/new" }}
             />
           ) : (
-            <EmptyState icon={Inbox} title="No matches" body={`No clients match "${q}".`} />
+            <EmptyState icon={Inbox} title="No matches" body={`No customers match "${q}".`} />
           )
         )}
         {filtered.map((c) => {
