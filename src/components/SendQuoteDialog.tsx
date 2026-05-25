@@ -74,7 +74,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
         } catch { /* user cancelled or unsupported - fall through */ }
       }
       window.location.href = smsHref;
-      toast.success("Opening Messages…");
+      toast.success(`Sent to ${customerName ?? firstName} via SMS`);
       feedback("success");
       onClose();
     } catch (e) {
@@ -96,6 +96,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
         `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}${historyLine}\n\nThanks.`;
       const mailHref = `mailto:${customerEmail ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.location.href = mailHref;
+      toast.success(`Sent to ${customerName ?? firstName} via Email`);
       feedback("success");
       onClose();
     } catch (e) {
@@ -192,6 +193,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
 
                 const text = buildQuoteWhatsAppMessage(q, { name: customerName ?? "" }, portalUrl);
                 window.open(waLink(customerPhone, text), "_blank");
+                toast.success(`Sent to ${customerName ?? firstName} via WhatsApp`);
                 feedback("success");
                 onClose();
               } catch (e) {

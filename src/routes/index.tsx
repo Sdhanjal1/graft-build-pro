@@ -196,27 +196,6 @@ function HomePage() {
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
-      <section className="bg-card border-y border-ink/10">
-        <div className="mx-auto max-w-6xl px-5 py-20">
-          <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">Straight from the van</p>
-          <h2 className="mt-3 text-3xl md:text-5xl leading-[1.05] max-w-3xl">
-            The trades are loving Quottr.
-          </h2>
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            {[
-              { q: "Quoted a full bathroom refit from the van in 40 seconds. Customer approved it before I got home. Deposit paid same day.", who: "Ryan T., Gas engineer, Leeds" },
-              { q: "The site capture mode is the one. Walk round, tap what needs doing, quote it all at once. Game changer for bigger jobs.", who: "Sam R., Plumber, Bristol" },
-              { q: "Had £3,200 outstanding for months. Quottr chased it all automatically. Got paid within two weeks without a single awkward call.", who: "Dani O., Electrician, Glasgow" },
-            ].map((t) => (
-              <figure key={t.who} className="rounded-2xl border border-ink/10 bg-paper p-6">
-                <blockquote className="text-lg leading-snug">“{t.q}”</blockquote>
-                <figcaption className="mt-4 text-xs uppercase tracking-widest text-ink/55 font-semibold">{t.who}</figcaption>
-              </figure>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* FINAL CTA */}
       <section className="mx-auto max-w-6xl px-5 py-20 md:py-28">
