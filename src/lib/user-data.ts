@@ -976,6 +976,52 @@ export const setQuoteStatus = async (
   return q;
 };
 
+const VAT_RATE_LOCAL = 0.2;
+
+/** Persist edited line items and recompute totals. */
+export const updateQuoteLineItems = async (
+  quoteId: string,
+  line_items: LineItem[],
+  vatRegistered: boolean,
+): Promise<Quote | null> => {
+  const q = getQuote(quoteId);
+  if (!q) return null;
+  const subtotal = +line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
+  const vat_amount = vatRegistered ? +(subtotal * VAT_RATE_LOCAL).toFixed(2) : 0;
+  const total = +(subtotal + vat_amount).toFixed(2);
+  const { error } = await supabase
+    .from("quotes")
+    .update({
+      line_items: line_items as unknown as Record<string, unknown>,
+      subtotal,
+      vat_amount,
+      total,
+    })
+    .eq("id", quoteId);
+  if (error) throw error;
+  q.line_items = line_items;
+  q.subtotal = subtotal;
+  q.vat_amount = vat_amount;
+  q.total = total;
+  bumpVersion();
+  // Feed pricing memory with the corrected prices.
+  try {
+    const { upsertPatternsFromQuote } = await import("@/lib/pricing-patterns.functions");
+    void upsertPatternsFromQuote({
+      data: {
+        items: line_items.map((li) => ({
+          description: li.description,
+          qty: li.qty,
+          unit_price: li.unit_price,
+        })),
+      },
+    }).catch((e) => console.warn("[pricing-patterns] upsert failed", e));
+  } catch (e) {
+    console.warn("[pricing-patterns] import failed", e);
+  }
+  return q;
+};
+
 export const invoiceRef = (q: Quote) => q.ref.replace(/^QTR/i, "INV");
 
 export const buildFinalInvoiceMessage = (quote: Quote, clientFirstName: string) => {
