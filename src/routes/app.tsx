@@ -96,9 +96,17 @@ function AppHomePage() {
           <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
             You are owed
           </p>
-          <p className={`num text-6xl mt-1 leading-none ${s.outstanding > 0 ? "text-lime" : "text-paper"}`}>
-            {formatGBP(s.outstanding)}
-          </p>
+          {s.outstanding > 0 ? (
+            <Link to="/chaser" className="block mt-1 active:opacity-80 transition">
+              <p className={`num text-6xl leading-none text-lime`}>
+                {formatGBP(s.outstanding)}
+              </p>
+            </Link>
+          ) : (
+            <p className="num text-6xl mt-1 leading-none text-paper">
+              {formatGBP(s.outstanding)}
+            </p>
+          )}
         </div>
 
         {/* Stat pills */}
