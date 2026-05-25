@@ -251,7 +251,7 @@ function SettingsPage() {
           <Section title="Quote appearance">
             <div className="card-surface p-5 space-y-4">
               <label className="block">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5">
                   <ImageIcon className="h-3 w-3" /> Opening message on quotes
                 </span>
                 <textarea
@@ -262,7 +262,7 @@ function SettingsPage() {
                 />
               </label>
               <label className="block">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5">
                   <FileText className="h-3 w-3" /> Footer message
                 </span>
                 <textarea
@@ -412,7 +412,7 @@ function EditField({
         <Icon className="h-4 w-4" />
       </div>
       <label className="min-w-0 flex-1 block">
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
+        <span className="text-xs text-muted-foreground font-semibold">{label}</span>
         <input
           value={value}
           placeholder={placeholder}
@@ -433,7 +433,7 @@ function SelectField({
         <Icon className="h-4 w-4" />
       </div>
       <label className="min-w-0 flex-1 block">
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
+        <span className="text-xs text-muted-foreground font-semibold">{label}</span>
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -449,7 +449,7 @@ function SelectField({
 function Input({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <label className="block">
-      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
+      <span className="text-xs text-muted-foreground font-semibold">{label}</span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
