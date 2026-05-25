@@ -459,20 +459,6 @@ function Input({ label, value, onChange }: { label: string; value: string; onCha
   );
 }
 
-function SettingRow({ icon: Icon, label, status }: { icon: React.ComponentType<{ className?: string }>; label: string; status: string }) {
-  return (
-    <div className="px-5 py-4 flex items-center gap-3">
-      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center">
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold">{label}</p>
-        <p className="text-xs text-muted-foreground">{status}</p>
-      </div>
-      <span className="text-xs font-semibold text-ink bg-lime px-3 py-1.5 rounded-full">Add</span>
-    </div>
-  );
-}
 
 
 
