@@ -516,6 +516,13 @@ function QuoteDetail() {
         whatsappHref={waHref}
       />
 
+      <AssignClientDialog
+        open={assignOpen}
+        onClose={() => setAssignOpen(false)}
+        quoteId={quote.id}
+        onAssigned={() => setSendOpen(true)}
+      />
+
       {/* Bottom sheet: how did the customer pay? */}
       {askingPaid && (
         <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setAskingPaid(false)}>
