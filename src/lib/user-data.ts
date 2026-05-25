@@ -992,7 +992,7 @@ export const updateQuoteLineItems = async (
   const { error } = await supabase
     .from("quotes")
     .update({
-      line_items: line_items as unknown as Record<string, unknown>,
+      line_items: line_items as never,
       subtotal,
       vat_amount,
       total,
