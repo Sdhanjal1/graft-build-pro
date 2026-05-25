@@ -419,12 +419,14 @@ function NewQuotePage() {
           else generate();
         }}
       >
-        <div className="grid grid-cols-2 gap-1 p-1 bg-secondary rounded-full text-xs font-semibold">
+        <div className="grid grid-cols-2 gap-2 text-sm font-semibold">
           <button
             type="button"
             onClick={() => setMode("speak")}
-            className={`rounded-full py-2 inline-flex items-center justify-center gap-1.5 transition ${
-              mode === "speak" ? "bg-ink text-paper" : "text-muted-foreground"
+            className={`rounded-full py-2.5 inline-flex items-center justify-center gap-1.5 border transition ${
+              mode === "speak"
+                ? "bg-ink text-paper border-ink"
+                : "bg-transparent text-ink border-ink/25"
             }`}
           >
             <Mic className="h-3.5 w-3.5" /> Speak it
@@ -432,8 +434,10 @@ function NewQuotePage() {
           <button
             type="button"
             onClick={() => setMode("onsite")}
-            className={`rounded-full py-2 inline-flex items-center justify-center gap-1.5 transition ${
-              mode === "onsite" ? "bg-ink text-paper" : "text-muted-foreground"
+            className={`rounded-full py-2.5 inline-flex items-center justify-center gap-1.5 border transition ${
+              mode === "onsite"
+                ? "bg-ink text-paper border-ink"
+                : "bg-transparent text-ink border-ink/25"
             }`}
           >
             <MapPin className="h-3.5 w-3.5" /> On site
@@ -554,7 +558,7 @@ function NewQuotePage() {
             type="button"
             onClick={startRecordingForClip}
             disabled={recording || transcribing}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-lime text-ink py-3 text-sm font-bold shadow-[0_4px_14px_-4px_rgb(0_0_0/0.25)] active:scale-[0.98] transition disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-ink text-paper py-3 text-sm font-bold active:scale-[0.98] transition disabled:opacity-60"
           >
             {transcribing ? (
               <>
@@ -562,7 +566,7 @@ function NewQuotePage() {
               </>
             ) : (
               <>
-                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-ink text-lime">
+                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-lime text-ink">
                   <Plus className="h-4 w-4" strokeWidth={3} />
                 </span>
                 {clips.length === 0 ? "Add first clip" : "Add another clip"}
@@ -596,10 +600,8 @@ function NewQuotePage() {
           <button
             type="button"
             onClick={() => { setCustomerMode("existing"); setPickerOpen(true); }}
-            className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition border ${
-              customerMode === "existing"
-                ? "bg-lime text-ink border-transparent shadow-[0_4px_14px_-4px_rgb(0_0_0/0.2)]"
-                : "bg-card text-ink border-border"
+            className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border ${
+              customerMode === "existing" ? "border-ink" : "border-ink/25 text-ink"
             }`}
           >
             Existing customer
@@ -607,10 +609,8 @@ function NewQuotePage() {
           <button
             type="button"
             onClick={() => { setCustomerMode("new"); setClientName(""); setClientPhone(""); }}
-            className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition border inline-flex items-center justify-center gap-1.5 ${
-              customerMode === "new"
-                ? "bg-lime text-ink border-transparent shadow-[0_4px_14px_-4px_rgb(0_0_0/0.2)]"
-                : "bg-card text-ink border-border"
+            className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border inline-flex items-center justify-center gap-1.5 ${
+              customerMode === "new" ? "border-ink" : "border-ink/25 text-ink"
             }`}
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} /> New customer
