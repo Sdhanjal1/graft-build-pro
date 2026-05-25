@@ -74,7 +74,9 @@ function AppHomePage() {
 
   return (
     <AppShell>
+      <div className="flex flex-col min-h-[calc(100dvh-7rem)]">
       {/* Ink header: greeting + £ outstanding */}
+
       <header className="bg-ink text-paper rounded-b-3xl px-5 pt-7 pb-8">
         <div className="flex items-center justify-between">
           <QuottrWordmark className="text-3xl" />
