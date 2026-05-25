@@ -38,12 +38,12 @@ function HomePage() {
             Quottr.
           </h1>
 
-          <p
+          <h2
             className="mt-6 text-paper text-4xl md:text-6xl leading-[0.95] max-w-4xl mx-auto"
             style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.01em" }}
           >
-            Stop quoting <span className="text-lime">in the evenings.</span>
-          </p>
+            Speak it. <span className="text-lime">Quote it.</span> Send it. <span className="text-lime">Get paid.</span>
+          </h2>
 
           <p className="mt-6 text-base md:text-lg text-paper/75 max-w-2xl mx-auto">
             Voice to professional quote in 18 seconds. Sent via WhatsApp. Customer pays the deposit before you leave the drive.

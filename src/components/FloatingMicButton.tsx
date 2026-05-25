@@ -13,10 +13,11 @@ export function FloatingMicButton() {
     <Link
       to="/quotes/new"
       search={{ voice: 1 }}
-      aria-label="Start a voice quote"
-      className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full bg-lime flex items-center justify-center shadow-[0_10px_24px_-6px_rgba(200,224,74,0.6)] ring-4 ring-paper active:scale-95 transition"
+      aria-label="Speak a quote"
+      className="fixed bottom-24 right-4 z-50 h-14 pl-4 pr-5 rounded-full bg-lime flex items-center gap-2 shadow-[0_10px_24px_-6px_rgba(200,224,74,0.6)] ring-4 ring-paper active:scale-95 transition"
     >
-      <Mic className="h-6 w-6 text-ink" strokeWidth={2.5} />
+      <Mic className="h-5 w-5 text-ink" strokeWidth={2.5} />
+      <span className="text-sm font-bold text-ink">Speak a quote</span>
     </Link>
   );
 }
