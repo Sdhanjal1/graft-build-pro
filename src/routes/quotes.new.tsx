@@ -419,12 +419,14 @@ function NewQuotePage() {
           else generate();
         }}
       >
-        <div className="grid grid-cols-2 gap-1 p-1 bg-secondary rounded-full text-xs font-semibold">
+        <div className="grid grid-cols-2 gap-2 text-sm font-semibold">
           <button
             type="button"
             onClick={() => setMode("speak")}
-            className={`rounded-full py-2 inline-flex items-center justify-center gap-1.5 transition ${
-              mode === "speak" ? "bg-ink text-paper" : "text-muted-foreground"
+            className={`rounded-full py-2.5 inline-flex items-center justify-center gap-1.5 border transition ${
+              mode === "speak"
+                ? "bg-ink text-paper border-ink"
+                : "bg-transparent text-ink border-ink/25"
             }`}
           >
             <Mic className="h-3.5 w-3.5" /> Speak it
@@ -432,8 +434,10 @@ function NewQuotePage() {
           <button
             type="button"
             onClick={() => setMode("onsite")}
-            className={`rounded-full py-2 inline-flex items-center justify-center gap-1.5 transition ${
-              mode === "onsite" ? "bg-ink text-paper" : "text-muted-foreground"
+            className={`rounded-full py-2.5 inline-flex items-center justify-center gap-1.5 border transition ${
+              mode === "onsite"
+                ? "bg-ink text-paper border-ink"
+                : "bg-transparent text-ink border-ink/25"
             }`}
           >
             <MapPin className="h-3.5 w-3.5" /> On site
