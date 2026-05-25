@@ -5,7 +5,7 @@ import {
   userProfile, stats, formatGBP, getClient, userClients, mockQuotes,
   todaysJobs, formatTime, getQuote,
 } from "@/lib/user-data";
-import { Mic, ArrowRight, UserPlus, MapPin, FileText, Bell, AlertTriangle, Clock, Send, Sparkles } from "lucide-react";
+import { Mic, ArrowRight, UserPlus, FileText, Bell, AlertTriangle, Clock, Send, Sparkles } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
