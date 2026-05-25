@@ -555,7 +555,7 @@ function NewQuotePage() {
             type="button"
             onClick={startRecordingForClip}
             disabled={recording || transcribing}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-ink text-paper py-3 text-sm font-semibold disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-lime text-ink py-3 text-sm font-bold shadow-[0_4px_14px_-4px_rgb(0_0_0/0.25)] active:scale-[0.98] transition disabled:opacity-60"
           >
             {transcribing ? (
               <>
@@ -563,7 +563,10 @@ function NewQuotePage() {
               </>
             ) : (
               <>
-                <Plus className="h-4 w-4" /> {clips.length === 0 ? "Add first clip" : "Add another clip"}
+                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-ink text-lime">
+                  <Plus className="h-4 w-4" strokeWidth={3} />
+                </span>
+                {clips.length === 0 ? "Add first clip" : "Add another clip"}
               </>
             )}
           </button>
@@ -607,14 +610,14 @@ function NewQuotePage() {
 
         <div className="p-4 bg-ink text-paper relative rounded-[var(--radius-lg)] shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]">
           <label className="text-xs uppercase tracking-widest text-paper font-bold">
-            Client
+            Customer
           </label>
           <input
             value={clientName}
             onChange={(e) => { setClientName(e.target.value); setClientOpen(true); }}
             onFocus={() => setClientOpen(true)}
             onBlur={() => setTimeout(() => setClientOpen(false), 150)}
-            placeholder="Type to search or add new"
+            placeholder="Type to search or add a customer"
             className="mt-2 w-full bg-transparent outline-none text-sm text-paper placeholder:text-paper/80"
           />
           {clientOpen && clientMatches.length > 0 && (
