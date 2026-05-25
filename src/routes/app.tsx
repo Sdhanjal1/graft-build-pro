@@ -2,10 +2,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
 import {
-  userProfile, stats, formatGBP, getClient, userClients,
+  userProfile, stats, formatGBP, getClient, userClients, mockQuotes,
   todaysJobs, formatTime, getQuote,
 } from "@/lib/user-data";
-import { Mic, ArrowRight, Sparkles, UserPlus, MapPin } from "lucide-react";
+import { Mic, ArrowRight, UserPlus, MapPin, FileText, Bell, AlertTriangle, Clock, Send, Sparkles } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
@@ -44,7 +44,6 @@ function AppHomePage() {
     if (!loading && !session) navigate({ to: "/auth" });
   }, [loading, session, navigate]);
 
-  // First-run: send brand-new users to the onboarding wizard.
   useEffect(() => {
     if (loading || !session) return;
     if (!userProfile.business_name) {
@@ -53,112 +52,126 @@ function AppHomePage() {
   }, [loading, session, navigate]);
 
   if (loading || !session) {
-    return <div className="min-h-screen bg-ink" />;
+    return <div className="min-h-screen bg-paper" />;
   }
 
   const s = stats();
   const today = todaysJobs();
   const firstName = userProfile.full_name.split(" ")[0] || "there";
-  const businessName = userProfile.business_name || "Finish setting up your profile";
-  const owedColor = s.outstanding > 0 ? "text-status-overdue" : "text-lime";
   const greeting = greetingFor();
   const clientCount = userClients.length;
 
+  // Action-queue breakdown
+  const pendingQuotes = mockQuotes.filter((q) => q.status === "pending");
+  const awaitingQuotes = mockQuotes.filter((q) => q.status === "sent" || q.status === "accepted");
+  const overdueQuotes = mockQuotes.filter((q) => q.status === "overdue");
+
+  const pendingTotal = pendingQuotes.reduce((sum, q) => sum + q.total, 0);
+  const awaitingTotal = awaitingQuotes.reduce((sum, q) => sum + q.total, 0);
+  const overdueTotal = overdueQuotes.reduce((sum, q) => sum + q.total, 0);
+
+  const hasActions = pendingQuotes.length > 0 || awaitingQuotes.length > 0 || overdueQuotes.length > 0;
+
   return (
     <AppShell>
+      {/* Ink header: greeting + £ outstanding */}
       <header className="bg-ink text-paper rounded-b-3xl px-5 pt-7 pb-8">
-        <QuottrWordmark className="text-4xl" />
-        <p className="mt-2 text-lg font-semibold text-paper font-sans">
-          You talk. Quottr quotes.
-        </p>
-        <p className="mt-6 text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-          {greeting}
-        </p>
-        <h1 className="text-3xl leading-none mt-1 text-paper">{firstName}</h1>
-        {userProfile.business_name ? (
-          <p className="mt-1.5 text-sm text-paper/60">{businessName}</p>
-        ) : (
-          <Link to="/settings" className="mt-1.5 text-sm text-lime underline-offset-2 hover:underline">
-            {businessName}
+        <div className="flex items-center justify-between">
+          <QuottrWordmark className="text-3xl" />
+          <Link
+            to="/settings"
+            className="text-[10px] uppercase tracking-widest font-semibold text-paper/60 hover:text-lime transition"
+          >
+            {userProfile.business_name || "Set up"}
           </Link>
+        </div>
+
+        <p className="mt-5 text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+          {greeting}, {firstName}
+        </p>
+
+        <div className="mt-1">
+          <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+            You are owed
+          </p>
+          <p className={`num text-6xl mt-1 leading-none ${s.outstanding > 0 ? "text-lime" : "text-paper"}`}>
+            {formatGBP(s.outstanding)}
+          </p>
+        </div>
+
+        {/* Stat pills */}
+        {hasActions && (
+          <div className="mt-5 flex gap-2 flex-wrap">
+            {pendingQuotes.length > 0 && (
+              <StatPill icon={FileText} count={pendingQuotes.length} label="to send" tone="pending" />
+            )}
+            {awaitingQuotes.length > 0 && (
+              <StatPill icon={Clock} count={awaitingQuotes.length} label="awaiting" tone="neutral" />
+            )}
+            {overdueQuotes.length > 0 && (
+              <StatPill icon={AlertTriangle} count={overdueQuotes.length} label="overdue" tone="overdue" />
+            )}
+          </div>
         )}
       </header>
 
-      <section className="px-5 mt-8 flex flex-col items-center">
-        <Link
-          to="/quotes/new"
-          search={{ voice: 1 }}
-          onClick={() => buzz(12)}
-          aria-label="Tap to start a quote"
-          className="relative h-40 w-40 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_50px_-12px_rgba(200,224,74,0.55)] active:scale-95 transition"
-        >
-          <span className="absolute inset-0 rounded-full bg-lime/30 animate-ping" />
-          <Mic className="relative h-16 w-16 text-ink" strokeWidth={2.25} />
-        </Link>
-        <p className="mt-5 text-base font-semibold text-ink">Tap to start a quote</p>
-        <p className="text-xs text-muted-foreground">Speak the job, we'll do the rest</p>
-        <RotatingPrompts className="mt-3 text-center px-4" />
-
-        <div className="mt-6 grid grid-cols-2 gap-2.5 w-full">
-          <Link
-            to="/clients"
-            className="card-surface flex items-center gap-2.5 px-3.5 py-3 active:scale-[0.99] transition"
-          >
-            <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
-              <UserPlus className="h-4 w-4 text-ink" />
-            </span>
-            <span className="flex-1 min-w-0">
-              <span className="block text-sm font-semibold text-ink leading-tight">Client book</span>
-              {clientCount > 0 && (
-                <span className="block text-[10px] text-muted-foreground mt-0.5">
-                  {clientCount} saved
-                </span>
-              )}
-            </span>
-          </Link>
-          <Link
-            to="/capture/new"
-            className="card-surface flex items-center gap-2.5 px-3.5 py-3 active:scale-[0.99] transition"
-          >
-            <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
-              <MapPin className="h-4 w-4 text-ink" />
-            </span>
-            <span className="text-sm font-semibold text-ink leading-tight">On-site capture</span>
-          </Link>
-        </div>
-      </section>
-
-      <section className="px-5 mt-8">
-        <div className="card-surface p-5">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-            You are owed
-          </p>
-          <p className={`num text-5xl mt-1 leading-none ${owedColor}`}>
-            {formatGBP(s.outstanding)}
-          </p>
-          {s.outstanding > 0 ? (
-            <Link
-              to="/chaser"
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-ink"
-            >
-              Chase unpaid invoices
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          ) : (
-            <p className="mt-2 text-xs text-muted-foreground">All paid up, nice work.</p>
+      {/* Action queue cards */}
+      {hasActions ? (
+        <section className="px-5 mt-5 space-y-3">
+          {pendingQuotes.length > 0 && (
+            <ActionCard
+              to="/quotes"
+              icon={Send}
+              tone="pending"
+              title="Quotes to send"
+              count={pendingQuotes.length}
+              amount={pendingTotal}
+              cta="Send now"
+            />
           )}
-        </div>
-      </section>
+          {awaitingQuotes.length > 0 && (
+            <ActionCard
+              to="/chaser"
+              icon={Bell}
+              tone="neutral"
+              title="Awaiting payment"
+              count={awaitingQuotes.length}
+              amount={awaitingTotal}
+              cta="Chase up"
+            />
+          )}
+          {overdueQuotes.length > 0 && (
+            <ActionCard
+              to="/chaser"
+              icon={AlertTriangle}
+              tone="overdue"
+              title="Overdue"
+              count={overdueQuotes.length}
+              amount={overdueTotal}
+              cta="Send reminder"
+            />
+          )}
+        </section>
+      ) : (
+        <section className="px-5 mt-6">
+          <div className="card-surface p-6 text-center">
+            <div className="h-12 w-12 rounded-full bg-lime/15 flex items-center justify-center mx-auto">
+              <Sparkles className="h-6 w-6 text-ink" />
+            </div>
+            <p className="mt-3 text-sm font-semibold text-ink">All caught up</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Nothing needs your attention right now. Tap the mic to start a new quote.
+            </p>
+          </div>
+        </section>
+      )}
 
-
-
-
-
+      {/* Today's jobs */}
       {today.length > 0 && (
-        <section className="px-5 mt-4">
+        <section className="px-5 mt-5">
           <div className="card-surface p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-4 w-4 text-lime" />
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="h-4 w-4 text-lime" />
               <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
                 Today's jobs
               </p>
@@ -192,6 +205,143 @@ function AppHomePage() {
           </div>
         </section>
       )}
+
+      {/* Quick shortcuts */}
+      <section className="px-5 mt-5">
+        <div className="grid grid-cols-2 gap-2.5">
+          <Link
+            to="/clients"
+            className="card-surface flex items-center gap-2.5 px-3.5 py-3 active:scale-[0.99] transition"
+          >
+            <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
+              <UserPlus className="h-4 w-4 text-ink" />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-semibold text-ink leading-tight">Client book</span>
+              {clientCount > 0 && (
+                <span className="block text-[10px] text-muted-foreground mt-0.5">
+                  {clientCount} saved
+                </span>
+              )}
+            </span>
+          </Link>
+          <Link
+            to="/capture/new"
+            className="card-surface flex items-center gap-2.5 px-3.5 py-3 active:scale-[0.99] transition"
+          >
+            <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
+              <MapPin className="h-4 w-4 text-ink" />
+            </span>
+            <span className="text-sm font-semibold text-ink leading-tight">On-site capture</span>
+          </Link>
+        </div>
+      </section>
+
+      {/* Voice prompt */}
+      <section className="px-5 mt-6 mb-8">
+        <div className="card-surface p-5 text-center">
+          <p className="text-xs text-muted-foreground">Not sure what to quote?</p>
+          <RotatingPrompts className="mt-2 text-center px-4" />
+        </div>
+      </section>
+
+      {/* Floating mic button */}
+      <Link
+        to="/quotes/new"
+        search={{ voice: 1 }}
+        onClick={() => buzz(12)}
+        aria-label="Tap to start a quote"
+        className="fixed bottom-24 right-5 z-40 h-14 w-14 rounded-full bg-lime flex items-center justify-center shadow-[0_8px_24px_-8px_rgba(200,224,74,0.6)] active:scale-95 transition"
+      >
+        <Mic className="h-6 w-6 text-ink" strokeWidth={2.25} />
+      </Link>
     </AppShell>
+  );
+}
+
+/* ---------- Sub-components ---------- */
+
+function StatPill({
+  icon: Icon,
+  count,
+  label,
+  tone,
+}: {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  count: number;
+  label: string;
+  tone: "pending" | "neutral" | "overdue";
+}) {
+  const toneCls =
+    tone === "pending"
+      ? "bg-status-pending/20 text-status-pending"
+      : tone === "overdue"
+      ? "bg-status-overdue/20 text-status-overdue"
+      : "bg-paper/10 text-paper/80";
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${toneCls}`}>
+      <Icon className="h-3 w-3" />
+      {count} {label}
+    </span>
+  );
+}
+
+function ActionCard({
+  to,
+  icon: Icon,
+  tone,
+  title,
+  count,
+  amount,
+  cta,
+}: {
+  to: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  tone: "pending" | "neutral" | "overdue";
+  title: string;
+  count: number;
+  amount: number;
+  cta: string;
+}) {
+  const borderCls =
+    tone === "pending"
+      ? "border-l-4 border-status-pending"
+      : tone === "overdue"
+      ? "border-l-4 border-status-overdue"
+      : "border-l-4 border-lime";
+
+  const iconBg =
+    tone === "pending"
+      ? "bg-status-pending/15"
+      : tone === "overdue"
+      ? "bg-status-overdue/15"
+      : "bg-lime/15";
+
+  const iconColor =
+    tone === "pending"
+      ? "text-status-pending"
+      : tone === "overdue"
+      ? "text-status-overdue"
+      : "text-ink";
+
+  return (
+    <Link
+      to={to}
+      className={`card-surface p-4 flex items-center gap-3 active:scale-[0.99] transition ${borderCls}`}
+    >
+      <div className={`h-10 w-10 rounded-full ${iconBg} flex items-center justify-center shrink-0`}>
+        <Icon className={`h-5 w-5 ${iconColor}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-ink">{title}</p>
+        <p className="text-[11px] text-muted-foreground">
+          {count} quote{count !== 1 ? "s" : ""} · {formatGBP(amount)}
+        </p>
+      </div>
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-ink shrink-0">
+        {cta}
+        <ArrowRight className="h-3.5 w-3.5" />
+      </span>
+    </Link>
   );
 }
