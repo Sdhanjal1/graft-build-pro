@@ -8,15 +8,13 @@ import {
   saveProfileToCloud,
 } from "@/lib/user-data";
 import { signOut } from "@/lib/auth";
-import { getFeedbackPrefs, setFeedbackPrefs, feedback } from "@/lib/feedback";
+import { feedback } from "@/lib/feedback";
 import {
-  Building2, User, Phone, Mail, BadgeCheck, Receipt, Key, LogOut,
-  CreditCard, MapPin, Gift, Share2, Vibrate, Volume2, Clock,
-  CheckCircle2, FileText, MessageSquare, AlertTriangle, Trash2, Bell,
+  Building2, User, Phone, BadgeCheck, Receipt, LogOut,
+  CheckCircle2, FileText, Trash2,
   Camera, ImageIcon, Pencil, PenLine,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { getWorkingHours, saveWorkingHours, type WorkingHours } from "@/lib/working-hours.functions";
 import { PushPermissionCard } from "@/components/CustomerQRCard";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { supabase } from "@/integrations/supabase/client";
