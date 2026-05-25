@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 
 const PROMPTS = [
-  "Try: Quote Mrs Jones for a new combi boiler",
-  "Try: Full bathroom refit in Stockport, 5 days labour",
-  "Try: Consumer unit replacement and EICR",
-  "Try: Power flush and magnetic filter on a 3 bed",
-  "Try: Roof repair, 10 tiles, lead flashing, half day labour",
-  "Try: Supply and fit Worcester Bosch 30i, Gas Safe cert",
+  "Try: Quote Mrs Jones for a combi boiler, Worcester 30i for £1,250, 8 hours labour at £65",
+  "Try: Bathroom refit, suite £850, tiles £450, labour £1,200, four days",
+  "Try: Consumer unit replacement, £450 parts, full day labour £400",
+  "Try: Three radiators at £150 each, 6 hours labour at £65 an hour, magnetic filter £85",
+  "Try: Power flush, charging £450, plus magnetic filter £85",
+  "Try: Roof repair, 10 tiles £40, lead flashing £120, half day labour £220",
 ];
 
 export function RotatingPrompts({ className = "" }: { className?: string }) {
