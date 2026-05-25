@@ -22,6 +22,8 @@ export type LineItem = {
   description: string;
   qty: number;
   unit_price: number;
+  /** Provenance of the price for badging on quote detail. */
+  source?: "voice" | "learned" | "ai";
 };
 
 export type Client = {
@@ -691,6 +693,21 @@ export const saveGeneratedQuote = async (input: {
   const quote = rowToQuote(data as unknown as DbQuote);
   mockQuotes.unshift(quote);
   bumpVersion();
+  // Fire-and-forget: feed the pricing memory so future quotes learn from this one.
+  try {
+    const { upsertPatternsFromQuote } = await import("@/lib/pricing-patterns.functions");
+    void upsertPatternsFromQuote({
+      data: {
+        items: input.line_items.map((li) => ({
+          description: li.description,
+          qty: li.qty,
+          unit_price: li.unit_price,
+        })),
+      },
+    }).catch((e) => console.warn("[pricing-patterns] upsert failed", e));
+  } catch (e) {
+    console.warn("[pricing-patterns] import failed", e);
+  }
   return quote;
 };
 
@@ -956,6 +973,52 @@ export const setQuoteStatus = async (
   if (error) throw error;
   q.status = status;
   bumpVersion();
+  return q;
+};
+
+const VAT_RATE_LOCAL = 0.2;
+
+/** Persist edited line items and recompute totals. */
+export const updateQuoteLineItems = async (
+  quoteId: string,
+  line_items: LineItem[],
+  vatRegistered: boolean,
+): Promise<Quote | null> => {
+  const q = getQuote(quoteId);
+  if (!q) return null;
+  const subtotal = +line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
+  const vat_amount = vatRegistered ? +(subtotal * VAT_RATE_LOCAL).toFixed(2) : 0;
+  const total = +(subtotal + vat_amount).toFixed(2);
+  const { error } = await supabase
+    .from("quotes")
+    .update({
+      line_items: line_items as never,
+      subtotal,
+      vat_amount,
+      total,
+    })
+    .eq("id", quoteId);
+  if (error) throw error;
+  q.line_items = line_items;
+  q.subtotal = subtotal;
+  q.vat_amount = vat_amount;
+  q.total = total;
+  bumpVersion();
+  // Feed pricing memory with the corrected prices.
+  try {
+    const { upsertPatternsFromQuote } = await import("@/lib/pricing-patterns.functions");
+    void upsertPatternsFromQuote({
+      data: {
+        items: line_items.map((li) => ({
+          description: li.description,
+          qty: li.qty,
+          unit_price: li.unit_price,
+        })),
+      },
+    }).catch((e) => console.warn("[pricing-patterns] upsert failed", e));
+  } catch (e) {
+    console.warn("[pricing-patterns] import failed", e);
+  }
   return q;
 };
 

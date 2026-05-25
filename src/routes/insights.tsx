@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import {
   mockQuotes,
@@ -8,7 +10,8 @@ import {
   useDataVersion,
   type PaymentMethod,
 } from "@/lib/user-data";
-import { BarChart3, ChevronLeft, ChevronRight, CreditCard, Landmark, Banknote, Trophy, LineChart } from "lucide-react";
+import { getPricingInsights } from "@/lib/pricing-patterns.functions";
+import { BarChart3, ChevronLeft, ChevronRight, CreditCard, Landmark, Banknote, Trophy, LineChart, Brain, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 
 export const Route = createFileRoute("/insights")({
@@ -232,9 +235,94 @@ function InsightsPage() {
           )}
         </div>
       </section>
+
+      <PricingPatternsSection />
       </>
       )}
     </AppShell>
+  );
+}
+
+function PricingPatternsSection() {
+  const fetchInsights = useServerFn(getPricingInsights);
+  const { data } = useQuery({
+    queryKey: ["pricing-insights"],
+    queryFn: () => fetchInsights(),
+    staleTime: 60_000,
+  });
+
+  if (!data || data.total === 0) {
+    return (
+      <section className="px-5 mb-8">
+        <div className="flex items-center gap-2 mb-2.5">
+          <Brain className="h-4 w-4 text-lime" />
+          <h2 className="text-xl">Your pricing patterns</h2>
+        </div>
+        <div className="card-surface p-5">
+          <p className="text-sm text-muted-foreground">
+            Quottr will start learning your typical prices after you save your first few quotes.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="px-5 mb-8">
+      <div className="flex items-center gap-2 mb-2.5">
+        <Brain className="h-4 w-4 text-lime" />
+        <h2 className="text-xl">Your pricing patterns</h2>
+      </div>
+      <div className="card-surface p-5 space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-ink text-paper p-3">
+            <p className="text-[10px] uppercase tracking-widest font-bold text-paper/60">In memory</p>
+            <p className="num text-2xl mt-1 leading-none text-lime">{data.total}</p>
+            <p className="text-[11px] text-paper/60 mt-1">items Quottr remembers</p>
+          </div>
+          <div className="rounded-2xl bg-lime/15 p-3">
+            <p className="text-[10px] uppercase tracking-widest font-bold text-ink/70">Avg labour rate</p>
+            <p className="num text-2xl mt-1 leading-none text-ink">
+              {data.averageLabourRate > 0 ? formatGBP(data.averageLabourRate) : "—"}
+            </p>
+            <p className="text-[11px] text-ink/60 mt-1">
+              {data.labourSampleCount > 0 ? `from ${data.labourSampleCount} items` : "no labour items yet"}
+            </p>
+          </div>
+        </div>
+        {data.top.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+              Most quoted items
+            </p>
+            <ul className="space-y-2">
+              {data.top.map((p, i) => {
+                const TrendIcon = p.trend === "up" ? TrendingUp : p.trend === "down" ? TrendingDown : Minus;
+                const trendCls =
+                  p.trend === "up"
+                    ? "text-status-accepted"
+                    : p.trend === "down"
+                    ? "text-status-overdue"
+                    : "text-muted-foreground";
+                return (
+                  <li key={i} className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate capitalize">{p.description}</p>
+                      <p className="text-[11px] text-muted-foreground">quoted {p.price_count}×</p>
+                    </div>
+                    <TrendIcon className={`h-3.5 w-3.5 ${trendCls}`} />
+                    <p className="num text-sm font-semibold shrink-0">{formatGBP(p.typical_price)}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+        <p className="text-[11px] text-muted-foreground pt-1 border-t border-border">
+          Quottr uses these to pre-fill prices on new quotes so they match how you actually charge.
+        </p>
+      </div>
+    </section>
   );
 }
 
