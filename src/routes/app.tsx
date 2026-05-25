@@ -208,13 +208,13 @@ function AppHomePage() {
         </section>
       )}
 
-      {/* Voice-first hero CTA */}
-      <section className="px-5 mt-6">
+      {/* Voice-first hero CTA — grows to fill remaining space */}
+      <section className="px-5 mt-6 flex-1 flex">
         <Link
           to="/quotes/new"
           search={{ voice: 1 }}
           onClick={() => buzz(12)}
-          className="block rounded-3xl bg-ink text-paper p-5 active:scale-[0.99] transition shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)]"
+          className="flex flex-col w-full rounded-3xl bg-ink text-paper p-5 active:scale-[0.99] transition shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)]"
         >
           <div className="flex items-center gap-4">
             <span className="h-14 w-14 rounded-full bg-lime flex items-center justify-center shrink-0 shadow-[0_8px_24px_-8px_rgba(200,224,74,0.7)]">
@@ -228,7 +228,7 @@ function AppHomePage() {
             </div>
             <ArrowRight className="h-5 w-5 text-paper/60" />
           </div>
-          <div className="mt-4 pt-4 border-t border-paper/10">
+          <div className="flex-1 mt-4 pt-4 border-t border-paper/10 flex flex-col justify-center">
             <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">
               Try saying
             </p>
@@ -237,8 +237,8 @@ function AppHomePage() {
         </Link>
       </section>
 
-      {/* Quick shortcuts */}
-      <section className="px-5 mt-3 mb-8">
+      {/* Quick shortcuts — pinned just above bottom nav */}
+      <section className="px-5 mt-3 mb-3">
         <div className="grid grid-cols-2 gap-2.5">
           <Link
             to="/clients"
@@ -267,7 +267,9 @@ function AppHomePage() {
           </Link>
         </div>
       </section>
+      </div>
     </AppShell>
+
   );
 }
 
