@@ -221,10 +221,10 @@ function AppHomePage() {
           </p>
           <p className="text-2xl font-semibold leading-tight mt-1">New voice quote</p>
 
-          <div className="flex-1 flex items-center justify-center my-3">
-            <span className="relative h-24 w-24 rounded-full bg-lime flex items-center justify-center shadow-[0_16px_40px_-12px_rgba(200,224,74,0.7)]">
+          <div className="flex-1 flex items-center justify-center my-2">
+            <span className="relative h-32 w-32 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_48px_-14px_rgba(200,224,74,0.8)]">
               <span className="absolute inset-0 rounded-full bg-lime/40 animate-ping" />
-              <Mic className="relative h-12 w-12 text-ink" strokeWidth={2.5} />
+              <Mic className="relative h-16 w-16 text-ink" strokeWidth={2.5} />
             </span>
           </div>
 
