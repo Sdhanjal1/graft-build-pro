@@ -22,6 +22,8 @@ export type LineItem = {
   description: string;
   qty: number;
   unit_price: number;
+  /** Provenance of the price for badging on quote detail. */
+  source?: "voice" | "learned" | "ai";
 };
 
 export type Client = {
@@ -691,6 +693,21 @@ export const saveGeneratedQuote = async (input: {
   const quote = rowToQuote(data as unknown as DbQuote);
   mockQuotes.unshift(quote);
   bumpVersion();
+  // Fire-and-forget: feed the pricing memory so future quotes learn from this one.
+  try {
+    const { upsertPatternsFromQuote } = await import("@/lib/pricing-patterns.functions");
+    void upsertPatternsFromQuote({
+      data: {
+        items: input.line_items.map((li) => ({
+          description: li.description,
+          qty: li.qty,
+          unit_price: li.unit_price,
+        })),
+      },
+    }).catch((e) => console.warn("[pricing-patterns] upsert failed", e));
+  } catch (e) {
+    console.warn("[pricing-patterns] import failed", e);
+  }
   return quote;
 };
 
