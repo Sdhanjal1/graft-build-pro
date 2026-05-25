@@ -413,7 +413,7 @@ function NewQuotePage() {
 
 
         <form
-        className="px-5 space-y-4 pb-48"
+        className="px-5 space-y-4 pb-64"
         onSubmit={(e) => {
           e.preventDefault();
           if (draft) save();
@@ -608,7 +608,7 @@ function NewQuotePage() {
           />
         </label>
 
-        <div className="p-4 bg-ink text-paper relative rounded-[var(--radius-lg)] shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]">
+        <div className="p-4 bg-ink text-paper relative rounded-[var(--radius-lg)] shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)] mb-3">
           <label className="text-xs uppercase tracking-widest text-paper font-bold">
             Customer
           </label>
@@ -620,8 +620,23 @@ function NewQuotePage() {
             placeholder="Type to search or add a customer"
             className="mt-2 w-full bg-transparent outline-none text-sm text-paper placeholder:text-paper/80"
           />
-          {clientOpen && clientMatches.length > 0 && (
-            <ul className="absolute left-3 right-3 top-full mt-1 z-20 bg-paper text-ink rounded-2xl shadow-elegant border border-border max-h-64 overflow-auto">
+          {clientOpen && (
+            <ul className="absolute left-3 right-3 bottom-full mb-2 z-50 bg-paper text-ink rounded-2xl shadow-[0_16px_40px_-12px_rgb(0_0_0/0.35)] border border-border max-h-64 overflow-auto">
+              {clientName.trim() && (
+                <li>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setClientOpen(false)}
+                    className="w-full text-left px-4 py-3 bg-lime text-ink flex items-center gap-2 font-bold"
+                  >
+                    <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-ink text-lime shrink-0">
+                      <Plus className="h-4 w-4" strokeWidth={3} />
+                    </span>
+                    Add new customer
+                  </button>
+                </li>
+              )}
               {clientMatches.map((c) => (
                 <li key={c.id}>
                   <button
