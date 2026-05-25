@@ -11,7 +11,7 @@ import { signOut } from "@/lib/auth";
 import { feedback } from "@/lib/feedback";
 import {
   Building2, User, Phone, BadgeCheck, Receipt, LogOut,
-  CheckCircle2, FileText, Trash2,
+  CheckCircle2, FileText, MessageSquare, AlertTriangle, Trash2,
   Camera, ImageIcon, Pencil, PenLine,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
