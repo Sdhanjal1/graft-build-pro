@@ -89,7 +89,7 @@ function AppHomePage() {
           </Link>
         </div>
 
-        <p className="mt-5 text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+        <p className="mt-5 text-sm text-paper/70 font-medium">
           {greeting}, {firstName}
         </p>
 
