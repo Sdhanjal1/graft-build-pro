@@ -173,17 +173,22 @@ function SettingsPage() {
       {/* BILLING — always open */}
       <Section title="Billing" defaultOpen>
         <BillingSection />
-        <ExportInvoicesButton />
       </Section>
 
-      {/* SIGN OUT — always visible */}
+      {/* EXPORT RECORDS */}
       <section className="px-5 mt-3">
-        <div className="card-surface">
-          <button onClick={handleSignOut} className="px-5 py-4 flex items-center gap-3 font-semibold w-full text-left">
-            <LogOut className="h-5 w-5" />
-            Sign out
-          </button>
-        </div>
+        <ExportInvoicesButton helperText="Download paid quotes as CSV" />
+      </section>
+
+      {/* SIGN OUT */}
+      <section className="px-5 mt-8">
+        <button
+          onClick={handleSignOut}
+          className="w-full py-3 flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-status-overdue transition"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </button>
       </section>
 
       {/* MORE SETTINGS */}
