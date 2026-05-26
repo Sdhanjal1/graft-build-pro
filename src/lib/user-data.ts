@@ -1029,6 +1029,41 @@ export const markInvoiced = async (quoteId: string): Promise<Quote | null> => {
   return q;
 };
 
+/** Mark a job physically complete (sets status + completed_at). */
+export const markJobComplete = async (quoteId: string): Promise<Quote | null> => {
+  const q = getQuote(quoteId);
+  if (!q) return null;
+  const completed_at = new Date().toISOString();
+  const { error } = await supabase
+    .from("quotes")
+    .update({ status: "completed", completed_at })
+    .eq("id", quoteId);
+  if (error) throw error;
+  q.status = "completed";
+  q.completed_at = completed_at;
+  bumpVersion();
+  return q;
+};
+
+/** Update payment timing + deposit fields on a quote. */
+export const updateQuotePaymentTiming = async (
+  quoteId: string,
+  patch: { payment_timing?: PaymentTiming; deposit_amount?: number; deposit_percent?: number },
+): Promise<Quote | null> => {
+  const q = getQuote(quoteId);
+  if (!q) return null;
+  const { error } = await supabase
+    .from("quotes")
+    .update(patch as never)
+    .eq("id", quoteId);
+  if (error) throw error;
+  if (patch.payment_timing !== undefined) q.payment_timing = patch.payment_timing;
+  if (patch.deposit_amount !== undefined) q.deposit_amount = patch.deposit_amount;
+  if (patch.deposit_percent !== undefined) q.deposit_percent = patch.deposit_percent;
+  bumpVersion();
+  return q;
+};
+
 /** Persist a quote status change to Lovable Cloud. */
 export const setQuoteStatus = async (
   quoteId: string,
