@@ -110,6 +110,9 @@ export const EMPTY_PROFILE = {
   phone: "",
   email: "",
   town: "",
+  address_line_1: "",
+  address_line_2: "",
+  postcode: "",
   trade_type: "",
   registration_number: "",
   vat_number: "",
@@ -228,6 +231,9 @@ export async function hydrateUserData() {
     userProfile.phone = asString(p.phone);
     userProfile.email = asString(p.email) || userData.user.email || "";
     userProfile.town = asString(p.town);
+    userProfile.address_line_1 = asString(p.address_line_1);
+    userProfile.address_line_2 = asString(p.address_line_2);
+    userProfile.postcode = asString(p.postcode);
     userProfile.trade_type = asString(p.trade_type);
     userProfile.registration_number = asString(p.registration_number);
     userProfile.vat_number = asString(p.vat_number);
@@ -272,6 +278,9 @@ export async function saveProfileToCloud(patch: Partial<typeof userProfile>) {
     phone: userProfile.phone || null,
     email: userProfile.email || null,
     town: userProfile.town || null,
+    address_line_1: userProfile.address_line_1 || null,
+    address_line_2: userProfile.address_line_2 || null,
+    postcode: userProfile.postcode || null,
     trade_type: userProfile.trade_type || null,
     registration_number: userProfile.registration_number || null,
     vat_number: userProfile.vat_number || null,
