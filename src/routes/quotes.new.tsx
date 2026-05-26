@@ -581,20 +581,8 @@ function NewQuotePage() {
         </div>
         )}
 
-        <div className="card-surface p-4">
-          <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-            Trade type
-          </label>
-          <select
-            value={trade}
-            onChange={(e) => setTrade(e.target.value)}
-            className="mt-2 w-full bg-transparent outline-none text-sm font-medium"
-          >
-            {TRADE_TYPES.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-        </div>
+
+
 
         <div className="grid grid-cols-2 gap-3">
           <button
