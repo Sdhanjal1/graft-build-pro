@@ -23,28 +23,6 @@ import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordin
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
-type SpeechRecognitionLike = {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((event: { error?: string }) => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-
-type SpeechRecognitionEventLike = {
-  results: ArrayLike<{ isFinal: boolean; 0?: { transcript?: string } }>;
-};
-
-type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
-
-declare global {
-  interface Window {
-    SpeechRecognition?: SpeechRecognitionConstructor;
-    webkitSpeechRecognition?: SpeechRecognitionConstructor;
-  }
-}
 
 function formatMMSS(s: number) {
   const m = Math.floor(s / 60);
@@ -68,10 +46,6 @@ function pickMimeType(): string {
   return "";
 }
 
-function getSpeechRecognition(): SpeechRecognitionConstructor | null {
-  if (typeof window === "undefined") return null;
-  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
-}
 
 async function blobToBase64(blob: Blob): Promise<string> {
   const buf = await blob.arrayBuffer();
@@ -117,7 +91,7 @@ function NewQuotePage() {
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [transcribing, setTranscribing] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
-  const [liveTranscript, setLiveTranscript] = useState("");
+  
   const [draft, setDraft] = useState<Draft>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,8 +100,6 @@ function NewQuotePage() {
   const { canUse: subActive, blocked: subBlocked } = useSubscription();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const liveTranscriptRef = useRef("");
   const chunksRef = useRef<BlobPart[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -137,7 +109,6 @@ function NewQuotePage() {
   useEffect(() => {
     return () => {
       if (tickRef.current) clearInterval(tickRef.current);
-      speechRecognitionRef.current?.stop();
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
@@ -164,15 +135,6 @@ function NewQuotePage() {
   };
 
   const stopRecording = () => {
-    const recognition = speechRecognitionRef.current;
-    if (recognition) {
-      try {
-        recognition.stop();
-      } catch (err) {
-        console.warn(err);
-      }
-      speechRecognitionRef.current = null;
-    }
     const mr = mediaRecorderRef.current;
     if (mr && mr.state !== "inactive") {
       mr.stop();
@@ -200,8 +162,6 @@ function NewQuotePage() {
 
   const startRecording = async () => {
     setVoiceError(null);
-    liveTranscriptRef.current = "";
-    setLiveTranscript("");
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
       return;
@@ -235,30 +195,6 @@ function NewQuotePage() {
     mediaRecorderRef.current = mr;
     chunksRef.current = [];
 
-    const SpeechRecognition = getSpeechRecognition();
-    if (SpeechRecognition) {
-      try {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = "en-GB";
-        recognition.onresult = (event) => {
-          const text = Array.from(event.results)
-            .map((result) => result[0]?.transcript || "")
-            .join(" ")
-            .trim();
-          liveTranscriptRef.current = text;
-          setLiveTranscript(text);
-        };
-        recognition.onerror = (event) => console.warn("Speech recognition error", event.error);
-        recognition.start();
-        speechRecognitionRef.current = recognition;
-      } catch (err) {
-        console.warn(err);
-        speechRecognitionRef.current = null;
-      }
-    }
-
     mr.ondataavailable = (e) => {
       if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
     };
@@ -269,8 +205,6 @@ function NewQuotePage() {
         tickRef.current = null;
       }
       setRecording(false);
-      const liveTranscript = liveTranscriptRef.current.trim();
-      speechRecognitionRef.current = null;
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
 
@@ -284,18 +218,9 @@ function NewQuotePage() {
       chunksRef.current = [];
 
       if (blob.size < 200) {
-        if (liveTranscript) appendTranscript(liveTranscript);
-        else
-          setVoiceError(
-            "Didn't catch any audio, hold the button a moment longer and speak clearly.",
-          );
-        liveTranscriptRef.current = "";
-        return;
-      }
-
-      if (liveTranscript) {
-        appendTranscript(liveTranscript);
-        liveTranscriptRef.current = "";
+        setVoiceError(
+          "Didn't catch any audio, hold the button a moment longer and speak clearly.",
+        );
         return;
       }
 
@@ -414,7 +339,7 @@ function NewQuotePage() {
           recording={recording}
           transcribing={transcribing}
           seconds={recordSeconds}
-          liveTranscript={liveTranscript}
+          
           onStart={handleVoiceStart}
           onStop={stopRecording}
           onClose={handleVoiceClose}
@@ -937,7 +862,6 @@ function VoiceOverlay({
   recording,
   transcribing,
   seconds,
-  liveTranscript,
   onStart,
   onStop,
   onClose,
@@ -945,7 +869,6 @@ function VoiceOverlay({
   recording: boolean;
   transcribing: boolean;
   seconds: number;
-  liveTranscript: string;
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
@@ -991,13 +914,9 @@ function VoiceOverlay({
       </button>
 
       <div className="w-full max-w-md min-h-[6rem] text-center">
-        {liveTranscript ? (
-          <p className="text-base leading-relaxed text-paper/90">{liveTranscript}</p>
-        ) : (
-          <p className="text-sm text-paper/50">
-            {transcribing ? "Turning your voice into text…" : "Describe the job, boiler, bathroom, materials, time…"}
-          </p>
-        )}
+        <p className="text-sm text-paper/50">
+          {transcribing ? "Turning your voice into text…" : "Describe the job, boiler, bathroom, materials, time…"}
+        </p>
       </div>
 
       {idle && (
