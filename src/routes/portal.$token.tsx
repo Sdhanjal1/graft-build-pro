@@ -4,7 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { getPortalData, respondToQuoteByToken } from "@/lib/messages.functions";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
-import { Loader2, Check, X } from "lucide-react";
+import { downloadPortalPdf } from "@/lib/portal-pdf";
+import { Loader2, Check, X, Download } from "lucide-react";
 
 export const Route = createFileRoute("/portal/$token")({
   component: PortalPage,
@@ -70,10 +71,37 @@ function PortalPage() {
     );
   }
 
-  const { quote, profile, client } = data;
+  const { quote, profile, client, payment } = data;
   const lineItems = (quote.line_items as any[]) ?? [];
+  const isPaid = status === "paid";
   const canRespond = status === "pending" || status === "sent";
-  const showBottomBar = canRespond || status === "accepted" || status === "declined";
+  const showBottomBar = canRespond || status === "accepted" || status === "declined" || isPaid;
+
+  const handleDownloadInvoice = async () => {
+    try {
+      await downloadPortalPdf(
+        {
+          ref: quote.ref,
+          title: quote.title,
+          job_description: quote.job_description,
+          line_items: lineItems,
+          subtotal: Number(quote.subtotal) || 0,
+          vat_amount: Number(quote.vat_amount) || 0,
+          total: Number(quote.total) || 0,
+          vat_registered: quote.vat_registered,
+          created_at: quote.created_at,
+          paid_at: payment?.paid_at ?? null,
+          payment_method: payment?.payment_method ?? "card",
+          stripe_payment_intent: payment?.stripe_payment_intent ?? null,
+        },
+        client,
+        profile,
+        "invoice",
+      );
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not generate PDF");
+    }
+  };
 
   return (
     <div className={`min-h-screen bg-paper ${showBottomBar ? "pb-28" : ""}`}>
