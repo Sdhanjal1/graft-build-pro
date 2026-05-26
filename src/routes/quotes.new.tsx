@@ -102,6 +102,7 @@ function NewQuotePage() {
   const generateFn = useServerFn(generateAIQuote);
   const transcribeFn = useServerFn(transcribeAudio);
   const { canUse: subActive, blocked: subBlocked } = useSubscription();
+  const paidQuoteCount = usePaidQuoteCount();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
