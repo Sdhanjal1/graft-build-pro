@@ -98,12 +98,20 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
   const handleEmail = async () => {
     try {
       setBusy("email");
-      const { token } = await ensureToken({ data: { quoteId, channel: "email" } });
-      const url = portalUrl(token);
-      const historyLine = await portalHistoryLine();
-      const subject = `Your quote ${quoteRef}, ${quoteTitle}`;
-      const body =
-        `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}${historyLine}\n\nThanks.`;
+      let url: string;
+      let subject: string;
+      let body: string;
+      if (updatedLinkPortalCode) {
+        url = shortClientPortalUrl(updatedLinkPortalCode);
+        subject = `Updated link for quote ${quoteRef}`;
+        body = `Hi ${firstName}, here's an updated link for your quote: ${url}`;
+      } else {
+        const { token } = await ensureToken({ data: { quoteId, channel: "email" } });
+        url = portalUrl(token);
+        const historyLine = await portalHistoryLine();
+        subject = `Your quote ${quoteRef}, ${quoteTitle}`;
+        body = `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}${historyLine}\n\nThanks.`;
+      }
       const mailHref = `mailto:${customerEmail ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.location.href = mailHref;
       toast.success(`Sent to ${customerName ?? firstName} via Email`);
