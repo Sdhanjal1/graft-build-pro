@@ -34,9 +34,16 @@ async function signDocs<T extends { file_url: string }>(rows: T[]): Promise<T[]>
   );
 }
 
-
 // ---------- Public: fetch portal data by client code ----------
 const PORTAL_LINK_TTL_DAYS = 90;
+
+function assertPortalNotExpired(portal_issued_at: string | null | undefined) {
+  if (!portal_issued_at) return;
+  const ageDays = (Date.now() - new Date(portal_issued_at).getTime()) / 86_400_000;
+  if (ageDays > PORTAL_LINK_TTL_DAYS) {
+    throw new Error("This portal link has expired. Please contact your tradesperson for a new link.");
+  }
+}
 export const getClientPortalData = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ code: z.string().min(8).max(64) }).parse(d))
   .handler(async ({ data }) => {
@@ -48,13 +55,7 @@ export const getClientPortalData = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!client) throw new Error("Portal not found");
     if (!client.portal_active) throw new Error("Portal disabled");
-    if (client.portal_issued_at) {
-      const issued = new Date(client.portal_issued_at).getTime();
-      const ageDays = (Date.now() - issued) / 86_400_000;
-      if (ageDays > PORTAL_LINK_TTL_DAYS) {
-        throw new Error("This quote has expired, please contact your tradesperson.");
-      }
-    }
+    assertPortalNotExpired(client.portal_issued_at);
 
     const [{ data: profile }, { data: quotes }, { data: documents }, { data: messages }] =
       await Promise.all([
@@ -108,10 +109,11 @@ export const postClientPortalMessage = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { data: client } = await supabaseAdmin
       .from("clients")
-      .select("id, user_id, portal_active")
+      .select("id, user_id, portal_active, portal_issued_at")
       .eq("portal_code", data.code)
       .maybeSingle();
     if (!client || !client.portal_active) throw new Error("Portal not available");
+    assertPortalNotExpired(client.portal_issued_at);
 
     const { data: msg, error } = await supabaseAdmin
       .from("client_portal_messages")
@@ -157,10 +159,11 @@ export const respondQuoteFromPortal = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { data: client } = await supabaseAdmin
       .from("clients")
-      .select("id, user_id, name, portal_active")
+      .select("id, user_id, name, portal_active, portal_issued_at")
       .eq("portal_code", data.code)
       .maybeSingle();
     if (!client || !client.portal_active) throw new Error("Portal not available");
+    assertPortalNotExpired(client.portal_issued_at);
 
     const { data: quote } = await supabaseAdmin
       .from("quotes")
