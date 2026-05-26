@@ -125,5 +125,15 @@
 
 @keyframes mic-ring-outer {
   0% { transform: scale(1); opacity: 0.25; }
-  100% { transform: scale(2.2); opacity: 0; }
+100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* Prevent iOS Safari from auto-zooming when focusing form controls.
+   Any field under 16px triggers the zoom; enforce a 16px minimum on mobile. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
