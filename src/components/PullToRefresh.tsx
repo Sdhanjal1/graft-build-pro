@@ -92,7 +92,12 @@ export function PullToRefresh({
           {refreshing ? (
             <Loader2 className="h-5 w-5 animate-spin text-ink" />
           ) : (
-            <QuottrWordmark className={`text-2xl ${ready ? "" : "opacity-90"}`} />
+            <span
+              className="text-ink leading-none tracking-tight text-2xl"
+              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+            >
+              Quottr.
+            </span>
           )}
         </div>
       </div>
