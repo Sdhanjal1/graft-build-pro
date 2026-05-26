@@ -252,8 +252,9 @@ function NewQuotePage() {
       }
     };
 
-    // No timeslice, one final ondataavailable fires on stop with the full recording.
-    mr.start();
+    // Timeslice of 1s ensures a chunk is flushed every second even on iOS Safari.
+    recordStartRef.current = Date.now();
+    mr.start(1000);
     setRecording(true);
     setRecordSeconds(0);
     tickRef.current = setInterval(() => {
