@@ -84,6 +84,12 @@ export type Quote = {
   invoice_due_date?: string;
   /** Per-invoice override for the auto-chase scheduler (defaults to profile setting) */
   auto_chase_enabled?: boolean;
+  // ---- Payment timing ----
+  payment_timing: PaymentTiming;
+  deposit_amount: number;
+  deposit_percent: number;
+  /** Set once the trader marks the job as physically complete (pre-payment). */
+  completed_at?: string;
 };
 
 export type ChaseStatus = "scheduled" | "sent" | "skipped";
