@@ -941,6 +941,8 @@ function VoiceOverlay({
   seconds,
   error,
   lastTranscript,
+  livePreview,
+  liveSupported,
   onStart,
   onStop,
   onClose,
@@ -950,6 +952,8 @@ function VoiceOverlay({
   seconds: number;
   error: string | null;
   lastTranscript: string | null;
+  livePreview: string;
+  liveSupported: boolean;
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
