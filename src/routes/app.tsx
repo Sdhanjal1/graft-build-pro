@@ -1,17 +1,19 @@
 import { createFileRoute, Link, useNavigate, ClientOnly } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import CountUp from "react-countup";
 import { AppShell } from "@/components/AppShell";
 import {
   userProfile, stats, formatGBP, getClient, mockQuotes,
   todaysJobs, formatTime, getQuote,
 } from "@/lib/user-data";
-import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings } from "lucide-react";
+import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X } from "lucide-react";
 
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
 import { HomeSkeleton } from "@/components/Skeletons";
+
+const STRIPE_BANNER_DISMISS_KEY = "quottr.dismiss.connect_stripe_banner";
 
 function greetingFor(d = new Date()) {
   const h = d.getHours();
