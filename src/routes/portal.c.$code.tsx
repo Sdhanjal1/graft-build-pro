@@ -240,7 +240,7 @@ function ClientPortalPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-paper pb-32">
+    <div className="min-h-screen bg-paper">
       <header className="bg-ink text-paper px-5 pt-6 pb-5 flex items-center gap-3">
         <BusinessLogo
           logoUrl={(profile as any)?.logo_url}
