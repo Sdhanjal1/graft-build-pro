@@ -5,6 +5,7 @@ const INK = "#0E0E0E";
 const MUTED = "#6B6B66";
 const LIME = "#C6F33A";
 const BORDER = "#E5E4DD";
+const PAID_GREEN = "#15803D";
 
 function formatGBP(n: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(
@@ -17,6 +18,10 @@ export type PortalPdfProfile = {
   full_name?: string | null;
   phone?: string | null;
   email?: string | null;
+  town?: string | null;
+  address_line_1?: string | null;
+  address_line_2?: string | null;
+  postcode?: string | null;
   registration_number?: string | null;
   vat_registered?: boolean | null;
   vat_number?: string | null;
@@ -40,6 +45,12 @@ export type PortalPdfQuote = {
   vat_registered?: boolean | null;
   created_at: string;
   line_items: Array<{ description: string; qty: number; unit_price: number }>;
+  /** For invoice variant: when the payment was received */
+  paid_at?: string | null;
+  /** For invoice variant: e.g. "card" / "bank" */
+  payment_method?: string | null;
+  /** For invoice variant: Stripe payment intent or session id */
+  stripe_payment_intent?: string | null;
 };
 
 type Variant = "quote" | "invoice";
@@ -97,6 +108,16 @@ function footer(doc: jsPDF, profile: PortalPdfProfile) {
   doc.text("Generated with Quottr", w - 40, h - 32, { align: "right" });
 }
 
+function traderAddressLines(profile: PortalPdfProfile): string[] {
+  if (!profile) return [];
+  const lines: string[] = [];
+  if (profile.address_line_1) lines.push(profile.address_line_1);
+  if (profile.address_line_2) lines.push(profile.address_line_2);
+  const cityLine = [profile.town, profile.postcode].filter(Boolean).join(", ");
+  if (cityLine) lines.push(cityLine);
+  return lines;
+}
+
 export function generatePortalPdf(
   quote: PortalPdfQuote,
   client: PortalPdfClient,
@@ -112,16 +133,49 @@ export function generatePortalPdf(
   doc.setTextColor(MUTED);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
-  doc.text("BILL TO", 40, y);
+  doc.text("FROM", 40, y);
+  doc.text("BILL TO", w / 2, y);
   doc.text(variant === "invoice" ? "INVOICE DATE" : "QUOTE DATE", w - 40, y, { align: "right" });
 
   y += 14;
+  // FROM (trader)
   doc.setTextColor(INK);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text(client?.name ?? "-", 40, y);
-  const issueDate = new Date(quote.created_at);
+  doc.setFontSize(10);
+  doc.text(profile?.business_name ?? profile?.full_name ?? "-", 40, y);
+  let fromY = y + 12;
   doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(MUTED);
+  for (const line of traderAddressLines(profile)) {
+    doc.text(line, 40, fromY);
+    fromY += 11;
+  }
+  const fromContact = [profile?.phone, profile?.email].filter(Boolean).join(" · ");
+  if (fromContact) { doc.text(fromContact, 40, fromY); fromY += 11; }
+  if (profile?.registration_number) { doc.text(`Reg: ${profile.registration_number}`, 40, fromY); fromY += 11; }
+  if (profile?.vat_registered && profile?.vat_number) { doc.text(`VAT: ${profile.vat_number}`, 40, fromY); fromY += 11; }
+
+  // BILL TO (client)
+  doc.setTextColor(INK);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text(client?.name ?? "-", w / 2, y);
+  let billY = y + 12;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(MUTED);
+  if (client?.address) { doc.text(client.address, w / 2, billY); billY += 11; }
+  const billContact = [client?.phone, client?.email].filter(Boolean).join(" · ");
+  if (billContact) { doc.text(billContact, w / 2, billY); billY += 11; }
+
+  // Date (right-aligned)
+  const issueDate = new Date(
+    variant === "invoice" && quote.paid_at ? quote.paid_at : quote.created_at,
+  );
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  doc.setTextColor(INK);
   doc.text(
     issueDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
     w - 40,
@@ -129,19 +183,8 @@ export function generatePortalPdf(
     { align: "right" },
   );
 
-  if (client?.address) {
-    y += 13;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(MUTED);
-    doc.text(client.address, 40, y);
-  }
-  if (client?.phone || client?.email) {
-    y += 12;
-    doc.text([client?.phone, client?.email].filter(Boolean).join("  ·  "), 40, y);
-  }
+  y = Math.max(fromY, billY) + 18;
 
-  y += 28;
   doc.setTextColor(INK);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(15);
@@ -184,8 +227,10 @@ export function generatePortalPdf(
   const boxW = 200;
   const showVat = quote.vat_registered && quote.vat_amount > 0;
   const rows: Array<[string, string]> = [["Subtotal", formatGBP(quote.subtotal)]];
-  if (showVat) rows.push(["VAT (20%)", formatGBP(quote.vat_amount)]);
-  rows.push([variant === "invoice" ? "Amount due" : "Total", formatGBP(quote.total)]);
+  if (showVat) {
+    rows.push(["VAT (20%)", formatGBP(quote.vat_amount)]);
+  }
+  rows.push([variant === "invoice" ? "Amount paid" : "Total", formatGBP(quote.total)]);
 
   doc.setDrawColor(BORDER);
   doc.setFillColor("#FAF8F2");
@@ -202,6 +247,54 @@ export function generatePortalPdf(
     doc.setTextColor(INK);
     doc.text(r[1], boxX + boxW - 12, yy, { align: "right" });
   });
+
+  // VAT not applicable note (HMRC clarity for non-VAT-registered traders)
+  if (variant === "invoice" && !showVat) {
+    const noteY = afterTable + boxH + 14;
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.setTextColor(MUTED);
+    doc.text("VAT not applicable — supplier is not VAT registered.", 40, noteY);
+  }
+
+  // PAID stamp + payment reference (invoice only)
+  if (variant === "invoice" && quote.paid_at) {
+    const stampX = 40;
+    const stampY = afterTable;
+    const stampW = 200;
+    const stampH = 70;
+    doc.setDrawColor(PAID_GREEN);
+    doc.setFillColor("#ECFDF5");
+    doc.setLineWidth(2);
+    doc.roundedRect(stampX, stampY, stampW, stampH, 8, 8, "FD");
+    doc.setLineWidth(0.5);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.setTextColor(PAID_GREEN);
+    doc.text("PAID", stampX + 14, stampY + 26);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(INK);
+    const paidDate = new Date(quote.paid_at).toLocaleDateString("en-GB", {
+      day: "2-digit", month: "short", year: "numeric",
+    });
+    const method = (quote.payment_method ?? "card").toLowerCase() === "card"
+      ? "Paid by card via Stripe"
+      : `Paid via ${quote.payment_method ?? "card"}`;
+    doc.text(`${method}`, stampX + 14, stampY + 42);
+    doc.text(`on ${paidDate}`, stampX + 14, stampY + 54);
+    if (quote.stripe_payment_intent) {
+      doc.setFontSize(7);
+      doc.setTextColor(MUTED);
+      doc.text(`Ref: ${quote.stripe_payment_intent}`, stampX + 14, stampY + 64);
+    } else if (quote.ref) {
+      doc.setFontSize(7);
+      doc.setTextColor(MUTED);
+      doc.text(`Ref: ${quote.ref}`, stampX + 14, stampY + 64);
+    }
+  }
 
   footer(doc, profile);
   return doc;
