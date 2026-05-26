@@ -92,6 +92,8 @@ function NewQuotePage() {
   const [transcribing, setTranscribing] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [lastTranscript, setLastTranscript] = useState<string | null>(null);
+  const [livePreview, setLivePreview] = useState<string>("");
+  const [liveSupported, setLiveSupported] = useState<boolean>(true);
   
   const [draft, setDraft] = useState<Draft>(null);
   const [loading, setLoading] = useState(false);
@@ -106,6 +108,9 @@ function NewQuotePage() {
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const recordTargetRef = useRef<"desc" | "clip">("desc");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+  const liveFinalRef = useRef<string>("");
 
   useEffect(() => {
     return () => {
@@ -130,12 +135,16 @@ function NewQuotePage() {
     setVoicePending(false);
     setVoiceError(null);
     setLastTranscript(null);
+    setLivePreview("");
+    liveFinalRef.current = "";
     await startRecording();
   };
   const handleVoiceClose = () => {
     setVoicePending(false);
     setVoiceError(null);
     setLastTranscript(null);
+    setLivePreview("");
+    liveFinalRef.current = "";
     stopRecording();
   };
 
@@ -221,6 +230,13 @@ function NewQuotePage() {
         clearInterval(tickRef.current);
         tickRef.current = null;
       }
+      // Tear down live preview recognizer (display only — never used as result).
+      try {
+        recognitionRef.current?.stop?.();
+      } catch {
+        // ignore
+      }
+      recognitionRef.current = null;
       setRecording(false);
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -249,8 +265,52 @@ function NewQuotePage() {
         );
       } finally {
         setTranscribing(false);
+        setLivePreview("");
+        liveFinalRef.current = "";
       }
     };
+
+    // Live preview via Web Speech API — visual feedback only, discarded on stop.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR: any =
+      typeof window !== "undefined"
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        : null;
+    if (SR) {
+      setLiveSupported(true);
+      try {
+        const rec = new SR();
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.lang = "en-GB";
+        liveFinalRef.current = "";
+        setLivePreview("");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        rec.onresult = (event: any) => {
+          let interim = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const res = event.results[i];
+            const txt = res[0]?.transcript ?? "";
+            if (res.isFinal) {
+              liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
+            } else {
+              interim += txt;
+            }
+          }
+          setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
+        };
+        rec.onerror = () => {
+          // Silent: this is preview only.
+        };
+        recognitionRef.current = rec;
+        rec.start();
+      } catch {
+        recognitionRef.current = null;
+      }
+    } else {
+      setLiveSupported(false);
+    }
 
     // Timeslice of 1s ensures a chunk is flushed every second even on iOS Safari.
     recordStartRef.current = Date.now();
@@ -354,6 +414,8 @@ function NewQuotePage() {
           seconds={recordSeconds}
           error={voiceError}
           lastTranscript={lastTranscript}
+          livePreview={livePreview}
+          liveSupported={liveSupported}
           onStart={handleVoiceStart}
           onStop={stopRecording}
           onClose={handleVoiceClose}
@@ -879,6 +941,8 @@ function VoiceOverlay({
   seconds,
   error,
   lastTranscript,
+  livePreview,
+  liveSupported,
   onStart,
   onStop,
   onClose,
@@ -888,6 +952,8 @@ function VoiceOverlay({
   seconds: number;
   error: string | null;
   lastTranscript: string | null;
+  livePreview: string;
+  liveSupported: boolean;
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
@@ -902,6 +968,17 @@ function VoiceOverlay({
           {transcribing ? "Transcribing" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
         </p>
         <p className="num text-2xl mt-1 text-lime">{formatMMSS(seconds)}</p>
+        {recording && (
+          <div className="mt-3 w-full max-w-md min-h-[1.25rem] px-4 text-center">
+            {livePreview ? (
+              <p className="text-xs italic text-paper/50 leading-snug line-clamp-3">
+                {livePreview}
+              </p>
+            ) : !liveSupported ? (
+              <p className="text-xs italic text-paper/40">Listening…</p>
+            ) : null}
+          </div>
+        )}
       </div>
 
       <button
