@@ -6,6 +6,7 @@ import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadPortalPdf } from "@/lib/portal-pdf";
 import { Loader2, Check, X, Download } from "lucide-react";
+import { acceptButtonLabel, paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
 
 export const Route = createFileRoute("/portal/$token")({
   component: PortalPage,
