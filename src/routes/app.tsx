@@ -2,10 +2,11 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
 import {
-  userProfile, stats, formatGBP, getClient, userClients, mockQuotes,
+  userProfile, stats, formatGBP, getClient, mockQuotes,
   todaysJobs, formatTime, getQuote,
 } from "@/lib/user-data";
-import { Mic, ArrowRight, UserPlus, FileText, Bell, AlertTriangle, Clock, Send, Sparkles } from "lucide-react";
+import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send } from "lucide-react";
+
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
@@ -59,7 +60,7 @@ function AppHomePage() {
   const today = todaysJobs();
   const firstName = userProfile.full_name.split(" ")[0] || "there";
   const greeting = greetingFor();
-  const clientCount = userClients.length;
+  
 
   // Action-queue breakdown
   const pendingQuotes = mockQuotes.filter((q) => q.status === "pending");
@@ -162,19 +163,8 @@ function AppHomePage() {
             />
           )}
         </section>
-      ) : (
-        <section className="px-5 mt-4">
-          <div className="card-surface p-5 text-center">
-            <div className="h-12 w-12 rounded-full bg-lime/15 flex items-center justify-center mx-auto">
-              <Sparkles className="h-6 w-6 text-ink" />
-            </div>
-            <p className="mt-3 text-sm font-semibold text-ink">All caught up</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Nothing needs your attention right now. Tap the mic to start a new quote.
-            </p>
-          </div>
-        </section>
-      )}
+      ) : null}
+
 
       {/* Today's jobs */}
       {today.length > 0 && (
@@ -247,25 +237,8 @@ function AppHomePage() {
       </section>
 
 
-      {/* Quick shortcut — pinned just above bottom nav */}
-      <section className="px-5 mt-2 mb-2">
-        <Link
-          to="/clients"
-          className="card-surface flex items-center gap-2.5 px-3 py-2.5 active:scale-[0.99] transition"
-        >
-          <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
-            <UserPlus className="h-4 w-4 text-ink" />
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className="block text-sm font-semibold text-ink leading-tight truncate">Customers</span>
-            {clientCount > 0 && (
-              <span className="block text-[10px] text-muted-foreground mt-0.5">
-                {clientCount} saved
-              </span>
-            )}
-          </span>
-        </Link>
-      </section>
+
+
       </div>
     </AppShell>
 

@@ -1,9 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { AppShell, PageHeader } from "@/components/AppShell";
+import { AppShell } from "@/components/AppShell";
 import {
-  TRADE_TYPES,
   userProfile,
   userClients,
   saveGeneratedQuote,
@@ -11,6 +10,7 @@ import {
   QUOTE_TEMPLATES,
   type LineItem,
 } from "@/lib/user-data";
+
 import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
@@ -408,7 +408,20 @@ function NewQuotePage() {
           onStop={stopRecording}
         />
       )}
-      <PageHeader title="New quote" subtitle="AI generator" back="/" />
+      <header className="px-5 pt-8 pb-4 flex items-center gap-3">
+        <Link
+          to="/"
+          aria-label="Back"
+          className="h-10 w-10 rounded-full bg-card border border-border flex items-center justify-center text-ink"
+        >
+          ‹
+        </Link>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">AI generator</p>
+          <h1 className="text-4xl leading-none mt-1">New quote</h1>
+        </div>
+      </header>
+
 
 
         <form
@@ -581,20 +594,8 @@ function NewQuotePage() {
         </div>
         )}
 
-        <div className="card-surface p-4">
-          <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-            Trade type
-          </label>
-          <select
-            value={trade}
-            onChange={(e) => setTrade(e.target.value)}
-            className="mt-2 w-full bg-transparent outline-none text-sm font-medium"
-          >
-            {TRADE_TYPES.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-        </div>
+
+
 
         <div className="grid grid-cols-2 gap-3">
           <button
