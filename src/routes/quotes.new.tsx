@@ -20,6 +20,7 @@ import { RotatingStatus, QUOTE_GEN_MESSAGES } from "@/components/RotatingStatus"
 import { feedback } from "@/lib/feedback";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordingNotice";
+import { usePaidQuoteCount, normalizeSource } from "@/hooks/usePaidQuoteCount";
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
