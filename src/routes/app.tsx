@@ -93,22 +93,18 @@ function AppHomePage() {
           {greeting}, {firstName}
         </p>
 
-        <div className="mt-1">
-          <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-            You are owed
-          </p>
-          {s.outstanding > 0 ? (
+        {s.outstanding > 0 && (
+          <div className="mt-1">
+            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+              You are owed
+            </p>
             <Link to="/chaser" className="block mt-1 active:opacity-80 transition">
               <p className={`num text-6xl leading-none text-lime`}>
                 {formatGBP(s.outstanding)}
               </p>
             </Link>
-          ) : (
-            <p className="num text-6xl mt-1 leading-none text-paper">
-              {formatGBP(s.outstanding)}
-            </p>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Stat pills */}
         {hasActions && (
@@ -208,32 +204,34 @@ function AppHomePage() {
 
       {/* Voice-first hero CTA — big central mic */}
       <section className="px-5 mt-4 flex-1 flex">
-        <Link
-          to="/quotes/new"
-          search={{ voice: 1 }}
-          onClick={() => buzz(12)}
-          className="flex flex-col w-full rounded-3xl bg-ink text-paper p-5 active:scale-[0.99] transition shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center"
-        >
-          <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-            Tap to start
-          </p>
-          <p className="text-2xl font-semibold leading-tight mt-1">New voice quote</p>
+        <div className="flex flex-col w-full rounded-3xl bg-ink text-paper p-5 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center">
+          <Link
+            to="/quotes/new"
+            search={{ voice: 1 }}
+            onClick={() => buzz(12)}
+            className="flex flex-col items-center active:scale-[0.99] transition rounded-2xl py-2"
+          >
+            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+              Tap to start
+            </p>
+            <p className="text-2xl font-semibold leading-tight mt-1">New voice quote</p>
 
-          <div className="flex-1 flex items-center justify-center my-2">
-            <span className="relative h-32 w-32 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_48px_-14px_rgba(200,224,74,0.8)]">
-              <span className="absolute inset-0 rounded-full bg-lime mic-ring-inner" />
-              <span className="absolute inset-0 rounded-full bg-lime mic-ring-outer" />
-              <Mic className="relative h-16 w-16 text-ink" strokeWidth={2.5} />
-            </span>
-          </div>
+            <div className="flex items-center justify-center my-3">
+              <span className="relative h-32 w-32 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_48px_-14px_rgba(200,224,74,0.8)]">
+                <span className="absolute inset-0 rounded-full bg-lime mic-ring-inner" />
+                <span className="absolute inset-0 rounded-full bg-lime mic-ring-outer" />
+                <Mic className="relative h-16 w-16 text-ink" strokeWidth={2.5} />
+              </span>
+            </div>
+          </Link>
 
-          <div className="pt-2 border-t border-paper/10">
+          <div className="pt-3 mt-auto border-t border-paper/10">
             <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">
               Try saying
             </p>
             <RotatingPrompts className="mt-1 text-sm text-paper/85 leading-snug" />
           </div>
-        </Link>
+        </div>
       </section>
 
 
