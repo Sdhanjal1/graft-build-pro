@@ -23,28 +23,6 @@ import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordin
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
-type SpeechRecognitionLike = {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((event: { error?: string }) => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-
-type SpeechRecognitionEventLike = {
-  results: ArrayLike<{ isFinal: boolean; 0?: { transcript?: string } }>;
-};
-
-type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
-
-declare global {
-  interface Window {
-    SpeechRecognition?: SpeechRecognitionConstructor;
-    webkitSpeechRecognition?: SpeechRecognitionConstructor;
-  }
-}
 
 function formatMMSS(s: number) {
   const m = Math.floor(s / 60);
