@@ -114,7 +114,7 @@ export const getPortalData = createServerFn({ method: "POST" })
       throw new Error("This link has expired. Please ask for a new one.");
     }
 
-    const [{ data: quote }, { data: messages }, { data: profile }] = await Promise.all([
+    const [{ data: quote }, { data: messages }, { data: profile }, { data: payment }] = await Promise.all([
       supabaseAdmin
         .from("quotes")
         .select("id, ref, title, job_description, line_items, subtotal, vat_amount, total, vat_registered, status, created_at, due_date, client_id")
@@ -127,8 +127,16 @@ export const getPortalData = createServerFn({ method: "POST" })
         .order("created_at", { ascending: true }),
       supabaseAdmin
         .from("profiles")
-        .select("business_name, full_name, phone, email, logo_url, quote_intro, quote_footer, signature_name, show_signature")
+        .select("business_name, full_name, phone, email, town, address_line_1, address_line_2, postcode, registration_number, vat_registered, vat_number, logo_url, quote_intro, quote_footer, signature_name, show_signature")
         .eq("id", tk.user_id)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("invoice_payments")
+        .select("paid_at, payment_method, stripe_payment_intent, amount_cents, currency, status")
+        .eq("quote_id", tk.quote_id)
+        .eq("status", "paid")
+        .order("paid_at", { ascending: false })
+        .limit(1)
         .maybeSingle(),
     ]);
 
@@ -142,7 +150,7 @@ export const getPortalData = createServerFn({ method: "POST" })
         .maybeSingle();
       client = c;
     }
-    return { quote, messages: messages ?? [], profile, client };
+    return { quote, messages: messages ?? [], profile, client, payment };
   });
 
 // ---------- Public: customer posts a message ----------
