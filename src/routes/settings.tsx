@@ -85,6 +85,7 @@ function SettingsPage() {
     payment_reference_note: userProfile.payment_reference_note,
   });
   const [terms, setTerms] = useState(userProfile.payment_terms);
+  const [defaultDepositPct, setDefaultDepositPct] = useState<number>(userProfile.default_deposit_percent ?? 30);
 
   // Debounced cloud-save
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
