@@ -313,6 +313,23 @@ function SettingsPage() {
               </div>
               <Input label="Payment reference instructions" value={bank.payment_reference_note} onChange={(v) => saveBank({ payment_reference_note: v })} />
               <Input label="Payment terms" value={terms} onChange={setTerms} />
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">
+                  Default deposit % (jobs over £500)
+                </label>
+                <input
+                  type="number" min={0} max={100} step={1}
+                  value={defaultDepositPct}
+                  onChange={(e) => {
+                    const n = Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)));
+                    setDefaultDepositPct(n);
+                  }}
+                  className="w-full bg-secondary rounded-2xl px-4 py-3 text-sm font-semibold num outline-none"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1.5">
+                  Applied to new AI-generated quotes that fall in the deposit-then-balance band.
+                </p>
+              </div>
             </div>
           </Section>
 
