@@ -78,6 +78,7 @@ function QuoteDetail() {
   } | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [updatedLinkCode, setUpdatedLinkCode] = useState<string | undefined>(undefined);
+  const invalidatePaidQuoteCount = useInvalidatePaidQuoteCount();
   const navigate = useNavigate();
   // (schedule defaults removed)
 
