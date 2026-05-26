@@ -195,21 +195,26 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
             onClick={async () => {
               try {
                 setBusy("wa");
-                const q = getQuote(quoteId);
-                if (!q) throw new Error("Quote not found");
                 let portalUrl = "";
-                try {
-                  const { portal_code } = await fetchClientCode({ data: { quoteId } });
-                  if (portal_code) {
-                    portalUrl = shortClientPortalUrl(portal_code);
+                let text: string;
+                if (updatedLinkPortalCode) {
+                  portalUrl = shortClientPortalUrl(updatedLinkPortalCode);
+                  text = `Hi ${firstName}, here's an updated link for your quote: ${portalUrl}`;
+                } else {
+                  const q = getQuote(quoteId);
+                  if (!q) throw new Error("Quote not found");
+                  try {
+                    const { portal_code } = await fetchClientCode({ data: { quoteId } });
+                    if (portal_code) {
+                      portalUrl = shortClientPortalUrl(portal_code);
+                    }
+                  } catch { /* fall back below */ }
+                  if (!portalUrl) {
+                    const { token } = await ensureToken({ data: { quoteId, channel: "whatsapp" } });
+                    portalUrl = shortQuotePortalUrl(token);
                   }
-                } catch { /* fall back below */ }
-                if (!portalUrl) {
-                  const { token } = await ensureToken({ data: { quoteId, channel: "whatsapp" } });
-                  portalUrl = shortQuotePortalUrl(token);
+                  text = buildQuoteWhatsAppMessage(q, { name: customerName ?? "" }, portalUrl);
                 }
-
-                const text = buildQuoteWhatsAppMessage(q, { name: customerName ?? "" }, portalUrl);
                 window.open(waLink(customerPhone, text), "_blank");
                 toast.success(`Sent to ${customerName ?? firstName} via WhatsApp`);
                 feedback("success");
