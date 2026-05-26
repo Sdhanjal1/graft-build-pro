@@ -7,6 +7,8 @@ import { SwipeRow } from "@/components/SwipeRow";
 import { mockQuotes, getClient, formatGBP, deleteQuote, useDataVersion, buildChaserMessage, waLink, type QuoteStatus } from "@/lib/user-data";
 import { Search, FileText, Inbox } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+import { QuotesListSkeleton } from "@/components/Skeletons";
+import { useSession } from "@/lib/auth";
 
 const STATUS_DOT: Record<QuoteStatus, string> = {
   pending: "bg-status-pending",
