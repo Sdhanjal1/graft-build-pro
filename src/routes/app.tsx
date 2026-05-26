@@ -54,7 +54,7 @@ function AppHomePage() {
   }, [loading, session, navigate]);
 
   if (loading || !session) {
-    return <div className="min-h-screen bg-paper" />;
+    return <HomeSkeleton />;
   }
 
   const s = stats();
