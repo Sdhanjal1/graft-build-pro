@@ -42,12 +42,10 @@ function formatUKPhone(raw: string): string {
 function OnboardingWizard() {
   const { session, loading, user } = useSession();
   const navigate = useNavigate();
-  const beginConnect = useServerFn(startConnectOnboarding);
 
   const [step, setStep] = useState(1);
   const [ready, setReady] = useState(false);
   const [savingStep, setSavingStep] = useState(false);
-  const [connecting, setConnecting] = useState(false);
 
   // Form state
   const [trade, setTrade] = useState("");
