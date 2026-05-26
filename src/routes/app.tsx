@@ -60,7 +60,7 @@ function AppHomePage() {
   const today = todaysJobs();
   const firstName = userProfile.full_name.split(" ")[0] || "there";
   const greeting = greetingFor();
-  const clientCount = userClients.length;
+  
 
   // Action-queue breakdown
   const pendingQuotes = mockQuotes.filter((q) => q.status === "pending");
