@@ -12,7 +12,7 @@ import { feedback } from "@/lib/feedback";
 import {
   Building2, User, Phone, BadgeCheck, Receipt, LogOut,
   CheckCircle2, FileText, MessageSquare, AlertTriangle, Trash2,
-  Camera, ImageIcon, Pencil, PenLine,
+  Camera, ImageIcon, Pencil, PenLine, MapPin,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { PushPermissionCard } from "@/components/CustomerQRCard";
@@ -62,6 +62,9 @@ function SettingsPage() {
     phone: userProfile.phone,
     email: userProfile.email,
     town: userProfile.town,
+    address_line_1: userProfile.address_line_1,
+    address_line_2: userProfile.address_line_2,
+    postcode: userProfile.postcode,
     trade_type: userProfile.trade_type,
     registration_number: userProfile.registration_number,
     vat_number: userProfile.vat_number,
@@ -168,6 +171,10 @@ function SettingsPage() {
           <EditField icon={User}       label="Your name"     value={profile.full_name}     onChange={(v) => saveProfile({ full_name: v })} />
           <EditField icon={Phone}      label="Phone"         value={profile.phone}         onChange={(v) => saveProfile({ phone: v })} />
           <SelectField icon={BadgeCheck} label="Trade type"  value={profile.trade_type}    onChange={(v) => saveProfile({ trade_type: v })} options={TRADE_TYPES} />
+          <EditField icon={MapPin}     label="Address line 1" value={profile.address_line_1} onChange={(v) => saveProfile({ address_line_1: v })} placeholder="Street address" />
+          <EditField icon={MapPin}     label="Address line 2" value={profile.address_line_2} onChange={(v) => saveProfile({ address_line_2: v })} placeholder="Optional" />
+          <EditField icon={MapPin}     label="Town / City"   value={profile.town}          onChange={(v) => saveProfile({ town: v })} />
+          <EditField icon={MapPin}     label="Postcode"      value={profile.postcode}      onChange={(v) => saveProfile({ postcode: v })} />
         </div>
       </Section>
 
