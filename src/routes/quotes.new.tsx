@@ -1,9 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { AppShell, PageHeader } from "@/components/AppShell";
+import { AppShell } from "@/components/AppShell";
 import {
-  TRADE_TYPES,
   userProfile,
   userClients,
   saveGeneratedQuote,
@@ -11,6 +10,7 @@ import {
   QUOTE_TEMPLATES,
   type LineItem,
 } from "@/lib/user-data";
+
 import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
