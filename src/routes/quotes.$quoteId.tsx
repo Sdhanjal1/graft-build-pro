@@ -68,13 +68,23 @@ function QuoteDetail() {
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | undefined>(quote.payment_request);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // (scheduling removed)
   const [askDeposit, setAskDeposit] = useState(false);
   const [askInvoice, setAskInvoice] = useState(false);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
   const [sendOpen, setSendOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+
+  // Payment timing state
+  const initialTiming: PaymentTiming = quote.payment_timing ?? "on_completion";
+  const initialPct = quote.deposit_percent ?? (initialTiming === "deposit_then_balance" ? defaultDepositPercent(userProfile.default_deposit_percent) : 0);
+  const initialAmt = quote.deposit_amount ?? (initialTiming === "deposit_then_balance" ? computeDepositAmount(quote.subtotal, initialPct) : 0);
+  const [timing, setTimingState] = useState<PaymentTiming>(initialTiming);
+  const [depositPct, setDepositPct] = useState<number>(initialPct);
+  const [depositAmt, setDepositAmt] = useState<number>(initialAmt);
+  const [depositAmtRaw, setDepositAmtRaw] = useState<string>(initialAmt ? String(initialAmt) : "");
+  const [depositPctRaw, setDepositPctRaw] = useState<string>(initialPct ? String(initialPct) : "");
+
   const [portalStatus, setPortalStatus] = useState<{
     client_id: string;
     portal_code: string | null;
