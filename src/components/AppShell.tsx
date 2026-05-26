@@ -13,7 +13,7 @@ export function AppShell({
   const router = useRouter();
   const handleRefresh = onRefresh ?? (() => router.invalidate());
   return (
-    <div className="min-h-screen bg-paper bg-slate-950">
+    <div className="min-h-screen bg-paper">
       <div className="mx-auto max-w-md min-h-screen pb-28">
         <PullToRefresh onRefresh={handleRefresh}>{children}</PullToRefresh>
       </div>
