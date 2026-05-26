@@ -36,17 +36,25 @@ async function signDocs<T extends { file_url: string }>(rows: T[]): Promise<T[]>
 
 
 // ---------- Public: fetch portal data by client code ----------
+const PORTAL_LINK_TTL_DAYS = 90;
 export const getClientPortalData = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ code: z.string().min(8).max(32) }).parse(d))
+  .inputValidator((d: unknown) => z.object({ code: z.string().min(8).max(64) }).parse(d))
   .handler(async ({ data }) => {
     const { data: client, error } = await supabaseAdmin
       .from("clients")
-      .select("id, user_id, name, address, portal_code, portal_active, service_due_date, service_type")
+      .select("id, user_id, name, address, portal_code, portal_active, portal_issued_at, service_due_date, service_type")
       .eq("portal_code", data.code)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!client) throw new Error("Portal not found");
     if (!client.portal_active) throw new Error("Portal disabled");
+    if (client.portal_issued_at) {
+      const issued = new Date(client.portal_issued_at).getTime();
+      const ageDays = (Date.now() - issued) / 86_400_000;
+      if (ageDays > PORTAL_LINK_TTL_DAYS) {
+        throw new Error("This quote has expired, please contact your tradesperson.");
+      }
+    }
 
     const [{ data: profile }, { data: quotes }, { data: documents }, { data: messages }] =
       await Promise.all([
