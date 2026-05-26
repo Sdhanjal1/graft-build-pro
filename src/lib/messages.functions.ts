@@ -227,3 +227,74 @@ export const postPortalMessage = createServerFn({ method: "POST" })
     } catch (e) { console.error("push notify failed", e); }
     return { message: inserted, autoReply };
   });
+
+// ---------- Public: customer accepts or declines a quote (token-based) ----------
+export const respondToQuoteByToken = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({
+      token: z.string().min(8).max(128),
+      response: z.enum(["accepted", "declined"]),
+    }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { data: tk } = await supabaseAdmin
+      .from("quote_portal_tokens")
+      .select("quote_id, user_id, expires_at")
+      .eq("token", data.token)
+      .maybeSingle();
+    if (!tk) throw new Error("Invalid link");
+    if (tk.expires_at && new Date(tk.expires_at).getTime() < Date.now()) {
+      throw new Error("This link has expired.");
+    }
+
+    const { data: quote } = await supabaseAdmin
+      .from("quotes")
+      .select("id, status, title, total, ref, client_id")
+      .eq("id", tk.quote_id)
+      .maybeSingle();
+    if (!quote) throw new Error("Quote not found");
+    if (!["pending", "sent"].includes(quote.status)) {
+      throw new Error(`Quote already ${quote.status}`);
+    }
+
+    const { error } = await supabaseAdmin
+      .from("quotes")
+      .update({ status: data.response })
+      .eq("id", quote.id);
+    if (error) throw new Error(error.message);
+
+    let customerName = "Customer";
+    if (quote.client_id) {
+      const { data: c } = await supabaseAdmin
+        .from("clients")
+        .select("name")
+        .eq("id", quote.client_id)
+        .maybeSingle();
+      if (c?.name) customerName = c.name;
+    }
+
+    const note =
+      data.response === "accepted"
+        ? `✅ ${customerName} accepted quote ${quote.ref ?? ""}`.trim()
+        : `❌ ${customerName} declined quote ${quote.ref ?? ""}`.trim();
+    await supabaseAdmin.from("quote_messages").insert({
+      quote_id: quote.id,
+      user_id: tk.user_id,
+      sender: "system",
+      body: note,
+    });
+
+    try {
+      const { notifyUser } = await import("@/lib/push.functions");
+      void notifyUser(tk.user_id, {
+        title: data.response === "accepted" ? "Quote accepted 🎉" : "Quote declined",
+        body: `${quote.title} · £${Number(quote.total).toFixed(2)}`,
+        url: `/quotes/${quote.id}`,
+        tag: `quote-${quote.id}-${data.response}`,
+      });
+    } catch (e) {
+      console.error("portal push notify failed", e);
+    }
+
+    return { ok: true, status: data.response };
+  });

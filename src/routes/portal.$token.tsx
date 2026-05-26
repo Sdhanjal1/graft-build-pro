@@ -1,11 +1,10 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { getPortalData, postPortalMessage } from "@/lib/messages.functions";
-import { supabase } from "@/integrations/supabase/client";
+import { getPortalData, respondToQuoteByToken } from "@/lib/messages.functions";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
-import { Loader2, Send, Check, ThumbsUp, MessageSquare } from "lucide-react";
+import { Loader2, Check, X } from "lucide-react";
 
 export const Route = createFileRoute("/portal/$token")({
   component: PortalPage,
@@ -18,19 +17,19 @@ function formatGBP(n: number) {
 function PortalPage() {
   const { token } = Route.useParams();
   const fetchData = useServerFn(getPortalData);
-  const postMsg = useServerFn(postPortalMessage);
+  const respond = useServerFn(respondToQuoteByToken);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
-  const [body, setBody] = useState("");
-  const [sending, setSending] = useState(false);
-  const threadRef = useRef<HTMLDivElement>(null);
+  const [responding, setResponding] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
 
   const load = async () => {
     try {
       const r = await fetchData({ data: { token } });
       setData(r);
+      setStatus(r.quote?.status ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load quote");
     } finally {
@@ -40,35 +39,16 @@ function PortalPage() {
 
   useEffect(() => { void load(); /* eslint-disable-next-line */ }, [token]);
 
-  // Realtime updates for new messages
-  useEffect(() => {
-    if (!data?.quote?.id) return;
-    const ch = supabase
-      .channel(`portal-${data.quote.id}`)
-      .on("postgres_changes",
-        { event: "INSERT", schema: "public", table: "quote_messages", filter: `quote_id=eq.${data.quote.id}` },
-        (payload) => {
-          setData((prev: any) => prev ? { ...prev, messages: [...prev.messages, payload.new] } : prev);
-        })
-      .subscribe();
-    return () => { void supabase.removeChannel(ch); };
-  }, [data?.quote?.id]);
-
-  useEffect(() => {
-    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" });
-  }, [data?.messages?.length]);
-
-  const send = async () => {
-    const text = body.trim();
-    if (!text) return;
-    setSending(true);
-    setBody("");
+  const onRespond = async (response: "accepted" | "declined") => {
+    if (response === "declined" && !confirm("Decline this quote?")) return;
+    setResponding(true);
     try {
-      await postMsg({ data: { token, body: text } });
+      const r = await respond({ data: { token, response } });
+      setStatus(r.status);
     } catch (e) {
-      setBody(text);
+      alert(e instanceof Error ? e.message : "Could not update quote");
     } finally {
-      setSending(false);
+      setResponding(false);
     }
   };
 
@@ -90,11 +70,13 @@ function PortalPage() {
     );
   }
 
-  const { quote, profile, client, messages } = data;
+  const { quote, profile, client } = data;
   const lineItems = (quote.line_items as any[]) ?? [];
+  const canRespond = status === "pending" || status === "sent";
+  const showBottomBar = canRespond || status === "accepted" || status === "declined";
 
   return (
-    <div className="min-h-screen bg-paper pb-32">
+    <div className={`min-h-screen bg-paper ${showBottomBar ? "pb-28" : ""}`}>
       <header className="bg-ink text-paper px-5 pt-6 pb-5 flex items-center gap-3">
         <BusinessLogo logoUrl={(profile as any)?.logo_url} businessName={profile?.business_name ?? "Your tradesperson"} size="md" />
         <div className="min-w-0 flex-1">
@@ -153,68 +135,60 @@ function PortalPage() {
         </div>
       </section>
 
-      {/* Messaging */}
-      <section className="px-5 mt-5">
-        <div className="flex items-center gap-2 mb-2.5">
-          <MessageSquare className="h-4 w-4" />
-          <h2 className="text-xl">Messages</h2>
-        </div>
-        <div className="card-surface p-3">
-          <div ref={threadRef} className="max-h-80 overflow-y-auto space-y-2 pr-1">
-            {messages.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-6">
-                Ask a question and {profile?.business_name ?? "your tradesperson"} will reply here.
-              </p>
+      {status === "accepted" && (
+        <section className="px-5 mt-4">
+          <div className="rounded-2xl bg-status-accepted/15 text-status-accepted px-4 py-3 text-sm font-semibold flex items-center gap-2">
+            <Check className="h-4 w-4" /> You accepted this quote. {profile?.business_name ?? "Your tradesperson"} has been notified.
+          </div>
+        </section>
+      )}
+      {status === "declined" && (
+        <section className="px-5 mt-4">
+          <div className="rounded-2xl bg-muted text-muted-foreground px-4 py-3 text-sm flex items-center gap-2">
+            <X className="h-4 w-4" /> You declined this quote.
+          </div>
+        </section>
+      )}
+
+      <footer className="text-center mt-8 mb-4 text-[10px] text-muted-foreground">
+        <a href="https://quottr.co.uk" className="inline-flex items-center gap-1">
+          Powered by <QuottrLogo className="h-3 w-auto" />
+        </a>
+      </footer>
+
+      {showBottomBar && (
+        <div className="fixed inset-x-0 bottom-0 bg-paper border-t border-border p-3 safe-bottom">
+          <div className="max-w-md mx-auto">
+            {canRespond ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onRespond("declined")}
+                  disabled={responding}
+                  className="flex-1 h-12 rounded-full border border-border text-ink text-sm font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  <X className="h-4 w-4" /> Decline
+                </button>
+                <button
+                  onClick={() => onRespond("accepted")}
+                  disabled={responding}
+                  className="flex-[2] h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {responding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  Accept quote
+                </button>
+              </div>
+            ) : status === "accepted" ? (
+              <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
+                <Check className="h-4 w-4" /> Accepted
+              </div>
+            ) : (
+              <div className="h-12 rounded-full bg-muted text-muted-foreground text-sm font-semibold inline-flex items-center justify-center gap-1.5 w-full">
+                Declined
+              </div>
             )}
-            {messages.map((m: any) => (
-              <MessageBubble key={m.id} m={m} mine={m.sender === "customer"} />
-            ))}
           </div>
         </div>
-      </section>
-
-      {/* Composer */}
-      <div className="fixed inset-x-0 bottom-0 bg-paper border-t border-border p-3 safe-bottom">
-        <div className="max-w-md mx-auto flex items-center gap-2">
-          <input
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
-            placeholder="Type a message…"
-            className="flex-1 bg-secondary rounded-full px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40"
-          />
-          <button
-            onClick={send}
-            disabled={sending || !body.trim()}
-            className="h-11 w-11 rounded-full bg-lime text-ink inline-flex items-center justify-center disabled:opacity-50"
-            aria-label="Send"
-          >
-            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MessageBubble({ m, mine }: { m: any; mine: boolean }) {
-  if (m.sender === "system") {
-    return (
-      <div className="text-center">
-        <span className="inline-block text-[11px] text-muted-foreground bg-secondary rounded-full px-3 py-1">
-          {m.body}
-        </span>
-      </div>
-    );
-  }
-  return (
-    <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${mine ? "bg-lime text-ink" : "bg-secondary text-ink"}`}>
-        <p className="whitespace-pre-wrap break-words">{m.body}</p>
-        <p className={`text-[10px] mt-1 ${mine ? "text-ink/60" : "text-muted-foreground"}`}>
-          {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-        </p>
-      </div>
+      )}
     </div>
   );
 }

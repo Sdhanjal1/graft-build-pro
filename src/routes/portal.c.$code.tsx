@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   getClientPortalData,
-  postClientPortalMessage,
   respondQuoteFromPortal,
 } from "@/lib/portal.functions";
 import { downloadPortalPdf } from "@/lib/portal-pdf";
@@ -11,13 +10,11 @@ import { BusinessLogo } from "@/components/BusinessLogo";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import {
   Loader2,
-  Send,
   ChevronDown,
   ChevronUp,
   Download,
   FileText,
   Bell,
-  MessageSquare,
   Sparkles,
   Check,
   X,
@@ -79,7 +76,6 @@ type Data = Awaited<ReturnType<typeof getClientPortalData>>;
 function ClientPortalPage() {
   const { code } = Route.useParams();
   const fetchData = useServerFn(getClientPortalData);
-  const postMsg = useServerFn(postClientPortalMessage);
   const respondQuote = useServerFn(respondQuoteFromPortal);
 
   const [loading, setLoading] = useState(true);
@@ -91,8 +87,6 @@ function ClientPortalPage() {
   const [lastName, setLastName] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [body, setBody] = useState("");
-  const [sending, setSending] = useState(false);
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
 
@@ -152,28 +146,9 @@ function ClientPortalPage() {
     if (!first) return;
     localStorage.setItem(nameKey, JSON.stringify({ first, last }));
     setConfirmed(true);
-    // Send a system-like greeting so pro sees who confirmed
-    void postMsg({
-      data: { code, body: `[Portal opened by ${first} ${last}]` },
-    }).catch(() => {});
   };
 
-  const send = async () => {
-    const text = body.trim();
-    if (!text) return;
-    setSending(true);
-    setBody("");
-    try {
-      const r = await postMsg({ data: { code, body: text } });
-      setData((prev) =>
-        prev ? { ...prev, messages: [...prev.messages, r.message as never] } : prev,
-      );
-    } catch {
-      setBody(text);
-    } finally {
-      setSending(false);
-    }
-  };
+
 
   if (loading) {
     return (
@@ -196,7 +171,7 @@ function ClientPortalPage() {
     );
   }
 
-  const { profile, quotes, documents, messages, client } = data;
+  const { profile, quotes, documents, client } = data;
   const businessName = profile?.business_name ?? "Your tradesperson";
 
   if (!confirmed) {
@@ -265,7 +240,7 @@ function ClientPortalPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-paper pb-32">
+    <div className="min-h-screen bg-paper">
       <header className="bg-ink text-paper px-5 pt-6 pb-5 flex items-center gap-3">
         <BusinessLogo
           logoUrl={(profile as any)?.logo_url}
@@ -282,10 +257,7 @@ function ClientPortalPage() {
       {/* Service reminder */}
       {daysUntilService !== null && daysUntilService <= 60 && daysUntilService >= -30 && (
         <section className="px-5 mt-5">
-          <a
-            href="#messages"
-            className="block rounded-2xl p-4 bg-gradient-to-br from-amber-300 to-amber-500 text-ink"
-          >
+          <div className="block rounded-2xl p-4 bg-gradient-to-br from-amber-300 to-amber-500 text-ink">
             <div className="flex items-start gap-3">
               <div className="h-10 w-10 rounded-full bg-ink/15 flex items-center justify-center shrink-0">
                 <Bell className="h-4 w-4" />
@@ -299,14 +271,12 @@ function ClientPortalPage() {
                       ? "due today"
                       : `${Math.abs(daysUntilService)} day${Math.abs(daysUntilService) === 1 ? "" : "s"} overdue`}
                 </p>
-                <p className="text-xs text-ink/70 mt-0.5">
-                  Tap to send {businessName.split(" ")[0]} a message
-                </p>
               </div>
             </div>
-          </a>
+          </div>
         </section>
       )}
+
 
       {/* Quotes */}
       <section className="px-5 mt-6">
@@ -480,46 +450,8 @@ function ClientPortalPage() {
         </section>
       )}
 
-      {/* Messages */}
-      <section id="messages" className="px-5 mt-6">
-        <div className="flex items-center gap-2 mb-3">
-          <MessageSquare className="h-4 w-4" />
-          <h2 className="text-xl">Messages</h2>
-        </div>
-        <div className="card-surface p-3">
-          <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
-            {messages.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-6">
-                Ask a question and {businessName} will reply here.
-              </p>
-            )}
-            {messages
-              .filter((m: any) => !m.body?.startsWith("[Portal opened"))
-              .map((m: any) => {
-                const mine = m.sender === "customer";
-                return (
-                  <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${
-                        mine ? "bg-lime text-ink" : "bg-secondary text-ink"
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                      <p
-                        className={`text-[10px] mt-1 ${mine ? "text-ink/60" : "text-muted-foreground"}`}
-                      >
-                        {new Date(m.created_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        </div>
-      </section>
+
+
 
       {/* Request a new quote */}
       <section className="px-5 mt-6">
@@ -543,35 +475,6 @@ function ClientPortalPage() {
         </a>
       </footer>
 
-      {/* Composer */}
-      <div className="fixed inset-x-0 bottom-0 bg-paper border-t border-border p-3 safe-bottom">
-        <div className="max-w-md mx-auto flex items-center gap-2">
-          <input
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void send();
-              }
-            }}
-            placeholder={`Message ${businessName}…`}
-            className="flex-1 bg-secondary rounded-full px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40"
-          />
-          <button
-            onClick={send}
-            disabled={sending || !body.trim()}
-            className="h-11 w-11 rounded-full bg-lime text-ink inline-flex items-center justify-center disabled:opacity-50"
-            aria-label="Send"
-          >
-            {sending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
