@@ -679,31 +679,29 @@ function NewQuotePage() {
         )}
 
         {!draft && (
-          <button
-            type="submit"
-            disabled={loading || subBlocked}
-            title={subBlocked ? "Your trial has ended, add a payment method to continue" : undefined}
-            className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition disabled:opacity-60"
-          >
-            {loading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Sparkles className="h-5 w-5" />
-            )}
-            {subBlocked
-              ? "Trial ended, add payment method"
-              : loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : "Generate quote"}
-          </button>
-        )}
-
-        {error && (
-          <p className="text-[12px] text-center text-status-overdue font-medium">{error}</p>
-        )}
-
-        {!draft && !error && (
-          <p className="text-[11px] text-center text-muted-foreground">
-            Powered by Claude AI · realistic 2026 UK trade pricing.
-          </p>
+          <div className="fixed bottom-20 inset-x-0 z-30 px-3 safe-bottom pointer-events-none">
+            <div className="mx-auto max-w-md pointer-events-auto">
+              <button
+                type="submit"
+                form="new-quote-form"
+                disabled={loading || subBlocked}
+                title={subBlocked ? "Your trial has ended, add a payment method to continue" : undefined}
+                className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition disabled:opacity-60 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.35)]"
+              >
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-5 w-5" />
+                )}
+                {subBlocked
+                  ? "Trial ended, add payment method"
+                  : loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : "Generate quote"}
+              </button>
+              {error && (
+                <p className="mt-2 text-[12px] text-center text-status-overdue font-medium bg-paper/90 rounded-full py-1">{error}</p>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Editable quote preview */}
