@@ -881,6 +881,8 @@ function VoiceOverlay({
   recording,
   transcribing,
   seconds,
+  error,
+  lastTranscript,
   onStart,
   onStop,
   onClose,
@@ -888,6 +890,8 @@ function VoiceOverlay({
   recording: boolean;
   transcribing: boolean;
   seconds: number;
+  error: string | null;
+  lastTranscript: string | null;
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
@@ -899,7 +903,7 @@ function VoiceOverlay({
 
       <div className="flex flex-col items-center">
         <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-          {transcribing ? "Transcribing" : recording ? "Listening" : "Tap to speak"}
+          {transcribing ? "Transcribing" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
         </p>
         <p className="num text-2xl mt-1 text-lime">{formatMMSS(seconds)}</p>
       </div>
@@ -932,10 +936,21 @@ function VoiceOverlay({
         </div>
       </button>
 
-      <div className="w-full max-w-md min-h-[6rem] text-center">
-        <p className="text-sm text-paper/50">
-          {transcribing ? "Turning your voice into text…" : "Describe the job, boiler, bathroom, materials, time…"}
-        </p>
+      <div className="w-full max-w-md min-h-[6rem] text-center space-y-2">
+        {error ? (
+          <p className="text-sm text-status-overdue font-medium">{error}</p>
+        ) : transcribing ? (
+          <p className="text-sm text-paper/60">Turning your voice into text…</p>
+        ) : recording ? (
+          <p className="text-sm text-paper/60">Describe the job, boiler, bathroom, materials, time…</p>
+        ) : lastTranscript ? (
+          <>
+            <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">Captured</p>
+            <p className="text-sm text-paper italic">“{lastTranscript}”</p>
+          </>
+        ) : (
+          <p className="text-sm text-paper/50">Describe the job, boiler, bathroom, materials, time…</p>
+        )}
       </div>
 
       {idle && (
@@ -944,7 +959,7 @@ function VoiceOverlay({
           onClick={onClose}
           className="text-xs uppercase tracking-widest text-paper/50 font-semibold py-3"
         >
-          Cancel
+          {error || lastTranscript ? "Done" : "Cancel"}
         </button>
       )}
       {!idle && <div className="h-16" />}
