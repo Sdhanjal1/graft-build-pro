@@ -950,8 +950,10 @@ function VoiceOverlay({
   liveTranscript: string;
   onStop: () => void;
 }) {
-  return (
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col items-center justify-between px-6 pt-16 pb-10 safe-top safe-bottom">
+
       <div className="flex flex-col items-center">
         <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
           {transcribing ? "Transcribing" : "Listening"}
