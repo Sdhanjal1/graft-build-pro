@@ -25,6 +25,7 @@ const STATUS_LABEL: Record<QuoteStatus, string> = {
   sent: "Sent",
   accepted: "Accepted",
   declined: "Declined",
+  completed: "Completed",
   paid: "Paid",
   overdue: "Overdue",
 };
