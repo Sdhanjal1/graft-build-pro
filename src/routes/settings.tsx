@@ -20,6 +20,7 @@ import { BusinessLogo } from "@/components/BusinessLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BillingSection } from "@/components/BillingSection";
+import { ExportInvoicesButton } from "@/components/ExportInvoicesButton";
 import { deleteMyAccount } from "@/lib/account.functions";
 
 export const Route = createFileRoute("/settings")({
@@ -172,6 +173,7 @@ function SettingsPage() {
       {/* BILLING — always open */}
       <Section title="Billing" defaultOpen>
         <BillingSection />
+        <ExportInvoicesButton />
       </Section>
 
       {/* SIGN OUT — always visible */}
