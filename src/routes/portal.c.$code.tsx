@@ -359,6 +359,14 @@ function ClientPortalPage() {
                         <span className="text-muted-foreground">Total</span>
                         <span className="num text-lg">{formatGBP(q.total)}</span>
                       </div>
+                      <p className="px-4 pb-3 text-xs text-muted-foreground">
+                        {paymentTimingLabel({
+                          timing: ((q as any).payment_timing as PaymentTiming) ?? "on_completion",
+                          total: Number(q.total) || 0,
+                          depositAmount: Number((q as any).deposit_amount) || 0,
+                          depositPercent: Number((q as any).deposit_percent) || 0,
+                        })}
+                      </p>
                       {(q.status === "pending" || q.status === "sent") && (
                         <div className="px-4 py-3 border-t border-border grid grid-cols-2 gap-2">
                           <button
@@ -372,14 +380,20 @@ function ClientPortalPage() {
                           <button
                             onClick={() => onRespond(q.id, "accepted")}
                             disabled={respondingId === q.id}
-                            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-lime text-ink py-2.5 text-xs font-bold disabled:opacity-50"
+                            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-lime text-ink py-2.5 text-xs font-bold disabled:opacity-50 px-2"
                           >
                             {respondingId === q.id ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             ) : (
                               <Check className="h-3.5 w-3.5" />
                             )}
-                            Accept quote
+                            <span className="truncate">
+                              {acceptButtonLabel({
+                                timing: ((q as any).payment_timing as PaymentTiming) ?? "on_completion",
+                                total: Number(q.total) || 0,
+                                depositAmount: Number((q as any).deposit_amount) || 0,
+                              })}
+                            </span>
                           </button>
                         </div>
                       )}
