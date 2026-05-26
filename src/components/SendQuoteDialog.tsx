@@ -99,9 +99,9 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       } else {
         const { token } = await ensureToken({ data: { quoteId, channel: "email" } });
         url = portalUrl(token);
-        const historyLine = await portalHistoryLine();
         subject = `Your quote ${quoteRef}, ${quoteTitle}`;
-        body = `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}${historyLine}\n\nThanks.`;
+        body = `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}\n\nThanks.`;
+
       }
       const mailHref = `mailto:${customerEmail ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.location.href = mailHref;
