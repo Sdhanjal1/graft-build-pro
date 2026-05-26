@@ -475,46 +475,8 @@ function ClientPortalPage() {
         </section>
       )}
 
-      {/* Messages */}
-      <section id="messages" className="px-5 mt-6">
-        <div className="flex items-center gap-2 mb-3">
-          <MessageSquare className="h-4 w-4" />
-          <h2 className="text-xl">Messages</h2>
-        </div>
-        <div className="card-surface p-3">
-          <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
-            {messages.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-6">
-                Ask a question and {businessName} will reply here.
-              </p>
-            )}
-            {messages
-              .filter((m: any) => !m.body?.startsWith("[Portal opened"))
-              .map((m: any) => {
-                const mine = m.sender === "customer";
-                return (
-                  <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${
-                        mine ? "bg-lime text-ink" : "bg-secondary text-ink"
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                      <p
-                        className={`text-[10px] mt-1 ${mine ? "text-ink/60" : "text-muted-foreground"}`}
-                      >
-                        {new Date(m.created_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        </div>
-      </section>
+
+
 
       {/* Request a new quote */}
       <section className="px-5 mt-6">
