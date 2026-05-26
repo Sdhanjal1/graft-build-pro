@@ -227,10 +227,16 @@ function PortalPage() {
                 <button
                   onClick={() => onRespond("accepted")}
                   disabled={responding}
-                  className="flex-[2] h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="flex-[2] h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3"
                 >
                   {responding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  Accept quote
+                  <span className="truncate">
+                    {acceptButtonLabel({
+                      timing: (quote.payment_timing as PaymentTiming) ?? "on_completion",
+                      total: Number(quote.total) || 0,
+                      depositAmount: Number(quote.deposit_amount) || 0,
+                    })}
+                  </span>
                 </button>
               </div>
             ) : isPaid ? (
