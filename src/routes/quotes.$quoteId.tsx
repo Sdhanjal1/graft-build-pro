@@ -23,6 +23,7 @@ import { AssignClientDialog } from "@/components/AssignClientDialog";
 import { listQuoteMessages, sendProMessage } from "@/lib/messages.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef } from "react";
+import { usePaidQuoteCount, useInvalidatePaidQuoteCount, normalizeSource } from "@/hooks/usePaidQuoteCount";
 
 function celebratePaid(amount: number) {
   if (typeof window === "undefined") return;
