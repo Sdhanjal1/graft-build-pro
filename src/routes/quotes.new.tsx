@@ -213,6 +213,10 @@ function NewQuotePage() {
     chunksRef.current = [];
 
     mr.ondataavailable = (e) => {
+      console.log("[voice] ondataavailable", {
+        size: e.data?.size ?? 0,
+        totalChunks: chunksRef.current.length + (e.data && e.data.size > 0 ? 1 : 0),
+      });
       if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
     };
 
@@ -227,7 +231,7 @@ function NewQuotePage() {
 
       const blobType = mr.mimeType || mimeType || "audio/webm";
       const blob = new Blob(chunksRef.current, { type: blobType });
-      console.log("[voice] stop", {
+      console.log("[voice] onstop", {
         chunks: chunksRef.current.length,
         size: blob.size,
         type: blobType,
@@ -244,10 +248,12 @@ function NewQuotePage() {
       setTranscribing(true);
       try {
         const audioBase64 = await blobToBase64(blob);
+        console.log("[voice] before transcribeFn", { base64Length: audioBase64.length });
         const { text } = await transcribeFn({ data: { audioBase64, mimeType: blobType } });
+        console.log("[voice] transcribeFn success", { textLength: text?.length ?? 0 });
         appendTranscript(text);
       } catch (err) {
-        console.error(err);
+        console.error("[voice] transcribeFn error", err);
         setVoiceError(
           err instanceof Error
             ? err.message
@@ -260,7 +266,9 @@ function NewQuotePage() {
 
     // Timeslice of 1s ensures a chunk is flushed every second even on iOS Safari.
     recordStartRef.current = Date.now();
+    console.log("[voice] mr.start", { mimeType: mimeType || "(default)", recorderMime: mr.mimeType });
     mr.start(1000);
+
     setRecording(true);
     setRecordSeconds(0);
     tickRef.current = setInterval(() => {
