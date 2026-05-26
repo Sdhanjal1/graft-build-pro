@@ -58,8 +58,8 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       } else {
         const { token } = await ensureToken({ data: { quoteId, channel: "sms" } });
         url = portalUrl(token);
-        const historyLine = await portalHistoryLine();
-        text = `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready. View, ask questions and approve here: ${url}${historyLine}`;
+        text = `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready. View, ask questions and approve here: ${url}`;
+
       }
       const digits = (customerPhone ?? "").replace(/\D/g, "");
       const smsHref = digits
