@@ -27,9 +27,10 @@ export function RotatingPrompts({ className = "" }: { className?: string }) {
 
   return (
     <p
-      className={`text-xs italic text-lime transition-opacity duration-300 ${
+      className={`text-xs italic text-lime transition-opacity duration-300 line-clamp-2 overflow-hidden ${
         visible ? "opacity-100" : "opacity-0"
       } ${className}`}
+      style={{ minHeight: "2.4em", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
       aria-live="polite"
     >
       {PROMPTS[i]}
