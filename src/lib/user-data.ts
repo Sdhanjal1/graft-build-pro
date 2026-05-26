@@ -18,12 +18,16 @@ export type ScheduledJob = {
   created_at: string;
 };
 
+export type LineItemCategory = "labour" | "materials" | "certificate" | "cis_labour" | "other";
+
 export type LineItem = {
   description: string;
   qty: number;
   unit_price: number;
   /** Provenance of the price for badging on quote detail. */
   source?: "voice" | "learned" | "ai";
+  /** Accounting category — used for CSV export account-code mapping. */
+  category?: LineItemCategory;
 };
 
 export type Client = {
@@ -132,6 +136,15 @@ export const EMPTY_PROFILE = {
   chase_auto_send_after_hours: 4,
   // ---- Google reviews ----
   google_review_url: "",
+  // ---- Accounting export ----
+  accounting_software: "" as "" | "xero" | "quickbooks" | "freeagent" | "sage" | "other" | "none",
+  accounting_codes: {
+    labour: "",
+    materials: "",
+    certificate: "",
+    cis_labour: "",
+    other: "",
+  } as Record<LineItemCategory, string>,
 };
 
 export const userProfile = { ...EMPTY_PROFILE };
@@ -231,6 +244,16 @@ export async function hydrateUserData() {
     userProfile.quote_footer = asString(p.quote_footer);
     userProfile.signature_name = asString(p.signature_name);
     if (typeof p.show_signature === "boolean") userProfile.show_signature = p.show_signature;
+    const sw = asString(p.accounting_software).toLowerCase();
+    if (["xero", "quickbooks", "freeagent", "sage", "other", "none"].includes(sw)) {
+      userProfile.accounting_software = sw as typeof userProfile.accounting_software;
+    }
+    if (p.accounting_codes && typeof p.accounting_codes === "object") {
+      const codes = p.accounting_codes as Record<string, unknown>;
+      (["labour", "materials", "certificate", "cis_labour", "other"] as const).forEach((k) => {
+        if (typeof codes[k] === "string") userProfile.accounting_codes[k] = codes[k] as string;
+      });
+    }
   } else {
     userProfile.email = userData.user.email || "";
   }
@@ -264,6 +287,8 @@ export async function saveProfileToCloud(patch: Partial<typeof userProfile>) {
     quote_footer: userProfile.quote_footer || null,
     signature_name: userProfile.signature_name || null,
     show_signature: userProfile.show_signature,
+    accounting_software: userProfile.accounting_software || null,
+    accounting_codes: userProfile.accounting_codes,
   };
   const { error } = await supabase.from("profiles").upsert(row, { onConflict: "id" });
   if (error) console.error("[profile] save failed", error);

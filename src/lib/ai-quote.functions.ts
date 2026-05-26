@@ -14,6 +14,7 @@ const LineItemSchema = z.object({
   qty: z.number().positive().max(1000),
   unit_price: z.number().nonnegative().max(100000),
   source: z.enum(["voice", "learned", "ai"]).optional().default("ai"),
+  category: z.enum(["labour", "materials", "certificate", "cis_labour", "other"]).optional().default("other"),
 });
 
 const QuoteSchema = z.object({
@@ -48,7 +49,16 @@ Rule 1: If the tradesperson explicitly stated a price for this specific item in 
 
 Rule 2: If a LEARNED PATTERNS section was provided below AND that section contains a clear match for this item, set source = 'learned'. If no LEARNED PATTERNS section exists or it's empty, you must NOT use 'learned' for any item.
 
-Rule 3: For all other items where you estimated the price using general UK trade knowledge, set source = 'ai'. This is the most common case for new users.`;
+Rule 3: For all other items where you estimated the price using general UK trade knowledge, set source = 'ai'. This is the most common case for new users.
+
+CATEGORY FIELD — REQUIRED ON EVERY LINE ITEM:
+
+Each line item MUST have a category field. Use these rules:
+- 'labour' — time-based work: installation, fitting, commissioning, hourly rate work, any work the tradesperson performs themselves
+- 'materials' — physical products being supplied: boilers, radiators, fittings, parts, units, valves, pipes
+- 'certificate' — gas safety certificates, electrical certificates (EICR), boiler commissioning certificates, building regs notifications
+- 'cis_labour' — only use when CIS mode is enabled on the customer. Labour income that falls under CIS deduction
+- 'other' — anything that does not fit the above categories`;
 
 export const generateAIQuote = createServerFn({ method: "POST" })
   .middleware([requireActiveSubscription])
@@ -73,11 +83,11 @@ Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
 {
   "title": "Concise quote title",
   "line_items": [
-    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai" }
+    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other" }
   ]
 }
 
-Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 hours). Every line item MUST include a source field.`;
+Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 hours). Every line item MUST include both a source field and a category field.`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

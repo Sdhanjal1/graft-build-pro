@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BillingSection } from "@/components/BillingSection";
 import { ExportInvoicesButton } from "@/components/ExportInvoicesButton";
+import { AccountingExportButton } from "@/components/AccountingExportButton";
 import { deleteMyAccount } from "@/lib/account.functions";
 
 export const Route = createFileRoute("/settings")({
@@ -175,9 +176,15 @@ function SettingsPage() {
         <BillingSection />
       </Section>
 
+      {/* ACCOUNTING EXPORT SETUP */}
+      <Section title="Accounting export setup">
+        <AccountingSetup />
+      </Section>
+
       {/* EXPORT RECORDS */}
-      <section className="px-5 mt-3">
-        <ExportInvoicesButton helperText="Download paid quotes as CSV" />
+      <section className="px-5 mt-3 space-y-3">
+        <AccountingExportButton helperText="Paid invoices, one row per line item, formatted for your accounting software." />
+        <ExportInvoicesButton helperText="Or download a simple paid-quotes summary CSV." />
       </section>
 
       {/* SIGN OUT */}
@@ -449,6 +456,81 @@ function SelectField({
           {options.map((o) => <option key={o}>{o}</option>)}
         </select>
       </label>
+    </div>
+  );
+}
+
+function AccountingSetup() {
+  const SOFTWARE_OPTIONS: { value: "" | "xero" | "quickbooks" | "freeagent" | "sage" | "other" | "none"; label: string }[] = [
+    { value: "", label: "Select…" },
+    { value: "xero", label: "Xero" },
+    { value: "quickbooks", label: "QuickBooks" },
+    { value: "freeagent", label: "FreeAgent" },
+    { value: "sage", label: "Sage" },
+    { value: "other", label: "Other" },
+    { value: "none", label: "None" },
+  ];
+  const [software, setSoftware] = useState<typeof userProfile.accounting_software>(userProfile.accounting_software || "");
+  const [codes, setCodes] = useState({ ...userProfile.accounting_codes });
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await saveProfileToCloud({ accounting_software: software, accounting_codes: codes });
+      toast.success("Accounting setup saved");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const codeRow = (key: keyof typeof codes, label: string, placeholder: string) => (
+    <label className="block">
+      <span className="text-xs text-muted-foreground font-semibold">{label}</span>
+      <input
+        value={codes[key]}
+        placeholder={placeholder}
+        onChange={(e) => setCodes((c) => ({ ...c, [key]: e.target.value }))}
+        className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+      />
+    </label>
+  );
+
+  return (
+    <div className="card-surface p-5 space-y-4">
+      <div>
+        <p className="text-sm font-semibold">Map line item categories to your accounting codes</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Used when you download records to import into Xero, QuickBooks or FreeAgent. Enter the codes from your own accounting software.
+        </p>
+      </div>
+      <label className="block">
+        <span className="text-xs text-muted-foreground font-semibold">Which accounting software do you use?</span>
+        <select
+          value={software}
+          onChange={(e) => setSoftware(e.target.value as typeof software)}
+          className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+        >
+          {SOFTWARE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </label>
+      {codeRow("labour", "Labour income code", "e.g. 201")}
+      {codeRow("materials", "Materials income code", "e.g. 202")}
+      {codeRow("certificate", "Certificate income code", "e.g. 203")}
+      {codeRow("cis_labour", "CIS labour income code", "e.g. 210")}
+      {codeRow("other", "Other income code", "e.g. 260")}
+      <button
+        type="button"
+        onClick={save}
+        disabled={saving}
+        className="w-full bg-ink text-paper rounded-full py-3 font-bold text-sm disabled:opacity-60"
+      >
+        {saving ? "Saving…" : "Save accounting setup"}
+      </button>
     </div>
   );
 }
