@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { MessageCircle, Mail, Sparkles, Loader2, Copy, Check } from "lucide-react";
 import { ensurePortalToken } from "@/lib/messages.functions";
-import { getPortalCodeForQuote } from "@/lib/portal.functions";
+
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
 import { buildQuoteWhatsAppMessage, getQuote, waLink } from "@/lib/user-data";
@@ -29,7 +29,6 @@ export function SendQuoteDialog({
 }: Props) {
 
   const ensureToken = useServerFn(ensurePortalToken);
-  const fetchClientCode = useServerFn(getPortalCodeForQuote);
   const [busy, setBusy] = useState<null | "sms" | "email" | "wa">(null);
   const [copied, setCopied] = useState(false);
 
@@ -39,15 +38,7 @@ const SHARE_ORIGIN = "https://quottr.co.uk";
 const shortClientPortalUrl = (portal_code: string) => `${SHARE_ORIGIN}/q/${portal_code}`;
 const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
 
-  const portalHistoryLine = async () => {
-    try {
-      const { portal_code } = await fetchClientCode({ data: { quoteId } });
-      if (!portal_code) return "";
-      return `\n\nView your quotes and service history: ${shortClientPortalUrl(portal_code)}`;
-    } catch {
-      return "";
-    }
-  };
+
 
   if (!open) return null;
 
@@ -67,8 +58,8 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       } else {
         const { token } = await ensureToken({ data: { quoteId, channel: "sms" } });
         url = portalUrl(token);
-        const historyLine = await portalHistoryLine();
-        text = `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready. View, ask questions and approve here: ${url}${historyLine}`;
+        text = `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready. View, ask questions and approve here: ${url}`;
+
       }
       const digits = (customerPhone ?? "").replace(/\D/g, "");
       const smsHref = digits
@@ -108,9 +99,9 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       } else {
         const { token } = await ensureToken({ data: { quoteId, channel: "email" } });
         url = portalUrl(token);
-        const historyLine = await portalHistoryLine();
         subject = `Your quote ${quoteRef}, ${quoteTitle}`;
-        body = `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}${historyLine}\n\nThanks.`;
+        body = `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}\n\nThanks.`;
+
       }
       const mailHref = `mailto:${customerEmail ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.location.href = mailHref;
@@ -203,17 +194,10 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
                 } else {
                   const q = getQuote(quoteId);
                   if (!q) throw new Error("Quote not found");
-                  try {
-                    const { portal_code } = await fetchClientCode({ data: { quoteId } });
-                    if (portal_code) {
-                      portalUrl = shortClientPortalUrl(portal_code);
-                    }
-                  } catch { /* fall back below */ }
-                  if (!portalUrl) {
-                    const { token } = await ensureToken({ data: { quoteId, channel: "whatsapp" } });
-                    portalUrl = shortQuotePortalUrl(token);
-                  }
+                  const { token } = await ensureToken({ data: { quoteId, channel: "whatsapp" } });
+                  portalUrl = shortQuotePortalUrl(token);
                   text = buildQuoteWhatsAppMessage(q, { name: customerName ?? "" }, portalUrl);
+
                 }
                 window.open(waLink(customerPhone, text), "_blank");
                 toast.success(`Sent to ${customerName ?? firstName} via WhatsApp`);

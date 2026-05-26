@@ -1,45 +1,24 @@
 ## Problem
 
-On Settings, three things compete and the relationship is unclear:
+When sending a quote via SMS, WhatsApp, or email, the message contains **two links**:
 
-1. **Accounting export setup** — a collapsed section header with a chevron (looks empty)
-2. **Download for Xero** — primary CTA floating outside any card
-3. **Export invoices** — secondary CTA floating below it
+1. The quote portal link (`/q/<token>`) — what the customer needs
+2. "View your quotes and service history" link (`/q/<portal_code>`) — confusing extra
 
-Result: the download buttons look orphaned, and the "setup" row looks like a dead link.
+Customer just needs one link to the quote where they can review and approve.
 
-## Proposed redesign
+## Fix
 
-Merge everything into **one single "Accounting export" card** that's open by default, with a clear top-to-bottom flow:
+In `src/components/SendQuoteDialog.tsx`:
 
-```text
-┌─ Accounting export ──────────────────────────┐
-│  Software:   [ Xero ▾ ]                      │
-│  Account codes:  Set up ›   (inline summary) │
-│                                              │
-│  ─────────────────────────────────────────   │
-│                                              │
-│  [ ⬇  Download for Xero ]    ← primary       │
-│  Paid invoices, one row per line item.       │
-│                                              │
-│  Download summary CSV instead ›  ← text link │
-└──────────────────────────────────────────────┘
-```
+- Remove the `portalHistoryLine()` helper and the `${historyLine}` interpolation from both the SMS and email message bodies.
+- Remove the now-unused `fetchClientCode` / `getPortalCodeForQuote` import if nothing else uses it in this file.
 
-Key changes:
-- **Remove the collapsible "Accounting export setup" wrapper.** Put the software picker + codes link directly in the card.
-- **Promote "Download for [software]"** to the card's primary action, visually anchored inside the card so it clearly belongs.
-- **Demote "Export invoices"** (the generic paid-quotes CSV) to a small secondary text link — most users won't need it once they've picked their software.
-- **Move helper text under the button**, not above the section, so it explains the action you just looked at.
-- **Show account codes status inline** (e.g. "4 of 5 codes set" or "Using defaults") so the user knows whether setup is needed without opening a separate panel.
+Resulting messages:
 
-If the user hasn't picked software yet, the card opens with a friendly empty state:
-"Pick your accounting software to get a tailored export." with the dropdown front-and-centre.
+- **SMS / WhatsApp**: "Hi Sundeep, your quote Q-123 for Bathroom refit is ready. View, ask questions and approve here: [https://quottr.co.uk/q/…](https://quottr.co.uk/q/…)"
+- **Email body**: "Hi Sundeep, Your quote is ready to view. You can review it, ask questions and approve from your secure portal: [https://quottr.co.uk/q/…](https://quottr.co.uk/q/…) Thanks."
 
-## Files affected
+No backend, schema, or portal route changes — purely a copy/message-template change. The client portal (quotes + service history) still exists at `/q/<portal_code>`; we just stop appending it to outbound quote messages.
 
-- `src/routes/settings.tsx` — collapse the two sections (`Accounting export setup` + the bare export buttons block) into one `<Section>` rendered as a single card.
-- `src/components/AccountingExportButton.tsx` — minor: accept a variant prop so it can render as the card's primary CTA rather than a standalone button-with-helper.
-- The `AccountingSetup` component stays but gets simplified to live inside the same card (software dropdown + codes editor in a collapsible "Account codes" subsection).
-
-No backend, schema, or export-logic changes — purely a layout/IA fix.
+&nbsp;
