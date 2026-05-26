@@ -323,6 +323,7 @@ export async function saveProfileToCloud(patch: Partial<typeof userProfile>) {
     show_signature: userProfile.show_signature,
     accounting_software: userProfile.accounting_software || null,
     accounting_codes: userProfile.accounting_codes,
+    default_deposit_percent: userProfile.default_deposit_percent,
   };
   const { error } = await supabase.from("profiles").upsert(row, { onConflict: "id" });
   if (error) console.error("[profile] save failed", error);
