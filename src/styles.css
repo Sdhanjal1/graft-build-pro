@@ -51,7 +51,7 @@
   --lime: oklch(0.88 0.18 118);          /* #c8e04a */
   --paper: oklch(0.957 0.012 80);        /* #f5f2ec */
 
-  --status-pending: oklch(0.78 0.15 75);    /* amber */
+  --status-pending: oklch(0.50 0.13 70);    /* darker amber — WCAG AA on cream */
   --status-accepted: oklch(0.68 0.16 145);  /* green */
   --status-paid: var(--lime);
   --status-overdue: oklch(0.62 0.22 25);    /* red */
