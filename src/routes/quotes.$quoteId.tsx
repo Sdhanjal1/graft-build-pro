@@ -299,6 +299,31 @@ function QuoteDetail() {
       </div>
       <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
 
+      {portalStatus && (portalStatus.expired || portalStatus.days_remaining <= 7) && (
+        <section className="px-5 mt-3">
+          <div className="rounded-2xl border border-amber-500/40 bg-amber-50 text-amber-900 p-3 flex items-start gap-3">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">
+                {portalStatus.expired
+                  ? "This link has expired."
+                  : `This link expires in ${portalStatus.days_remaining} day${portalStatus.days_remaining === 1 ? "" : "s"}.`}
+              </p>
+              <button
+                type="button"
+                onClick={handleRegenerateAndResend}
+                disabled={regenerating}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-ink text-paper text-xs font-semibold px-3 py-1.5 disabled:opacity-60"
+              >
+                {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                Regenerate and resend
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+
       {status === "declined" && (
         <section className="px-5 mt-3">
           <div className="card-surface p-3 text-center text-sm text-muted-foreground">
