@@ -69,10 +69,54 @@ function QuoteDetail() {
   const [sendOpen, setSendOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [portalStatus, setPortalStatus] = useState<{
+    client_id: string;
+    portal_code: string | null;
+    days_remaining: number;
+    expired: boolean;
+  } | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
+  const [updatedLinkCode, setUpdatedLinkCode] = useState<string | undefined>(undefined);
   const navigate = useNavigate();
   // (schedule defaults removed)
 
   const createCheckout = useServerFn(createInvoiceCheckout);
+  const fetchPortalStatus = useServerFn(getPortalLinkStatusForQuote);
+  const regeneratePortalCodeFn = useServerFn(regeneratePortalCode);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchPortalStatus({ data: { quoteId: quote.id } })
+      .then((s) => {
+        if (!cancelled && s) {
+          setPortalStatus({
+            client_id: s.client_id,
+            portal_code: s.portal_code,
+            days_remaining: s.days_remaining,
+            expired: s.expired,
+          });
+        }
+      })
+      .catch(() => { /* non-blocking */ });
+    return () => { cancelled = true; };
+  }, [quote.id, fetchPortalStatus]);
+
+  const handleRegenerateAndResend = async () => {
+    if (!portalStatus) return;
+    try {
+      setRegenerating(true);
+      const { portal_code } = await regeneratePortalCodeFn({ data: { clientId: portalStatus.client_id } });
+      setPortalStatus({ ...portalStatus, portal_code, days_remaining: 90, expired: false });
+      setUpdatedLinkCode(portal_code);
+      setSendOpen(true);
+      feedback("success");
+    } catch (e) {
+      feedback("error");
+      toast.error(e instanceof Error ? e.message : "Could not regenerate link");
+    } finally {
+      setRegenerating(false);
+    }
+  };
 
   const setMethod = (m: PaymentMethod) => { quote.payment_method = m; setMethodState(m); };
   const acceptQuote = async () => {
