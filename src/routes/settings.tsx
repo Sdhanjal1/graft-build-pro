@@ -101,11 +101,12 @@ function SettingsPage() {
         account_number: bank.account_number,
         payment_reference_note: bank.payment_reference_note,
         payment_terms: terms,
+        default_deposit_percent: defaultDepositPct,
       });
     }, 600);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile, vatRegistered, bank, terms]);
+  }, [profile, vatRegistered, bank, terms, defaultDepositPct]);
 
   const saveBank = (patch: Partial<typeof bank>) => setBank((b) => ({ ...b, ...patch }));
 
