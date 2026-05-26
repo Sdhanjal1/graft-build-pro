@@ -129,9 +129,9 @@ function OnboardingWizard() {
       <main className="flex-1 px-5 pt-8 pb-10 flex flex-col">
         {step === 1 && (
           <StepShell>
-            <h1 className="text-4xl leading-tight">Let's get you ready in 90 seconds.</h1>
+            <h1 className="text-4xl leading-tight">7 quick questions. Then quote in seconds.</h1>
             <p className="mt-3 text-base text-muted-foreground">
-              Seven quick questions, then your first quote takes nine.
+              Set up once, then every quote takes nine seconds.
             </p>
             <PrimaryButton onClick={() => goNext()} busy={savingStep}>
               Let's go
@@ -186,21 +186,44 @@ function OnboardingWizard() {
 
         {step === 3 && (
           <StepShell>
-            <h2 className="text-3xl leading-tight">What's your business called?</h2>
+            <h2 className="text-3xl leading-tight">Tell us about you.</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              This shows on every quote and invoice.
+              Your business name shows on quotes. Your name shows when you message customers.
             </p>
-            <input
-              autoFocus
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              placeholder="e.g. Cosy Plumbing & Heating"
-              className="mt-6 w-full bg-card border border-border rounded-2xl px-4 py-4 text-base outline-none focus:ring-2 focus:ring-lime"
-            />
+            <div className="mt-6 space-y-3">
+              <div>
+                <label className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground">
+                  Business name
+                </label>
+                <input
+                  autoFocus
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  placeholder="e.g. Cosy Plumbing & Heating"
+                  className="mt-1 w-full bg-card border border-border rounded-2xl px-4 py-4 text-base outline-none focus:ring-2 focus:ring-lime"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground">
+                  Your name
+                </label>
+                <input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Full name"
+                  className="mt-1 w-full bg-card border border-border rounded-2xl px-4 py-4 text-base outline-none focus:ring-2 focus:ring-lime"
+                />
+              </div>
+            </div>
             <PrimaryButton
-              onClick={() => goNext({ business_name: businessName.trim() })}
+              onClick={() =>
+                goNext({
+                  business_name: businessName.trim(),
+                  full_name: fullName.trim(),
+                })
+              }
               busy={savingStep}
-              disabled={!businessName.trim()}
+              disabled={!businessName.trim() || !fullName.trim()}
             >
               Continue
             </PrimaryButton>
@@ -210,33 +233,9 @@ function OnboardingWizard() {
 
         {step === 4 && (
           <StepShell>
-            <h2 className="text-3xl leading-tight">And your name?</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Customers see this when you message them.
-            </p>
-            <input
-              autoFocus
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Full name"
-              className="mt-6 w-full bg-card border border-border rounded-2xl px-4 py-4 text-base outline-none focus:ring-2 focus:ring-lime"
-            />
-            <PrimaryButton
-              onClick={() => goNext({ full_name: fullName.trim() })}
-              busy={savingStep}
-              disabled={!fullName.trim()}
-            >
-              Continue
-            </PrimaryButton>
-            <BackButton onClick={goBack} />
-          </StepShell>
-        )}
-
-        {step === 5 && (
-          <StepShell>
             <h2 className="text-3xl leading-tight">Mobile number?</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              For customers to reach you — never shared without permission.
+              So we can text you a code if you ever get locked out.
             </p>
             <input
               autoFocus
@@ -258,7 +257,7 @@ function OnboardingWizard() {
           </StepShell>
         )}
 
-        {step === 6 && (
+        {step === 5 && (
           <StepShell>
             <h2 className="text-3xl leading-tight">VAT registered?</h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -295,31 +294,7 @@ function OnboardingWizard() {
           </StepShell>
         )}
 
-        {step === 7 && (
-          <StepShell>
-            <h2 className="text-3xl leading-tight">Get paid faster?</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Connect Stripe so customers can pay quotes with one tap on their phone.
-              Money lands straight in your bank — usually next working day.
-            </p>
-            <ul className="mt-5 space-y-2 text-sm">
-              <FeatureLine>Tap-to-pay link on every quote</FeatureLine>
-              <FeatureLine>Card, Apple Pay, Google Pay</FeatureLine>
-              <FeatureLine>0.5% Quottr fee, plus Stripe's standard fees</FeatureLine>
-            </ul>
-            <PrimaryButton onClick={finishConnect} busy={connecting}>
-              Connect Stripe <ExternalLink className="h-4 w-4 ml-1" />
-            </PrimaryButton>
-            <button
-              type="button"
-              onClick={skipConnect}
-              className="mt-3 w-full text-sm font-semibold text-muted-foreground py-3"
-            >
-              Skip for now
-            </button>
-            <BackButton onClick={goBack} />
-          </StepShell>
-        )}
+
 
         {step === TOTAL_STEPS + 1 && (
           <StepShell>
