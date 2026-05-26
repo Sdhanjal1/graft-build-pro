@@ -8,6 +8,7 @@ const styles: Record<Variant, string> = {
   accepted: "bg-status-accepted/15 text-status-accepted",
   declined: "bg-muted text-muted-foreground line-through",
   invoiced: "bg-ink text-paper",
+  completed: "bg-status-accepted/15 text-status-accepted",
   paid: "bg-lime/30 text-ink",
   overdue: "bg-status-overdue/15 text-status-overdue",
 };

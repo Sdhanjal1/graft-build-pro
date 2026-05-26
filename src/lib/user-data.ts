@@ -7,7 +7,7 @@ import {
   type PaymentTiming,
 } from "@/lib/payment-timing";
 
-export type QuoteStatus = "pending" | "sent" | "accepted" | "declined" | "paid" | "overdue";
+export type QuoteStatus = "pending" | "sent" | "accepted" | "declined" | "completed" | "paid" | "overdue";
 export type PaymentMethod = "card" | "bank" | "cash" | "other";
 export type PaymentRequestType = "deposit" | "full" | "custom";
 export type JobStatus = "scheduled" | "in_progress" | "complete";
@@ -729,6 +729,13 @@ export const saveGeneratedQuote = async (input: {
   const total = +(subtotal + vat_amount).toFixed(2);
   const due = new Date(); due.setDate(due.getDate() + 14);
   const user_id = await requireUserId();
+  const timing = deriveTimingFromTotal(total);
+  const depositPct = timing === "deposit_then_balance"
+    ? defaultDepositPercent(userProfile.default_deposit_percent)
+    : 0;
+  const depositAmt = timing === "deposit_then_balance"
+    ? computeDepositAmount(subtotal, depositPct)
+    : 0;
   const insertPayload = {
     user_id,
     ref: nextQuoteRef(),
@@ -743,6 +750,9 @@ export const saveGeneratedQuote = async (input: {
     status: "pending" as QuoteStatus,
     due_date: due.toISOString().slice(0, 10),
     payment_method: "card" as PaymentMethod,
+    payment_timing: timing,
+    deposit_amount: depositAmt,
+    deposit_percent: depositPct,
   };
   const { data, error } = await supabase
     .from("quotes")
@@ -1015,6 +1025,41 @@ export const markInvoiced = async (quoteId: string): Promise<Quote | null> => {
   q.invoiced_at = invoiced_at;
   q.invoice_due_date = invoice_due_date;
   ensureChasesFor(q);
+  bumpVersion();
+  return q;
+};
+
+/** Mark a job physically complete (sets status + completed_at). */
+export const markJobComplete = async (quoteId: string): Promise<Quote | null> => {
+  const q = getQuote(quoteId);
+  if (!q) return null;
+  const completed_at = new Date().toISOString();
+  const { error } = await supabase
+    .from("quotes")
+    .update({ status: "completed", completed_at })
+    .eq("id", quoteId);
+  if (error) throw error;
+  q.status = "completed";
+  q.completed_at = completed_at;
+  bumpVersion();
+  return q;
+};
+
+/** Update payment timing + deposit fields on a quote. */
+export const updateQuotePaymentTiming = async (
+  quoteId: string,
+  patch: { payment_timing?: PaymentTiming; deposit_amount?: number; deposit_percent?: number },
+): Promise<Quote | null> => {
+  const q = getQuote(quoteId);
+  if (!q) return null;
+  const { error } = await supabase
+    .from("quotes")
+    .update(patch as never)
+    .eq("id", quoteId);
+  if (error) throw error;
+  if (patch.payment_timing !== undefined) q.payment_timing = patch.payment_timing;
+  if (patch.deposit_amount !== undefined) q.deposit_amount = patch.deposit_amount;
+  if (patch.deposit_percent !== undefined) q.deposit_percent = patch.deposit_percent;
   bumpVersion();
   return q;
 };

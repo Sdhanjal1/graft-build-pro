@@ -7,12 +7,17 @@ import {
   getQuote, getClient, userProfile, formatGBP,
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
-  setQuoteStatus, updateQuoteLineItems,
+  setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles } from "lucide-react";
+import {
+  computeDepositAmount, computeDepositPercent, parseDepositInput,
+  paymentTimingLabel, shouldSuggestStaged, defaultDepositPercent,
+  type PaymentTiming,
+} from "@/lib/payment-timing";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
@@ -63,13 +68,23 @@ function QuoteDetail() {
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | undefined>(quote.payment_request);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // (scheduling removed)
   const [askDeposit, setAskDeposit] = useState(false);
   const [askInvoice, setAskInvoice] = useState(false);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
   const [sendOpen, setSendOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+
+  // Payment timing state
+  const initialTiming: PaymentTiming = quote.payment_timing ?? "on_completion";
+  const initialPct = quote.deposit_percent ?? (initialTiming === "deposit_then_balance" ? defaultDepositPercent(userProfile.default_deposit_percent) : 0);
+  const initialAmt = quote.deposit_amount ?? (initialTiming === "deposit_then_balance" ? computeDepositAmount(quote.subtotal, initialPct) : 0);
+  const [timing, setTimingState] = useState<PaymentTiming>(initialTiming);
+  const [depositPct, setDepositPct] = useState<number>(initialPct);
+  const [depositAmt, setDepositAmt] = useState<number>(initialAmt);
+  const [depositAmtRaw, setDepositAmtRaw] = useState<string>(initialAmt ? String(initialAmt) : "");
+  const [depositPctRaw, setDepositPctRaw] = useState<string>(initialPct ? String(initialPct) : "");
+
   const [portalStatus, setPortalStatus] = useState<{
     client_id: string;
     portal_code: string | null;
@@ -273,13 +288,72 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not generate PDF");
     }
   };
+  // Mark job physically complete (separate from marking paid).
+  const completeJob = async () => {
+    try {
+      await markJobComplete(quote.id);
+      setStatusState("completed");
+      feedback("success");
+      toast.success("Job marked complete — ready to take payment");
+    } catch (e) {
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
+    }
+  };
+
+  // Debounced save of payment timing / deposit changes.
+  const timingSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const persistTiming = (patch: { payment_timing?: PaymentTiming; deposit_amount?: number; deposit_percent?: number }) => {
+    if (timingSaveTimer.current) clearTimeout(timingSaveTimer.current);
+    timingSaveTimer.current = setTimeout(() => {
+      updateQuotePaymentTiming(quote.id, patch).catch((e) => {
+        console.warn("[payment-timing] save failed", e);
+      });
+    }, 500);
+  };
+  const onTimingChange = (next: PaymentTiming) => {
+    setTimingState(next);
+    if (next === "deposit_then_balance") {
+      const pct = depositPct || defaultDepositPercent(userProfile.default_deposit_percent);
+      const amt = computeDepositAmount(quote.subtotal, pct);
+      setDepositPct(pct); setDepositAmt(amt);
+      setDepositPctRaw(String(pct)); setDepositAmtRaw(String(amt));
+      persistTiming({ payment_timing: next, deposit_amount: amt, deposit_percent: pct });
+    } else {
+      setDepositPct(0); setDepositAmt(0);
+      setDepositAmtRaw(""); setDepositPctRaw("");
+      persistTiming({ payment_timing: next, deposit_amount: 0, deposit_percent: 0 });
+    }
+  };
+  const onDepositAmtBlur = () => {
+    const parsed = parseDepositInput(depositAmtRaw);
+    if (!parsed) return;
+    const amt = parsed.kind === "amount" ? parsed.value : computeDepositAmount(quote.subtotal, parsed.value);
+    const pct = computeDepositPercent(quote.subtotal, amt);
+    setDepositAmt(amt); setDepositPct(pct);
+    setDepositAmtRaw(String(amt)); setDepositPctRaw(String(pct));
+    persistTiming({ deposit_amount: amt, deposit_percent: pct });
+  };
+  const onDepositPctBlur = () => {
+    const parsed = parseDepositInput(depositPctRaw);
+    if (!parsed) return;
+    const pct = parsed.kind === "pct" ? parsed.value : computeDepositPercent(quote.subtotal, parsed.value);
+    const amt = computeDepositAmount(quote.subtotal, pct);
+    setDepositPct(pct); setDepositAmt(amt);
+    setDepositPctRaw(String(pct)); setDepositAmtRaw(String(amt));
+    persistTiming({ deposit_amount: amt, deposit_percent: pct });
+  };
+
   let primary: { label: string; icon: React.ComponentType<{ className?: string }>; onClick: () => void };
   if (status === "pending" || status === "declined") {
-    primary = { label: "Send quote", icon: Send, onClick: () => setSendOpen(true) };
+    primary = client
+      ? { label: `Send to ${client.name.split(" ")[0]}`, icon: Send, onClick: () => setSendOpen(true) }
+      : { label: "Add client to send", icon: Send, onClick: () => setAssignOpen(true) };
   } else if (status === "sent") {
     primary = { label: "Mark as accepted", icon: ThumbsUp, onClick: acceptQuote };
   } else if (status === "accepted") {
-    primary = { label: "Mark job complete", icon: Check, onClick: () => setAskingPaid(true) };
+    primary = { label: "Mark job complete", icon: Check, onClick: completeJob };
+  } else if (status === "completed") {
+    primary = { label: "Mark as paid", icon: CheckCircle2, onClick: () => setAskingPaid(true) };
   } else {
     primary = { label: "Share PDF", icon: Share2, onClick: sharePdf };
   }
@@ -411,58 +485,76 @@ function QuoteDetail() {
       )}
 
 
-      {/* Payment method selector */}
+      {/* Payment timing — trader-side configuration (NOT the customer payment selector) */}
       <section className="px-5 mt-5">
-        <h2 className="text-xl mb-2.5">Payment method</h2>
+        <div className="flex items-baseline justify-between mb-2.5">
+          <h2 className="text-xl">Payment timing</h2>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">When you get paid</span>
+        </div>
         <div className="card-surface p-2 space-y-1.5">
-          <MethodOption
-            active={method === "card"} onClick={() => setMethod("card")}
-            icon={CreditCard} label="Pay by card online"
-            sub={userProfile.stripe_connected ? "Stripe link auto-included" : "Stripe (test link), connect Stripe in Settings to go live"}
-          />
-          <MethodOption
-            active={method === "bank"} onClick={() => setMethod("bank")}
-            icon={Landmark} label="Pay by bank transfer"
-            sub={`${userProfile.bank_name} · sort ${userProfile.sort_code}`}
-          />
-          <MethodOption
-            active={method === "cash"} onClick={() => setMethod("cash")}
-            icon={Banknote} label="Cash on completion"
-            sub="Customer brings cash on the day"
-          />
+          <MethodOption active={timing === "on_completion"} icon={Check} label="On completion"
+            sub="Customer pays after work is done" onClick={() => onTimingChange("on_completion")} />
+          <MethodOption active={timing === "deposit_then_balance"} icon={Banknote} label="Deposit then balance"
+            sub="Take a deposit up front, balance on completion" onClick={() => onTimingChange("deposit_then_balance")} />
+          <MethodOption active={timing === "staged"} icon={Clock} label="Staged payments"
+            sub="Multiple scheduled payments" onClick={() => onTimingChange("staged")} />
+          <MethodOption active={timing === "upfront"} icon={Zap} label="Upfront"
+            sub="Full payment before work starts" onClick={() => onTimingChange("upfront")} />
         </div>
 
-        {method === "card" && (
-          <div className="mt-3">
-            <a
-              href={paymentRequest ? paymentRequest.link : stripePaymentLink(liveQuote)}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full bg-ink text-paper rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
-            >
-              <CreditCard className="h-4 w-4" /> Pay by card
-              {paymentRequest && <span className="num text-paper/80">· {formatGBP(paymentRequest.amount)}</span>}
-            </a>
-            {!userProfile.stripe_connected && (
-              <p className="text-[10px] text-muted-foreground mt-2 text-center">Test link, add your Stripe keys in Settings to go live.</p>
-            )}
+        {timing === "deposit_then_balance" && (
+          <div className="mt-3 card-surface p-4 space-y-3">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Deposit</p>
+            <div className="grid grid-cols-2 gap-2.5">
+              <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
+                <span className="text-ink/60 font-bold">£</span>
+                <input
+                  type="text" inputMode="decimal"
+                  value={depositAmtRaw}
+                  onChange={(e) => setDepositAmtRaw(e.target.value)}
+                  onFocus={(e) => e.currentTarget.select()}
+                  onBlur={onDepositAmtBlur}
+                  placeholder="0.00"
+                  className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none"
+                />
+              </label>
+              <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
+                <input
+                  type="text" inputMode="decimal"
+                  value={depositPctRaw}
+                  onChange={(e) => setDepositPctRaw(e.target.value)}
+                  onFocus={(e) => e.currentTarget.select()}
+                  onBlur={onDepositPctBlur}
+                  placeholder="0"
+                  className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none text-right"
+                />
+                <span className="text-ink/60 font-bold">%</span>
+              </label>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
+            </p>
           </div>
         )}
-        {method === "bank" && (
-          <div className="mt-3 card-surface p-4 space-y-2">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Bank details</p>
-            <BankRow k="Account name" v={userProfile.bank_account_name} />
-            <BankRow k="Sort code" v={userProfile.sort_code} />
-            <BankRow k="Account no." v={userProfile.account_number} />
-            <BankRow k="Reference" v={quote.ref} />
-          </div>
+
+        {timing !== "deposit_then_balance" && (
+          <p className="text-[11px] text-muted-foreground mt-3 px-1">
+            {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
+          </p>
         )}
-        {method === "cash" && (
-          <div className="mt-3 card-surface p-4">
-            <p className="text-sm"><span className="font-semibold">Cash on completion</span>, please have cash ready on the day.</p>
+
+        {shouldSuggestStaged(quote.total, timing) && (
+          <div className="mt-3 rounded-2xl border border-lime/50 bg-lime/15 px-4 py-3 flex items-start gap-2">
+            <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-ink" />
+            <p className="text-[12px] text-ink leading-relaxed">
+              This job is over {formatGBP(2000)} — staged payments may help cashflow.
+              <button onClick={() => onTimingChange("staged")} className="ml-1 underline font-semibold">Use staged</button>
+            </p>
           </div>
         )}
       </section>
+
+
 
       {/* Spacer so content isn't hidden behind sticky bar */}
       <div className="h-36" aria-hidden />
