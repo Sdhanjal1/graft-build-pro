@@ -426,6 +426,7 @@ function NewQuotePage() {
 
 
         <form
+        id="new-quote-form"
         className="px-5 space-y-4 pb-64"
         onSubmit={(e) => {
           e.preventDefault();
