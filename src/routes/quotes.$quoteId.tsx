@@ -8,7 +8,7 @@ import {
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   setQuoteStatus, updateQuoteLineItems,
-  type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem,
+  type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
@@ -837,6 +837,23 @@ function LineItemsEditor({
     }
   };
 
+  const changeCategory = async (i: number, category: LineItemCategory) => {
+    const next = items.map((li, idx) => (idx === i ? { ...li, category } : li));
+    setItems(next);
+    onChange?.(next);
+    setSaving(true);
+    try {
+      await updateQuoteLineItems(quote.id, next, vatRegistered);
+      feedback("success");
+    } catch (e) {
+      console.error(e);
+      feedback("error");
+      toast.error(e instanceof Error ? e.message : "Could not save category");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <>
       <ul>
@@ -860,9 +877,23 @@ function LineItemsEditor({
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {li.qty} × {formatGBP(li.unit_price)}
-                </p>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  <p className="text-xs text-muted-foreground">
+                    {li.qty} × {formatGBP(li.unit_price)}
+                  </p>
+                  <select
+                    value={li.category ?? "other"}
+                    onChange={(e) => changeCategory(i, e.target.value as LineItemCategory)}
+                    aria-label="Accounting category"
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary text-ink border border-border outline-none focus:border-ink/40"
+                  >
+                    <option value="labour">Labour</option>
+                    <option value="materials">Materials</option>
+                    <option value="certificate">Certificate</option>
+                    <option value="cis_labour">CIS Labour</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
               </div>
               {editing ? (
                 <div className="flex items-center gap-2">
