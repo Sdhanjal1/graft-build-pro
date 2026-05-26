@@ -142,17 +142,26 @@ function NewQuotePage() {
     };
   }, []);
 
-  // Auto-start voice recording when arriving with ?voice=1
-  const autoStartedRef = useRef(false);
+  // When arriving with ?voice=1, show the voice overlay in idle state.
+  // iOS Safari requires getUserMedia to be invoked from a real user gesture,
+  // so the user taps the lime mic in the overlay to start.
+  const [voicePending, setVoicePending] = useState(false);
   useEffect(() => {
-    if (voiceParam === 1 && !autoStartedRef.current && !recording && !transcribing && !draft) {
-      autoStartedRef.current = true;
-      startRecording();
-      // Clear the search param so it doesn't re-trigger on remount
+    if (voiceParam === 1 && !recording && !transcribing && !draft) {
+      setVoicePending(true);
       navigate({ to: "/quotes/new", search: {}, replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceParam]);
+
+  const handleVoiceStart = async () => {
+    setVoicePending(false);
+    await startRecording();
+  };
+  const handleVoiceClose = () => {
+    setVoicePending(false);
+    stopRecording();
+  };
 
   const stopRecording = () => {
     const recognition = speechRecognitionRef.current;
