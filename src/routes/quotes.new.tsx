@@ -230,6 +230,13 @@ function NewQuotePage() {
         clearInterval(tickRef.current);
         tickRef.current = null;
       }
+      // Tear down live preview recognizer (display only — never used as result).
+      try {
+        recognitionRef.current?.stop?.();
+      } catch {
+        // ignore
+      }
+      recognitionRef.current = null;
       setRecording(false);
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -258,8 +265,52 @@ function NewQuotePage() {
         );
       } finally {
         setTranscribing(false);
+        setLivePreview("");
+        liveFinalRef.current = "";
       }
     };
+
+    // Live preview via Web Speech API — visual feedback only, discarded on stop.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR: any =
+      typeof window !== "undefined"
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        : null;
+    if (SR) {
+      setLiveSupported(true);
+      try {
+        const rec = new SR();
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.lang = "en-GB";
+        liveFinalRef.current = "";
+        setLivePreview("");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        rec.onresult = (event: any) => {
+          let interim = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const res = event.results[i];
+            const txt = res[0]?.transcript ?? "";
+            if (res.isFinal) {
+              liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
+            } else {
+              interim += txt;
+            }
+          }
+          setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
+        };
+        rec.onerror = () => {
+          // Silent: this is preview only.
+        };
+        recognitionRef.current = rec;
+        rec.start();
+      } catch {
+        recognitionRef.current = null;
+      }
+    } else {
+      setLiveSupported(false);
+    }
 
     // Timeslice of 1s ensures a chunk is flushed every second even on iOS Safari.
     recordStartRef.current = Date.now();
