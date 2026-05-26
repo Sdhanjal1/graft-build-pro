@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
+import CountUp from "react-countup";
 import { AppShell } from "@/components/AppShell";
 import {
   userProfile, stats, formatGBP, getClient, mockQuotes,
@@ -101,7 +102,7 @@ function AppHomePage() {
             </p>
             <Link to="/chaser" className="block mt-1 active:opacity-80 transition">
               <p className={`num text-6xl leading-none text-lime`}>
-                {formatGBP(s.outstanding)}
+                <CountUp start={0} end={s.outstanding} duration={0.6} formattingFn={formatGBP} />
               </p>
             </Link>
           </div>

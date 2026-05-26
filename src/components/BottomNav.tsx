@@ -43,8 +43,11 @@ function NavItem({
   return (
     <Link
       to={to}
-      className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full min-w-0"
+      className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full min-w-0 relative"
     >
+      {active && (
+        <span className="absolute top-1.5 h-1 w-1 rounded-full bg-lime animate-pulse" />
+      )}
       <Icon className={`h-5 w-5 ${active ? "text-lime" : "text-paper/60"}`} strokeWidth={active ? 2.5 : 2} />
       <span className={`text-[11px] font-semibold ${active ? "text-lime" : "text-paper/60"}`}>{label}</span>
     </Link>
