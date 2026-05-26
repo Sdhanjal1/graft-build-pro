@@ -288,13 +288,72 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not generate PDF");
     }
   };
+  // Mark job physically complete (separate from marking paid).
+  const completeJob = async () => {
+    try {
+      await markJobComplete(quote.id);
+      setStatusState("completed");
+      feedback("success");
+      toast.success("Job marked complete — ready to take payment");
+    } catch (e) {
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
+    }
+  };
+
+  // Debounced save of payment timing / deposit changes.
+  const timingSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const persistTiming = (patch: { payment_timing?: PaymentTiming; deposit_amount?: number; deposit_percent?: number }) => {
+    if (timingSaveTimer.current) clearTimeout(timingSaveTimer.current);
+    timingSaveTimer.current = setTimeout(() => {
+      updateQuotePaymentTiming(quote.id, patch).catch((e) => {
+        console.warn("[payment-timing] save failed", e);
+      });
+    }, 500);
+  };
+  const onTimingChange = (next: PaymentTiming) => {
+    setTimingState(next);
+    if (next === "deposit_then_balance") {
+      const pct = depositPct || defaultDepositPercent(userProfile.default_deposit_percent);
+      const amt = computeDepositAmount(quote.subtotal, pct);
+      setDepositPct(pct); setDepositAmt(amt);
+      setDepositPctRaw(String(pct)); setDepositAmtRaw(String(amt));
+      persistTiming({ payment_timing: next, deposit_amount: amt, deposit_percent: pct });
+    } else {
+      setDepositPct(0); setDepositAmt(0);
+      setDepositAmtRaw(""); setDepositPctRaw("");
+      persistTiming({ payment_timing: next, deposit_amount: 0, deposit_percent: 0 });
+    }
+  };
+  const onDepositAmtBlur = () => {
+    const parsed = parseDepositInput(depositAmtRaw);
+    if (!parsed) return;
+    const amt = parsed.kind === "amount" ? parsed.value : computeDepositAmount(quote.subtotal, parsed.value);
+    const pct = computeDepositPercent(quote.subtotal, amt);
+    setDepositAmt(amt); setDepositPct(pct);
+    setDepositAmtRaw(String(amt)); setDepositPctRaw(String(pct));
+    persistTiming({ deposit_amount: amt, deposit_percent: pct });
+  };
+  const onDepositPctBlur = () => {
+    const parsed = parseDepositInput(depositPctRaw);
+    if (!parsed) return;
+    const pct = parsed.kind === "pct" ? parsed.value : computeDepositPercent(quote.subtotal, parsed.value);
+    const amt = computeDepositAmount(quote.subtotal, pct);
+    setDepositPct(pct); setDepositAmt(amt);
+    setDepositPctRaw(String(pct)); setDepositAmtRaw(String(amt));
+    persistTiming({ deposit_amount: amt, deposit_percent: pct });
+  };
+
   let primary: { label: string; icon: React.ComponentType<{ className?: string }>; onClick: () => void };
   if (status === "pending" || status === "declined") {
-    primary = { label: "Send quote", icon: Send, onClick: () => setSendOpen(true) };
+    primary = client
+      ? { label: `Send to ${client.name.split(" ")[0]}`, icon: Send, onClick: () => setSendOpen(true) }
+      : { label: "Add client to send", icon: Send, onClick: () => setAssignOpen(true) };
   } else if (status === "sent") {
     primary = { label: "Mark as accepted", icon: ThumbsUp, onClick: acceptQuote };
   } else if (status === "accepted") {
-    primary = { label: "Mark job complete", icon: Check, onClick: () => setAskingPaid(true) };
+    primary = { label: "Mark job complete", icon: Check, onClick: completeJob };
+  } else if (status === "completed") {
+    primary = { label: "Mark as paid", icon: CheckCircle2, onClick: () => setAskingPaid(true) };
   } else {
     primary = { label: "Share PDF", icon: Share2, onClick: sharePdf };
   }
