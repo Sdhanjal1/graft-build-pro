@@ -46,10 +46,6 @@ function pickMimeType(): string {
   return "";
 }
 
-function getSpeechRecognition(): SpeechRecognitionConstructor | null {
-  if (typeof window === "undefined") return null;
-  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
-}
 
 async function blobToBase64(blob: Blob): Promise<string> {
   const buf = await blob.arrayBuffer();
