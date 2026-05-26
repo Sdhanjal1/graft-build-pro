@@ -1,6 +1,95 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { generateInvoicePdfBytes } from "@/lib/invoice-pdf.server";
+import { sendInvoiceEmail } from "@/lib/email/send-invoice.server";
+
+async function sendBrandedInvoiceEmail(opts: {
+  userId: string;
+  quoteId: string;
+  customerEmail: string | null | undefined;
+  amountCents: number | undefined;
+  currency: string;
+  paymentIntent: string | null | undefined;
+  paymentMethod: string;
+}) {
+  try {
+    if (!opts.customerEmail) {
+      console.log("[payments/webhook] no customer email — skipping invoice email");
+      return;
+    }
+    const [{ data: quote }, { data: profile }] = await Promise.all([
+      supabaseAdmin
+        .from("quotes")
+        .select("id, ref, title, job_description, line_items, subtotal, vat_amount, total, vat_registered, status, created_at, client_id")
+        .eq("id", opts.quoteId)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("profiles")
+        .select("business_name, full_name, phone, email, town, address_line_1, address_line_2, postcode, registration_number, vat_registered, vat_number")
+        .eq("id", opts.userId)
+        .maybeSingle(),
+    ]);
+    if (!quote) {
+      console.warn("[payments/webhook] quote not found for invoice email", opts.quoteId);
+      return;
+    }
+    let client: any = null;
+    if ((quote as any).client_id) {
+      const { data: c } = await supabaseAdmin
+        .from("clients")
+        .select("name, address, email, phone")
+        .eq("id", (quote as any).client_id)
+        .maybeSingle();
+      client = c;
+    }
+    const paidAt = new Date().toISOString();
+    const pdfBytes = generateInvoicePdfBytes(
+      {
+        ref: (quote as any).ref,
+        title: (quote as any).title,
+        job_description: (quote as any).job_description,
+        line_items: Array.isArray((quote as any).line_items) ? (quote as any).line_items : [],
+        subtotal: Number((quote as any).subtotal) || 0,
+        vat_amount: Number((quote as any).vat_amount) || 0,
+        total: Number((quote as any).total) || 0,
+        vat_registered: (quote as any).vat_registered,
+        created_at: (quote as any).created_at,
+        paid_at: paidAt,
+        payment_method: opts.paymentMethod,
+        stripe_payment_intent: opts.paymentIntent ?? null,
+      },
+      client,
+      profile as any,
+    );
+    const businessName =
+      (profile as any)?.business_name || (profile as any)?.full_name || "Your tradesperson";
+    const ref = (quote as any).ref ?? opts.quoteId.slice(0, 8);
+    const amount = (opts.amountCents ?? Math.round(Number((quote as any).total) * 100)) / 100;
+    const amountFormatted = new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: (opts.currency || "gbp").toUpperCase(),
+    }).format(amount);
+    const paidDate = new Date(paidAt).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    await sendInvoiceEmail({
+      to: opts.customerEmail,
+      businessName,
+      replyTo: (profile as any)?.email ?? null,
+      invoiceRef: ref,
+      amountFormatted,
+      paidDate,
+      pdfBytes,
+      pdfFilename: `Invoice-${ref}.pdf`,
+    });
+  } catch (e) {
+    // NEVER let an email failure break the webhook.
+    console.error("[payments/webhook] sendBrandedInvoiceEmail failed", e);
+  }
+}
 
 // Lovable Payments registers this exact path at enable-time and pre-subscribes
 // the relevant events. The ?env=sandbox or ?env=live query string tells us
