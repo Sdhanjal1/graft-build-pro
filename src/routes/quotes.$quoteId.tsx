@@ -852,7 +852,7 @@ function LineItemsEditor({
                   <p className="text-sm font-medium">{li.description}</p>
                   {label && (
                     <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeClass(li.source)}`}
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeClass(effectiveSource)}`}
                     >
                       {label}
                     </span>
