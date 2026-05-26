@@ -34,9 +34,16 @@ async function signDocs<T extends { file_url: string }>(rows: T[]): Promise<T[]>
   );
 }
 
-
 // ---------- Public: fetch portal data by client code ----------
 const PORTAL_LINK_TTL_DAYS = 90;
+
+function assertPortalNotExpired(portal_issued_at: string | null | undefined) {
+  if (!portal_issued_at) return;
+  const ageDays = (Date.now() - new Date(portal_issued_at).getTime()) / 86_400_000;
+  if (ageDays > PORTAL_LINK_TTL_DAYS) {
+    throw new Error("This portal link has expired. Please contact your tradesperson for a new link.");
+  }
+}
 export const getClientPortalData = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ code: z.string().min(8).max(64) }).parse(d))
   .handler(async ({ data }) => {
