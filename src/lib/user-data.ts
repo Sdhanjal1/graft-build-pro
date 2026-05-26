@@ -915,7 +915,8 @@ export const upcomingChases = () => {
     .filter((c) => c.status === "scheduled" && new Date(c.due_at).getTime() > now)
     .sort((a, b) => +new Date(a.due_at) - +new Date(b.due_at))
     .map((c) => ({ chase: c, quote: getQuote(c.quote_id) }))
-    .filter((x): x is { chase: ScheduledChase; quote: Quote } => !!x.quote);
+    .filter((x): x is { chase: ScheduledChase; quote: Quote } => !!x.quote)
+    .filter(({ quote }) => isQuoteChaseableNow(quote));
 };
 
 export const markChaseSent = (chaseId: string) => {
