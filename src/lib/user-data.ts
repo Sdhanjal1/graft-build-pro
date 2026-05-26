@@ -865,10 +865,25 @@ export const cancelChasesFor = (quoteId: string) => {
   }
 };
 
-/** Seed chases for every overdue quote on load. */
+/**
+ * Whether the chaser should currently be nudging on a given quote, given its
+ * payment timing. For deposit_then_balance: chase the deposit as soon as the
+ * customer accepts; chase the balance only once the job is marked complete.
+ * For everything else (on_completion / upfront / staged): only chase after
+ * the job is marked complete or the invoice has actually gone overdue.
+ */
+export const isQuoteChaseableNow = (quote: Quote): boolean => {
+  const timing = quote.payment_timing ?? "on_completion";
+  if (timing === "deposit_then_balance") {
+    return ["accepted", "completed", "overdue"].includes(quote.status);
+  }
+  return ["completed", "overdue"].includes(quote.status);
+};
+
+/** Seed chases for every quote that's currently chaseable. */
 export const seedChases = () => {
   mockQuotes
-    .filter((q) => q.status === "overdue")
+    .filter((q) => q.status === "overdue" || isQuoteChaseableNow(q))
     .forEach((q) => ensureChasesFor(q));
 };
 
@@ -886,7 +901,8 @@ export const chasesDueNow = () => {
   const due = mockChases
     .filter((c) => c.status === "scheduled" && new Date(c.due_at).getTime() <= now)
     .map((c) => ({ chase: c, quote: getQuote(c.quote_id) }))
-    .filter((x): x is { chase: ScheduledChase; quote: Quote } => !!x.quote);
+    .filter((x): x is { chase: ScheduledChase; quote: Quote } => !!x.quote)
+    .filter(({ quote }) => isQuoteChaseableNow(quote));
   due.forEach(({ chase }) => {
     if (!chase.auto_send_at) chase.auto_send_at = new Date(now + windowMs).toISOString();
   });
@@ -899,7 +915,8 @@ export const upcomingChases = () => {
     .filter((c) => c.status === "scheduled" && new Date(c.due_at).getTime() > now)
     .sort((a, b) => +new Date(a.due_at) - +new Date(b.due_at))
     .map((c) => ({ chase: c, quote: getQuote(c.quote_id) }))
-    .filter((x): x is { chase: ScheduledChase; quote: Quote } => !!x.quote);
+    .filter((x): x is { chase: ScheduledChase; quote: Quote } => !!x.quote)
+    .filter(({ quote }) => isQuoteChaseableNow(quote));
 };
 
 export const markChaseSent = (chaseId: string) => {

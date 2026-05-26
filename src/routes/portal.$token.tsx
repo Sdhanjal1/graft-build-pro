@@ -6,6 +6,7 @@ import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadPortalPdf } from "@/lib/portal-pdf";
 import { Loader2, Check, X, Download } from "lucide-react";
+import { acceptButtonLabel, paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
 
 export const Route = createFileRoute("/portal/$token")({
   component: PortalPage,
@@ -159,6 +160,14 @@ function PortalPage() {
               <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
               <span className="num text-3xl text-ink">{formatGBP(quote.total)}</span>
             </div>
+            <p className="text-xs text-muted-foreground pt-1">
+              {paymentTimingLabel({
+                timing: (quote.payment_timing as PaymentTiming) ?? "on_completion",
+                total: Number(quote.total) || 0,
+                depositAmount: Number(quote.deposit_amount) || 0,
+                depositPercent: Number(quote.deposit_percent) || 0,
+              })}
+            </p>
           </div>
         </div>
       </section>
@@ -218,10 +227,16 @@ function PortalPage() {
                 <button
                   onClick={() => onRespond("accepted")}
                   disabled={responding}
-                  className="flex-[2] h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="flex-[2] h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3"
                 >
                   {responding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  Accept quote
+                  <span className="truncate">
+                    {acceptButtonLabel({
+                      timing: (quote.payment_timing as PaymentTiming) ?? "on_completion",
+                      total: Number(quote.total) || 0,
+                      depositAmount: Number(quote.deposit_amount) || 0,
+                    })}
+                  </span>
                 </button>
               </div>
             ) : isPaid ? (

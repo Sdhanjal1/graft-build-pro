@@ -117,7 +117,7 @@ export const getPortalData = createServerFn({ method: "POST" })
     const [{ data: quote }, { data: messages }, { data: profile }, { data: payment }] = await Promise.all([
       supabaseAdmin
         .from("quotes")
-        .select("id, ref, title, job_description, line_items, subtotal, vat_amount, total, vat_registered, status, created_at, due_date, client_id")
+        .select("id, ref, title, job_description, line_items, subtotal, vat_amount, total, vat_registered, status, created_at, due_date, client_id, payment_timing, deposit_amount, deposit_percent, completed_at")
         .eq("id", tk.quote_id)
         .maybeSingle(),
       supabaseAdmin
