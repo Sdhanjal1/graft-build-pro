@@ -13,7 +13,7 @@ export const Route = createFileRoute("/onboarding")({
   head: () => ({
     meta: [
       { title: "Welcome to Quottr" },
-      { name: "description", content: "Get your account ready in 90 seconds." },
+      { name: "description", content: "Seven quick questions to set up your account." },
       { name: "robots", content: "noindex" },
     ],
   }),
