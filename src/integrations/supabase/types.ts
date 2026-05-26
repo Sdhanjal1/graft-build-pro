@@ -194,6 +194,8 @@ export type Database = {
           account_paused_at: string | null
           accounting_codes: Json
           accounting_software: string | null
+          address_line_1: string | null
+          address_line_2: string | null
           bank_account_name: string | null
           bank_name: string | null
           business_name: string | null
@@ -205,6 +207,7 @@ export type Database = {
           payment_reference_note: string | null
           payment_terms: string | null
           phone: string | null
+          postcode: string | null
           quote_footer: string | null
           quote_intro: string | null
           registration_number: string | null
@@ -226,6 +229,8 @@ export type Database = {
           account_paused_at?: string | null
           accounting_codes?: Json
           accounting_software?: string | null
+          address_line_1?: string | null
+          address_line_2?: string | null
           bank_account_name?: string | null
           bank_name?: string | null
           business_name?: string | null
@@ -237,6 +242,7 @@ export type Database = {
           payment_reference_note?: string | null
           payment_terms?: string | null
           phone?: string | null
+          postcode?: string | null
           quote_footer?: string | null
           quote_intro?: string | null
           registration_number?: string | null
@@ -258,6 +264,8 @@ export type Database = {
           account_paused_at?: string | null
           accounting_codes?: Json
           accounting_software?: string | null
+          address_line_1?: string | null
+          address_line_2?: string | null
           bank_account_name?: string | null
           bank_name?: string | null
           business_name?: string | null
@@ -269,6 +277,7 @@ export type Database = {
           payment_reference_note?: string | null
           payment_terms?: string | null
           phone?: string | null
+          postcode?: string | null
           quote_footer?: string | null
           quote_intro?: string | null
           registration_number?: string | null
