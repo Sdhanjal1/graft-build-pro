@@ -7,7 +7,7 @@ import {
   type PaymentTiming,
 } from "@/lib/payment-timing";
 
-export type QuoteStatus = "pending" | "sent" | "accepted" | "declined" | "paid" | "overdue";
+export type QuoteStatus = "pending" | "sent" | "accepted" | "declined" | "completed" | "paid" | "overdue";
 export type PaymentMethod = "card" | "bank" | "cash" | "other";
 export type PaymentRequestType = "deposit" | "full" | "custom";
 export type JobStatus = "scheduled" | "in_progress" | "complete";
