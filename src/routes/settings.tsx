@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BillingSection } from "@/components/BillingSection";
 import { ExportInvoicesButton } from "@/components/ExportInvoicesButton";
+import { AccountingExportButton } from "@/components/AccountingExportButton";
 import { deleteMyAccount } from "@/lib/account.functions";
 
 export const Route = createFileRoute("/settings")({
@@ -175,9 +176,15 @@ function SettingsPage() {
         <BillingSection />
       </Section>
 
+      {/* ACCOUNTING EXPORT SETUP */}
+      <Section title="Accounting export setup">
+        <AccountingSetup />
+      </Section>
+
       {/* EXPORT RECORDS */}
-      <section className="px-5 mt-3">
-        <ExportInvoicesButton helperText="Download paid quotes as CSV" />
+      <section className="px-5 mt-3 space-y-3">
+        <AccountingExportButton helperText="Paid invoices, one row per line item, formatted for your accounting software." />
+        <ExportInvoicesButton helperText="Or download a simple paid-quotes summary CSV." />
       </section>
 
       {/* SIGN OUT */}
