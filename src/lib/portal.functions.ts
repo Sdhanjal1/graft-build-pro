@@ -159,10 +159,11 @@ export const respondQuoteFromPortal = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { data: client } = await supabaseAdmin
       .from("clients")
-      .select("id, user_id, name, portal_active")
+      .select("id, user_id, name, portal_active, portal_issued_at")
       .eq("portal_code", data.code)
       .maybeSingle();
     if (!client || !client.portal_active) throw new Error("Portal not available");
+    assertPortalNotExpired(client.portal_issued_at);
 
     const { data: quote } = await supabaseAdmin
       .from("quotes")
