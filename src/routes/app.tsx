@@ -1,17 +1,19 @@
 import { createFileRoute, Link, useNavigate, ClientOnly } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import CountUp from "react-countup";
 import { AppShell } from "@/components/AppShell";
 import {
   userProfile, stats, formatGBP, getClient, mockQuotes,
   todaysJobs, formatTime, getQuote,
 } from "@/lib/user-data";
-import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings } from "lucide-react";
+import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X } from "lucide-react";
 
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
 import { HomeSkeleton } from "@/components/Skeletons";
+
+const STRIPE_BANNER_DISMISS_KEY = "quottr.dismiss.connect_stripe_banner";
 
 function greetingFor(d = new Date()) {
   const h = d.getHours();
@@ -42,6 +44,13 @@ export const Route = createFileRoute("/app")({
 function AppHomePage() {
   const { session, loading } = useSession();
   const navigate = useNavigate();
+  const [bannerDismissed, setBannerDismissed] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setBannerDismissed(window.localStorage.getItem(STRIPE_BANNER_DISMISS_KEY) === "1");
+    }
+  }, []);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/auth" });
@@ -126,6 +135,40 @@ function AppHomePage() {
           </div>
         )}
       </header>
+
+      {/* Connect Stripe banner: after first quote, until connected or dismissed */}
+      {mockQuotes.length > 0 && !userProfile.stripe_connected && !bannerDismissed && (
+        <section className="px-5 mt-4">
+          <div className="card-surface p-3 flex items-center gap-3 border-l-4 border-lime">
+            <div className="h-10 w-10 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
+              <CreditCard className="h-5 w-5 text-ink" />
+            </div>
+            <Link
+              to="/settings"
+              className="flex-1 min-w-0 active:opacity-80 transition"
+            >
+              <p className="text-sm font-semibold text-ink">Take card payments</p>
+              <p className="text-[11px] text-muted-foreground">
+                Connect Stripe in 60 seconds.
+              </p>
+            </Link>
+            <button
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.localStorage.setItem(STRIPE_BANNER_DISMISS_KEY, "1");
+                }
+                setBannerDismissed(true);
+              }}
+              className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-ink active:scale-95 transition shrink-0"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </section>
+      )}
+
 
       {/* Action queue cards */}
       {hasActions ? (
