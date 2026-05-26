@@ -91,6 +91,7 @@ export type Database = {
           phone: string | null
           portal_active: boolean
           portal_code: string | null
+          portal_issued_at: string
           property_type: string | null
           reminder_last_sent_at: string | null
           service_due_date: string | null
@@ -108,6 +109,7 @@ export type Database = {
           phone?: string | null
           portal_active?: boolean
           portal_code?: string | null
+          portal_issued_at?: string
           property_type?: string | null
           reminder_last_sent_at?: string | null
           service_due_date?: string | null
@@ -125,6 +127,7 @@ export type Database = {
           phone?: string | null
           portal_active?: boolean
           portal_code?: string | null
+          portal_issued_at?: string
           property_type?: string | null
           reminder_last_sent_at?: string | null
           service_due_date?: string | null
