@@ -160,6 +160,7 @@ function NewQuotePage() {
   const appendTranscript = (text: string) => {
     const clean = text.trim();
     if (!clean) return;
+    setLastTranscript(clean);
     if (recordTargetRef.current === "clip") {
       setClips((prev) => [...prev, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, transcript: clean }]);
       return;
