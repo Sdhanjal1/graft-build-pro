@@ -135,15 +135,6 @@ function NewQuotePage() {
   };
 
   const stopRecording = () => {
-    const recognition = speechRecognitionRef.current;
-    if (recognition) {
-      try {
-        recognition.stop();
-      } catch (err) {
-        console.warn(err);
-      }
-      speechRecognitionRef.current = null;
-    }
     const mr = mediaRecorderRef.current;
     if (mr && mr.state !== "inactive") {
       mr.stop();
