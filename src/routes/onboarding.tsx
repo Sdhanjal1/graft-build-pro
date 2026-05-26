@@ -98,28 +98,6 @@ function OnboardingWizard() {
 
   const goBack = () => setStep((s) => Math.max(1, s - 1));
 
-  const finishConnect = async () => {
-    setConnecting(true);
-    try {
-      const origin = window.location.origin;
-      const { url } = await beginConnect({
-        data: {
-          returnUrl: `${origin}/onboarding?step=done`,
-          refreshUrl: `${origin}/onboarding?step=connect`,
-        },
-      });
-      window.location.href = url;
-    } catch (e) {
-      feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not start Stripe setup");
-      setConnecting(false);
-    }
-  };
-
-  const skipConnect = () => {
-    feedback("tap");
-    setStep(TOTAL_STEPS + 1);
-  };
 
   const finish = () => {
     feedback("success");
