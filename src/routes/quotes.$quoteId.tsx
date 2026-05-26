@@ -799,6 +799,7 @@ function LineItemsEditor({
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [draftPrice, setDraftPrice] = useState("");
   const [saving, setSaving] = useState(false);
+  const paidQuoteCount = usePaidQuoteCount();
 
   const subtotal = +items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
   const vat = vatRegistered ? +(subtotal * 0.2).toFixed(2) : 0;
