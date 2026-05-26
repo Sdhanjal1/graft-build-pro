@@ -557,7 +557,7 @@ function QuoteDetail() {
 
       <SendQuoteDialog
         open={sendOpen}
-        onClose={() => setSendOpen(false)}
+        onClose={() => { setSendOpen(false); setUpdatedLinkCode(undefined); }}
         quoteId={quote.id}
         quoteRef={quote.ref ?? quote.id.slice(0, 8)}
         quoteTitle={quote.title}
@@ -565,6 +565,7 @@ function QuoteDetail() {
         customerPhone={client?.phone}
         customerEmail={client?.email}
         whatsappHref={waHref}
+        updatedLinkPortalCode={updatedLinkCode}
       />
 
       <AssignClientDialog
