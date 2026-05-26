@@ -1009,6 +1009,8 @@ function VoiceOverlay({
         </span>
         {transcribing ? "Please wait…" : "Stop recording"}
       </button>
-    </div>
+    </div>,
+    document.body,
   );
 }
+
