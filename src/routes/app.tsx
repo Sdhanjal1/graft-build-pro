@@ -162,19 +162,8 @@ function AppHomePage() {
             />
           )}
         </section>
-      ) : (
-        <section className="px-5 mt-4">
-          <div className="card-surface p-5 text-center">
-            <div className="h-12 w-12 rounded-full bg-lime/15 flex items-center justify-center mx-auto">
-              <Sparkles className="h-6 w-6 text-ink" />
-            </div>
-            <p className="mt-3 text-sm font-semibold text-ink">All caught up</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Nothing needs your attention right now. Tap the mic to start a new quote.
-            </p>
-          </div>
-        </section>
-      )}
+      ) : null}
+
 
       {/* Today's jobs */}
       {today.length > 0 && (
