@@ -44,6 +44,13 @@ export const Route = createFileRoute("/app")({
 function AppHomePage() {
   const { session, loading } = useSession();
   const navigate = useNavigate();
+  const [bannerDismissed, setBannerDismissed] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setBannerDismissed(window.localStorage.getItem(STRIPE_BANNER_DISMISS_KEY) === "1");
+    }
+  }, []);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/auth" });
