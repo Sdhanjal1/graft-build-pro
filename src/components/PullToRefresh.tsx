@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, ArrowDown } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { feedback } from "@/lib/feedback";
+import { QuottrWordmark } from "@/components/QuottrLogo";
 
 const THRESHOLD = 70;
 const MAX_PULL = 120;
