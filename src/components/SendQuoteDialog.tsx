@@ -18,11 +18,14 @@ type Props = {
   customerEmail?: string;
   /** Optional fallback wa.me link kept for back-compat; the dialog now builds its own. */
   whatsappHref?: string;
+  /** When set, dialog skips token creation and uses this client portal_code with "updated link" copy. */
+  updatedLinkPortalCode?: string;
 };
 
 export function SendQuoteDialog({
   open, onClose, quoteId, quoteRef, quoteTitle,
   customerName, customerPhone, customerEmail,
+  updatedLinkPortalCode,
 }: Props) {
 
   const ensureToken = useServerFn(ensurePortalToken);
@@ -56,10 +59,17 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
   const handleQuottr = async () => {
     try {
       setBusy("sms");
-      const { token } = await ensureToken({ data: { quoteId, channel: "sms" } });
-      const url = portalUrl(token);
-      const historyLine = await portalHistoryLine();
-      const text = `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready. View, ask questions and approve here: ${url}${historyLine}`;
+      let url: string;
+      let text: string;
+      if (updatedLinkPortalCode) {
+        url = shortClientPortalUrl(updatedLinkPortalCode);
+        text = `Hi ${firstName}, here's an updated link for your quote: ${url}`;
+      } else {
+        const { token } = await ensureToken({ data: { quoteId, channel: "sms" } });
+        url = portalUrl(token);
+        const historyLine = await portalHistoryLine();
+        text = `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready. View, ask questions and approve here: ${url}${historyLine}`;
+      }
       const digits = (customerPhone ?? "").replace(/\D/g, "");
       const smsHref = digits
         ? `sms:${digits}?&body=${encodeURIComponent(text)}`
@@ -88,12 +98,20 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
   const handleEmail = async () => {
     try {
       setBusy("email");
-      const { token } = await ensureToken({ data: { quoteId, channel: "email" } });
-      const url = portalUrl(token);
-      const historyLine = await portalHistoryLine();
-      const subject = `Your quote ${quoteRef}, ${quoteTitle}`;
-      const body =
-        `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}${historyLine}\n\nThanks.`;
+      let url: string;
+      let subject: string;
+      let body: string;
+      if (updatedLinkPortalCode) {
+        url = shortClientPortalUrl(updatedLinkPortalCode);
+        subject = `Updated link for quote ${quoteRef}`;
+        body = `Hi ${firstName}, here's an updated link for your quote: ${url}`;
+      } else {
+        const { token } = await ensureToken({ data: { quoteId, channel: "email" } });
+        url = portalUrl(token);
+        const historyLine = await portalHistoryLine();
+        subject = `Your quote ${quoteRef}, ${quoteTitle}`;
+        body = `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}${historyLine}\n\nThanks.`;
+      }
       const mailHref = `mailto:${customerEmail ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.location.href = mailHref;
       toast.success(`Sent to ${customerName ?? firstName} via Email`);
@@ -177,21 +195,26 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
             onClick={async () => {
               try {
                 setBusy("wa");
-                const q = getQuote(quoteId);
-                if (!q) throw new Error("Quote not found");
                 let portalUrl = "";
-                try {
-                  const { portal_code } = await fetchClientCode({ data: { quoteId } });
-                  if (portal_code) {
-                    portalUrl = shortClientPortalUrl(portal_code);
+                let text: string;
+                if (updatedLinkPortalCode) {
+                  portalUrl = shortClientPortalUrl(updatedLinkPortalCode);
+                  text = `Hi ${firstName}, here's an updated link for your quote: ${portalUrl}`;
+                } else {
+                  const q = getQuote(quoteId);
+                  if (!q) throw new Error("Quote not found");
+                  try {
+                    const { portal_code } = await fetchClientCode({ data: { quoteId } });
+                    if (portal_code) {
+                      portalUrl = shortClientPortalUrl(portal_code);
+                    }
+                  } catch { /* fall back below */ }
+                  if (!portalUrl) {
+                    const { token } = await ensureToken({ data: { quoteId, channel: "whatsapp" } });
+                    portalUrl = shortQuotePortalUrl(token);
                   }
-                } catch { /* fall back below */ }
-                if (!portalUrl) {
-                  const { token } = await ensureToken({ data: { quoteId, channel: "whatsapp" } });
-                  portalUrl = shortQuotePortalUrl(token);
+                  text = buildQuoteWhatsAppMessage(q, { name: customerName ?? "" }, portalUrl);
                 }
-
-                const text = buildQuoteWhatsAppMessage(q, { name: customerName ?? "" }, portalUrl);
                 window.open(waLink(customerPhone, text), "_blank");
                 toast.success(`Sent to ${customerName ?? firstName} via WhatsApp`);
                 feedback("success");

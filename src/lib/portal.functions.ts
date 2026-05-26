@@ -411,3 +411,35 @@ export const getPortalCodeForQuote = createServerFn({ method: "POST" })
       portal_code: client?.portal_active ? client?.portal_code ?? null : null,
     };
   });
+
+// ---------- Pro: portal link status for a quote (expiry banner on quote detail) ----------
+export const getPortalLinkStatusForQuote = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ quoteId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: quote } = await context.supabase
+      .from("quotes")
+      .select("client_id")
+      .eq("id", data.quoteId)
+      .maybeSingle();
+    if (!quote?.client_id) return null;
+    const { data: client } = await context.supabase
+      .from("clients")
+      .select("id, name, portal_code, portal_active, portal_issued_at")
+      .eq("id", quote.client_id)
+      .maybeSingle();
+    if (!client) return null;
+    const ttlDays = 90;
+    const issuedMs = client.portal_issued_at ? new Date(client.portal_issued_at).getTime() : Date.now();
+    const ageDays = (Date.now() - issuedMs) / 86_400_000;
+    const daysRemaining = Math.ceil(ttlDays - ageDays);
+    return {
+      client_id: client.id,
+      client_name: client.name,
+      portal_code: client.portal_code,
+      portal_active: client.portal_active,
+      portal_issued_at: client.portal_issued_at,
+      days_remaining: daysRemaining,
+      expired: daysRemaining <= 0,
+    };
+  });

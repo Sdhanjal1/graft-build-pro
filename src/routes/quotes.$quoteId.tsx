@@ -11,7 +11,8 @@ import {
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem,
 } from "@/lib/user-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc } from "lucide-react";
+import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
@@ -68,10 +69,54 @@ function QuoteDetail() {
   const [sendOpen, setSendOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [portalStatus, setPortalStatus] = useState<{
+    client_id: string;
+    portal_code: string | null;
+    days_remaining: number;
+    expired: boolean;
+  } | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
+  const [updatedLinkCode, setUpdatedLinkCode] = useState<string | undefined>(undefined);
   const navigate = useNavigate();
   // (schedule defaults removed)
 
   const createCheckout = useServerFn(createInvoiceCheckout);
+  const fetchPortalStatus = useServerFn(getPortalLinkStatusForQuote);
+  const regeneratePortalCodeFn = useServerFn(regeneratePortalCode);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchPortalStatus({ data: { quoteId: quote.id } })
+      .then((s) => {
+        if (!cancelled && s) {
+          setPortalStatus({
+            client_id: s.client_id,
+            portal_code: s.portal_code,
+            days_remaining: s.days_remaining,
+            expired: s.expired,
+          });
+        }
+      })
+      .catch(() => { /* non-blocking */ });
+    return () => { cancelled = true; };
+  }, [quote.id, fetchPortalStatus]);
+
+  const handleRegenerateAndResend = async () => {
+    if (!portalStatus) return;
+    try {
+      setRegenerating(true);
+      const { portal_code } = await regeneratePortalCodeFn({ data: { clientId: portalStatus.client_id } });
+      setPortalStatus({ ...portalStatus, portal_code, days_remaining: 90, expired: false });
+      setUpdatedLinkCode(portal_code);
+      setSendOpen(true);
+      feedback("success");
+    } catch (e) {
+      feedback("error");
+      toast.error(e instanceof Error ? e.message : "Could not regenerate link");
+    } finally {
+      setRegenerating(false);
+    }
+  };
 
   const setMethod = (m: PaymentMethod) => { quote.payment_method = m; setMethodState(m); };
   const acceptQuote = async () => {
@@ -253,6 +298,31 @@ function QuoteDetail() {
         <QuottrLogo className="h-5 w-auto opacity-60" />
       </div>
       <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
+
+      {portalStatus && (portalStatus.expired || portalStatus.days_remaining <= 7) && (
+        <section className="px-5 mt-3">
+          <div className="rounded-2xl border border-amber-500/40 bg-amber-50 text-amber-900 p-3 flex items-start gap-3">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">
+                {portalStatus.expired
+                  ? "This link has expired."
+                  : `This link expires in ${portalStatus.days_remaining} day${portalStatus.days_remaining === 1 ? "" : "s"}.`}
+              </p>
+              <button
+                type="button"
+                onClick={handleRegenerateAndResend}
+                disabled={regenerating}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-ink text-paper text-xs font-semibold px-3 py-1.5 disabled:opacity-60"
+              >
+                {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                Regenerate and resend
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
 
       {status === "declined" && (
         <section className="px-5 mt-3">
@@ -487,7 +557,7 @@ function QuoteDetail() {
 
       <SendQuoteDialog
         open={sendOpen}
-        onClose={() => setSendOpen(false)}
+        onClose={() => { setSendOpen(false); setUpdatedLinkCode(undefined); }}
         quoteId={quote.id}
         quoteRef={quote.ref ?? quote.id.slice(0, 8)}
         quoteTitle={quote.title}
@@ -495,6 +565,7 @@ function QuoteDetail() {
         customerPhone={client?.phone}
         customerEmail={client?.email}
         whatsappHref={waHref}
+        updatedLinkPortalCode={updatedLinkCode}
       />
 
       <AssignClientDialog
