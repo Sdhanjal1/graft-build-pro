@@ -621,11 +621,12 @@ function QuoteDetail() {
                   <div className="flex-1 flex items-center bg-paper/10 rounded-2xl px-4">
                     <span className="text-lime font-bold mr-1">£</span>
                     <input
-                      type="number"
+                      type="text"
                       inputMode="decimal"
                       placeholder="0.00"
                       value={customAmt}
                       onChange={(e) => setCustomAmt(e.target.value)}
+                      onFocus={(e) => e.currentTarget.select()}
                       className="flex-1 bg-transparent py-3 text-sm text-paper placeholder:text-paper/40 outline-none"
                     />
                   </div>
@@ -863,12 +864,13 @@ function LineItemsEditor({
                   <span className="text-xs text-muted-foreground">£</span>
                   <input
                     autoFocus
-                    type="number"
+                    type="text"
                     inputMode="decimal"
                     step="0.01"
                     value={draftPrice}
                     onChange={(e) => setDraftPrice(e.target.value)}
                     onBlur={commitEdit}
+                    onFocus={(e) => e.currentTarget.select()}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") commitEdit();
                       if (e.key === "Escape") setEditingIdx(null);
