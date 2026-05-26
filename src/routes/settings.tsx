@@ -176,16 +176,11 @@ function SettingsPage() {
         <BillingSection />
       </Section>
 
-      {/* ACCOUNTING EXPORT SETUP */}
-      <Section title="Accounting export setup">
+      {/* ACCOUNTING EXPORT */}
+      <Section title="Accounting export" defaultOpen>
         <AccountingSetup />
       </Section>
 
-      {/* EXPORT RECORDS */}
-      <section className="px-5 mt-3 space-y-3">
-        <AccountingExportButton helperText="Paid invoices, one row per line item, formatted for your accounting software." />
-        <ExportInvoicesButton helperText="Or download a simple paid-quotes summary CSV." />
-      </section>
 
       {/* SIGN OUT */}
       <section className="px-5 mt-8">
