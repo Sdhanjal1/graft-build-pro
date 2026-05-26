@@ -142,17 +142,26 @@ function NewQuotePage() {
     };
   }, []);
 
-  // Auto-start voice recording when arriving with ?voice=1
-  const autoStartedRef = useRef(false);
+  // When arriving with ?voice=1, show the voice overlay in idle state.
+  // iOS Safari requires getUserMedia to be invoked from a real user gesture,
+  // so the user taps the lime mic in the overlay to start.
+  const [voicePending, setVoicePending] = useState(false);
   useEffect(() => {
-    if (voiceParam === 1 && !autoStartedRef.current && !recording && !transcribing && !draft) {
-      autoStartedRef.current = true;
-      startRecording();
-      // Clear the search param so it doesn't re-trigger on remount
+    if (voiceParam === 1 && !recording && !transcribing && !draft) {
+      setVoicePending(true);
       navigate({ to: "/quotes/new", search: {}, replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceParam]);
+
+  const handleVoiceStart = async () => {
+    setVoicePending(false);
+    await startRecording();
+  };
+  const handleVoiceClose = () => {
+    setVoicePending(false);
+    stopRecording();
+  };
 
   const stopRecording = () => {
     const recognition = speechRecognitionRef.current;
@@ -400,13 +409,15 @@ function NewQuotePage() {
 
   return (
     <AppShell>
-      {(recording || transcribing) && (
+      {(recording || transcribing || voicePending) && (
         <VoiceOverlay
           recording={recording}
           transcribing={transcribing}
           seconds={recordSeconds}
           liveTranscript={liveTranscript}
+          onStart={handleVoiceStart}
           onStop={stopRecording}
+          onClose={handleVoiceClose}
         />
       )}
       <PageHeader title="New quote" subtitle="AI generator" back="/quotes" />
@@ -927,30 +938,35 @@ function VoiceOverlay({
   transcribing,
   seconds,
   liveTranscript,
+  onStart,
   onStop,
+  onClose,
 }: {
   recording: boolean;
   transcribing: boolean;
   seconds: number;
   liveTranscript: string;
+  onStart: () => void;
   onStop: () => void;
+  onClose: () => void;
 }) {
   if (typeof document === "undefined") return null;
+  const idle = !recording && !transcribing;
   return createPortal(
     <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col items-center justify-between px-6 pt-16 pb-10 safe-top safe-bottom">
 
       <div className="flex flex-col items-center">
         <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-          {transcribing ? "Transcribing" : "Listening"}
+          {transcribing ? "Transcribing" : recording ? "Listening" : "Tap to speak"}
         </p>
         <p className="num text-2xl mt-1 text-lime">{formatMMSS(seconds)}</p>
       </div>
 
       <button
         type="button"
-        onClick={onStop}
+        onClick={idle ? onStart : onStop}
         disabled={transcribing}
-        aria-label={transcribing ? "Transcribing" : "Stop recording"}
+        aria-label={transcribing ? "Transcribing" : recording ? "Stop recording" : "Start recording"}
         className="relative flex items-center justify-center my-8 disabled:opacity-60"
       >
         {recording && (
@@ -984,8 +1000,16 @@ function VoiceOverlay({
         )}
       </div>
 
-      {/* Spacer so the content above stays vertically balanced */}
-      <div className="h-16" />
+      {idle && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-xs uppercase tracking-widest text-paper/50 font-semibold py-3"
+        >
+          Cancel
+        </button>
+      )}
+      {!idle && <div className="h-16" />}
     </div>,
     document.body,
   );
