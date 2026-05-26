@@ -20,6 +20,7 @@ import { RotatingStatus, QUOTE_GEN_MESSAGES } from "@/components/RotatingStatus"
 import { feedback } from "@/lib/feedback";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordingNotice";
+import { usePaidQuoteCount, normalizeSource } from "@/hooks/usePaidQuoteCount";
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
@@ -101,6 +102,7 @@ function NewQuotePage() {
   const generateFn = useServerFn(generateAIQuote);
   const transcribeFn = useServerFn(transcribeAudio);
   const { canUse: subActive, blocked: subBlocked } = useSubscription();
+  const paidQuoteCount = usePaidQuoteCount();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -725,23 +727,26 @@ function NewQuotePage() {
                   key={i}
                   className="px-4 py-3 border-t border-border first:border-t-0 space-y-2"
                 >
-                  {li.source && (
-                    <span
-                      className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                        li.source === "voice"
-                          ? "bg-lime/30 text-ink"
-                          : li.source === "learned"
-                          ? "bg-lime/15 text-ink"
-                          : "bg-secondary text-muted-foreground"
-                      }`}
-                    >
-                      {li.source === "voice"
-                        ? "Your price"
-                        : li.source === "learned"
-                        ? "Your usual price"
-                        : "Quottr suggested"}
-                    </span>
-                  )}
+                  {li.source && (() => {
+                    const src = normalizeSource(li.source, paidQuoteCount);
+                    return (
+                      <span
+                        className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          src === "voice"
+                            ? "bg-lime/30 text-ink"
+                            : src === "learned"
+                            ? "bg-lime/15 text-ink"
+                            : "bg-secondary text-muted-foreground"
+                        }`}
+                      >
+                        {src === "voice"
+                          ? "Your price"
+                          : src === "learned"
+                          ? "Your usual price"
+                          : "Quottr suggested"}
+                      </span>
+                    );
+                  })()}
                   <div className="flex items-start gap-2">
                     <textarea
                       value={li.description}

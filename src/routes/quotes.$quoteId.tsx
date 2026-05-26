@@ -23,6 +23,7 @@ import { AssignClientDialog } from "@/components/AssignClientDialog";
 import { listQuoteMessages, sendProMessage } from "@/lib/messages.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef } from "react";
+import { usePaidQuoteCount, useInvalidatePaidQuoteCount, normalizeSource } from "@/hooks/usePaidQuoteCount";
 
 function celebratePaid(amount: number) {
   if (typeof window === "undefined") return;
@@ -77,6 +78,7 @@ function QuoteDetail() {
   } | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [updatedLinkCode, setUpdatedLinkCode] = useState<string | undefined>(undefined);
+  const invalidatePaidQuoteCount = useInvalidatePaidQuoteCount();
   const navigate = useNavigate();
   // (schedule defaults removed)
 
@@ -153,6 +155,7 @@ function QuoteDetail() {
     setAskInvoice(true);
     feedback("success");
     celebratePaid(quote.total);
+    invalidatePaidQuoteCount();
   };
   const duplicate = async () => {
     try {
@@ -798,6 +801,7 @@ function LineItemsEditor({
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [draftPrice, setDraftPrice] = useState("");
   const [saving, setSaving] = useState(false);
+  const paidQuoteCount = usePaidQuoteCount();
 
   const subtotal = +items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
   const vat = vatRegistered ? +(subtotal * 0.2).toFixed(2) : 0;
@@ -837,7 +841,8 @@ function LineItemsEditor({
     <>
       <ul>
         {items.map((li, i) => {
-          const label = badgeText(li.source);
+          const effectiveSource = normalizeSource(li.source, paidQuoteCount);
+          const label = badgeText(effectiveSource);
           const editing = editingIdx === i;
           return (
             <li
@@ -849,7 +854,7 @@ function LineItemsEditor({
                   <p className="text-sm font-medium">{li.description}</p>
                   {label && (
                     <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeClass(li.source)}`}
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeClass(effectiveSource)}`}
                     >
                       {label}
                     </span>

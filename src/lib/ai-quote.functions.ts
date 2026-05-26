@@ -40,18 +40,15 @@ Examples of price patterns to detect:
 
 If the tradesperson speaks a price, use it. If they describe an item without a price, use current UK trade pricing estimates.
 
-SOURCE FIELD — STRICT RULES:
+SOURCE FIELD — STRICT RULES (READ CAREFULLY):
 
-Each line item must have a source field. Apply these rules in this exact order:
+Each line item MUST have a source field. Use these rules in this exact order — do not deviate:
 
-1. If the tradesperson explicitly stated a price for this specific item in their voice note (e.g. 'boiler for £1,200', 'labour at £65 an hour'), set source = 'voice'.
+Rule 1: If the tradesperson explicitly stated a price for this specific item in their voice note (using phrases like '£X', 'X pounds', 'at X an hour', 'charging X'), set source = 'voice'.
 
-2. If the price comes from a learned pattern provided below in the LEARNED PATTERNS section AND that section is not empty, set source = 'learned'. ONLY use 'learned' if you can point to a specific matching pattern in the provided patterns list.
+Rule 2: If a LEARNED PATTERNS section was provided below AND that section contains a clear match for this item, set source = 'learned'. If no LEARNED PATTERNS section exists or it's empty, you must NOT use 'learned' for any item.
 
-3. Otherwise — for all AI-estimated prices using general UK trade pricing knowledge — set source = 'ai'. This is the default. When in doubt, use 'ai'.
-
-Never use 'learned' if no learned patterns were provided.
-Never use 'voice' if no price was explicitly stated in the voice note for that specific item.`;
+Rule 3: For all other items where you estimated the price using general UK trade knowledge, set source = 'ai'. This is the most common case for new users.`;
 
 export const generateAIQuote = createServerFn({ method: "POST" })
   .middleware([requireActiveSubscription])
