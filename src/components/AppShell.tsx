@@ -1,7 +1,6 @@
 import { Link, useRouterState, useRouter } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
-import { TrialBanner } from "@/components/TrialBanner";
 import { PullToRefresh } from "@/components/PullToRefresh";
 
 export function AppShell({
@@ -16,7 +15,6 @@ export function AppShell({
   return (
     <div className="min-h-screen bg-paper">
       <div className="mx-auto max-w-md min-h-screen pb-28">
-        <TrialBanner />
         <PullToRefresh onRefresh={handleRefresh}>{children}</PullToRefresh>
       </div>
     </div>
