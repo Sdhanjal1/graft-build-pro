@@ -91,6 +91,7 @@ function NewQuotePage() {
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [transcribing, setTranscribing] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [lastTranscript, setLastTranscript] = useState<string | null>(null);
   
   const [draft, setDraft] = useState<Draft>(null);
   const [loading, setLoading] = useState(false);
