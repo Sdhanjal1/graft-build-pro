@@ -210,12 +210,12 @@ export const regeneratePortalCode = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ clientId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    const bytes = new Uint8Array(12);
+    const bytes = new Uint8Array(32);
     crypto.getRandomValues(bytes);
     const code = Array.from(bytes, (b) => chars[b % chars.length]).join("");
     const { error } = await context.supabase
       .from("clients")
-      .update({ portal_code: code })
+      .update({ portal_code: code, portal_issued_at: new Date().toISOString() })
       .eq("id", data.clientId);
     if (error) throw new Error(error.message);
     return { portal_code: code };
