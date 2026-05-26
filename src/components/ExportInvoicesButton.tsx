@@ -127,7 +127,6 @@ export function ExportInvoicesButton({ helperText }: { helperText?: string }) {
         <Download className="h-4 w-4" />
         Export invoices
       </button>
-    </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
