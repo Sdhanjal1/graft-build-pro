@@ -123,9 +123,8 @@ function RootComponent() {
         
         <Outlet />
         {showAppChrome && <BottomNav />}
-        
-        {!isPortal && <PWAInstallBanner />}
-        {!isPortal && <OfflineBanner />}
+
+        {!isPortal && <BannerSlot />}
       </AuthGate>
     </QueryClientProvider>
   );
