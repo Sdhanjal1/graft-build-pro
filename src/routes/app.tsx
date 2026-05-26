@@ -236,25 +236,8 @@ function AppHomePage() {
       </section>
 
 
-      {/* Quick shortcut — pinned just above bottom nav */}
-      <section className="px-5 mt-2 mb-2">
-        <Link
-          to="/clients"
-          className="card-surface flex items-center gap-2.5 px-3 py-2.5 active:scale-[0.99] transition"
-        >
-          <span className="h-9 w-9 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
-            <UserPlus className="h-4 w-4 text-ink" />
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className="block text-sm font-semibold text-ink leading-tight truncate">Customers</span>
-            {clientCount > 0 && (
-              <span className="block text-[10px] text-muted-foreground mt-0.5">
-                {clientCount} saved
-              </span>
-            )}
-          </span>
-        </Link>
-      </section>
+
+
       </div>
     </AppShell>
 
