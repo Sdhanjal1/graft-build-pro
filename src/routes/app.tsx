@@ -93,22 +93,18 @@ function AppHomePage() {
           {greeting}, {firstName}
         </p>
 
-        <div className="mt-1">
-          <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-            You are owed
-          </p>
-          {s.outstanding > 0 ? (
+        {s.outstanding > 0 && (
+          <div className="mt-1">
+            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+              You are owed
+            </p>
             <Link to="/chaser" className="block mt-1 active:opacity-80 transition">
               <p className={`num text-6xl leading-none text-lime`}>
                 {formatGBP(s.outstanding)}
               </p>
             </Link>
-          ) : (
-            <p className="num text-6xl mt-1 leading-none text-paper">
-              {formatGBP(s.outstanding)}
-            </p>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Stat pills */}
         {hasActions && (
