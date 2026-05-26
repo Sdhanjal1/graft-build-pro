@@ -863,12 +863,13 @@ function LineItemsEditor({
                   <span className="text-xs text-muted-foreground">£</span>
                   <input
                     autoFocus
-                    type="number"
+                    type="text"
                     inputMode="decimal"
                     step="0.01"
                     value={draftPrice}
                     onChange={(e) => setDraftPrice(e.target.value)}
                     onBlur={commitEdit}
+                    onFocus={(e) => e.currentTarget.select()}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") commitEdit();
                       if (e.key === "Escape") setEditingIdx(null);
