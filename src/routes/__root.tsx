@@ -8,6 +8,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { AnimatePresence, motion } from "motion/react";
 
 import appCss from "../styles.css?url";
 import { BottomNav } from "@/components/BottomNav";
@@ -120,8 +121,17 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate>
-        
-        <Outlet />
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={path}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
         {showAppChrome && <BottomNav />}
 
         {!isPortal && <BannerSlot />}
