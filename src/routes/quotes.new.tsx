@@ -862,7 +862,6 @@ function VoiceOverlay({
   recording,
   transcribing,
   seconds,
-  liveTranscript,
   onStart,
   onStop,
   onClose,
@@ -870,7 +869,6 @@ function VoiceOverlay({
   recording: boolean;
   transcribing: boolean;
   seconds: number;
-  liveTranscript: string;
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
