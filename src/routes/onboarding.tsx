@@ -394,12 +394,3 @@ function ToggleCard({
     </button>
   );
 }
-
-function FeatureLine({ children }: { children: React.ReactNode }) {
-  return (
-    <li className="flex items-start gap-2">
-      <Check className="h-4 w-4 text-lime mt-0.5 shrink-0" />
-      <span className="text-ink">{children}</span>
-    </li>
-  );
-}
