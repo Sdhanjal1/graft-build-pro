@@ -938,30 +938,35 @@ function VoiceOverlay({
   transcribing,
   seconds,
   liveTranscript,
+  onStart,
   onStop,
+  onClose,
 }: {
   recording: boolean;
   transcribing: boolean;
   seconds: number;
   liveTranscript: string;
+  onStart: () => void;
   onStop: () => void;
+  onClose: () => void;
 }) {
   if (typeof document === "undefined") return null;
+  const idle = !recording && !transcribing;
   return createPortal(
     <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col items-center justify-between px-6 pt-16 pb-10 safe-top safe-bottom">
 
       <div className="flex flex-col items-center">
         <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-          {transcribing ? "Transcribing" : "Listening"}
+          {transcribing ? "Transcribing" : recording ? "Listening" : "Tap to speak"}
         </p>
         <p className="num text-2xl mt-1 text-lime">{formatMMSS(seconds)}</p>
       </div>
 
       <button
         type="button"
-        onClick={onStop}
+        onClick={idle ? onStart : onStop}
         disabled={transcribing}
-        aria-label={transcribing ? "Transcribing" : "Stop recording"}
+        aria-label={transcribing ? "Transcribing" : recording ? "Stop recording" : "Start recording"}
         className="relative flex items-center justify-center my-8 disabled:opacity-60"
       >
         {recording && (
