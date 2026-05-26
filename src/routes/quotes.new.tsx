@@ -352,12 +352,13 @@ function NewQuotePage() {
 
   return (
     <AppShell>
-      {(recording || transcribing || voicePending) && (
+      {(recording || transcribing || voicePending || voiceError) && (
         <VoiceOverlay
           recording={recording}
           transcribing={transcribing}
           seconds={recordSeconds}
-          
+          error={voiceError}
+          lastTranscript={lastTranscript}
           onStart={handleVoiceStart}
           onStop={stopRecording}
           onClose={handleVoiceClose}
