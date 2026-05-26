@@ -134,11 +134,22 @@ function NewQuotePage() {
     stopRecording();
   };
 
+  const recordStartRef = useRef<number>(0);
+  const MIN_RECORD_MS = 1000;
+
   const stopRecording = () => {
     const mr = mediaRecorderRef.current;
-    if (mr && mr.state !== "inactive") {
-      mr.stop();
+    if (!mr || mr.state === "inactive") return;
+    const elapsed = Date.now() - recordStartRef.current;
+    const remaining = MIN_RECORD_MS - elapsed;
+    if (remaining > 0) {
+      setTimeout(() => {
+        const cur = mediaRecorderRef.current;
+        if (cur && cur.state !== "inactive") cur.stop();
+      }, remaining);
+      return;
     }
+    mr.stop();
   };
 
   const appendTranscript = (text: string) => {

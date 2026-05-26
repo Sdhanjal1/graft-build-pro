@@ -1,48 +1,24 @@
-## Changes to `src/routes/quotes.new.tsx`
+Scope: `src/routes/quotes.new.tsx` only.
 
-### 1. State (replace existing dropdown state)
-```
-clientName, clientPhone                     // new customer inputs / selected name
-customerMode: "none" | "existing" | "new"   // which UI is showing
-customerSearch                              // search query inside modal
-filteredClients = userClients filtered by customerSearch (no slice)
-```
-Drop `clientOpen` and `clientMatches`.
+## Changes
 
-Keep the `vat` state variable (still passed to `saveGeneratedQuote` and used in totals) but default it to `userProfile.vat_registered`. No UI toggle.
+1. **Timeslice the recorder.** Replace `mr.start()` with `mr.start(1000)` so a chunk is flushed every 1 second, guaranteeing `chunksRef` has data even if stop fires soon after start.
 
-### 2. Customer section UI (replaces current dark dropdown card)
+2. **Track recording start time.** Add `const recordStartRef = useRef<number>(0)` and a `const MIN_RECORD_MS = 1000` constant. Set `recordStartRef.current = Date.now()` immediately before `mr.start(1000)`.
 
-Two equal-width buttons stacked or side-by-side above Generate quote:
-```
-[ Existing customer ]   [ + New customer ]
-```
-- Same width (`grid grid-cols-2 gap-3`), same height, both card-surface style.
-- Active button gets lime fill; the other stays neutral.
-- Below the buttons, render one of:
-  - `customerMode === "existing"` and a name is selected → small "Selected: {name}" chip with a Change link.
-  - `customerMode === "new"` → inline card with two fields only:
-    - Name (required)
-    - Phone number (tel)
-  - Otherwise nothing.
+3. **Enforce minimum 1s duration in `stopRecording`.** Compute `elapsed = Date.now() - recordStartRef.current`. If `elapsed < MIN_RECORD_MS`, schedule the real `mr.stop()` via `setTimeout` for the remaining ms (re-checking `mr.state !== "inactive"` inside the timeout). Otherwise stop immediately. This applies to user taps, the overlay close button, and the `MAX_RECORD_SECONDS` auto-stop path (which always exceeds 1s, so no behaviour change there).
 
-### 3. Full-screen "Existing customer" modal
-- Triggered by tapping "Existing customer".
-- Fixed overlay (`fixed inset-0 z-50 bg-paper`) with safe-area padding.
-- Sticky header: back chevron, title "Choose customer", search input below.
-- Clean list of `filteredClients`: each row shows name (bold) and address (muted), divided by hairline borders, full-width tap target.
-- Tap row → set `clientName`, clear modal, set mode to "existing".
-- Empty state when no matches: muted "No customers match".
-- Remove any "Site capture client" / "New client" rows entirely (they were part of the old dropdown).
+4. **Raise the empty-blob threshold.** In `mr.onstop`, change `blob.size < 200` to `blob.size < 1000`.
 
-### 4. Remove the VAT registered card
-Delete the `<label className="card-surface p-4 flex items-center justify-between ...">VAT registered…</label>` block (lines ~596–609). VAT still applied silently from the profile.
+5. **Clearer error copy.** When that guard trips, set:
+   `"Recording was too short. Hold the button and speak for at least 2 seconds."`
 
-### 5. Generate quote button
-Stays as-is, directly below the customer area.
+## Out of scope
+- No changes to `transcribe.functions.ts`, UI layout, or other recording entry points beyond what's needed for the min-duration guard.
+- No reintroduction of SpeechRecognition.
 
-### 6. Save flow
-No change — `save()` still uses `clientName` and `vat`. New `clientPhone` is captured locally; if you want it persisted later we can pass it to `findOrCreateClient`, but per the request we just collect the two fields at this stage.
-
-### Files touched
-- `src/routes/quotes.new.tsx` only.
+## Verification
+- Tap-stop instantly → recorder still runs to 1s, then either transcribes or shows the new "too short" error.
+- Normal 3–10s recording → unchanged, transcribes via Whisper.
+- 3-minute auto-stop at `MAX_RECORD_SECONDS` → unchanged.
+- Console log on stop still reports `chunks`, `size`, `type` for diagnosability.
