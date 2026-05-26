@@ -282,10 +282,7 @@ function ClientPortalPage() {
       {/* Service reminder */}
       {daysUntilService !== null && daysUntilService <= 60 && daysUntilService >= -30 && (
         <section className="px-5 mt-5">
-          <a
-            href="#messages"
-            className="block rounded-2xl p-4 bg-gradient-to-br from-amber-300 to-amber-500 text-ink"
-          >
+          <div className="block rounded-2xl p-4 bg-gradient-to-br from-amber-300 to-amber-500 text-ink">
             <div className="flex items-start gap-3">
               <div className="h-10 w-10 rounded-full bg-ink/15 flex items-center justify-center shrink-0">
                 <Bell className="h-4 w-4" />
@@ -299,14 +296,12 @@ function ClientPortalPage() {
                       ? "due today"
                       : `${Math.abs(daysUntilService)} day${Math.abs(daysUntilService) === 1 ? "" : "s"} overdue`}
                 </p>
-                <p className="text-xs text-ink/70 mt-0.5">
-                  Tap to send {businessName.split(" ")[0]} a message
-                </p>
               </div>
             </div>
-          </a>
+          </div>
         </section>
       )}
+
 
       {/* Quotes */}
       <section className="px-5 mt-6">
