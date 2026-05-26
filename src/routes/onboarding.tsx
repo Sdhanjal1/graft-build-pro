@@ -1,10 +1,9 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowRight, Check, Loader2, Wrench, Zap, Hammer, Home, PaintRoller, Flame, HardHat, MoreHorizontal, ExternalLink } from "lucide-react";
+import { ArrowRight, Check, Loader2, Wrench, Zap, Hammer, Home, PaintRoller, Flame, HardHat, MoreHorizontal } from "lucide-react";
 import { useSession } from "@/lib/auth";
 import { userProfile, hydrateUserData, saveProfileToCloud } from "@/lib/user-data";
-import { startConnectOnboarding } from "@/lib/connect.functions";
 import { feedback } from "@/lib/feedback";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { toast } from "sonner";
