@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   getClientPortalData,
-  postClientPortalMessage,
   respondQuoteFromPortal,
 } from "@/lib/portal.functions";
 import { downloadPortalPdf } from "@/lib/portal-pdf";
@@ -11,13 +10,11 @@ import { BusinessLogo } from "@/components/BusinessLogo";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import {
   Loader2,
-  Send,
   ChevronDown,
   ChevronUp,
   Download,
   FileText,
   Bell,
-  MessageSquare,
   Sparkles,
   Check,
   X,
