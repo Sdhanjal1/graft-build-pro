@@ -282,6 +282,9 @@ export async function hydrateUserData() {
         if (typeof codes[k] === "string") userProfile.accounting_codes[k] = codes[k] as string;
       });
     }
+    if (typeof p.default_deposit_percent === "number") {
+      userProfile.default_deposit_percent = p.default_deposit_percent;
+    }
   } else {
     userProfile.email = userData.user.email || "";
   }
