@@ -500,35 +500,6 @@ function ClientPortalPage() {
         </a>
       </footer>
 
-      {/* Composer */}
-      <div className="fixed inset-x-0 bottom-0 bg-paper border-t border-border p-3 safe-bottom">
-        <div className="max-w-md mx-auto flex items-center gap-2">
-          <input
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void send();
-              }
-            }}
-            placeholder={`Message ${businessName}…`}
-            className="flex-1 bg-secondary rounded-full px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40"
-          />
-          <button
-            onClick={send}
-            disabled={sending || !body.trim()}
-            className="h-11 w-11 rounded-full bg-lime text-ink inline-flex items-center justify-center disabled:opacity-50"
-            aria-label="Send"
-          >
-            {sending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
