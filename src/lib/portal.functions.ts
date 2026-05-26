@@ -55,13 +55,7 @@ export const getClientPortalData = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!client) throw new Error("Portal not found");
     if (!client.portal_active) throw new Error("Portal disabled");
-    if (client.portal_issued_at) {
-      const issued = new Date(client.portal_issued_at).getTime();
-      const ageDays = (Date.now() - issued) / 86_400_000;
-      if (ageDays > PORTAL_LINK_TTL_DAYS) {
-        throw new Error("This quote has expired, please contact your tradesperson.");
-      }
-    }
+    assertPortalNotExpired(client.portal_issued_at);
 
     const [{ data: profile }, { data: quotes }, { data: documents }, { data: messages }] =
       await Promise.all([
