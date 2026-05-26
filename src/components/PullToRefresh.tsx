@@ -68,7 +68,6 @@ export function PullToRefresh({
     };
   }, [pull, refreshing, onRefresh]);
 
-  const ready = pull >= THRESHOLD;
   const fade = Math.min(1, pull / THRESHOLD);
 
   return (
