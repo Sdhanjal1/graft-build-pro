@@ -177,6 +177,25 @@ function PortalPage() {
           </div>
         </section>
       )}
+      {isPaid && (
+        <section className="px-5 mt-4">
+          <div className="card-surface p-5 border-2 border-status-accepted/30 bg-status-accepted/5">
+            <div className="flex items-center gap-2 text-status-accepted font-bold text-sm">
+              <Check className="h-4 w-4" /> Paid in full
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Thanks for your payment. A copy of your invoice has been emailed to you.
+            </p>
+            <button
+              type="button"
+              onClick={handleDownloadInvoice}
+              className="mt-3 w-full h-11 rounded-full bg-ink text-paper text-sm font-bold inline-flex items-center justify-center gap-2"
+            >
+              <Download className="h-4 w-4" /> Download invoice PDF
+            </button>
+          </div>
+        </section>
+      )}
 
       <footer className="text-center mt-8 mb-4 text-[10px] text-muted-foreground">
         <a href="https://quottr.co.uk" className="inline-flex items-center gap-1">
@@ -204,6 +223,10 @@ function PortalPage() {
                   {responding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   Accept quote
                 </button>
+              </div>
+            ) : isPaid ? (
+              <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
+                <Check className="h-4 w-4" /> Paid
               </div>
             ) : status === "accepted" ? (
               <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
