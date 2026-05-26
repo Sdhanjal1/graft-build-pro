@@ -107,7 +107,9 @@ Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 h
     if (!res.ok) {
       const txt = await res.text();
       console.error("Anthropic API error", res.status, txt);
-      throw new Error(`Claude API error (${res.status}): ${txt.slice(0, 200)}`);
+      if (res.status === 429) throw new Error("Rate limited. Try again in a moment.");
+      if (res.status === 402) throw new Error("AI credits exhausted. Add credits in Settings.");
+      throw new Error("Could not generate quote. Please try again.");
     }
 
     const payload = (await res.json()) as {
