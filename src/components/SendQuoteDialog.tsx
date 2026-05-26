@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { MessageCircle, Mail, Sparkles, Loader2, Copy, Check } from "lucide-react";
 import { ensurePortalToken } from "@/lib/messages.functions";
-import { getPortalCodeForQuote } from "@/lib/portal.functions";
+
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
 import { buildQuoteWhatsAppMessage, getQuote, waLink } from "@/lib/user-data";
