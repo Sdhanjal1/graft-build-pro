@@ -30,7 +30,7 @@ const TRADES = [
   { id: "Other", icon: MoreHorizontal },
 ];
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 5;
 
 function formatUKPhone(raw: string): string {
   const digits = raw.replace(/\D/g, "").slice(0, 11);
