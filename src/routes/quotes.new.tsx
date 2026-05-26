@@ -339,7 +339,7 @@ function NewQuotePage() {
           recording={recording}
           transcribing={transcribing}
           seconds={recordSeconds}
-          liveTranscript={liveTranscript}
+          
           onStart={handleVoiceStart}
           onStop={stopRecording}
           onClose={handleVoiceClose}
