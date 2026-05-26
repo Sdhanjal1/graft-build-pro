@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  computeDepositAmount,
+  defaultDepositPercent,
+  deriveTimingFromTotal,
+  type PaymentTiming,
+} from "@/lib/payment-timing";
 
 export type QuoteStatus = "pending" | "sent" | "accepted" | "declined" | "paid" | "overdue";
-export type PaymentMethod = "card" | "bank" | "cash";
+export type PaymentMethod = "card" | "bank" | "cash" | "other";
 export type PaymentRequestType = "deposit" | "full" | "custom";
 export type JobStatus = "scheduled" | "in_progress" | "complete";
 
@@ -78,6 +84,12 @@ export type Quote = {
   invoice_due_date?: string;
   /** Per-invoice override for the auto-chase scheduler (defaults to profile setting) */
   auto_chase_enabled?: boolean;
+  // ---- Payment timing (optional during rollout — defaults applied at read time) ----
+  payment_timing?: PaymentTiming;
+  deposit_amount?: number;
+  deposit_percent?: number;
+  /** Set once the trader marks the job as physically complete (pre-payment). */
+  completed_at?: string;
 };
 
 export type ChaseStatus = "scheduled" | "sent" | "skipped";
@@ -148,6 +160,8 @@ export const EMPTY_PROFILE = {
     cis_labour: "",
     other: "",
   } as Record<LineItemCategory, string>,
+  // ---- Default deposit % applied to new quotes over £500 ----
+  default_deposit_percent: 30,
 };
 
 export const userProfile = { ...EMPTY_PROFILE };
@@ -183,6 +197,10 @@ type DbQuote = {
   notes: string | null; created_at: string; payment_method: PaymentMethod | null;
   paid_via: PaymentMethod | null; payment_request: PaymentRequest | null;
   invoiced_at: string | null; invoice_due_date: string | null;
+  payment_timing: PaymentTiming | null;
+  deposit_amount: number | null;
+  deposit_percent: number | null;
+  completed_at: string | null;
 };
 
 const rowToClient = (r: DbClient): Client => ({
@@ -203,6 +221,10 @@ const rowToQuote = (r: DbQuote): Quote => ({
   payment_request: r.payment_request ?? undefined,
   invoiced_at: r.invoiced_at ?? undefined,
   invoice_due_date: r.invoice_due_date ?? undefined,
+  payment_timing: (r.payment_timing as PaymentTiming) ?? "on_completion",
+  deposit_amount: Number(r.deposit_amount ?? 0),
+  deposit_percent: Number(r.deposit_percent ?? 0),
+  completed_at: r.completed_at ?? undefined,
 });
 
 export async function hydrateUserData() {
@@ -260,6 +282,9 @@ export async function hydrateUserData() {
         if (typeof codes[k] === "string") userProfile.accounting_codes[k] = codes[k] as string;
       });
     }
+    if (typeof p.default_deposit_percent === "number") {
+      userProfile.default_deposit_percent = p.default_deposit_percent;
+    }
   } else {
     userProfile.email = userData.user.email || "";
   }
@@ -298,6 +323,7 @@ export async function saveProfileToCloud(patch: Partial<typeof userProfile>) {
     show_signature: userProfile.show_signature,
     accounting_software: userProfile.accounting_software || null,
     accounting_codes: userProfile.accounting_codes,
+    default_deposit_percent: userProfile.default_deposit_percent,
   };
   const { error } = await supabase.from("profiles").upsert(row, { onConflict: "id" });
   if (error) console.error("[profile] save failed", error);

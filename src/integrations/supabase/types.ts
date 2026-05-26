@@ -200,6 +200,7 @@ export type Database = {
           bank_name: string | null
           business_name: string | null
           created_at: string
+          default_deposit_percent: number
           email: string | null
           full_name: string | null
           id: string
@@ -235,6 +236,7 @@ export type Database = {
           bank_name?: string | null
           business_name?: string | null
           created_at?: string
+          default_deposit_percent?: number
           email?: string | null
           full_name?: string | null
           id: string
@@ -270,6 +272,7 @@ export type Database = {
           bank_name?: string | null
           business_name?: string | null
           created_at?: string
+          default_deposit_percent?: number
           email?: string | null
           full_name?: string | null
           id?: string
@@ -434,7 +437,10 @@ export type Database = {
       quotes: {
         Row: {
           client_id: string | null
+          completed_at: string | null
           created_at: string
+          deposit_amount: number
+          deposit_percent: number
           due_date: string | null
           id: string
           invoice_due_date: string | null
@@ -445,6 +451,7 @@ export type Database = {
           paid_via: string | null
           payment_method: string | null
           payment_request: Json | null
+          payment_timing: string
           portal_visible: boolean
           ref: string | null
           status: string
@@ -459,7 +466,10 @@ export type Database = {
         }
         Insert: {
           client_id?: string | null
+          completed_at?: string | null
           created_at?: string
+          deposit_amount?: number
+          deposit_percent?: number
           due_date?: string | null
           id?: string
           invoice_due_date?: string | null
@@ -470,6 +480,7 @@ export type Database = {
           paid_via?: string | null
           payment_method?: string | null
           payment_request?: Json | null
+          payment_timing?: string
           portal_visible?: boolean
           ref?: string | null
           status?: string
@@ -484,7 +495,10 @@ export type Database = {
         }
         Update: {
           client_id?: string | null
+          completed_at?: string | null
           created_at?: string
+          deposit_amount?: number
+          deposit_percent?: number
           due_date?: string | null
           id?: string
           invoice_due_date?: string | null
@@ -495,6 +509,7 @@ export type Database = {
           paid_via?: string | null
           payment_method?: string | null
           payment_request?: Json | null
+          payment_timing?: string
           portal_visible?: boolean
           ref?: string | null
           status?: string
