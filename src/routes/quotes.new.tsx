@@ -228,9 +228,9 @@ function NewQuotePage() {
       });
       chunksRef.current = [];
 
-      if (blob.size < 200) {
+      if (blob.size < 1000) {
         setVoiceError(
-          "Didn't catch any audio, hold the button a moment longer and speak clearly.",
+          "Recording was too short. Hold the button and speak for at least 2 seconds.",
         );
         return;
       }
