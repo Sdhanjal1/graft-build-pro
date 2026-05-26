@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { TrialBanner } from "@/components/TrialBanner";
+import { UpdateBanner } from "@/components/UpdateBanner";
+import { SW_UPDATE_EVENT } from "@/lib/sw-register";
 import { useSubscription } from "@/hooks/useSubscription";
 
 const PWA_KEY = "quottr.pwa-dismissed-until";
