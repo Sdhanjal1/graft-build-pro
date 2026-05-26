@@ -155,6 +155,7 @@ function QuoteDetail() {
     setAskInvoice(true);
     feedback("success");
     celebratePaid(quote.total);
+    invalidatePaidQuoteCount();
   };
   const duplicate = async () => {
     try {
