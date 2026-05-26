@@ -729,6 +729,13 @@ export const saveGeneratedQuote = async (input: {
   const total = +(subtotal + vat_amount).toFixed(2);
   const due = new Date(); due.setDate(due.getDate() + 14);
   const user_id = await requireUserId();
+  const timing = deriveTimingFromTotal(total);
+  const depositPct = timing === "deposit_then_balance"
+    ? defaultDepositPercent(userProfile.default_deposit_percent)
+    : 0;
+  const depositAmt = timing === "deposit_then_balance"
+    ? computeDepositAmount(subtotal, depositPct)
+    : 0;
   const insertPayload = {
     user_id,
     ref: nextQuoteRef(),
@@ -743,6 +750,9 @@ export const saveGeneratedQuote = async (input: {
     status: "pending" as QuoteStatus,
     due_date: due.toISOString().slice(0, 10),
     payment_method: "card" as PaymentMethod,
+    payment_timing: timing,
+    deposit_amount: depositAmt,
+    deposit_percent: depositPct,
   };
   const { data, error } = await supabase
     .from("quotes")
