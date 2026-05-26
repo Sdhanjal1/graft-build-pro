@@ -109,10 +109,11 @@ export const postClientPortalMessage = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { data: client } = await supabaseAdmin
       .from("clients")
-      .select("id, user_id, portal_active")
+      .select("id, user_id, portal_active, portal_issued_at")
       .eq("portal_code", data.code)
       .maybeSingle();
     if (!client || !client.portal_active) throw new Error("Portal not available");
+    assertPortalNotExpired(client.portal_issued_at);
 
     const { data: msg, error } = await supabaseAdmin
       .from("client_portal_messages")
