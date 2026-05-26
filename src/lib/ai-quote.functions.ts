@@ -40,14 +40,18 @@ Examples of price patterns to detect:
 
 If the tradesperson speaks a price, use it. If they describe an item without a price, use current UK trade pricing estimates.
 
-SOURCE FIELD — REQUIRED ON EVERY LINE ITEM:
+SOURCE FIELD — STRICT RULES:
 
-Mark each line item with a "source" field:
-- "voice" — the price came from the tradesperson's voice note
-- "learned" — the price came from their typical pricing block below (when provided)
-- "ai" — you estimated the price using general UK trade pricing knowledge
+Each line item must have a source field. Apply these rules in this exact order:
 
-This field is shown to the tradesperson so they can verify which prices came from their voice and which were estimated.`;
+1. If the tradesperson explicitly stated a price for this specific item in their voice note (e.g. 'boiler for £1,200', 'labour at £65 an hour'), set source = 'voice'.
+
+2. If the price comes from a learned pattern provided below in the LEARNED PATTERNS section AND that section is not empty, set source = 'learned'. ONLY use 'learned' if you can point to a specific matching pattern in the provided patterns list.
+
+3. Otherwise — for all AI-estimated prices using general UK trade pricing knowledge — set source = 'ai'. This is the default. When in doubt, use 'ai'.
+
+Never use 'learned' if no learned patterns were provided.
+Never use 'voice' if no price was explicitly stated in the voice note for that specific item.`;
 
 export const generateAIQuote = createServerFn({ method: "POST" })
   .middleware([requireActiveSubscription])
