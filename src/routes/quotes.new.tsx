@@ -414,6 +414,8 @@ function NewQuotePage() {
           seconds={recordSeconds}
           error={voiceError}
           lastTranscript={lastTranscript}
+          livePreview={livePreview}
+          liveSupported={liveSupported}
           onStart={handleVoiceStart}
           onStop={stopRecording}
           onClose={handleVoiceClose}
