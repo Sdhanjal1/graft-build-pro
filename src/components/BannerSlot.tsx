@@ -53,9 +53,9 @@ export function BannerSlot() {
 
   const trialActive =
     !loading &&
-    sub &&
+    !!sub &&
     !(sub.has_payment_method && sub.status === "active") &&
-    (showWarn || showExpired || sub.status !== "trialing" ? showWarn || showExpired : false);
+    (showWarn || showExpired);
 
   if (trialActive) return <TrialBanner />;
 
