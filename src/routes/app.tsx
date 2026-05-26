@@ -102,7 +102,9 @@ function AppHomePage() {
             </p>
             <Link to="/chaser" className="block mt-1 active:opacity-80 transition">
               <p className={`num text-6xl leading-none text-lime`}>
-                <CountUp start={0} end={s.outstanding} duration={0.6} formattingFn={formatGBP} />
+                <ClientOnly fallback={<>{formatGBP(s.outstanding)}</>}>
+                  {() => <CountUp start={0} end={s.outstanding} duration={0.6} formattingFn={formatGBP} />}
+                </ClientOnly>
               </p>
             </Link>
           </div>
