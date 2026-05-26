@@ -135,12 +135,16 @@ function NewQuotePage() {
     setVoicePending(false);
     setVoiceError(null);
     setLastTranscript(null);
+    setLivePreview("");
+    liveFinalRef.current = "";
     await startRecording();
   };
   const handleVoiceClose = () => {
     setVoicePending(false);
     setVoiceError(null);
     setLastTranscript(null);
+    setLivePreview("");
+    liveFinalRef.current = "";
     stopRecording();
   };
 
