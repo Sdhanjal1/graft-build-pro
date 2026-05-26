@@ -409,13 +409,15 @@ function NewQuotePage() {
 
   return (
     <AppShell>
-      {(recording || transcribing) && (
+      {(recording || transcribing || voicePending) && (
         <VoiceOverlay
           recording={recording}
           transcribing={transcribing}
           seconds={recordSeconds}
           liveTranscript={liveTranscript}
+          onStart={handleVoiceStart}
           onStop={stopRecording}
+          onClose={handleVoiceClose}
         />
       )}
       <PageHeader title="New quote" subtitle="AI generator" back="/quotes" />
