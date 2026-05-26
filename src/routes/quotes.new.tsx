@@ -729,7 +729,7 @@ function NewQuotePage() {
                     <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       £
                       <input
-                        type="number"
+                        type="text"
                         inputMode="decimal"
                         min={0}
                         step="0.01"
@@ -739,6 +739,7 @@ function NewQuotePage() {
                           next[i] = { ...li, unit_price: parseFloat(e.target.value) || 0 };
                           setDraft({ ...draft, line_items: next });
                         }}
+                        onFocus={(e) => e.currentTarget.select()}
                         className="w-24 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
                       />
                     </label>
