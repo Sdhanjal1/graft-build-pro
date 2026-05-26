@@ -7,12 +7,17 @@ import {
   getQuote, getClient, userProfile, formatGBP,
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
-  setQuoteStatus, updateQuoteLineItems,
+  setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles } from "lucide-react";
+import {
+  computeDepositAmount, computeDepositPercent, parseDepositInput,
+  paymentTimingLabel, shouldSuggestStaged, defaultDepositPercent,
+  type PaymentTiming,
+} from "@/lib/payment-timing";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
