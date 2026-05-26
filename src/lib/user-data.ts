@@ -160,6 +160,8 @@ export const EMPTY_PROFILE = {
     cis_labour: "",
     other: "",
   } as Record<LineItemCategory, string>,
+  // ---- Default deposit % applied to new quotes over £500 ----
+  default_deposit_percent: 30,
 };
 
 export const userProfile = { ...EMPTY_PROFILE };
