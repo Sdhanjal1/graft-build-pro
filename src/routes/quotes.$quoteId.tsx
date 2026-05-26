@@ -485,58 +485,76 @@ function QuoteDetail() {
       )}
 
 
-      {/* Payment method selector */}
+      {/* Payment timing — trader-side configuration (NOT the customer payment selector) */}
       <section className="px-5 mt-5">
-        <h2 className="text-xl mb-2.5">Payment method</h2>
+        <div className="flex items-baseline justify-between mb-2.5">
+          <h2 className="text-xl">Payment timing</h2>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">When you get paid</span>
+        </div>
         <div className="card-surface p-2 space-y-1.5">
-          <MethodOption
-            active={method === "card"} onClick={() => setMethod("card")}
-            icon={CreditCard} label="Pay by card online"
-            sub={userProfile.stripe_connected ? "Stripe link auto-included" : "Stripe (test link), connect Stripe in Settings to go live"}
-          />
-          <MethodOption
-            active={method === "bank"} onClick={() => setMethod("bank")}
-            icon={Landmark} label="Pay by bank transfer"
-            sub={`${userProfile.bank_name} · sort ${userProfile.sort_code}`}
-          />
-          <MethodOption
-            active={method === "cash"} onClick={() => setMethod("cash")}
-            icon={Banknote} label="Cash on completion"
-            sub="Customer brings cash on the day"
-          />
+          <TimingOption active={timing === "on_completion"} icon={Check} label="On completion"
+            sub="Customer pays after work is done" onClick={() => onTimingChange("on_completion")} />
+          <TimingOption active={timing === "deposit_then_balance"} icon={Banknote} label="Deposit then balance"
+            sub="Take a deposit up front, balance on completion" onClick={() => onTimingChange("deposit_then_balance")} />
+          <TimingOption active={timing === "staged"} icon={Clock} label="Staged payments"
+            sub="Multiple scheduled payments" onClick={() => onTimingChange("staged")} />
+          <TimingOption active={timing === "upfront"} icon={Zap} label="Upfront"
+            sub="Full payment before work starts" onClick={() => onTimingChange("upfront")} />
         </div>
 
-        {method === "card" && (
-          <div className="mt-3">
-            <a
-              href={paymentRequest ? paymentRequest.link : stripePaymentLink(liveQuote)}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full bg-ink text-paper rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
-            >
-              <CreditCard className="h-4 w-4" /> Pay by card
-              {paymentRequest && <span className="num text-paper/80">· {formatGBP(paymentRequest.amount)}</span>}
-            </a>
-            {!userProfile.stripe_connected && (
-              <p className="text-[10px] text-muted-foreground mt-2 text-center">Test link, add your Stripe keys in Settings to go live.</p>
-            )}
+        {timing === "deposit_then_balance" && (
+          <div className="mt-3 card-surface p-4 space-y-3">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Deposit</p>
+            <div className="grid grid-cols-2 gap-2.5">
+              <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
+                <span className="text-ink/60 font-bold">£</span>
+                <input
+                  type="text" inputMode="decimal"
+                  value={depositAmtRaw}
+                  onChange={(e) => setDepositAmtRaw(e.target.value)}
+                  onFocus={(e) => e.currentTarget.select()}
+                  onBlur={onDepositAmtBlur}
+                  placeholder="0.00"
+                  className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none"
+                />
+              </label>
+              <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
+                <input
+                  type="text" inputMode="decimal"
+                  value={depositPctRaw}
+                  onChange={(e) => setDepositPctRaw(e.target.value)}
+                  onFocus={(e) => e.currentTarget.select()}
+                  onBlur={onDepositPctBlur}
+                  placeholder="0"
+                  className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none text-right"
+                />
+                <span className="text-ink/60 font-bold">%</span>
+              </label>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
+            </p>
           </div>
         )}
-        {method === "bank" && (
-          <div className="mt-3 card-surface p-4 space-y-2">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Bank details</p>
-            <BankRow k="Account name" v={userProfile.bank_account_name} />
-            <BankRow k="Sort code" v={userProfile.sort_code} />
-            <BankRow k="Account no." v={userProfile.account_number} />
-            <BankRow k="Reference" v={quote.ref} />
-          </div>
+
+        {timing !== "deposit_then_balance" && (
+          <p className="text-[11px] text-muted-foreground mt-3 px-1">
+            {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
+          </p>
         )}
-        {method === "cash" && (
-          <div className="mt-3 card-surface p-4">
-            <p className="text-sm"><span className="font-semibold">Cash on completion</span>, please have cash ready on the day.</p>
+
+        {shouldSuggestStaged(quote.total, timing) && (
+          <div className="mt-3 rounded-2xl border border-lime/50 bg-lime/15 px-4 py-3 flex items-start gap-2">
+            <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-ink" />
+            <p className="text-[12px] text-ink leading-relaxed">
+              This job is over {formatGBP(2000)} — staged payments may help cashflow.
+              <button onClick={() => onTimingChange("staged")} className="ml-1 underline font-semibold">Use staged</button>
+            </p>
           </div>
         )}
       </section>
+
+
 
       {/* Spacer so content isn't hidden behind sticky bar */}
       <div className="h-36" aria-hidden />
