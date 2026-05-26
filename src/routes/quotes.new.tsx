@@ -420,7 +420,7 @@ function NewQuotePage() {
           onClose={handleVoiceClose}
         />
       )}
-      <PageHeader title="New quote" subtitle="AI generator" back="/quotes" />
+      <PageHeader title="New quote" subtitle="" back="/quotes" />
 
         <form
         id="new-quote-form"
