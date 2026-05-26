@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, ClientOnly } from "@tanstack/react-router";
 import { useEffect } from "react";
 import CountUp from "react-countup";
 import { AppShell } from "@/components/AppShell";
