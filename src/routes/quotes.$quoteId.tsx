@@ -492,13 +492,13 @@ function QuoteDetail() {
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">When you get paid</span>
         </div>
         <div className="card-surface p-2 space-y-1.5">
-          <TimingOption active={timing === "on_completion"} icon={Check} label="On completion"
+          <MethodOption active={timing === "on_completion"} icon={Check} label="On completion"
             sub="Customer pays after work is done" onClick={() => onTimingChange("on_completion")} />
-          <TimingOption active={timing === "deposit_then_balance"} icon={Banknote} label="Deposit then balance"
+          <MethodOption active={timing === "deposit_then_balance"} icon={Banknote} label="Deposit then balance"
             sub="Take a deposit up front, balance on completion" onClick={() => onTimingChange("deposit_then_balance")} />
-          <TimingOption active={timing === "staged"} icon={Clock} label="Staged payments"
+          <MethodOption active={timing === "staged"} icon={Clock} label="Staged payments"
             sub="Multiple scheduled payments" onClick={() => onTimingChange("staged")} />
-          <TimingOption active={timing === "upfront"} icon={Zap} label="Upfront"
+          <MethodOption active={timing === "upfront"} icon={Zap} label="Upfront"
             sub="Full payment before work starts" onClick={() => onTimingChange("upfront")} />
         </div>
 
