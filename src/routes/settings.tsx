@@ -472,7 +472,7 @@ function AccountingSetup() {
 
   const filledCodes = (Object.values(codes) as string[]).filter((v) => v && v.trim()).length;
   const totalCodes = 5;
-  const hasPickedSoftware = software && software !== "";
+  const hasPickedSoftware = !!software;
 
   const save = async () => {
     setSaving(true);
