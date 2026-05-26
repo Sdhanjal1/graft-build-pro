@@ -839,7 +839,8 @@ function LineItemsEditor({
     <>
       <ul>
         {items.map((li, i) => {
-          const label = badgeText(li.source);
+          const effectiveSource = normalizeSource(li.source, paidQuoteCount);
+          const label = badgeText(effectiveSource);
           const editing = editingIdx === i;
           return (
             <li
