@@ -437,6 +437,7 @@ export type Database = {
       quotes: {
         Row: {
           client_id: string | null
+          completed_at: string | null
           created_at: string
           deposit_amount: number
           deposit_percent: number
@@ -465,6 +466,7 @@ export type Database = {
         }
         Insert: {
           client_id?: string | null
+          completed_at?: string | null
           created_at?: string
           deposit_amount?: number
           deposit_percent?: number
@@ -493,6 +495,7 @@ export type Database = {
         }
         Update: {
           client_id?: string | null
+          completed_at?: string | null
           created_at?: string
           deposit_amount?: number
           deposit_percent?: number
