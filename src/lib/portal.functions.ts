@@ -66,7 +66,7 @@ export const getClientPortalData = createServerFn({ method: "POST" })
           .maybeSingle(),
         supabaseAdmin
           .from("quotes")
-          .select("id, ref, title, total, subtotal, vat_amount, vat_registered, status, created_at, line_items, job_description")
+          .select("id, ref, title, total, subtotal, vat_amount, vat_registered, status, created_at, line_items, job_description, payment_timing, deposit_amount, deposit_percent, completed_at")
           .eq("client_id", client.id)
           .eq("portal_visible", true)
           .order("created_at", { ascending: false }),
