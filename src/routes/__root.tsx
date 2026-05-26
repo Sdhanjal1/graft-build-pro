@@ -17,6 +17,7 @@ import { Splash } from "@/components/Splash";
 import { BannerSlot } from "@/components/BannerSlot";
 import { useSession } from "@/lib/auth";
 import { hydrateUserData, clearUserData } from "@/lib/user-data";
+import { registerServiceWorker } from "@/lib/sw-register";
 
 function NotFoundComponent() {
   return (
