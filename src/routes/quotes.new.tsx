@@ -134,11 +134,22 @@ function NewQuotePage() {
     stopRecording();
   };
 
+  const recordStartRef = useRef<number>(0);
+  const MIN_RECORD_MS = 1000;
+
   const stopRecording = () => {
     const mr = mediaRecorderRef.current;
-    if (mr && mr.state !== "inactive") {
-      mr.stop();
+    if (!mr || mr.state === "inactive") return;
+    const elapsed = Date.now() - recordStartRef.current;
+    const remaining = MIN_RECORD_MS - elapsed;
+    if (remaining > 0) {
+      setTimeout(() => {
+        const cur = mediaRecorderRef.current;
+        if (cur && cur.state !== "inactive") cur.stop();
+      }, remaining);
+      return;
     }
+    mr.stop();
   };
 
   const appendTranscript = (text: string) => {
@@ -217,9 +228,9 @@ function NewQuotePage() {
       });
       chunksRef.current = [];
 
-      if (blob.size < 200) {
+      if (blob.size < 1000) {
         setVoiceError(
-          "Didn't catch any audio, hold the button a moment longer and speak clearly.",
+          "Recording was too short. Hold the button and speak for at least 2 seconds.",
         );
         return;
       }
@@ -241,8 +252,9 @@ function NewQuotePage() {
       }
     };
 
-    // No timeslice, one final ondataavailable fires on stop with the full recording.
-    mr.start();
+    // Timeslice of 1s ensures a chunk is flushed every second even on iOS Safari.
+    recordStartRef.current = Date.now();
+    mr.start(1000);
     setRecording(true);
     setRecordSeconds(0);
     tickRef.current = setInterval(() => {
