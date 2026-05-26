@@ -968,6 +968,17 @@ function VoiceOverlay({
           {transcribing ? "Transcribing" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
         </p>
         <p className="num text-2xl mt-1 text-lime">{formatMMSS(seconds)}</p>
+        {recording && (
+          <div className="mt-3 w-full max-w-md min-h-[1.25rem] px-4 text-center">
+            {livePreview ? (
+              <p className="text-xs italic text-paper/50 leading-snug line-clamp-3">
+                {livePreview}
+              </p>
+            ) : !liveSupported ? (
+              <p className="text-xs italic text-paper/40">Listening…</p>
+            ) : null}
+          </div>
+        )}
       </div>
 
       <button
