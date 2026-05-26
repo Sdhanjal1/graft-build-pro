@@ -119,6 +119,7 @@ function RootComponent() {
   const isAuth = path === "/auth";
   const isPortal = path.startsWith("/portal/") || path.startsWith("/request/");
   const showAppChrome = !isMarketing && !isAuth && !isPortal;
+  React.useEffect(() => { registerServiceWorker(); }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate>
