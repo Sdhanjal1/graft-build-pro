@@ -176,16 +176,11 @@ function SettingsPage() {
         <BillingSection />
       </Section>
 
-      {/* ACCOUNTING EXPORT SETUP */}
-      <Section title="Accounting export setup">
+      {/* ACCOUNTING EXPORT */}
+      <Section title="Accounting export" defaultOpen>
         <AccountingSetup />
       </Section>
 
-      {/* EXPORT RECORDS */}
-      <section className="px-5 mt-3 space-y-3">
-        <AccountingExportButton helperText="Paid invoices, one row per line item, formatted for your accounting software." />
-        <ExportInvoicesButton helperText="Or download a simple paid-quotes summary CSV." />
-      </section>
 
       {/* SIGN OUT */}
       <section className="px-5 mt-8">
@@ -473,16 +468,31 @@ function AccountingSetup() {
   const [software, setSoftware] = useState<typeof userProfile.accounting_software>(userProfile.accounting_software || "");
   const [codes, setCodes] = useState({ ...userProfile.accounting_codes });
   const [saving, setSaving] = useState(false);
+  const [codesOpen, setCodesOpen] = useState(false);
+
+  const filledCodes = (Object.values(codes) as string[]).filter((v) => v && v.trim()).length;
+  const totalCodes = 5;
+  const hasPickedSoftware = !!software;
 
   const save = async () => {
     setSaving(true);
     try {
       await saveProfileToCloud({ accounting_software: software, accounting_codes: codes });
       toast.success("Accounting setup saved");
+      setCodesOpen(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const onSoftwareChange = async (v: typeof software) => {
+    setSoftware(v);
+    try {
+      await saveProfileToCloud({ accounting_software: v, accounting_codes: codes });
+    } catch {
+      // silent — explicit Save button handles errors
     }
   };
 
@@ -500,17 +510,12 @@ function AccountingSetup() {
 
   return (
     <div className="card-surface p-5 space-y-4">
-      <div>
-        <p className="text-sm font-semibold">Map line item categories to your accounting codes</p>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Used when you download records to import into Xero, QuickBooks or FreeAgent. Enter the codes from your own accounting software.
-        </p>
-      </div>
+      {/* Software picker */}
       <label className="block">
-        <span className="text-xs text-muted-foreground font-semibold">Which accounting software do you use?</span>
+        <span className="text-xs text-muted-foreground font-semibold">Accounting software</span>
         <select
           value={software}
-          onChange={(e) => setSoftware(e.target.value as typeof software)}
+          onChange={(e) => void onSoftwareChange(e.target.value as typeof software)}
           className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
         >
           {SOFTWARE_OPTIONS.map((o) => (
@@ -518,22 +523,79 @@ function AccountingSetup() {
           ))}
         </select>
       </label>
-      {codeRow("labour", "Labour income code", "e.g. 201")}
-      {codeRow("materials", "Materials income code", "e.g. 202")}
-      {codeRow("certificate", "Certificate income code", "e.g. 203")}
-      {codeRow("cis_labour", "CIS labour income code", "e.g. 210")}
-      {codeRow("other", "Other income code", "e.g. 260")}
+
+      {/* Account codes — collapsible summary row */}
       <button
         type="button"
-        onClick={save}
-        disabled={saving}
-        className="w-full bg-ink text-paper rounded-full py-3 font-bold text-sm disabled:opacity-60"
+        onClick={() => { feedback("tap"); setCodesOpen((s) => !s); }}
+        className="w-full flex items-center justify-between text-left rounded-2xl bg-secondary/60 px-4 py-3"
+        aria-expanded={codesOpen}
       >
-        {saving ? "Saving…" : "Save accounting setup"}
+        <div>
+          <p className="text-sm font-semibold">Account codes</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {filledCodes === 0 ? "Using default code (200)" : `${filledCodes} of ${totalCodes} codes set`}
+          </p>
+        </div>
+        <span
+          className="text-muted-foreground text-xl leading-none transition-transform"
+          style={{ transform: codesOpen ? "rotate(90deg)" : "rotate(0deg)" }}
+        >
+          ›
+        </span>
       </button>
+
+      {codesOpen && (
+        <div className="space-y-3 pt-1">
+          <p className="text-xs text-muted-foreground">
+            Map line item categories to the income codes used by your accounting software.
+          </p>
+          {codeRow("labour", "Labour income code", "e.g. 201")}
+          {codeRow("materials", "Materials income code", "e.g. 202")}
+          {codeRow("certificate", "Certificate income code", "e.g. 203")}
+          {codeRow("cis_labour", "CIS labour income code", "e.g. 210")}
+          {codeRow("other", "Other income code", "e.g. 260")}
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className="w-full bg-ink text-paper rounded-full py-3 font-bold text-sm disabled:opacity-60"
+          >
+            {saving ? "Saving…" : "Save codes"}
+          </button>
+        </div>
+      )}
+
+      {/* Divider */}
+      <div className="border-t border-border/60" />
+
+      {/* Primary download CTA */}
+      {hasPickedSoftware ? (
+        <>
+          <AccountingExportButton />
+          <p className="text-xs text-muted-foreground text-center">
+            Paid invoices, one row per line item, formatted for your accounting software.
+          </p>
+        </>
+      ) : (
+        <p className="text-xs text-muted-foreground text-center px-2">
+          Pick your accounting software above to get a tailored export.
+        </p>
+      )}
+
+      {/* Secondary: simple summary CSV */}
+      <details className="group">
+        <summary className="text-xs text-muted-foreground text-center cursor-pointer list-none hover:text-ink">
+          Need a simple paid-quotes summary instead? ›
+        </summary>
+        <div className="pt-3">
+          <ExportInvoicesButton />
+        </div>
+      </details>
     </div>
   );
 }
+
 
 function Input({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
