@@ -408,7 +408,20 @@ function NewQuotePage() {
           onStop={stopRecording}
         />
       )}
-      <PageHeader title="New quote" subtitle="AI generator" back="/" />
+      <header className="px-5 pt-8 pb-4 flex items-center gap-3">
+        <Link
+          to="/"
+          aria-label="Back"
+          className="h-10 w-10 rounded-full bg-card border border-border flex items-center justify-center text-ink"
+        >
+          ‹
+        </Link>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">AI generator</p>
+          <h1 className="text-4xl leading-none mt-1">New quote</h1>
+        </div>
+      </header>
+
 
 
         <form
