@@ -946,7 +946,13 @@ function VoiceOverlay({
         <p className="num text-2xl mt-1 text-lime">{formatMMSS(seconds)}</p>
       </div>
 
-      <div className="relative flex items-center justify-center my-8">
+      <button
+        type="button"
+        onClick={onStop}
+        disabled={transcribing}
+        aria-label={transcribing ? "Transcribing" : "Stop recording"}
+        className="relative flex items-center justify-center my-8 disabled:opacity-60"
+      >
         {recording && (
           <>
             <span className="absolute h-64 w-64 rounded-full bg-lime/10 animate-ping" />
@@ -960,11 +966,13 @@ function VoiceOverlay({
         >
           {transcribing ? (
             <Loader2 className="h-16 w-16 text-ink animate-spin" />
+          ) : recording ? (
+            <Square className="h-16 w-16 text-ink fill-ink" strokeWidth={2.25} />
           ) : (
             <Mic className="h-16 w-16 text-ink" strokeWidth={2.25} />
           )}
         </div>
-      </div>
+      </button>
 
       <div className="w-full max-w-md min-h-[6rem] text-center">
         {liveTranscript ? (
@@ -976,24 +984,8 @@ function VoiceOverlay({
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={onStop}
-        disabled={transcribing}
-        className="mt-6 relative inline-flex items-center justify-center gap-3 bg-lime text-ink rounded-full pl-5 pr-7 py-5 text-base font-bold w-full max-w-xs ring-4 ring-lime/20 shadow-[0_18px_50px_-10px_rgba(200,224,74,0.7)] active:scale-[0.98] transition disabled:opacity-60"
-      >
-        {!transcribing && (
-          <span className="pointer-events-none absolute inset-0 rounded-full bg-lime/40 animate-ping -z-10" />
-        )}
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink">
-          {transcribing ? (
-            <Loader2 className="h-4 w-4 text-lime animate-spin" />
-          ) : (
-            <Square className="h-3.5 w-3.5 fill-lime text-lime" />
-          )}
-        </span>
-        {transcribing ? "Please wait…" : "Stop recording"}
-      </button>
+      {/* Spacer so the content above stays vertically balanced */}
+      <div className="h-16" />
     </div>,
     document.body,
   );
