@@ -171,7 +171,7 @@ function ClientPortalPage() {
     );
   }
 
-  const { profile, quotes, documents, messages, client } = data;
+  const { profile, quotes, documents, client } = data;
   const businessName = profile?.business_name ?? "Your tradesperson";
 
   if (!confirmed) {
