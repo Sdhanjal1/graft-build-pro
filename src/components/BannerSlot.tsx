@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { TrialBanner } from "@/components/TrialBanner";
+import { UpdateBanner } from "@/components/UpdateBanner";
+import { SW_UPDATE_EVENT } from "@/lib/sw-register";
 import { useSubscription } from "@/hooks/useSubscription";
 
 const PWA_KEY = "quottr.pwa-dismissed-until";
@@ -36,18 +38,24 @@ export function BannerSlot() {
   const [offline, setOffline] = useState(
     typeof navigator === "undefined" ? false : !navigator.onLine,
   );
+  const [updateReady, setUpdateReady] = useState(false);
 
   useEffect(() => {
     setPwaActive(pwaEligible());
     const up = () => setOffline(false);
     const down = () => setOffline(true);
+    const onUpdate = () => setUpdateReady(true);
     window.addEventListener("online", up);
     window.addEventListener("offline", down);
+    window.addEventListener(SW_UPDATE_EVENT, onUpdate);
     return () => {
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
+      window.removeEventListener(SW_UPDATE_EVENT, onUpdate);
     };
   }, []);
+
+  if (updateReady) return <UpdateBanner />;
 
   if (pwaActive) return <PWAInstallBanner />;
 
