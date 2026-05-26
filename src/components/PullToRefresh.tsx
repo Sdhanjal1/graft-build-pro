@@ -69,6 +69,7 @@ export function PullToRefresh({
   }, [pull, refreshing, onRefresh]);
 
   const ready = pull >= THRESHOLD;
+  const fade = Math.min(1, pull / THRESHOLD);
 
   return (
     <>
@@ -80,14 +81,18 @@ export function PullToRefresh({
           transition: refreshing || pull === 0 ? "height 200ms ease" : "none",
         }}
       >
-        <div className="mb-2 h-9 w-9 rounded-full bg-ink text-paper flex items-center justify-center shadow-lg">
+        <div
+          className="mb-3 flex items-center justify-center"
+          style={{
+            opacity: refreshing ? 1 : fade,
+            transform: `scale(${0.85 + fade * 0.15})`,
+            transition: refreshing ? "opacity 200ms ease" : "none",
+          }}
+        >
           {refreshing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-5 w-5 animate-spin text-ink" />
           ) : (
-            <ArrowDown
-              className="h-4 w-4 transition-transform"
-              style={{ transform: ready ? "rotate(180deg)" : "rotate(0deg)" }}
-            />
+            <QuottrWordmark className={`text-2xl ${ready ? "" : "opacity-90"}`} />
           )}
         </div>
       </div>
