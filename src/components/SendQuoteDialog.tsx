@@ -18,11 +18,14 @@ type Props = {
   customerEmail?: string;
   /** Optional fallback wa.me link kept for back-compat; the dialog now builds its own. */
   whatsappHref?: string;
+  /** When set, dialog skips token creation and uses this client portal_code with "updated link" copy. */
+  updatedLinkPortalCode?: string;
 };
 
 export function SendQuoteDialog({
   open, onClose, quoteId, quoteRef, quoteTitle,
   customerName, customerPhone, customerEmail,
+  updatedLinkPortalCode,
 }: Props) {
 
   const ensureToken = useServerFn(ensurePortalToken);
