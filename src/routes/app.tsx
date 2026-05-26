@@ -78,7 +78,7 @@ function AppHomePage() {
       <div className="flex flex-col min-h-[calc(100dvh-7rem)]">
       {/* Ink header: greeting + £ outstanding */}
 
-      <header className="bg-ink text-paper rounded-b-3xl px-5 pt-5 pb-6">
+      <header className="bg-ink text-paper rounded-b-3xl px-5 pt-5 pb-5">
         <div className="flex items-center justify-between">
           <QuottrWordmark className="text-3xl" />
           <Link
@@ -125,7 +125,7 @@ function AppHomePage() {
 
       {/* Action queue cards */}
       {hasActions ? (
-        <section className="px-5 mt-3 space-y-2">
+        <section className="px-5 mt-4 space-y-2">
           {pendingQuotes.length > 0 && (
             <ActionCard
               to="/quotes"
@@ -165,7 +165,7 @@ function AppHomePage() {
 
       {/* Today's jobs */}
       {today.length > 0 && (
-        <section className="px-5 mt-3">
+        <section className="px-5 mt-5">
           <div className="card-surface p-4">
             <div className="flex items-center gap-2 mb-2">
               <Clock className="h-4 w-4 text-lime" />
@@ -204,7 +204,7 @@ function AppHomePage() {
       )}
 
       {/* Voice-first hero CTA — big central mic */}
-      <section className="px-5 mt-4 flex-1 flex">
+      <section className="px-5 mt-5 flex-1 flex">
         <div className="flex flex-col w-full rounded-3xl bg-ink text-paper p-5 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center">
           <Link
             to="/quotes/new"

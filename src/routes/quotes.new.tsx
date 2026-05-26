@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useServerFn } from "@tanstack/react-start";
-import { AppShell } from "@/components/AppShell";
+import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   userProfile,
   userClients,
@@ -409,25 +409,11 @@ function NewQuotePage() {
           onStop={stopRecording}
         />
       )}
-      <header className="px-5 pt-8 pb-4 flex items-center gap-3">
-        <Link
-          to="/"
-          aria-label="Back"
-          className="h-10 w-10 rounded-full bg-card border border-border flex items-center justify-center text-ink"
-        >
-          ‹
-        </Link>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">AI generator</p>
-          <h1 className="text-4xl leading-none mt-1">New quote</h1>
-        </div>
-      </header>
-
-
+      <PageHeader title="New quote" subtitle="AI generator" back="/quotes" />
 
         <form
         id="new-quote-form"
-        className="px-5 space-y-4 pb-64"
+        className="px-5 mt-4 space-y-4 pb-64"
         onSubmit={(e) => {
           e.preventDefault();
           if (draft) save();

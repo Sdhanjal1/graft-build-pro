@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/AppShell";
+import { AppShell, PageHeader } from "@/components/AppShell";
 
 import { SwipeRow } from "@/components/SwipeRow";
 import { mockQuotes, getClient, formatGBP, deleteQuote, useDataVersion, buildChaserMessage, waLink, type QuoteStatus } from "@/lib/user-data";
@@ -47,12 +47,9 @@ function QuotesPage() {
 
   return (
     <AppShell>
-      <header className="px-5 pt-8 pb-4">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">All work</p>
-        <h1 className="text-4xl leading-none mt-1">Quotes</h1>
-      </header>
+      <PageHeader title="Quotes" subtitle="All work" />
 
-      <div className="px-5">
+      <div className="px-5 mt-4">
         <div className="card-surface flex items-center gap-2 px-4 py-3">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input
@@ -65,7 +62,7 @@ function QuotesPage() {
       </div>
 
       {/* Filter chips */}
-      <div className="px-5 mt-4 flex gap-2 overflow-x-auto no-scrollbar">
+      <div className="px-5 mt-5 flex gap-2 overflow-x-auto no-scrollbar">
         {FILTERS.map((f) => (
           <button
             key={f}
@@ -79,7 +76,7 @@ function QuotesPage() {
         ))}
       </div>
 
-      <div className="px-5 mt-4 space-y-2.5">
+      <div className="px-5 mt-5 space-y-2.5">
         {filtered.length === 0 && (
           mockQuotes.length === 0 ? (
             <EmptyState
