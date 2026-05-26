@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { generateInvoicePdfBytes } from "@/lib/invoice-pdf.server";
-import { sendInvoiceEmail } from "@/lib/email/send-invoice.server";
+// invoice-pdf and email modules are dynamically imported inside the handler
+// so any module-load issues in the Worker runtime never break the webhook.
 
 async function sendBrandedInvoiceEmail(opts: {
   userId: string;
@@ -44,6 +44,8 @@ async function sendBrandedInvoiceEmail(opts: {
       client = c;
     }
     const paidAt = new Date().toISOString();
+    const { generateInvoicePdfBytes } = await import("@/lib/invoice-pdf.server");
+    const { sendInvoiceEmail } = await import("@/lib/email/send-invoice.server");
     const pdfBytes = generateInvoicePdfBytes(
       {
         ref: (quote as any).ref,
