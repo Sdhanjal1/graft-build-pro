@@ -32,7 +32,7 @@ function csvEscape(v: unknown): string {
   return s;
 }
 
-export function ExportInvoicesButton() {
+export function ExportInvoicesButton({ helperText }: { helperText?: string }) {
   const [open, setOpen] = useState(false);
   const [range, setRange] = useState<Range>("this");
   const [customFrom, setCustomFrom] = useState("");
@@ -116,10 +116,13 @@ export function ExportInvoicesButton() {
   }
 
   return (
-    <>
+    <div>
+      {helperText && (
+        <p className="text-xs text-muted-foreground mb-1.5">{helperText}</p>
+      )}
       <button
         onClick={() => setOpen(true)}
-        className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-3 text-sm font-medium hover:bg-accent"
+        className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-3 text-sm font-medium hover:bg-accent"
       >
         <Download className="h-4 w-4" />
         Export invoices
@@ -168,6 +171,6 @@ export function ExportInvoicesButton() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
