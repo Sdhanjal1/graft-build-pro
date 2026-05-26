@@ -19,6 +19,7 @@ import {
   Check,
   X,
 } from "lucide-react";
+import { acceptButtonLabel, paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
 
 export const Route = createFileRoute("/portal/c/$code")({
   component: ClientPortalPage,
