@@ -192,6 +192,8 @@ export type Database = {
         Row: {
           account_number: string | null
           account_paused_at: string | null
+          accounting_codes: Json
+          accounting_software: string | null
           bank_account_name: string | null
           bank_name: string | null
           business_name: string | null
@@ -222,6 +224,8 @@ export type Database = {
         Insert: {
           account_number?: string | null
           account_paused_at?: string | null
+          accounting_codes?: Json
+          accounting_software?: string | null
           bank_account_name?: string | null
           bank_name?: string | null
           business_name?: string | null
@@ -252,6 +256,8 @@ export type Database = {
         Update: {
           account_number?: string | null
           account_paused_at?: string | null
+          accounting_codes?: Json
+          accounting_software?: string | null
           bank_account_name?: string | null
           bank_name?: string | null
           business_name?: string | null
