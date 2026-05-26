@@ -38,8 +38,11 @@ const FILTERS: ("all" | QuoteStatus)[] = ["all", "pending", "sent", "accepted", 
 
 function QuotesPage() {
   useDataVersion();
+  const { loading } = useSession();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
   const [q, setQ] = useState("");
+
+  if (loading) return <QuotesListSkeleton />;
 
   const filtered = mockQuotes.filter((x) => {
     if (filter !== "all" && x.status !== filter) return false;
