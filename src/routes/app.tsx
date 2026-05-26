@@ -210,7 +210,7 @@ function AppHomePage() {
             to="/quotes/new"
             search={{ voice: 1 }}
             onClick={() => buzz(12)}
-            className="flex flex-col items-center active:scale-[0.99] transition rounded-2xl py-2"
+            className="flex flex-col items-center justify-center flex-1 active:scale-[0.99] transition rounded-2xl py-2"
           >
             <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
               Tap to start
@@ -219,8 +219,8 @@ function AppHomePage() {
 
             <div className="flex items-center justify-center my-3">
               <span className="relative h-32 w-32 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_48px_-14px_rgba(200,224,74,0.8)]">
-                <span className="absolute inset-0 rounded-full bg-lime mic-ring-inner" />
-                <span className="absolute inset-0 rounded-full bg-lime mic-ring-outer" />
+                <span className="absolute inset-0 rounded-full bg-lime mic-ring-inner origin-center" />
+                <span className="absolute inset-0 rounded-full bg-lime mic-ring-outer origin-center" />
                 <Mic className="relative h-16 w-16 text-ink" strokeWidth={2.5} />
               </span>
             </div>
