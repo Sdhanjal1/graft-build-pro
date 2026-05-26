@@ -76,7 +76,6 @@ type Data = Awaited<ReturnType<typeof getClientPortalData>>;
 function ClientPortalPage() {
   const { code } = Route.useParams();
   const fetchData = useServerFn(getClientPortalData);
-  const postMsg = useServerFn(postClientPortalMessage);
   const respondQuote = useServerFn(respondQuoteFromPortal);
 
   const [loading, setLoading] = useState(true);
@@ -88,8 +87,6 @@ function ClientPortalPage() {
   const [lastName, setLastName] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [body, setBody] = useState("");
-  const [sending, setSending] = useState(false);
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
 
