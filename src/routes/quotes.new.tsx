@@ -914,13 +914,9 @@ function VoiceOverlay({
       </button>
 
       <div className="w-full max-w-md min-h-[6rem] text-center">
-        {liveTranscript ? (
-          <p className="text-base leading-relaxed text-paper/90">{liveTranscript}</p>
-        ) : (
-          <p className="text-sm text-paper/50">
-            {transcribing ? "Turning your voice into text…" : "Describe the job, boiler, bathroom, materials, time…"}
-          </p>
-        )}
+        <p className="text-sm text-paper/50">
+          {transcribing ? "Turning your voice into text…" : "Describe the job, boiler, bathroom, materials, time…"}
+        </p>
       </div>
 
       {idle && (
