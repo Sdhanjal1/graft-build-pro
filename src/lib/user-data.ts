@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  computeDepositAmount,
+  defaultDepositPercent,
+  deriveTimingFromTotal,
+  type PaymentTiming,
+} from "@/lib/payment-timing";
 
 export type QuoteStatus = "pending" | "sent" | "accepted" | "declined" | "paid" | "overdue";
-export type PaymentMethod = "card" | "bank" | "cash";
+export type PaymentMethod = "card" | "bank" | "cash" | "other";
 export type PaymentRequestType = "deposit" | "full" | "custom";
 export type JobStatus = "scheduled" | "in_progress" | "complete";
 
