@@ -152,28 +152,9 @@ function ClientPortalPage() {
     if (!first) return;
     localStorage.setItem(nameKey, JSON.stringify({ first, last }));
     setConfirmed(true);
-    // Send a system-like greeting so pro sees who confirmed
-    void postMsg({
-      data: { code, body: `[Portal opened by ${first} ${last}]` },
-    }).catch(() => {});
   };
 
-  const send = async () => {
-    const text = body.trim();
-    if (!text) return;
-    setSending(true);
-    setBody("");
-    try {
-      const r = await postMsg({ data: { code, body: text } });
-      setData((prev) =>
-        prev ? { ...prev, messages: [...prev.messages, r.message as never] } : prev,
-      );
-    } catch {
-      setBody(text);
-    } finally {
-      setSending(false);
-    }
-  };
+
 
   if (loading) {
     return (
