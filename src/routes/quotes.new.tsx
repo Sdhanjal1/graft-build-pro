@@ -1000,8 +1000,16 @@ function VoiceOverlay({
         )}
       </div>
 
-      {/* Spacer so the content above stays vertically balanced */}
-      <div className="h-16" />
+      {idle && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-xs uppercase tracking-widest text-paper/50 font-semibold py-3"
+        >
+          Cancel
+        </button>
+      )}
+      {!idle && <div className="h-16" />}
     </div>,
     document.body,
   );
