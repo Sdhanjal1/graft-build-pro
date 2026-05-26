@@ -901,7 +901,8 @@ export const chasesDueNow = () => {
   const due = mockChases
     .filter((c) => c.status === "scheduled" && new Date(c.due_at).getTime() <= now)
     .map((c) => ({ chase: c, quote: getQuote(c.quote_id) }))
-    .filter((x): x is { chase: ScheduledChase; quote: Quote } => !!x.quote);
+    .filter((x): x is { chase: ScheduledChase; quote: Quote } => !!x.quote)
+    .filter(({ quote }) => isQuoteChaseableNow(quote));
   due.forEach(({ chase }) => {
     if (!chase.auto_send_at) chase.auto_send_at = new Date(now + windowMs).toISOString();
   });
