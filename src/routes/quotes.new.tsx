@@ -128,10 +128,14 @@ function NewQuotePage() {
 
   const handleVoiceStart = async () => {
     setVoicePending(false);
+    setVoiceError(null);
+    setLastTranscript(null);
     await startRecording();
   };
   const handleVoiceClose = () => {
     setVoicePending(false);
+    setVoiceError(null);
+    setLastTranscript(null);
     stopRecording();
   };
 
