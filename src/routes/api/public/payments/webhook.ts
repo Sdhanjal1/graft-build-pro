@@ -348,6 +348,17 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           });
         }
 
+        // Best-effort branded invoice email (never throws)
+        await sendBrandedInvoiceEmail({
+          userId,
+          quoteId,
+          customerEmail,
+          amountCents,
+          currency,
+          paymentIntent,
+          paymentMethod: "card",
+        });
+
         return new Response("ok", { status: 200 });
       },
 
