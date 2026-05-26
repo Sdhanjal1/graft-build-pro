@@ -11,6 +11,7 @@ import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings }
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
+import { HomeSkeleton } from "@/components/Skeletons";
 
 function greetingFor(d = new Date()) {
   const h = d.getHours();
