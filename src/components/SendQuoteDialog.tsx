@@ -29,7 +29,6 @@ export function SendQuoteDialog({
 }: Props) {
 
   const ensureToken = useServerFn(ensurePortalToken);
-  const fetchClientCode = useServerFn(getPortalCodeForQuote);
   const [busy, setBusy] = useState<null | "sms" | "email" | "wa">(null);
   const [copied, setCopied] = useState(false);
 
@@ -39,15 +38,7 @@ const SHARE_ORIGIN = "https://quottr.co.uk";
 const shortClientPortalUrl = (portal_code: string) => `${SHARE_ORIGIN}/q/${portal_code}`;
 const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
 
-  const portalHistoryLine = async () => {
-    try {
-      const { portal_code } = await fetchClientCode({ data: { quoteId } });
-      if (!portal_code) return "";
-      return `\n\nView your quotes and service history: ${shortClientPortalUrl(portal_code)}`;
-    } catch {
-      return "";
-    }
-  };
+
 
   if (!open) return null;
 
