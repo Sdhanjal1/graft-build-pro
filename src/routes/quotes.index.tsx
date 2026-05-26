@@ -15,6 +15,7 @@ const STATUS_DOT: Record<QuoteStatus, string> = {
   sent: "bg-status-sent",
   accepted: "bg-status-accepted",
   declined: "bg-status-overdue",
+  completed: "bg-status-accepted",
   paid: "bg-status-paid",
   overdue: "bg-status-overdue",
 };
