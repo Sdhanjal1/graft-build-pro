@@ -5,7 +5,7 @@ import {
   userProfile, stats, formatGBP, getClient, mockQuotes,
   todaysJobs, formatTime, getQuote,
 } from "@/lib/user-data";
-import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send } from "lucide-react";
+import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings } from "lucide-react";
 
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
@@ -83,9 +83,10 @@ function AppHomePage() {
           <QuottrWordmark className="text-3xl" />
           <Link
             to="/settings"
-            className="text-[10px] uppercase tracking-widest font-semibold text-paper/60 hover:text-lime transition"
+            className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-semibold text-paper/60 hover:text-lime transition max-w-[55%]"
           >
-            {userProfile.business_name || "Set up"}
+            <span className="truncate">{userProfile.business_name || "Set up"}</span>
+            <Settings className="h-3.5 w-3.5 shrink-0" />
           </Link>
         </div>
 
