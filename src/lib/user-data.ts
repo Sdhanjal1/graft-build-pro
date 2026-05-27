@@ -574,6 +574,27 @@ export const stats = () => {
   // Top 5 jobs by total value (excluding voided/draft etc)
   const topJobs = [...mockQuotes].sort((a, b) => b.total - a.total).slice(0, 5);
   const bestJob = topJobs[0];
+  // ---- "Today" signals for the home-screen status hero ----
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const todayTs = startOfToday.getTime();
+  const isToday = (iso?: string | null) => {
+    if (!iso) return false;
+    const t = new Date(iso).getTime();
+    return Number.isFinite(t) && t >= todayTs;
+  };
+  const paidTodayTx = mockTransactions.filter((t) => isToday(t.date));
+  const paidToday = paidTodayTx.reduce((s, t) => s + t.amount, 0);
+  const paidTodayCount = paidTodayTx.length;
+  const acceptedQuotes = mockQuotes.filter((q) => q.status === "accepted");
+  const acceptedCount = acceptedQuotes.length;
+  const acceptedAmount = acceptedQuotes.reduce((s, q) => s + q.total, 0);
+  const acceptedTodayQuotes = acceptedQuotes.filter((q) => isToday(q.updated_at));
+  const acceptedTodayCount = acceptedTodayQuotes.length;
+  const acceptedTodayAmount = acceptedTodayQuotes.reduce((s, q) => s + q.total, 0);
+  const sentQuotes = mockQuotes.filter((q) => q.status === "sent");
+  const awaitingReplyCount = sentQuotes.length;
+  const awaitingReplyAmount = sentQuotes.reduce((s, q) => s + q.total, 0);
   return {
     totalQuoted,
     clientCount: userClients.length,
@@ -589,6 +610,14 @@ export const stats = () => {
     collectedThisMonth,
     topJobs,
     bestJob,
+    paidToday,
+    paidTodayCount,
+    acceptedCount,
+    acceptedAmount,
+    acceptedTodayCount,
+    acceptedTodayAmount,
+    awaitingReplyCount,
+    awaitingReplyAmount,
   };
 };
 
