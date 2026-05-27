@@ -69,11 +69,13 @@ function ChaserPage() {
                 const autoIn = chase.auto_send_at
                   ? Math.max(0, Math.round((new Date(chase.auto_send_at).getTime() - Date.now()) / 60000))
                   : null;
+                const offsets = userProfile.chase_offsets ?? [7, 14, 21];
+                const tone = chaseTone(chase.day_offset, offsets);
                 return (
                   <div key={chase.id} className="rounded-2xl bg-lime/15 border border-lime/40 p-3.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] uppercase tracking-widest font-bold bg-lime text-ink rounded-full px-2 py-0.5">
-                        Day {chase.day_offset} · ready to send
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-[10px] uppercase tracking-widest font-bold rounded-full px-2 py-0.5 ${tone.chip}`}>
+                        Day {chase.day_offset} · {tone.label}
                       </span>
                       <p className="text-xs font-semibold text-ink truncate">{quote.ref} · {c?.name}</p>
                     </div>
