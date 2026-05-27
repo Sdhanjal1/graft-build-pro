@@ -27,6 +27,7 @@ export function EmptyState({ icon: Icon, title, body, cta, tone = "default" }: P
       {cta && (
         <Link
           to={cta.to}
+          search={cta.search}
           className="mt-5 inline-flex items-center bg-lime text-ink rounded-full px-5 py-2.5 text-xs font-bold active:scale-95 transition"
         >
           {cta.label}
