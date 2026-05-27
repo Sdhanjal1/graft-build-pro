@@ -515,29 +515,6 @@ function QuoteDetail() {
               <PrimaryIcon className="h-4 w-4" />
               {primary.label}
             </button>
-            {status !== "paid" && (
-              <button
-                onClick={() => setAskingPaid(true)}
-                aria-label="Mark as paid"
-                className="h-12 w-12 rounded-full bg-ink text-paper inline-flex items-center justify-center shrink-0"
-              >
-                <CheckCircle2 className="h-5 w-5" />
-              </button>
-            )}
-            {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
-              <button
-                onClick={() => {
-                  const first = client.name.split(" ")[0] ?? "there";
-                  const msg = `Hi ${first}, just following up on ${quote.ref} for ${formatGBP(quote.total)}. Could you let me know when payment will be made? Thanks.`;
-                  const digits = client.phone.replace(/\D/g, "");
-                  window.open(`https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${encodeURIComponent(msg)}`, "_blank");
-                }}
-                aria-label="Send chaser"
-                className="h-12 w-12 rounded-full bg-secondary text-ink inline-flex items-center justify-center shrink-0"
-              >
-                <MessageCircle className="h-5 w-5" />
-              </button>
-            )}
             <button
               onClick={() => setMoreOpen(true)}
               aria-label="More options"
@@ -546,16 +523,6 @@ function QuoteDetail() {
               ⋯
             </button>
           </div>
-          {(status === "accepted" || status === "sent") && (
-            <button
-              onClick={() => takePaymentOnSite("full")}
-              disabled={takingOnSite}
-              className="w-full mt-2 bg-ink/90 text-paper rounded-full py-2.5 font-semibold inline-flex items-center justify-center gap-2 text-xs disabled:opacity-60"
-            >
-              {takingOnSite ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Nfc className="h-3.5 w-3.5" />}
-              Take payment on site · {formatGBP(quote.total)}
-            </button>
-          )}
           {status === "paid" && (
             <div className="w-full mt-2 bg-status-paid/15 border border-status-paid/40 rounded-full py-2 px-4 inline-flex items-center justify-center gap-2 text-xs font-semibold text-ink">
               <CheckCircle2 className="h-3.5 w-3.5" />
