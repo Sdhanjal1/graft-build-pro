@@ -13,7 +13,7 @@ import {
 } from "@/lib/user-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2 } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil } from "lucide-react";
 import {
   computeDepositAmount, computeDepositPercent, parseDepositInput,
   paymentTimingLabel, shouldSuggestStaged, defaultDepositPercent,
@@ -891,8 +891,8 @@ function LineItemsEditor({
   onChange?: (items: LineItem[]) => void;
 }) {
   const [items, setItems] = useState<LineItem[]>(quote.line_items.map((li) => ({ ...li })));
-  const [editing, setEditing] = useState<{ idx: number; field: "description" | "qty" | "price" } | null>(null);
-  const [draft, setDraft] = useState("");
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [draft, setDraft] = useState<{ description: string; qty: string; price: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const paidQuoteCount = usePaidQuoteCount();
 
@@ -900,10 +900,15 @@ function LineItemsEditor({
   const vat = vatRegistered ? +(subtotal * 0.2).toFixed(2) : 0;
   const total = +(subtotal + vat).toFixed(2);
 
-  const beginEdit = (idx: number, field: "description" | "qty" | "price") => {
-    setEditing({ idx, field });
+  const beginEdit = (idx: number) => {
     const li = items[idx];
-    setDraft(field === "description" ? li.description : field === "qty" ? String(li.qty) : String(li.unit_price));
+    setDraft({ description: li.description, qty: String(li.qty), price: String(li.unit_price) });
+    setEditingIdx(idx);
+  };
+
+  const cancelEdit = () => {
+    setEditingIdx(null);
+    setDraft(null);
   };
 
   const persist = async (next: LineItem[]) => {
@@ -922,40 +927,44 @@ function LineItemsEditor({
     }
   };
 
-  const commitEdit = async () => {
-    if (!editing) return;
-    const { idx, field } = editing;
+  const commitAll = async () => {
+    if (editingIdx === null || !draft) return;
+    const idx = editingIdx;
     const current = items[idx];
-    let next = items;
-    if (field === "description") {
-      const value = draft.trim();
-      if (value && value !== current.description) {
-        next = items.map((li, i) => (i === idx ? { ...li, description: value } : li));
-      }
-    } else if (field === "qty") {
-      const parsed = Number(draft);
-      if (Number.isFinite(parsed) && parsed > 0 && parsed !== current.qty) {
-        next = items.map((li, i) => (i === idx ? { ...li, qty: +parsed } : li));
-      }
-    } else {
-      const parsed = Number(draft);
-      if (Number.isFinite(parsed) && parsed >= 0 && +parsed.toFixed(2) !== current.unit_price) {
-        next = items.map((li, i) =>
-          i === idx ? { ...li, unit_price: +parsed.toFixed(2), source: "voice" as const } : li,
-        );
-      }
-    }
-    setEditing(null);
-    if (next !== items) await persist(next);
+    const nextDesc = draft.description.trim() || current.description;
+    const qtyParsed = Number(draft.qty);
+    const nextQty = Number.isFinite(qtyParsed) && qtyParsed > 0 ? +qtyParsed : current.qty;
+    const priceParsed = Number(draft.price);
+    const nextPrice = Number.isFinite(priceParsed) && priceParsed >= 0
+      ? +priceParsed.toFixed(2)
+      : current.unit_price;
+    const priceChanged = nextPrice !== current.unit_price;
+    const changed =
+      nextDesc !== current.description || nextQty !== current.qty || priceChanged;
+    setEditingIdx(null);
+    setDraft(null);
+    if (!changed) return;
+    const next = items.map((li, i) =>
+      i === idx
+        ? {
+            ...li,
+            description: nextDesc,
+            qty: nextQty,
+            unit_price: nextPrice,
+            ...(priceChanged ? { source: "voice" as const } : {}),
+          }
+        : li,
+    );
+    await persist(next);
   };
 
-  const changeCategory = async (i: number, category: LineItemCategory) => {
+  const changeCategoryDraft = async (i: number, category: LineItemCategory) => {
     const next = items.map((li, idx) => (idx === i ? { ...li, category } : li));
     await persist(next);
   };
 
-  const editingInputClass =
-    "bg-paper border border-border rounded-md px-2 py-1 text-sm outline-none focus:border-ink";
+  const inputClass =
+    "h-11 bg-paper border border-border rounded-md px-3 text-base outline-none focus:border-ink";
 
   return (
     <>
@@ -963,9 +972,102 @@ function LineItemsEditor({
         {items.map((li, i) => {
           const effectiveSource = normalizeSource(li.source, paidQuoteCount);
           const label = badgeText(effectiveSource);
-          const editingDesc = editing?.idx === i && editing.field === "description";
-          const editingQty = editing?.idx === i && editing.field === "qty";
-          const editingPrice = editing?.idx === i && editing.field === "price";
+          const isEditing = editingIdx === i;
+          if (isEditing && draft) {
+            return (
+              <li key={i} className="px-5 py-4 border-t border-border first:border-t-0 bg-secondary/30">
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Description
+                    </label>
+                    <input
+                      autoFocus
+                      type="text"
+                      value={draft.description}
+                      onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") commitAll();
+                        if (e.key === "Escape") cancelEdit();
+                      }}
+                      className={`${inputClass} w-full`}
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Qty
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={draft.qty}
+                        onChange={(e) => setDraft({ ...draft, qty: e.target.value })}
+                        onFocus={(e) => e.currentTarget.select()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") commitAll();
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                        className={`${inputClass} w-24 text-right num`}
+                      />
+                    </div>
+                    <div className="space-y-1 flex-1">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Unit price
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-base">£</span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={draft.price}
+                          onChange={(e) => setDraft({ ...draft, price: e.target.value })}
+                          onFocus={(e) => e.currentTarget.select()}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") commitAll();
+                            if (e.key === "Escape") cancelEdit();
+                          }}
+                          className={`${inputClass} w-32 pl-7 text-right num`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Category
+                    </label>
+                    <select
+                      value={li.category ?? "other"}
+                      onChange={(e) => changeCategoryDraft(i, e.target.value as LineItemCategory)}
+                      className={`${inputClass} w-full`}
+                    >
+                      <option value="labour">Labour</option>
+                      <option value="materials">Materials</option>
+                      <option value="certificate">Certificate</option>
+                      <option value="cis_labour">CIS Labour</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={cancelEdit}
+                      className="h-10 px-4 rounded-md text-sm font-medium border border-border bg-paper hover:bg-secondary"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={commitAll}
+                      className="h-10 px-5 rounded-md text-sm font-semibold bg-ink text-paper hover:bg-ink/90"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              </li>
+            );
+          }
           return (
             <li
               key={i}
@@ -973,31 +1075,8 @@ function LineItemsEditor({
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  {editingDesc ? (
-                    <input
-                      autoFocus
-                      type="text"
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      onBlur={commitEdit}
-                      onFocus={(e) => e.currentTarget.select()}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") commitEdit();
-                        if (e.key === "Escape") setEditing(null);
-                      }}
-                      className={`${editingInputClass} font-medium flex-1 min-w-[10rem]`}
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => beginEdit(i, "description")}
-                      className="text-sm font-medium text-left hover:underline focus:outline-none"
-                      aria-label="Edit description"
-                    >
-                      {li.description}
-                    </button>
-                  )}
-                  {label && !editingDesc && (
+                  <span className="text-sm font-medium">{li.description}</span>
+                  {label && (
                     <span
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeClass(effectiveSource)}`}
                     >
@@ -1005,83 +1084,26 @@ function LineItemsEditor({
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    {editingQty ? (
-                      <input
-                        autoFocus
-                        type="text"
-                        inputMode="decimal"
-                        value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
-                        onBlur={commitEdit}
-                        onFocus={(e) => e.currentTarget.select()}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") commitEdit();
-                          if (e.key === "Escape") setEditing(null);
-                        }}
-                        className={`${editingInputClass} w-16 text-right num`}
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => beginEdit(i, "qty")}
-                        className="hover:underline focus:outline-none num"
-                        aria-label="Edit quantity"
-                      >
-                        {li.qty}
-                      </button>
-                    )}
-                    <span>×</span>
-                    <span className="num">{formatGBP(li.unit_price)}</span>
-                  </p>
-                  <select
-                    value={li.category ?? "other"}
-                    onChange={(e) => changeCategory(i, e.target.value as LineItemCategory)}
-                    aria-label="Accounting category"
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary text-ink border border-border outline-none focus:border-ink/40"
-                  >
-                    <option value="labour">Labour</option>
-                    <option value="materials">Materials</option>
-                    <option value="certificate">Certificate</option>
-                    <option value="cis_labour">CIS Labour</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  <span className="num">{li.qty}</span> × <span className="num">{formatGBP(li.unit_price)}</span>
+                </p>
               </div>
-              {editingPrice ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">£</span>
-                  <input
-                    autoFocus
-                    type="text"
-                    inputMode="decimal"
-                    step="0.01"
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onBlur={commitEdit}
-                    onFocus={(e) => e.currentTarget.select()}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") commitEdit();
-                      if (e.key === "Escape") setEditing(null);
-                    }}
-                    className={`${editingInputClass} w-20 text-right num text-sm`}
-                  />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => beginEdit(i, "price")}
-                  className="num text-base text-ink hover:underline focus:outline-none"
-                  aria-label="Edit price"
-                >
-                  {formatGBP(li.qty * li.unit_price)}
-                </button>
-              )}
+              <span className="num text-base text-ink">
+                {formatGBP(li.qty * li.unit_price)}
+              </span>
+              <button
+                type="button"
+                onClick={() => beginEdit(i)}
+                aria-label="Edit line item"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-ink shrink-0"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
             </li>
           );
         })}
       </ul>
+
 
       <div className="px-5 py-4 border-t border-border bg-secondary/40 space-y-1.5">
         <Row label="Subtotal" value={formatGBP(subtotal)} />
