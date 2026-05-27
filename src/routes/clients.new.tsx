@@ -121,12 +121,16 @@ function NewClientPage() {
           />
         </Field>
 
+        {error && (
+          <p className="text-sm text-red-500 text-center" role="alert">{error}</p>
+        )}
+
         <button
           type="submit"
-          disabled={!name.trim()}
+          disabled={!name.trim() || saving}
           className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 disabled:opacity-40"
         >
-          <Save className="h-5 w-5" /> Save customer
+          <Save className="h-5 w-5" /> {saving ? "Saving…" : "Save customer"}
         </button>
       </form>
     </AppShell>
