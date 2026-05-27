@@ -1011,7 +1011,7 @@ function LineItemsEditor({
                         className={`${inputClass} w-24 text-right num`}
                       />
                     </div>
-                    <div className="space-y-1 flex-1">
+                    <div className="space-y-1 flex-1 min-w-0">
                       <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                         Unit price
                       </label>
