@@ -382,7 +382,7 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           try {
             await supabaseAdmin
               .from("quotes")
-              .update({ status: "paid", paid_at: new Date().toISOString() })
+              .update({ status: "paid" })
               .eq("id", quoteId)
               .eq("user_id", userId);
           } catch (e) {
