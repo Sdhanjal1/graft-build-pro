@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, ClientOnly } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CountUp from "react-countup";
 import { AppShell } from "@/components/AppShell";
 import {
@@ -32,6 +32,9 @@ function buzz(ms = 10) {
 
 export const Route = createFileRoute("/app")({
   component: AppHomePage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    firstRun: s.firstRun === 1 || s.firstRun === "1" ? 1 : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Quottr app" },
@@ -41,16 +44,57 @@ export const Route = createFileRoute("/app")({
   }),
 });
 
+function exampleForTrade(trade: string): string {
+  switch ((trade || "").toLowerCase()) {
+    case "electrician":
+      return "Replace consumer unit at 12 Oak Road, £450, two hours";
+    case "gas engineer":
+      return "Annual boiler service, Worcester 30i, £95";
+    case "builder":
+      return "Garden wall, 3 metres, brick and mortar, £600";
+    case "carpenter":
+      return "Fit two internal doors, £180 plus materials";
+    case "decorator":
+      return "Paint front bedroom, two coats, £220";
+    case "roofer":
+      return "Repair flashing around chimney, £180";
+    case "plumber":
+    default:
+      return "Boiler service for Mrs Jones, £85, ready Friday";
+  }
+}
+
 function AppHomePage() {
   const { session, loading } = useSession();
   const navigate = useNavigate();
+  const { firstRun } = Route.useSearch();
   const [bannerDismissed, setBannerDismissed] = useState(true);
+  const [showFirstRun, setShowFirstRun] = useState(false);
+  const micCardRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       setBannerDismissed(window.localStorage.getItem(STRIPE_BANNER_DISMISS_KEY) === "1");
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (firstRun && window.localStorage.getItem("firstRunSeen") !== "true") {
+      setShowFirstRun(true);
+      requestAnimationFrame(() => {
+        micCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }, [firstRun]);
+
+  const dismissFirstRun = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("firstRunSeen", "true");
+    }
+    setShowFirstRun(false);
+    navigate({ to: "/app", search: {}, replace: true });
+  };
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/auth" });
@@ -251,8 +295,37 @@ function AppHomePage() {
       )}
 
       {/* Voice-first hero CTA — big central mic */}
-      <section className="px-5 mt-5 flex-1 flex">
-        <div className="flex flex-col w-full rounded-3xl bg-ink text-paper p-5 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center">
+      <section ref={micCardRef} id="home-mic-card" className="px-5 mt-5 flex-1 flex flex-col scroll-mt-20">
+        {showFirstRun && (
+          <div className="relative mb-3 rounded-2xl bg-lime text-ink p-4 shadow-[0_10px_28px_-12px_rgba(0,0,0,0.35)] ring-1 ring-ink/10">
+            <button
+              type="button"
+              onClick={dismissFirstRun}
+              aria-label="Dismiss"
+              className="absolute top-2 right-2 h-7 w-7 rounded-full flex items-center justify-center hover:bg-ink/10 active:scale-95"
+            >
+              <X className="h-4 w-4 text-ink" strokeWidth={2.5} />
+            </button>
+            <p className="text-sm font-semibold pr-7">
+              Welcome, {firstName}. Tap the mic to speak your first quote.
+            </p>
+            <p className="mt-1 text-xs text-ink/75">
+              Try: &ldquo;{exampleForTrade(userProfile.trade_type)}&rdquo;
+            </p>
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={dismissFirstRun}
+                className="rounded-full bg-ink text-paper text-xs font-semibold px-4 py-2 active:scale-95"
+              >
+                Got it
+              </button>
+            </div>
+            {/* downward caret */}
+            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-3 w-3 rotate-45 bg-lime ring-1 ring-ink/10" />
+          </div>
+        )}
+        <div className="flex flex-col w-full rounded-3xl bg-ink text-paper p-5 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center flex-1">
           <Link
             to="/quotes/new"
             search={{ voice: 1 }}

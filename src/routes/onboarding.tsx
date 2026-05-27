@@ -101,7 +101,7 @@ function OnboardingWizard() {
 
   const finish = () => {
     feedback("success");
-    navigate({ to: "/quotes/new", search: { voice: 1 } as never });
+    navigate({ to: "/app", search: { firstRun: 1 } as never });
   };
 
   const phoneDigits = phone.replace(/\D/g, "");
