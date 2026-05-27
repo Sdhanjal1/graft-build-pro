@@ -229,7 +229,8 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
                 window.open(waLink(customerPhone, text), "_blank");
                 toast.success(`Sent to ${customerName ?? firstName} via WhatsApp`);
                 feedback("success");
-                onClose();
+                if (updatedLinkPortalCode) onClose();
+                else setSentVia("wa");
               } catch (e) {
                 feedback("error");
                 toast.error(e instanceof Error ? e.message : "Could not open WhatsApp");
