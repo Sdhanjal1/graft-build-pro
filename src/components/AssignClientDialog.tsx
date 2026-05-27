@@ -16,6 +16,7 @@ type Props = {
 
 export function AssignClientDialog({ open, onClose, quoteId, onAssigned }: Props) {
   useDataVersion();
+  const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const filtered = useMemo(() => {
