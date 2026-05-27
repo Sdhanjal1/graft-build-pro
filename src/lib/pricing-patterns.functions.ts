@@ -167,3 +167,50 @@ export const getPricingInsights = createServerFn({ method: "GET" })
       labourSampleCount: labour.length,
     };
   });
+
+/** Suggest a unit price for a free-text description from the user's own past pricing. */
+const SuggestSchema = z.object({
+  description: z.string().min(1).max(240),
+});
+
+export const suggestPriceForDescription = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SuggestSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as { supabase: SupabaseLike; userId: string };
+    const normalized = normalizeDescription(data.description);
+    if (!normalized || normalized.length < 2) return null;
+
+    const { data: exact } = await supabase
+      .from("user_pricing_patterns")
+      .select("item_description, typical_price, price_count")
+      .eq("user_id", userId)
+      .eq("item_description", normalized)
+      .maybeSingle();
+    if (exact) {
+      return {
+        item_description: exact.item_description as string,
+        typical_price: Number(exact.typical_price) || 0,
+        price_count: Number(exact.price_count) || 0,
+      };
+    }
+
+    const tokens = normalized.split(" ").filter((t) => t.length >= 3);
+    if (!tokens.length) return null;
+    const token = tokens.sort((a, b) => b.length - a.length)[0];
+    const escaped = token.replace(/[%_\\]/g, "\\$&");
+    const { data: matches } = await supabase
+      .from("user_pricing_patterns")
+      .select("item_description, typical_price, price_count")
+      .eq("user_id", userId)
+      .ilike("item_description", `%${escaped}%`)
+      .order("price_count", { ascending: false })
+      .limit(1);
+    const best = matches?.[0];
+    if (!best) return null;
+    return {
+      item_description: best.item_description as string,
+      typical_price: Number(best.typical_price) || 0,
+      price_count: Number(best.price_count) || 0,
+    };
+  });
