@@ -993,8 +993,8 @@ function LineItemsEditor({
                       className={`${inputClass} w-full`}
                     />
                   </div>
-                  <div className="flex gap-3">
-                    <div className="space-y-1">
+                  <div className="flex items-end gap-3">
+                    <div className="space-y-1 shrink-0">
                       <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                         Qty
                       </label>
