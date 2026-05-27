@@ -199,7 +199,8 @@ function QuoteDetail() {
       navigate({ to: "/portal/c/$code", params: { code: portalStatus.portal_code } });
     } else {
       navigate({ to: "/portal/$token", params: { token: quote.id } });
-    }
+  };
+
   const sendDepositRequest = () => {
     const firstName = client?.name.split(" ")[0] ?? "there";
     const { message } = buildDepositOnAcceptMessage(quote, firstName);
