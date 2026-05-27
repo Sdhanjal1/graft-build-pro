@@ -94,14 +94,16 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
         try {
           await navigator.share({ title: `Quote ${quoteRef}`, text, url });
           feedback("success");
-          onClose();
+          if (updatedLinkPortalCode) onClose();
+          else setSentVia("sms");
           return;
         } catch { /* user cancelled or unsupported - fall through */ }
       }
       window.location.href = smsHref;
       toast.success(`Sent to ${customerName ?? firstName} via SMS`);
       feedback("success");
-      onClose();
+      if (updatedLinkPortalCode) onClose();
+      else setSentVia("sms");
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Could not create portal link");
