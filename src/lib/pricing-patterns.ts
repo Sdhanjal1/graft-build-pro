@@ -44,3 +44,42 @@ export function badgeLabelFor(source: LineItemSource | undefined): string | null
   if (source === "ai") return "Quottr suggested";
   return null;
 }
+
+const STOPWORDS = new Set([
+  "the", "a", "an", "and", "or", "of", "for", "to", "in", "on", "at", "with",
+  "by", "from", "is", "it", "be", "as", "this", "that", "new", "old", "per", "plus",
+]);
+
+function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .split(/\s+/)
+    .filter((t) => t.length >= 3 && !STOPWORDS.has(t));
+}
+
+/**
+ * Rank pricing patterns by token-overlap relevance against a free-text job
+ * description. Returns a new array (highest score first); ties broken by price_count.
+ */
+export function rankPatternsForJob(
+  patterns: PricingPattern[],
+  jobText: string,
+  limit = 30,
+): PricingPattern[] {
+  if (!patterns.length) return patterns;
+  const jobTokens = new Set(tokenize(jobText));
+  if (!jobTokens.size) return patterns.slice(0, limit);
+  const scored = patterns.map((p) => {
+    const tokens = tokenize(p.item_description);
+    let score = 0;
+    for (const t of tokens) if (jobTokens.has(t)) score += 1;
+    return { p, score };
+  });
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return (b.p.price_count || 0) - (a.p.price_count || 0);
+  });
+  return scored.slice(0, limit).map((s) => s.p);
+}
+
