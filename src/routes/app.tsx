@@ -359,7 +359,7 @@ function AppHomePage() {
               Welcome, {firstName}. Tap the mic to speak your first quote.
             </p>
             <p className="mt-1 text-xs text-ink/75">
-              Try: &ldquo;{exampleForTrade(userProfile.trade_type)}&rdquo;
+              Try: &ldquo;{resolveTrade(userProfile.trade_type).homeMicExample}&rdquo;
             </p>
             <div className="mt-3 flex justify-end">
               <button
