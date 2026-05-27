@@ -163,6 +163,13 @@ export const getQuotePaymentStatus = createServerFn({ method: "POST" })
 // Stripe-hosted Checkout. We deliberately omit `payment_method_types` so
 // Stripe surfaces every method enabled on the account, including Apple Pay
 // and Google Pay (auto-detected per browser).
+const ALLOWED_PORTAL_ORIGINS = new Set([
+  "https://quottr.co.uk",
+  "https://www.quottr.co.uk",
+  "https://graft-build-pro.lovable.app",
+  "https://id-preview--e4be6907-c837-4e5e-9461-63fadfdad91e.lovable.app",
+]);
+
 export const createPortalCheckout = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
@@ -173,6 +180,12 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { key, env } = getStripeEnv();
+
+    // Prevent open-redirect: only trust known Quottr origins for the
+    // post-checkout return URL. Anything else falls back to production.
+    const returnOrigin = ALLOWED_PORTAL_ORIGINS.has(data.returnOrigin)
+      ? data.returnOrigin
+      : "https://quottr.co.uk";
 
     const { data: tk } = await supabaseAdmin
       .from("quote_portal_tokens")
