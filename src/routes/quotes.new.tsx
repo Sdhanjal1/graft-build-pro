@@ -433,9 +433,17 @@ function NewQuotePage() {
         line_items: draft.line_items,
         vatRegistered: vat,
       });
-
+      // If an existing customer was picked, persist any phone edits to that record.
+      if (customerMode === "existing" && q.client_id) {
+        try {
+          await updateClientPhone(q.client_id, clientPhone);
+        } catch (err) {
+          console.error("[quotes.new] updateClientPhone failed", err);
+        }
+      }
       feedback("success");
       navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id } });
+
     } catch (e) {
       feedback("error");
       setError(e instanceof Error ? e.message : "Could not save quote");
