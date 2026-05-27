@@ -574,6 +574,9 @@ function QuoteDetail() {
             <h3 className="text-xl px-4 mb-2">More options</h3>
             <ul className="px-2">
               <MoreItem icon={Eye} label="View as customer" onClick={() => { setMoreOpen(false); viewAsCustomer(); }} />
+              {materialsCount > 0 && (
+                <MoreItem icon={ShoppingCart} label={`Material list (${materialsCount})`} onClick={() => { setMoreOpen(false); setMaterialsOpen(true); }} />
+              )}
               <MoreItem icon={Share2} label="Download PDF" onClick={() => { setMoreOpen(false); sharePdf(); }} />
               <MoreItem icon={Copy} label="Duplicate quote" onClick={() => { setMoreOpen(false); duplicate(); }} />
               {status !== "paid" && (
