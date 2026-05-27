@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireActiveSubscription } from "@/lib/require-active-subscription";
 import { fetchTopPatterns, patternsForPrompt } from "@/lib/pricing-patterns.functions";
+import { tradeGuidance } from "@/lib/ai-trade-guidance";
 
 const InputSchema = z.object({
   items: z.array(z.string().min(1).max(500)).min(1).max(40),
@@ -51,7 +52,7 @@ export const generateCaptureQuote = createServerFn({ method: "POST" })
 
     const { supabase, userId } = context as { supabase: any; userId: string };
     const patterns = await fetchTopPatterns(supabase, userId, 50);
-    const systemPrompt = SYSTEM_PROMPT + patternsForPrompt(patterns);
+    const systemPrompt = SYSTEM_PROMPT + tradeGuidance(data.trade) + patternsForPrompt(patterns);
 
     const itemList = data.items.map((d, i) => `${i + 1}. ${d}`).join("\n");
 

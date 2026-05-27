@@ -1,39 +1,31 @@
-## Step 5 — One-tap "+ Add line" with price suggestion
+## Step 6 — Trade-specific AI prompt tuning
 
-Add a tappable "+ Add line" row at the bottom of the line-items list on the quote detail page. Tapping it opens the same edit panel used for existing lines, prefilled blank. As the user types a description, suggest a unit price from their own past pricing (`user_pricing_patterns`). Tapping the suggestion fills the price field; they can override it.
+Make AI-generated quotes more accurate by appending per-trade guidance (typical line items, brand/regulatory hints, labour-rate range) to the system prompt based on `trade_type`. Today both `ai-quote.functions.ts` and `ai-capture-quote.functions.ts` use one generic `SYSTEM_PROMPT`; trade is passed in the user prompt but never used to steer the model.
 
-### UX
+### Changes
 
-1. New row directly under the last line item (above the totals block):
-   - Full-width tappable row, `+ Add line` with a subtle dashed/secondary style so it reads as an action, not a real line.
-2. On tap → expand the existing edit panel (reuse `LineItemsEditor` editing branch) with empty `description`, `qty = "1"`, `price = ""`, `category = "other"`.
-3. Suggestion chip under the description input (only when adding, not when editing existing):
-   - Appears after the user has typed ≥ 2 chars and there is a matching pattern.
-   - Shows: `Last time: £{typical_price} · used {price_count}×` as a tappable chip.
-   - Tap → fills `draft.price`. No auto-fill without a tap (avoids surprises).
-4. On **Done**: append the new line to `items`, call existing `persist()` (which already runs `updateQuoteLineItems` and re-syncs totals). Cancel just collapses.
-5. Validation: require non-empty description and price > 0 before Done is enabled for the new row. Qty defaults to 1.
+**1. New helper `src/lib/ai-trade-guidance.ts`** (client-safe, no server-only code — just a const map + lookup):
+- Export `tradeGuidance(trade: string): string` that returns a block to append to the system prompt.
+- Normalises the input (lowercases, matches by substring) so "Plumber / Heating Engineer", "Plumber", "plumber" all hit the same branch.
+- Covers the 7 trades in `TRADE_TYPES`:
+  - **Plumber / Heating Engineer** — Gas Safe registration line item when boiler/gas work; common brands (Worcester Bosch, Vaillant, Ideal, Baxi, Drayton, Honeywell, Geberit); typical labour £55–£75/hr; mention power flush / magnetic filter / TRVs where relevant; building control notify via Gas Safe.
+  - **Electrician** — NICEIC/NAPIT notification; EICR/minor works certificate as separate line; 18th edition compliance; common brands (Hager, Wylex, MK, Crabtree, BG); labour £55–£75/hr; Part P building control notification.
+  - **Builder / General Contractor** — strip-out, muck-away/skip hire, building control fees, structural calcs, plastering and making good; labour £45–£65/hr; sub-trades split (electrician, plumber) as own lines.
+  - **Carpenter / Joiner** — first-fix vs second-fix split; materials (softwood/hardwood/MDF/ply); ironmongery; labour £40–£55/hr.
+  - **Roofer** — scaffolding hire as own line; tile/slate/felt/lead flashing; waste removal; labour £45–£60/hr; mention insurance-backed guarantees where relevant.
+  - **Decorator** — prep (filling, sanding, masking), undercoat + topcoats, materials by m²; brands (Dulux Trade, Crown Trade, Farrow & Ball); labour £30–£45/hr.
+  - **Tiler** — m² pricing for tiling; adhesive + grout + spacers + trims; tanking for wet areas; labour £40–£55/hr or per m².
+- Default branch (unknown trade) returns empty string so the generic prompt stands.
 
-### Suggestion source
+**2. Wire it into both AI handlers:**
+- `src/lib/ai-quote.functions.ts` line 72: change `SYSTEM_PROMPT + patternsForPrompt(patterns)` → `SYSTEM_PROMPT + tradeGuidance(data.trade) + patternsForPrompt(patterns)`.
+- `src/lib/ai-capture-quote.functions.ts` line 54: same change, using whichever variable holds the trade in that file (verify during implementation; if it doesn't currently receive `trade`, thread it through from the `InputSchema` — `ai-capture-quote.functions.ts` already takes the same shape, so a 1-line addition).
 
-- Add a small serverFn `suggestPriceForDescription({ description })` in `src/lib/pricing-patterns.functions.ts`:
-  - Normalizes the input via `normalizeDescription`.
-  - Returns the single best match for `auth.uid()` from `user_pricing_patterns`:
-    - Exact match on normalized `item_description` wins.
-    - Otherwise top match by `ILIKE %token%` on the first significant token, ordered by `price_count desc`.
-  - Returns `{ typical_price, price_count, item_description } | null`.
-- Client calls it via `useServerFn` + a debounced (~300ms) effect tied to `draft.description` while in "adding" mode. Cache last query in a ref to skip duplicates. Empty/short input → clear suggestion.
+### What stays the same
+- No DB migration. No new env vars. No API/payload changes for callers.
+- Generic `SYSTEM_PROMPT` keeps the universal rules (pricing rules, source/category enums, JSON shape). Per-trade guidance is purely additive.
+- Pricing patterns (Step 7's territory) untouched.
 
-### Edits in `src/routes/quotes.$quoteId.tsx` `LineItemsEditor`
-
-- Add state: `addingNew: boolean` plus reuse `draft`. Treat `editingIdx === -1` (or a separate flag) as "adding".
-- Render order: existing `<ul>` items → "+ Add line" row (when not adding) OR an inline edit panel mirroring the existing one (when adding), with the suggestion chip under the description field.
-- Refactor `commitAll` to branch: editing index ≥ 0 updates that line; adding appends a new `LineItem` with `source: "voice"` (treat manual price as user-entered, same as edits today).
-- Keep `persist()` as-is.
-
-### Technical notes
-
-- No DB migration — `user_pricing_patterns` already exists with the right columns and RLS.
-- Reuse `normalizeDescription` and the existing serverFn auth middleware.
-- Keep `LineItem` shape unchanged; new items get a fresh id only if existing items have ids (check shape; current code preserves `...li`, so just spread defaults).
-- Mobile-first: suggestion chip sits below the description input, full-width tap target, ~44px tall.
+### Verification
+- Generate a quote on the preview as a Plumber and as an Electrician with the same generic description ("install new light fitting in bathroom") — Electrician should add Part P/EICR mention; Plumber should add Gas Safe / IP-rated zone wording.
+- Check the dev console / server-fn logs for any schema errors (the appended text doesn't change the JSON output shape so Zod should still pass).
