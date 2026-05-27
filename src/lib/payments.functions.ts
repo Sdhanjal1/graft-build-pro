@@ -158,3 +158,128 @@ export const getQuotePaymentStatus = createServerFn({ method: "POST" })
     if (error) throw error;
     return { payments: rows ?? [] };
   });
+
+// ---------- Public: customer pays from the portal (token-auth) ----------
+// Stripe-hosted Checkout. We deliberately omit `payment_method_types` so
+// Stripe surfaces every method enabled on the account, including Apple Pay
+// and Google Pay (auto-detected per browser).
+export const createPortalCheckout = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      token: z.string().min(8).max(128),
+      requestType: z.enum(["deposit", "full"]),
+      returnOrigin: z.string().url(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { key, env } = getStripeEnv();
+
+    const { data: tk } = await supabaseAdmin
+      .from("quote_portal_tokens")
+      .select("quote_id, user_id, expires_at")
+      .eq("token", data.token)
+      .maybeSingle();
+    if (!tk) throw new Error("Invalid or expired link");
+    if (tk.expires_at && new Date(tk.expires_at).getTime() < Date.now()) {
+      throw new Error("This link has expired. Please ask for a new one.");
+    }
+
+    const { data: quote } = await supabaseAdmin
+      .from("quotes")
+      .select("id, ref, title, total, deposit_amount, deposit_percent, payment_timing, client_id, status")
+      .eq("id", tk.quote_id)
+      .maybeSingle();
+    if (!quote) throw new Error("Quote not found");
+    if (quote.status === "paid") throw new Error("This quote is already paid");
+
+    const total = Number(quote.total) || 0;
+    let amount = total;
+    if (data.requestType === "deposit") {
+      const explicit = Number(quote.deposit_amount) || 0;
+      const pct = Number(quote.deposit_percent) || 0;
+      amount = explicit > 0
+        ? explicit
+        : pct > 0
+        ? +(total * (pct / 100)).toFixed(2)
+        : +(total * 0.5).toFixed(2);
+    }
+    if (amount <= 0) throw new Error("Invalid payment amount");
+    const amountCents = Math.round(amount * 100);
+
+    const [{ data: profile }, { data: client }] = await Promise.all([
+      supabaseAdmin
+        .from("profiles")
+        .select("stripe_connect_account_id, stripe_connect_charges_enabled")
+        .eq("id", tk.user_id)
+        .maybeSingle(),
+      quote.client_id
+        ? supabaseAdmin
+            .from("clients")
+            .select("email")
+            .eq("id", quote.client_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null as { email: string | null } | null }),
+    ]);
+
+    const connectAccountId =
+      profile?.stripe_connect_charges_enabled && profile?.stripe_connect_account_id
+        ? profile.stripe_connect_account_id
+        : null;
+
+    const ref = quote.ref ?? quote.id.slice(0, 8);
+    const params: Record<string, string | number> = {
+      mode: "payment",
+      "line_items[0][quantity]": 1,
+      "line_items[0][price_data][currency]": "gbp",
+      "line_items[0][price_data][unit_amount]": amountCents,
+      "line_items[0][price_data][product_data][name]":
+        `${ref}, ${quote.title}`.slice(0, 250),
+      success_url: `${data.returnOrigin}/portal/${data.token}?paid=1`,
+      cancel_url: `${data.returnOrigin}/portal/${data.token}?cancelled=1`,
+      "metadata[quote_id]": quote.id,
+      "metadata[quote_ref]": ref,
+      "metadata[user_id]": tk.user_id,
+      "metadata[request_type]": data.requestType,
+      "payment_intent_data[metadata][quote_id]": quote.id,
+      "payment_intent_data[metadata][user_id]": tk.user_id,
+      "payment_intent_data[metadata][request_type]": data.requestType,
+    };
+    if (client?.email) params["customer_email"] = client.email;
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    };
+    if (connectAccountId) {
+      headers["Stripe-Account"] = connectAccountId;
+      const feeAmount = Math.max(50, Math.min(2500, Math.round(amountCents * 0.005)));
+      params["payment_intent_data[application_fee_amount]"] = feeAmount;
+    }
+
+    const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+      method: "POST",
+      headers,
+      body: toFormBody(params),
+    });
+    const json = (await res.json()) as {
+      id?: string; url?: string; error?: { message?: string };
+    };
+    if (!res.ok || !json.url || !json.id) {
+      console.error("Portal Stripe checkout creation failed", json);
+      throw new Error("Payment service error. Please try again or contact support.");
+    }
+
+    await supabaseAdmin.from("invoice_payments").insert({
+      user_id: tk.user_id,
+      quote_id: quote.id,
+      request_type: data.requestType,
+      customer_email: client?.email ?? null,
+      amount_cents: amountCents,
+      currency: "gbp",
+      status: "pending",
+      stripe_session_id: json.id,
+      payment_method: "card",
+    });
+
+    return { url: json.url, sessionId: json.id, env, amount };
+  });
