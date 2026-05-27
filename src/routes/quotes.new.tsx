@@ -6,6 +6,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   userProfile,
   userClients,
+  getClient,
   saveGeneratedQuote,
   formatGBP,
   QUOTE_TEMPLATES,
