@@ -891,8 +891,8 @@ function LineItemsEditor({
   onChange?: (items: LineItem[]) => void;
 }) {
   const [items, setItems] = useState<LineItem[]>(quote.line_items.map((li) => ({ ...li })));
-  const [editingIdx, setEditingIdx] = useState<number | null>(null);
-  const [draftPrice, setDraftPrice] = useState("");
+  const [editing, setEditing] = useState<{ idx: number; field: "description" | "qty" | "price" } | null>(null);
+  const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
   const paidQuoteCount = usePaidQuoteCount();
 
@@ -900,22 +900,14 @@ function LineItemsEditor({
   const vat = vatRegistered ? +(subtotal * 0.2).toFixed(2) : 0;
   const total = +(subtotal + vat).toFixed(2);
 
-  const beginEdit = (i: number) => {
-    setEditingIdx(i);
-    setDraftPrice(String(items[i].unit_price));
+  const beginEdit = (idx: number, field: "description" | "qty" | "price") => {
+    setEditing({ idx, field });
+    const li = items[idx];
+    setDraft(field === "description" ? li.description : field === "qty" ? String(li.qty) : String(li.unit_price));
   };
-  const commitEdit = async () => {
-    if (editingIdx === null) return;
-    const parsed = Number(draftPrice);
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      setEditingIdx(null);
-      return;
-    }
-    const next = items.map((li, idx) =>
-      idx === editingIdx ? { ...li, unit_price: +parsed.toFixed(2), source: "voice" as const } : li,
-    );
+
+  const persist = async (next: LineItem[]) => {
     setItems(next);
-    setEditingIdx(null);
     onChange?.(next);
     setSaving(true);
     try {
@@ -924,28 +916,46 @@ function LineItemsEditor({
     } catch (e) {
       console.error(e);
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not save price");
+      toast.error(e instanceof Error ? e.message : "Could not save changes");
     } finally {
       setSaving(false);
     }
   };
 
+  const commitEdit = async () => {
+    if (!editing) return;
+    const { idx, field } = editing;
+    const current = items[idx];
+    let next = items;
+    if (field === "description") {
+      const value = draft.trim();
+      if (value && value !== current.description) {
+        next = items.map((li, i) => (i === idx ? { ...li, description: value } : li));
+      }
+    } else if (field === "qty") {
+      const parsed = Number(draft);
+      if (Number.isFinite(parsed) && parsed > 0 && parsed !== current.qty) {
+        next = items.map((li, i) => (i === idx ? { ...li, qty: +parsed } : li));
+      }
+    } else {
+      const parsed = Number(draft);
+      if (Number.isFinite(parsed) && parsed >= 0 && +parsed.toFixed(2) !== current.unit_price) {
+        next = items.map((li, i) =>
+          i === idx ? { ...li, unit_price: +parsed.toFixed(2), source: "voice" as const } : li,
+        );
+      }
+    }
+    setEditing(null);
+    if (next !== items) await persist(next);
+  };
+
   const changeCategory = async (i: number, category: LineItemCategory) => {
     const next = items.map((li, idx) => (idx === i ? { ...li, category } : li));
-    setItems(next);
-    onChange?.(next);
-    setSaving(true);
-    try {
-      await updateQuoteLineItems(quote.id, next, vatRegistered);
-      feedback("success");
-    } catch (e) {
-      console.error(e);
-      feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not save category");
-    } finally {
-      setSaving(false);
-    }
+    await persist(next);
   };
+
+  const editingInputClass =
+    "bg-paper border border-border rounded-md px-2 py-1 text-sm outline-none focus:border-ink";
 
   return (
     <>
@@ -953,7 +963,9 @@ function LineItemsEditor({
         {items.map((li, i) => {
           const effectiveSource = normalizeSource(li.source, paidQuoteCount);
           const label = badgeText(effectiveSource);
-          const editing = editingIdx === i;
+          const editingDesc = editing?.idx === i && editing.field === "description";
+          const editingQty = editing?.idx === i && editing.field === "qty";
+          const editingPrice = editing?.idx === i && editing.field === "price";
           return (
             <li
               key={i}
@@ -961,8 +973,31 @@ function LineItemsEditor({
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-medium">{li.description}</p>
-                  {label && (
+                  {editingDesc ? (
+                    <input
+                      autoFocus
+                      type="text"
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onBlur={commitEdit}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") commitEdit();
+                        if (e.key === "Escape") setEditing(null);
+                      }}
+                      className={`${editingInputClass} font-medium flex-1 min-w-[10rem]`}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => beginEdit(i, "description")}
+                      className="text-sm font-medium text-left hover:underline focus:outline-none"
+                      aria-label="Edit description"
+                    >
+                      {li.description}
+                    </button>
+                  )}
+                  {label && !editingDesc && (
                     <span
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeClass(effectiveSource)}`}
                     >
@@ -971,8 +1006,34 @@ function LineItemsEditor({
                   )}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <p className="text-xs text-muted-foreground">
-                    {li.qty} × {formatGBP(li.unit_price)}
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    {editingQty ? (
+                      <input
+                        autoFocus
+                        type="text"
+                        inputMode="decimal"
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        onBlur={commitEdit}
+                        onFocus={(e) => e.currentTarget.select()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") commitEdit();
+                          if (e.key === "Escape") setEditing(null);
+                        }}
+                        className={`${editingInputClass} w-16 text-right num`}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => beginEdit(i, "qty")}
+                        className="hover:underline focus:outline-none num"
+                        aria-label="Edit quantity"
+                      >
+                        {li.qty}
+                      </button>
+                    )}
+                    <span>×</span>
+                    <span className="num">{formatGBP(li.unit_price)}</span>
                   </p>
                   <select
                     value={li.category ?? "other"}
@@ -988,7 +1049,7 @@ function LineItemsEditor({
                   </select>
                 </div>
               </div>
-              {editing ? (
+              {editingPrice ? (
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">£</span>
                   <input
@@ -996,21 +1057,21 @@ function LineItemsEditor({
                     type="text"
                     inputMode="decimal"
                     step="0.01"
-                    value={draftPrice}
-                    onChange={(e) => setDraftPrice(e.target.value)}
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
                     onBlur={commitEdit}
                     onFocus={(e) => e.currentTarget.select()}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") commitEdit();
-                      if (e.key === "Escape") setEditingIdx(null);
+                      if (e.key === "Escape") setEditing(null);
                     }}
-                    className="w-20 text-right bg-paper border border-border rounded-md px-2 py-1 text-sm num outline-none focus:border-ink"
+                    className={`${editingInputClass} w-20 text-right num text-sm`}
                   />
                 </div>
               ) : (
                 <button
                   type="button"
-                  onClick={() => beginEdit(i)}
+                  onClick={() => beginEdit(i, "price")}
                   className="num text-base text-ink hover:underline focus:outline-none"
                   aria-label="Edit price"
                 >
@@ -1021,6 +1082,7 @@ function LineItemsEditor({
           );
         })}
       </ul>
+
       <div className="px-5 py-4 border-t border-border bg-secondary/40 space-y-1.5">
         <Row label="Subtotal" value={formatGBP(subtotal)} />
         {vatRegistered && <Row label="VAT (20%)" value={formatGBP(vat)} />}
