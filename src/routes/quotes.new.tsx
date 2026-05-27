@@ -983,6 +983,7 @@ function VoiceOverlay({
   onStart,
   onStop,
   onClose,
+  onRetryTranscription,
 }: {
   recording: boolean;
   transcribing: boolean;
@@ -994,7 +995,9 @@ function VoiceOverlay({
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
+  onRetryTranscription?: () => void;
 }) {
+
   if (typeof document === "undefined") return null;
   const idle = !recording && !transcribing;
   return createPortal(
