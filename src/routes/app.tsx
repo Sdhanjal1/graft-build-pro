@@ -161,20 +161,58 @@ function AppHomePage() {
           {greeting}, {firstName}
         </p>
 
-        {s.outstanding > 0 && (
+        {s.paidTodayCount > 0 ? (
           <div className="mt-1">
+            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+              Paid today
+            </p>
+            <p className="num text-6xl leading-none text-lime mt-1">
+              <ClientOnly fallback={<>{formatGBP(s.paidToday)}</>}>
+                <CountUp start={0} end={s.paidToday} duration={0.6} formattingFn={formatGBP} />
+              </ClientOnly>
+            </p>
+            <p className="text-[11px] text-paper/60 font-medium mt-1">
+              {s.paidTodayCount} payment{s.paidTodayCount !== 1 ? "s" : ""}
+              {s.outstanding > 0 && (
+                <>
+                  {" · "}
+                  <Link to="/chaser" className="text-paper/80 hover:text-lime underline-offset-2 hover:underline">
+                    You are owed {formatGBP(s.outstanding)}
+                  </Link>
+                </>
+              )}
+            </p>
+          </div>
+        ) : s.outstanding > 0 ? (
+          <div className="mt-1">
+            {s.acceptedTodayCount > 0 && (
+              <p className="text-sm text-lime font-semibold mb-1">
+                Won today: {formatGBP(s.acceptedTodayAmount)}
+              </p>
+            )}
             <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
               You are owed
             </p>
             <Link to="/chaser" className="block mt-1 active:opacity-80 transition">
-              <p className={`num text-6xl leading-none text-lime`}>
+              <p className="num text-6xl leading-none text-lime">
                 <ClientOnly fallback={<>{formatGBP(s.outstanding)}</>}>
                   <CountUp start={0} end={s.outstanding} duration={0.6} formattingFn={formatGBP} />
                 </ClientOnly>
               </p>
             </Link>
           </div>
-        )}
+        ) : s.acceptedTodayCount > 0 ? (
+          <div className="mt-1">
+            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+              Won today
+            </p>
+            <p className="num text-6xl leading-none text-lime mt-1">
+              <ClientOnly fallback={<>{formatGBP(s.acceptedTodayAmount)}</>}>
+                <CountUp start={0} end={s.acceptedTodayAmount} duration={0.6} formattingFn={formatGBP} />
+              </ClientOnly>
+            </p>
+          </div>
+        ) : null}
 
         {/* Stat pills */}
         {hasActions && (
@@ -182,8 +220,11 @@ function AppHomePage() {
             {pendingQuotes.length > 0 && (
               <StatPill icon={FileText} count={pendingQuotes.length} label="to send" tone="pending" to="/quotes" />
             )}
-            {awaitingQuotes.length > 0 && (
-              <StatPill icon={Clock} count={awaitingQuotes.length} label="awaiting" tone="neutral" to="/chaser" />
+            {acceptedQuotes.length > 0 && (
+              <StatPill icon={CheckCircle2} count={acceptedQuotes.length} label="accepted" tone="accepted" to="/quotes" />
+            )}
+            {sentQuotes.length > 0 && (
+              <StatPill icon={Clock} count={sentQuotes.length} label="awaiting reply" tone="neutral" to="/chaser" />
             )}
             {overdueQuotes.length > 0 && (
               <StatPill icon={AlertTriangle} count={overdueQuotes.length} label="overdue" tone="overdue" to="/chaser" />
