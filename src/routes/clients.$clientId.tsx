@@ -121,23 +121,33 @@ function ClientDetail() {
               cta={{ label: "New quote", to: "/quotes/new", search: { clientId } }}
             />
           )}
-          {quotes.map((q) => (
-            <Link
-              to="/quotes/$quoteId"
-              params={{ quoteId: q.id }}
-              key={q.id}
-              className="card-surface p-4 flex items-center gap-3"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
-                  <StatusBadge status={q.status} />
+          {sortedQuotes.map((q) => {
+            const dateIso = q.completed_at ?? q.created_at;
+            const dateLabel = q.completed_at ? `Completed ${formatShortDate(q.completed_at)}` : formatShortDate(q.created_at);
+            return (
+              <Link
+                to="/quotes/$quoteId"
+                params={{ quoteId: q.id }}
+                key={q.id}
+                className="card-surface p-4 flex items-center gap-3"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
+                    <StatusBadge status={q.status} />
+                  </div>
+                  <p className="font-semibold text-sm mt-1 truncate">{q.title}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    <span>{dateLabel}</span>
+                    <span>· {relativeFromNow(dateIso)}</span>
+                  </p>
                 </div>
-                <p className="font-semibold text-sm mt-1 truncate">{q.title}</p>
-              </div>
-              <p className="num text-xl text-ink">{formatGBP(q.total)}</p>
-            </Link>
-          ))}
+                <p className="num text-xl text-ink">{formatGBP(q.total)}</p>
+              </Link>
+            );
+          })}
+
         </div>
       </section>
     </AppShell>
