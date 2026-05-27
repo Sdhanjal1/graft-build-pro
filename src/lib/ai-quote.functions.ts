@@ -3,6 +3,8 @@ import { z } from "zod";
 import { requireActiveSubscription } from "@/lib/require-active-subscription";
 import { fetchTopPatterns, patternsForPrompt } from "@/lib/pricing-patterns.functions";
 import { tradeGuidance } from "@/lib/ai-trade-guidance";
+import { rankPatternsForJob } from "@/lib/pricing-patterns";
+
 
 const InputSchema = z.object({
   description: z.string().min(1).max(4000),
@@ -69,8 +71,10 @@ export const generateAIQuote = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
 
     const { supabase, userId } = context as { supabase: any; userId: string };
-    const patterns = await fetchTopPatterns(supabase, userId, 50);
+    const allPatterns = await fetchTopPatterns(supabase, userId, 80);
+    const patterns = rankPatternsForJob(allPatterns, `${data.trade} ${data.description}`, 30);
     const systemPrompt = SYSTEM_PROMPT + tradeGuidance(data.trade) + patternsForPrompt(patterns);
+
 
     const userPrompt = `Generate an itemised quote for this job.
 

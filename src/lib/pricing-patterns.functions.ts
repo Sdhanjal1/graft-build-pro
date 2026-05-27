@@ -31,18 +31,35 @@ export async function fetchTopPatterns(
   return (data ?? []) as PricingPattern[];
 }
 
-/** Format patterns as a compact block for Claude's system prompt. */
+/** Format patterns as a compact, category-grouped block for Claude's system prompt. */
 export function patternsForPrompt(patterns: PricingPattern[]): string {
   if (!patterns.length) return "";
-  const lines = patterns
-    .map((p) => {
-      const price = `£${Number(p.typical_price).toFixed(2)}`;
-      const count = p.price_count;
-      return `- ${p.item_description}: ${price} (quoted ${count}×)`;
-    })
-    .join("\n");
-  return `\n\nThis tradesperson has the following typical pricing based on their previous quotes. When generating this quote, use these prices for items they have quoted before and mark the line item with source: "learned". For items not in this list, use current UK trade pricing and mark them source: "ai". Spoken prices in the voice note always win and are marked source: "voice".\n\n${lines}`;
+  const capped = patterns.slice(0, 40);
+  const groups: Record<string, PricingPattern[]> = {};
+  for (const p of capped) {
+    const cat = p.item_category || "other";
+    (groups[cat] ||= []).push(p);
+  }
+  const order = ["labour", "materials", "certificate", "cis_labour", "other"];
+  const sections: string[] = [];
+  for (const cat of order) {
+    const rows = groups[cat];
+    if (!rows?.length) continue;
+    const lines = rows
+      .map((p) => {
+        const typical = `£${Number(p.typical_price).toFixed(2)}`;
+        const min = Number(p.price_min);
+        const max = Number(p.price_max);
+        const range = min && max && min !== max ? ` (range £${min.toFixed(2)}–£${max.toFixed(2)})` : "";
+        return `- ${p.item_description} — ${typical}${range}, n=${p.price_count}`;
+      })
+      .join("\n");
+    sections.push(`${cat.toUpperCase()}:\n${lines}`);
+  }
+  const body = sections.join("\n\n");
+  return `\n\nLEARNED PATTERNS — this tradesperson's typical pricing from previous quotes. RULES:\n1. If the current job mentions an item that matches one of these (even with slightly different wording — e.g. "magnetic filter" vs "MagnaClean filter", "boiler install" vs "fit new combi"), USE THE LEARNED PRICE and set source: "learned". Do not substitute a generic UK estimate when a learned match exists.\n2. Keep their typical price even if it differs from your general UK trade knowledge — this is their pricing, not the market average.\n3. Categories below match the line item's category field. When you use a learned price, set the line item's category to match the section it came from.\n\n${body}`;
 }
+
 
 const LineItemInput = z.object({
   description: z.string().min(1).max(240),

@@ -3,6 +3,8 @@ import { z } from "zod";
 import { requireActiveSubscription } from "@/lib/require-active-subscription";
 import { fetchTopPatterns, patternsForPrompt } from "@/lib/pricing-patterns.functions";
 import { tradeGuidance } from "@/lib/ai-trade-guidance";
+import { rankPatternsForJob } from "@/lib/pricing-patterns";
+
 
 const InputSchema = z.object({
   items: z.array(z.string().min(1).max(500)).min(1).max(40),
@@ -17,7 +19,9 @@ const LineItemSchema = z.object({
   qty: z.number().positive().max(1000),
   unit_price: z.number().nonnegative().max(100000),
   source: z.enum(["voice", "learned", "ai"]).optional().default("ai"),
+  category: z.enum(["labour", "materials", "certificate", "cis_labour", "other"]).optional().default("other"),
 });
+
 
 const QuoteSchema = z.object({
   title: z.string().min(1).max(160),
@@ -41,7 +45,15 @@ Otherwise estimate using current UK trade pricing and mark source: "ai".
 SOURCE FIELD — REQUIRED ON EVERY LINE ITEM:
 - "voice" — price came from the tradesperson's spoken input
 - "learned" — price came from their previous pricing patterns
-- "ai" — you estimated using general UK trade pricing knowledge`;
+- "ai" — you estimated using general UK trade pricing knowledge
+
+CATEGORY FIELD — REQUIRED ON EVERY LINE ITEM:
+- 'labour' — time-based work: installation, fitting, commissioning, hourly rate work
+- 'materials' — physical products supplied: boilers, radiators, fittings, parts, pipes
+- 'certificate' — gas safety certs, EICR, building regs notifications, commissioning certs
+- 'cis_labour' — only when CIS mode is enabled. Labour income under CIS deduction
+- 'other' — anything that does not fit the above`;
+
 
 export const generateCaptureQuote = createServerFn({ method: "POST" })
   .middleware([requireActiveSubscription])
@@ -51,7 +63,8 @@ export const generateCaptureQuote = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
 
     const { supabase, userId } = context as { supabase: any; userId: string };
-    const patterns = await fetchTopPatterns(supabase, userId, 50);
+    const allPatterns = await fetchTopPatterns(supabase, userId, 80);
+    const patterns = rankPatternsForJob(allPatterns, `${data.trade} ${data.items.join(" ")}`, 30);
     const systemPrompt = SYSTEM_PROMPT + tradeGuidance(data.trade) + patternsForPrompt(patterns);
 
     const itemList = data.items.map((d, i) => `${i + 1}. ${d}`).join("\n");
@@ -66,11 +79,12 @@ Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
 {
   "title": "Concise job title summarising the work",
   "line_items": [
-    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai" }
+    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other" }
   ]
 }
 
-Unit prices must be ex-VAT in GBP. Quantities can be decimal. Every line item MUST include a source field.`;
+Unit prices must be ex-VAT in GBP. Quantities can be decimal. Every line item MUST include both a source field and a category field.`;
+
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
