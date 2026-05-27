@@ -67,13 +67,34 @@ function exampleForTrade(trade: string): string {
 function AppHomePage() {
   const { session, loading } = useSession();
   const navigate = useNavigate();
+  const { firstRun } = Route.useSearch();
   const [bannerDismissed, setBannerDismissed] = useState(true);
+  const [showFirstRun, setShowFirstRun] = useState(false);
+  const micCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       setBannerDismissed(window.localStorage.getItem(STRIPE_BANNER_DISMISS_KEY) === "1");
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (firstRun && window.localStorage.getItem("firstRunSeen") !== "true") {
+      setShowFirstRun(true);
+      requestAnimationFrame(() => {
+        micCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }, [firstRun]);
+
+  const dismissFirstRun = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("firstRunSeen", "true");
+    }
+    setShowFirstRun(false);
+    navigate({ to: "/app", search: {}, replace: true });
+  };
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/auth" });
