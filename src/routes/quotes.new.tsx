@@ -285,22 +285,9 @@ function NewQuotePage() {
         return;
       }
 
-      setTranscribing(true);
-      try {
-        const audioBase64 = await blobToBase64(blob);
-        const { text } = await transcribeFn({ data: { audioBase64, mimeType: blobType } });
-        appendTranscript(text);
-      } catch (err) {
-        setVoiceError(
-          err instanceof Error
-            ? err.message
-            : "Could not transcribe, please try again or type the job description.",
-        );
-      } finally {
-        setTranscribing(false);
-        setLivePreview("");
-        liveFinalRef.current = "";
-      }
+      lastBlobRef.current = { blob, mimeType: blobType };
+      await runTranscribe(blob, blobType);
+
     };
 
     // Live preview via Web Speech API — visual feedback only, discarded on stop.
