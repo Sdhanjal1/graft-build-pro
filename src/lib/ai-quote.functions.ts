@@ -18,6 +18,7 @@ const LineItemSchema = z.object({
   unit_price: z.number().nonnegative().max(100000),
   source: z.enum(["voice", "learned", "ai"]).optional().default("ai"),
   category: z.enum(["labour", "materials", "certificate", "cis_labour", "other"]).optional().default("other"),
+  unit: z.enum(["qty", "hours", "days"]).optional().default("qty"),
 });
 
 const QuoteSchema = z.object({
@@ -61,7 +62,18 @@ Each line item MUST have a category field. Use these rules:
 - 'materials' — physical products being supplied: boilers, radiators, fittings, parts, units, valves, pipes
 - 'certificate' — gas safety certificates, electrical certificates (EICR), boiler commissioning certificates, building regs notifications
 - 'cis_labour' — only use when CIS mode is enabled on the customer. Labour income that falls under CIS deduction
-- 'other' — anything that does not fit the above categories`;
+- 'other' — anything that does not fit the above categories
+
+UNIT FIELD — REQUIRED ON EVERY LINE ITEM:
+
+Each line item MUST have a unit field. Use these rules:
+- For 'labour' or 'cis_labour' lines: estimate realistic UK trade duration. Use 'hours' when the work takes less than a full day, 'days' for multi-day jobs. Set qty to the estimated duration (hours rounded to 0.5, days rounded to 0.5). unit_price is then the hourly or daily rate.
+- For all other categories: use 'qty'. qty is the count of items supplied.
+
+Examples:
+- Boiler install labour, 1 day on site → { qty: 1, unit_price: 480, unit: "days", category: "labour" }
+- Tap change, ~1.5 hours → { qty: 1.5, unit_price: 65, unit: "hours", category: "labour" }
+- 3 radiators → { qty: 3, unit_price: 150, unit: "qty", category: "materials" }`;
 
 export const generateAIQuote = createServerFn({ method: "POST" })
   .middleware([requireActiveSubscription])
@@ -88,11 +100,11 @@ Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
 {
   "title": "Concise quote title",
   "line_items": [
-    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other" }
+    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other", "unit": "qty" | "hours" | "days" }
   ]
 }
 
-Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 hours). Every line item MUST include both a source field and a category field.`;
+Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 hours). Every line item MUST include source, category and unit. Labour lines should use "hours" or "days" with the price as the hourly/daily rate.`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

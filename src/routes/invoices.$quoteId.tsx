@@ -117,7 +117,7 @@ function InvoicePage() {
               <li key={i} className="px-5 py-3 flex items-start gap-3 border-t border-border">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{li.description}</p>
-                  <p className="text-xs text-muted-foreground">{li.qty} × {formatGBP(li.unit_price)}</p>
+                  <p className="text-xs text-muted-foreground">{(li as any).unit === "hours" ? `${li.qty} ${li.qty === 1 ? "hr" : "hrs"}` : (li as any).unit === "days" ? `${li.qty} ${li.qty === 1 ? "day" : "days"}` : li.qty} × {formatGBP(li.unit_price)}{(li as any).unit === "hours" ? "/hr" : (li as any).unit === "days" ? "/day" : ""}</p>
                 </div>
                 <p className="num text-base">{formatGBP(li.qty * li.unit_price)}</p>
               </li>

@@ -820,42 +820,68 @@ function NewQuotePage() {
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      Qty
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        step="0.1"
-                        value={li.qty}
-                        onChange={(e) => {
-                          const next = [...draft.line_items];
-                          next[i] = { ...li, qty: parseFloat(e.target.value) || 0 };
-                          setDraft({ ...draft, line_items: next });
-                        }}
-                        className="w-16 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
-                      />
-                    </label>
-                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      £
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        min={0}
-                        step="0.01"
-                        value={li.unit_price}
-                        onChange={(e) => {
-                          const next = [...draft.line_items];
-                          next[i] = { ...li, unit_price: parseFloat(e.target.value) || 0 };
-                          setDraft({ ...draft, line_items: next });
-                        }}
-                        onFocus={(e) => e.currentTarget.select()}
-                        className="w-24 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
-                      />
-                    </label>
-                    <p className="num text-sm ml-auto font-semibold">{formatGBP(li.qty * li.unit_price)}</p>
-                  </div>
+                  {(() => {
+                    const isLabour = li.category === "labour" || li.category === "cis_labour";
+                    const unit = li.unit ?? (isLabour ? "hours" : "qty");
+                    const qtyLabel = unit === "hours" ? "Hrs" : unit === "days" ? "Days" : "Qty";
+                    const priceSuffix = unit === "hours" ? "/hr" : unit === "days" ? "/day" : "";
+                    return (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          {qtyLabel}
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            step="0.1"
+                            value={li.qty}
+                            onChange={(e) => {
+                              const next = [...draft.line_items];
+                              next[i] = { ...li, qty: parseFloat(e.target.value) || 0 };
+                              setDraft({ ...draft, line_items: next });
+                            }}
+                            className="w-16 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
+                          />
+                        </label>
+                        {isLabour && (
+                          <div className="inline-flex rounded bg-secondary p-0.5 text-[10px] font-semibold">
+                            {(["hours", "days"] as const).map((u) => (
+                              <button
+                                key={u}
+                                type="button"
+                                onClick={() => {
+                                  const next = [...draft.line_items];
+                                  next[i] = { ...li, unit: u };
+                                  setDraft({ ...draft, line_items: next });
+                                }}
+                                className={`px-2 py-0.5 rounded ${unit === u ? "bg-ink text-paper" : "text-muted-foreground"}`}
+                              >
+                                {u === "hours" ? "Hrs" : "Days"}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          £{priceSuffix && <span className="text-[10px]">{priceSuffix}</span>}
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            min={0}
+                            step="0.01"
+                            value={li.unit_price}
+                            onChange={(e) => {
+                              const next = [...draft.line_items];
+                              next[i] = { ...li, unit_price: parseFloat(e.target.value) || 0 };
+                              setDraft({ ...draft, line_items: next });
+                            }}
+                            onFocus={(e) => e.currentTarget.select()}
+                            className="w-24 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
+                          />
+                        </label>
+                        <p className="num text-sm ml-auto font-semibold">{formatGBP(li.qty * li.unit_price)}</p>
+                      </div>
+                    );
+                  })()}
                 </li>
               ))}
             </ul>

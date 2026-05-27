@@ -25,6 +25,7 @@ export type ScheduledJob = {
 };
 
 export type LineItemCategory = "labour" | "materials" | "certificate" | "cis_labour" | "other";
+export type LineItemUnit = "qty" | "hours" | "days";
 
 export type LineItem = {
   description: string;
@@ -34,7 +35,26 @@ export type LineItem = {
   source?: "voice" | "learned" | "ai";
   /** Accounting category — used for CSV export account-code mapping. */
   category?: LineItemCategory;
+  /** How qty is measured. Labour lines use "hours" or "days"; everything else defaults to "qty". */
+  unit?: LineItemUnit;
 };
+
+/** True for line categories that should default to time-based units. */
+export const isLabourCategory = (c?: LineItemCategory) =>
+  c === "labour" || c === "cis_labour";
+
+/** Format the qty for display, honouring the line's unit. */
+export function formatLineQty(qty: number, unit?: LineItemUnit): string {
+  if (unit === "hours") return `${qty} ${qty === 1 ? "hr" : "hrs"}`;
+  if (unit === "days") return `${qty} ${qty === 1 ? "day" : "days"}`;
+  return String(qty);
+}
+
+export function unitPriceSuffix(unit?: LineItemUnit): string {
+  if (unit === "hours") return "/hr";
+  if (unit === "days") return "/day";
+  return "";
+}
 
 export type Client = {
   id: string;

@@ -20,6 +20,7 @@ const LineItemSchema = z.object({
   unit_price: z.number().nonnegative().max(100000),
   source: z.enum(["voice", "learned", "ai"]).optional().default("ai"),
   category: z.enum(["labour", "materials", "certificate", "cis_labour", "other"]).optional().default("other"),
+  unit: z.enum(["qty", "hours", "days"]).optional().default("qty"),
 });
 
 
@@ -52,7 +53,11 @@ CATEGORY FIELD — REQUIRED ON EVERY LINE ITEM:
 - 'materials' — physical products supplied: boilers, radiators, fittings, parts, pipes
 - 'certificate' — gas safety certs, EICR, building regs notifications, commissioning certs
 - 'cis_labour' — only when CIS mode is enabled. Labour income under CIS deduction
-- 'other' — anything that does not fit the above`;
+- 'other' — anything that does not fit the above
+
+UNIT FIELD — REQUIRED ON EVERY LINE ITEM:
+- For 'labour' or 'cis_labour' lines: estimate realistic UK trade duration. Use 'hours' if under a full day, 'days' otherwise. qty = estimated duration (hours rounded to 0.5, days rounded to 0.5). unit_price = hourly or daily rate.
+- For all other categories: use 'qty'. qty is the count of items supplied.`;
 
 
 export const generateCaptureQuote = createServerFn({ method: "POST" })
@@ -79,11 +84,11 @@ Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
 {
   "title": "Concise job title summarising the work",
   "line_items": [
-    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other" }
+    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other", "unit": "qty" | "hours" | "days" }
   ]
 }
 
-Unit prices must be ex-VAT in GBP. Quantities can be decimal. Every line item MUST include both a source field and a category field.`;
+Unit prices must be ex-VAT in GBP. Quantities can be decimal. Every line item MUST include source, category and unit. Labour lines should use "hours" or "days" with the price as the hourly/daily rate.`;
 
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {

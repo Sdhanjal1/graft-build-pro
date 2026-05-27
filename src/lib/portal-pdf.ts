@@ -204,12 +204,17 @@ export function generatePortalPdf(
   autoTable(doc, {
     startY: y,
     head: [["Description", "Qty", "Unit", "Amount"]],
-    body: quote.line_items.map((li) => [
-      li.description,
-      String(li.qty),
-      formatGBP(li.unit_price),
-      formatGBP(li.qty * li.unit_price),
-    ]),
+    body: quote.line_items.map((li) => {
+      const u = (li as any).unit;
+      const qtyStr = u === "hours" ? `${li.qty} ${li.qty === 1 ? "hr" : "hrs"}` : u === "days" ? `${li.qty} ${li.qty === 1 ? "day" : "days"}` : String(li.qty);
+      const suffix = u === "hours" ? "/hr" : u === "days" ? "/day" : "";
+      return [
+        li.description,
+        qtyStr,
+        `${formatGBP(li.unit_price)}${suffix}`,
+        formatGBP(li.qty * li.unit_price),
+      ];
+    }),
     styles: { font: "helvetica", fontSize: 10, cellPadding: 8, textColor: INK, lineColor: BORDER },
     headStyles: { fillColor: INK, textColor: "#FFFFFF", fontStyle: "bold", fontSize: 9 },
     columnStyles: {
