@@ -36,6 +36,25 @@ export function SendQuoteDialog({
   const ensureToken = useServerFn(ensurePortalToken);
   const [busy, setBusy] = useState<null | "sms" | "email" | "wa">(null);
   const [copied, setCopied] = useState(false);
+  const [sentVia, setSentVia] = useState<SentVia | null>(null);
+  const initialAutoChase = (() => {
+    const q = getQuote(quoteId);
+    return q?.auto_chase_enabled ?? userProfile.auto_chase_enabled ?? true;
+  })();
+  const [autoChase, setAutoChase] = useState<boolean>(initialAutoChase);
+
+  const toggleAutoChase = () => {
+    const next = !autoChase;
+    setAutoChase(next);
+    setQuoteAutoChase(quoteId, next);
+    feedback("tap");
+  };
+
+  const handleClose = () => {
+    setSentVia(null);
+    onClose();
+  };
+
 
 
 // Always share via the branded short domain, keeps WhatsApp/email links tidy.
