@@ -63,7 +63,8 @@ export const generateCaptureQuote = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
 
     const { supabase, userId } = context as { supabase: any; userId: string };
-    const patterns = await fetchTopPatterns(supabase, userId, 50);
+    const allPatterns = await fetchTopPatterns(supabase, userId, 80);
+    const patterns = rankPatternsForJob(allPatterns, `${data.trade} ${data.items.join(" ")}`, 30);
     const systemPrompt = SYSTEM_PROMPT + tradeGuidance(data.trade) + patternsForPrompt(patterns);
 
     const itemList = data.items.map((d, i) => `${i + 1}. ${d}`).join("\n");
@@ -78,11 +79,12 @@ Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
 {
   "title": "Concise job title summarising the work",
   "line_items": [
-    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai" }
+    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other" }
   ]
 }
 
-Unit prices must be ex-VAT in GBP. Quantities can be decimal. Every line item MUST include a source field.`;
+Unit prices must be ex-VAT in GBP. Quantities can be decimal. Every line item MUST include both a source field and a category field.`;
+
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
