@@ -137,7 +137,7 @@ function ClientDetail() {
 
       <section className="mt-6">
         <div className="px-5 flex items-center justify-between mb-2.5">
-          <h2 className="text-xl">Job history</h2>
+          <h2 className="text-xl">{jobNoun === "service" ? "Service" : "Job"} history</h2>
           <Link
             to="/quotes/new"
             search={{ clientId }}
@@ -151,11 +151,12 @@ function ClientDetail() {
           {quotes.length === 0 && (
             <EmptyState
               icon={FileText}
-              title="No quotes yet"
+              title={`No ${jobPlural} yet`}
               body={`Send ${client.name.split(" ")[0]} their first quote in a couple of taps.`}
               cta={{ label: "New quote", to: "/quotes/new", search: { clientId } }}
             />
           )}
+
           {sortedQuotes.map((q) => {
             const dateIso = q.completed_at ?? q.created_at;
             const dateLabel = q.completed_at ? `Completed ${formatShortDate(q.completed_at)}` : formatShortDate(q.created_at);
