@@ -70,7 +70,7 @@ function AppHomePage() {
   const { firstRun } = Route.useSearch();
   const [bannerDismissed, setBannerDismissed] = useState(true);
   const [showFirstRun, setShowFirstRun] = useState(false);
-  const micCardRef = useRef<HTMLDivElement | null>(null);
+  const micCardRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
