@@ -203,6 +203,7 @@ type DbQuote = {
   deposit_amount: number | null;
   deposit_percent: number | null;
   completed_at: string | null;
+  updated_at?: string | null;
 };
 
 const rowToClient = (r: DbClient): Client => ({
