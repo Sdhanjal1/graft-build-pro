@@ -13,9 +13,9 @@ import { useSession } from "@/lib/auth";
 const STATUS_DOT: Record<QuoteStatus, string> = {
   pending: "bg-status-pending",
   sent: "bg-status-sent",
-  accepted: "bg-status-accepted",
+  accepted: "bg-status-booked",
   declined: "bg-status-overdue",
-  completed: "bg-status-accepted",
+  completed: "bg-status-completed",
   paid: "bg-status-paid",
   overdue: "bg-status-overdue",
 };
@@ -23,31 +23,40 @@ const STATUS_DOT: Record<QuoteStatus, string> = {
 const STATUS_LABEL: Record<QuoteStatus, string> = {
   pending: "Draft",
   sent: "Sent",
-  accepted: "Accepted",
+  accepted: "Booked",
   declined: "Declined",
   completed: "Completed",
   paid: "Paid",
   overdue: "Overdue",
 };
 
-const UNPAID: QuoteStatus[] = ["sent", "accepted", "overdue"];
+// Unpaid for the swipe-row "Chase" action — only chase work that's done or overdue.
+const UNPAID: QuoteStatus[] = ["completed", "overdue"];
 
 export const Route = createFileRoute("/quotes/")({
   component: QuotesPage,
 });
 
-const FILTERS: ("all" | QuoteStatus)[] = ["all", "pending", "sent", "accepted", "declined", "paid", "overdue"];
+type FilterKey = "all" | "pending" | "sent" | "booked" | "completed" | "paid" | "overdue";
+const FILTERS: FilterKey[] = ["all", "pending", "sent", "booked", "completed", "paid", "overdue"];
+
+// Map UI filter chip → underlying QuoteStatus value(s).
+const filterMatches = (filter: FilterKey, status: QuoteStatus) => {
+  if (filter === "all") return true;
+  if (filter === "booked") return status === "accepted";
+  return status === filter;
+};
 
 function QuotesPage() {
   useDataVersion();
   const { loading } = useSession();
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
+  const [filter, setFilter] = useState<FilterKey>("all");
   const [q, setQ] = useState("");
 
   if (loading) return <QuotesListSkeleton />;
 
   const filtered = mockQuotes.filter((x) => {
-    if (filter !== "all" && x.status !== filter) return false;
+    if (!filterMatches(filter, x.status)) return false;
     if (q && !`${x.title} ${x.ref}`.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
