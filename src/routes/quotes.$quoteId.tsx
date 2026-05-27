@@ -8,11 +8,12 @@ import {
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming,
+  deleteQuote,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2 } from "lucide-react";
 import {
   computeDepositAmount, computeDepositPercent, parseDepositInput,
   paymentTimingLabel, shouldSuggestStaged, defaultDepositPercent,
