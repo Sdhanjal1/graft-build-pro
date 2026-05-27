@@ -513,8 +513,8 @@ function ActionCard({
         <Icon className={`h-5 w-5 ${iconColor}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-ink">{title}</p>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-base font-semibold text-ink leading-tight">{title}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
           {count} quote{count !== 1 ? "s" : ""} · {formatGBP(amount)}
         </p>
       </div>
