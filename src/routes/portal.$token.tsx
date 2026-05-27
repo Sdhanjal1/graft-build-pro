@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getPortalData, respondToQuoteByToken } from "@/lib/messages.functions";
+import { createPortalCheckout } from "@/lib/payments.functions";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
+import { WalletBadges } from "@/components/WalletBadges";
 import { downloadPortalPdf } from "@/lib/portal-pdf";
 import { Loader2, Check, X, Download } from "lucide-react";
 import { acceptButtonLabel, paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
@@ -20,11 +22,13 @@ function PortalPage() {
   const { token } = Route.useParams();
   const fetchData = useServerFn(getPortalData);
   const respond = useServerFn(respondToQuoteByToken);
+  const startCheckout = useServerFn(createPortalCheckout);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
   const [responding, setResponding] = useState(false);
+  const [paying, setPaying] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
   const load = async () => {
@@ -54,6 +58,18 @@ function PortalPage() {
     }
   };
 
+  const onPay = async (requestType: "deposit" | "full") => {
+    setPaying(true);
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const r = await startCheckout({ data: { token, requestType, returnOrigin: origin } });
+      window.location.href = r.url;
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not start payment");
+      setPaying(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper">
@@ -76,6 +92,21 @@ function PortalPage() {
   const lineItems = (quote.line_items as any[]) ?? [];
   const isPaid = status === "paid";
   const canRespond = status === "pending" || status === "sent";
+  const timing: PaymentTiming = (quote.payment_timing as PaymentTiming) ?? "on_completion";
+  const total = Number(quote.total) || 0;
+  const depositExplicit = Number(quote.deposit_amount) || 0;
+  const depositPct = Number(quote.deposit_percent) || 0;
+  const depositAmount =
+    depositExplicit > 0
+      ? depositExplicit
+      : depositPct > 0
+      ? +(total * (depositPct / 100)).toFixed(2)
+      : +(total * 0.5).toFixed(2);
+  const canPayNow =
+    status === "accepted" && !isPaid && (timing === "upfront" || timing === "staged" || timing === "on_completion");
+  const payRequestType: "deposit" | "full" =
+    timing === "staged" ? "deposit" : "full";
+  const payAmount = payRequestType === "deposit" ? depositAmount : total;
   const showBottomBar = canRespond || status === "accepted" || status === "declined" || isPaid;
 
   const handleDownloadInvoice = async () => {
@@ -244,9 +275,25 @@ function PortalPage() {
                 <Check className="h-4 w-4" /> Paid
               </div>
             ) : status === "accepted" ? (
-              <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
-                <Check className="h-4 w-4" /> Accepted
-              </div>
+              canPayNow ? (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => onPay(payRequestType)}
+                    disabled={paying}
+                    className="w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
+                  >
+                    {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    <span className="truncate">
+                      {payRequestType === "deposit" ? "Pay deposit" : "Pay now"} {formatGBP(payAmount)}
+                    </span>
+                  </button>
+                  <WalletBadges />
+                </div>
+              ) : (
+                <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
+                  <Check className="h-4 w-4" /> Accepted
+                </div>
+              )
             ) : (
               <div className="h-12 rounded-full bg-muted text-muted-foreground text-sm font-semibold inline-flex items-center justify-center gap-1.5 w-full">
                 Declined
