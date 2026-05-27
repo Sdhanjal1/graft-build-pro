@@ -63,6 +63,7 @@ export const Route = createFileRoute("/quotes/new")({
   component: NewQuotePage,
   validateSearch: (s: Record<string, unknown>) => ({
     voice: s.voice === 1 || s.voice === "1" ? 1 : undefined,
+    clientId: typeof s.clientId === "string" ? s.clientId : undefined,
   }),
 });
 
