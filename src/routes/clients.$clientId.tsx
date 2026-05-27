@@ -1,10 +1,12 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getClient, quotesForClient, formatGBP } from "@/lib/user-data";
-import { Phone, Mail, MapPin, Home, FileText, Plus, CheckCircle2, Calendar } from "lucide-react";
+import { getClient, quotesForClient, formatGBP, userProfile } from "@/lib/user-data";
+import { resolveTrade, detectCertifications, type Certification } from "@/lib/trades";
+import { Phone, Mail, MapPin, Home, FileText, Plus, CheckCircle2, Calendar, ShieldCheck, BellRing } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { CustomerPortalPanel } from "@/components/CustomerPortalPanel";
+
 
 export const Route = createFileRoute("/clients/$clientId")({
   component: ClientDetail,
