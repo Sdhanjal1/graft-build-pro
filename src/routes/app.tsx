@@ -82,6 +82,12 @@ function AppHomePage() {
     if (typeof window === "undefined") return;
     if (firstRun && window.localStorage.getItem("firstRunSeen") !== "true") {
       setShowFirstRun(true);
+      // Snooze the PWA install banner for 30 minutes so the first-run
+      // tooltip stands alone on the mic. The PWA prompt can return later.
+      window.localStorage.setItem(
+        "quottr.pwa-dismissed-until",
+        String(Date.now() + 30 * 60 * 1000),
+      );
       requestAnimationFrame(() => {
         micCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       });
