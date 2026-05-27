@@ -71,8 +71,10 @@ export const generateAIQuote = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
 
     const { supabase, userId } = context as { supabase: any; userId: string };
-    const patterns = await fetchTopPatterns(supabase, userId, 50);
+    const allPatterns = await fetchTopPatterns(supabase, userId, 80);
+    const patterns = rankPatternsForJob(allPatterns, `${data.trade} ${data.description}`, 30);
     const systemPrompt = SYSTEM_PROMPT + tradeGuidance(data.trade) + patternsForPrompt(patterns);
+
 
     const userPrompt = `Generate an itemised quote for this job.
 
