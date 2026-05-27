@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, ClientOnly } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CountUp from "react-countup";
 import { AppShell } from "@/components/AppShell";
 import {
