@@ -9,11 +9,13 @@ import {
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming,
   deleteQuote,
+  materialsForQuote,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus, ShoppingCart } from "lucide-react";
+import { MaterialListSheet } from "@/components/MaterialListSheet";
 import { suggestPriceForDescription } from "@/lib/pricing-patterns.functions";
 import {
   computeDepositAmount, computeDepositPercent, parseDepositInput,
