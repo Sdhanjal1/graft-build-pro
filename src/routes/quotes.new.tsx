@@ -110,9 +110,11 @@ function NewQuotePage() {
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const recordTargetRef = useRef<"desc" | "clip">("desc");
+  const lastBlobRef = useRef<{ blob: Blob; mimeType: string } | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const liveFinalRef = useRef<string>("");
+
 
   useEffect(() => {
     return () => {
