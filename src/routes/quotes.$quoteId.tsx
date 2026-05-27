@@ -1156,7 +1156,7 @@ function LineItemsEditor({
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  <span className="num">{li.qty}</span> × <span className="num">{formatGBP(li.unit_price)}</span>
+                  <span className="num">{(li as any).unit === "hours" ? `${li.qty} ${li.qty === 1 ? "hr" : "hrs"}` : (li as any).unit === "days" ? `${li.qty} ${li.qty === 1 ? "day" : "days"}` : li.qty}</span> × <span className="num">{formatGBP(li.unit_price)}{(li as any).unit === "hours" ? "/hr" : (li as any).unit === "days" ? "/day" : ""}</span>
                 </p>
               </div>
               <span className="num text-base text-ink">
