@@ -112,7 +112,7 @@ export const createInvoiceCheckout = createServerFn({ method: "POST" })
     };
     if (!res.ok || !json.url || !json.id) {
       console.error("Stripe checkout creation failed", json);
-      throw new Error(json.error?.message ?? "Failed to create Stripe checkout");
+      throw new Error("Payment service error. Please try again or contact support.");
     }
 
     // Log a pending payment row so the dashboard can show it.
