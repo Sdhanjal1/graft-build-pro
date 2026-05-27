@@ -57,14 +57,24 @@ function ClientDetail() {
 
 
       <section className="mt-6">
-        <h2 className="px-5 text-xl mb-2.5">Job history</h2>
+        <div className="px-5 flex items-center justify-between mb-2.5">
+          <h2 className="text-xl">Job history</h2>
+          <Link
+            to="/quotes/new"
+            search={{ clientId }}
+            className="inline-flex items-center gap-1.5 rounded-full bg-lime text-ink px-3.5 py-2 text-xs font-bold active:scale-[0.98] transition"
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+            Quote again
+          </Link>
+        </div>
         <div className="px-5 space-y-2.5">
           {quotes.length === 0 && (
             <EmptyState
               icon={FileText}
               title="No quotes yet"
               body={`Send ${client.name.split(" ")[0]} their first quote in a couple of taps.`}
-              cta={{ label: "New quote", to: "/quotes/new" }}
+              cta={{ label: "New quote", to: "/quotes/new", search: { clientId } }}
             />
           )}
           {quotes.map((q) => (
