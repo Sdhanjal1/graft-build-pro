@@ -9,11 +9,13 @@ import {
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming,
   deleteQuote,
+  materialsForQuote,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus, ShoppingCart } from "lucide-react";
+import { MaterialListSheet } from "@/components/MaterialListSheet";
 import { suggestPriceForDescription } from "@/lib/pricing-patterns.functions";
 import {
   computeDepositAmount, computeDepositPercent, parseDepositInput,
@@ -77,6 +79,9 @@ function QuoteDetail() {
   const [assignOpen, setAssignOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [timingOpen, setTimingOpen] = useState(false);
+  const [materialsOpen, setMaterialsOpen] = useState(false);
+  const materialsCount = materialsForQuote(quote).length;
+  const showMaterialsCta = (status === "accepted") && materialsCount > 0;
 
   // Payment timing state
   const initialTiming: PaymentTiming = quote.payment_timing ?? "on_completion";
@@ -544,6 +549,15 @@ function QuoteDetail() {
               ⋯
             </button>
           </div>
+          {showMaterialsCta && (
+            <button
+              onClick={() => setMaterialsOpen(true)}
+              className="w-full mt-2 bg-ink text-paper rounded-full py-2.5 px-4 inline-flex items-center justify-center gap-2 text-xs font-bold"
+            >
+              <ShoppingCart className="h-3.5 w-3.5" />
+              Material list ({materialsCount})
+            </button>
+          )}
           {status === "paid" && (
             <div className="w-full mt-2 bg-status-paid/15 border border-status-paid/40 rounded-full py-2 px-4 inline-flex items-center justify-center gap-2 text-xs font-semibold text-ink">
               <CheckCircle2 className="h-3.5 w-3.5" />
@@ -560,6 +574,9 @@ function QuoteDetail() {
             <h3 className="text-xl px-4 mb-2">More options</h3>
             <ul className="px-2">
               <MoreItem icon={Eye} label="View as customer" onClick={() => { setMoreOpen(false); viewAsCustomer(); }} />
+              {materialsCount > 0 && (
+                <MoreItem icon={ShoppingCart} label={`Material list (${materialsCount})`} onClick={() => { setMoreOpen(false); setMaterialsOpen(true); }} />
+              )}
               <MoreItem icon={Share2} label="Download PDF" onClick={() => { setMoreOpen(false); sharePdf(); }} />
               <MoreItem icon={Copy} label="Duplicate quote" onClick={() => { setMoreOpen(false); duplicate(); }} />
               {status !== "paid" && (
@@ -671,6 +688,15 @@ function QuoteDetail() {
         quoteId={quote.id}
         onAssigned={() => setSendOpen(true)}
       />
+
+      <MaterialListSheet
+        open={materialsOpen}
+        onClose={() => setMaterialsOpen(false)}
+        quote={quote}
+        customerName={client?.name}
+      />
+
+
 
       {/* Bottom sheet: how did the customer pay? */}
       {askingPaid && (

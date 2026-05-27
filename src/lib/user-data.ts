@@ -37,7 +37,10 @@ export type LineItem = {
   category?: LineItemCategory;
   /** How qty is measured. Labour lines use "hours" or "days"; everything else defaults to "qty". */
   unit?: LineItemUnit;
+  /** Optional supplier/merchant SKU shown on the material shopping list. */
+  supplier_code?: string;
 };
+
 
 /** True for line categories that should default to time-based units. */
 export const isLabourCategory = (c?: LineItemCategory) =>
@@ -112,7 +115,10 @@ export type Quote = {
   completed_at?: string;
   /** Last DB write — proxy for when status changed (e.g. accepted today). */
   updated_at?: string;
+  /** Tick state for the material shopping list, indexed by line_items position. */
+  materials_purchased?: boolean[];
 };
+
 
 export type ChaseStatus = "scheduled" | "sent" | "skipped";
 
@@ -224,7 +230,9 @@ type DbQuote = {
   deposit_percent: number | null;
   completed_at: string | null;
   updated_at?: string | null;
+  materials_purchased?: boolean[] | null;
 };
+
 
 const rowToClient = (r: DbClient): Client => ({
   id: r.id, name: r.name, phone: r.phone ?? "", email: r.email ?? "",
@@ -249,7 +257,9 @@ const rowToQuote = (r: DbQuote): Quote => ({
   deposit_percent: Number(r.deposit_percent ?? 0),
   completed_at: r.completed_at ?? undefined,
   updated_at: r.updated_at ?? undefined,
+  materials_purchased: Array.isArray(r.materials_purchased) ? r.materials_purchased : [],
 });
+
 
 export async function hydrateUserData() {
   const { data: userData } = await supabase.auth.getUser();
@@ -407,6 +417,70 @@ export const updateClientPhone = async (clientId: string, phone: string): Promis
   existing.phone = next;
   bumpVersion();
 };
+
+// ---------- Materials shopping list ----------
+
+/** Indexed entry for a material line on the shopping list. */
+export type MaterialEntry = {
+  /** Index into the quote's line_items array (kept so tick state lines up). */
+  index: number;
+  description: string;
+  qty: number;
+  unit?: LineItemUnit;
+  supplier_code?: string;
+  purchased: boolean;
+};
+
+/** Pull just the materials lines out of a quote, preserving original indices. */
+export const materialsForQuote = (q: Quote): MaterialEntry[] => {
+  const checks = q.materials_purchased ?? [];
+  return q.line_items
+    .map((li, index) => ({ li, index }))
+    .filter(({ li }) => li.category === "materials")
+    .map(({ li, index }) => ({
+      index,
+      description: li.description,
+      qty: li.qty,
+      unit: li.unit,
+      supplier_code: li.supplier_code,
+      purchased: !!checks[index],
+    }));
+};
+
+/** Persist the tick state for the whole quote's line items. */
+export const setQuoteMaterialsPurchased = async (
+  quoteId: string,
+  purchased: boolean[],
+): Promise<void> => {
+  const q = getQuote(quoteId);
+  if (!q) return;
+  // Normalise to length of line_items so the array stays in sync.
+  const normalised = q.line_items.map((_, i) => !!purchased[i]);
+  q.materials_purchased = normalised;
+  const { error } = await supabase
+    .from("quotes")
+    .update({ materials_purchased: normalised })
+    .eq("id", quoteId);
+  if (error) {
+    console.error("[setQuoteMaterialsPurchased] update failed", error);
+    throw new Error(error.message || "Could not save materials list");
+  }
+  bumpVersion();
+};
+
+/** Render the plain-text shopping list for sharing. */
+export const buildMaterialsShareText = (q: Quote, customerName?: string): string => {
+  const mats = materialsForQuote(q);
+  const header = `Job: ${q.title}${customerName ? " - " + customerName : ""}`;
+  if (mats.length === 0) return `${header}\n(No materials on this quote)`;
+  const lines = mats.map((m) => {
+    const code = m.supplier_code ? ` [${m.supplier_code}]` : "";
+    return `- ${m.qty}x ${m.description}${code}`;
+  });
+  return [header, ...lines].join("\n");
+};
+
+
 
 export const getQuote = (id: string) => mockQuotes.find((q) => q.id === id);
 export const quotesForClient = (id: string) => mockQuotes.filter((q) => q.client_id === id);

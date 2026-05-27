@@ -4,10 +4,10 @@ import CountUp from "react-countup";
 import { AppShell } from "@/components/AppShell";
 import {
   userProfile, stats, formatGBP, getClient, mockQuotes,
-  todaysJobs, formatTime, getQuote,
+  todaysJobs, formatTime, getQuote, materialsForQuote,
 } from "@/lib/user-data";
 import { resolveTrade } from "@/lib/trades";
-import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X, CheckCircle2 } from "lucide-react";
+import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X, CheckCircle2, ShoppingCart } from "lucide-react";
 
 
 import { QuottrWordmark } from "@/components/QuottrLogo";
@@ -217,6 +217,38 @@ function AppHomePage() {
           </div>
         )}
       </header>
+
+      {/* Materials needed across all booked jobs */}
+      {(() => {
+        const bookedWithMats = mockQuotes
+          .filter((q) => q.status === "accepted")
+          .map((q) => ({ q, mats: materialsForQuote(q) }))
+          .filter(({ mats }) => mats.length > 0);
+        const totalItems = bookedWithMats.reduce((s, { mats }) => s + mats.length, 0);
+        if (totalItems === 0) return null;
+        return (
+          <section className="px-5 mt-4">
+            <Link
+              to="/quotes"
+              className="card-surface p-4 flex items-center gap-3 active:scale-[0.99] transition"
+            >
+              <div className="h-10 w-10 rounded-full bg-lime flex items-center justify-center shrink-0">
+                <ShoppingCart className="h-5 w-5 text-ink" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
+                  Materials needed
+                </p>
+                <p className="text-sm font-semibold mt-0.5">
+                  {totalItems} item{totalItems === 1 ? "" : "s"} across {bookedWithMats.length} booked job{bookedWithMats.length === 1 ? "" : "s"}
+                </p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+          </section>
+        );
+      })()}
+
 
       {/* Connect Stripe banner: after first quote, until connected or dismissed */}
       {mockQuotes.length > 0 && !userProfile.stripe_connected && !bannerDismissed && (

@@ -447,6 +447,7 @@ export type Database = {
           invoiced_at: string | null
           job_description: string | null
           line_items: Json
+          materials_purchased: boolean[]
           notes: string | null
           paid_via: string | null
           payment_method: string | null
@@ -476,6 +477,7 @@ export type Database = {
           invoiced_at?: string | null
           job_description?: string | null
           line_items?: Json
+          materials_purchased?: boolean[]
           notes?: string | null
           paid_via?: string | null
           payment_method?: string | null
@@ -505,6 +507,7 @@ export type Database = {
           invoiced_at?: string | null
           job_description?: string | null
           line_items?: Json
+          materials_purchased?: boolean[]
           notes?: string | null
           paid_via?: string | null
           payment_method?: string | null
