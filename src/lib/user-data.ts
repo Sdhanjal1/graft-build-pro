@@ -418,6 +418,70 @@ export const updateClientPhone = async (clientId: string, phone: string): Promis
   bumpVersion();
 };
 
+// ---------- Materials shopping list ----------
+
+/** Indexed entry for a material line on the shopping list. */
+export type MaterialEntry = {
+  /** Index into the quote's line_items array (kept so tick state lines up). */
+  index: number;
+  description: string;
+  qty: number;
+  unit?: LineItemUnit;
+  supplier_code?: string;
+  purchased: boolean;
+};
+
+/** Pull just the materials lines out of a quote, preserving original indices. */
+export const materialsForQuote = (q: Quote): MaterialEntry[] => {
+  const checks = q.materials_purchased ?? [];
+  return q.line_items
+    .map((li, index) => ({ li, index }))
+    .filter(({ li }) => li.category === "materials")
+    .map(({ li, index }) => ({
+      index,
+      description: li.description,
+      qty: li.qty,
+      unit: li.unit,
+      supplier_code: li.supplier_code,
+      purchased: !!checks[index],
+    }));
+};
+
+/** Persist the tick state for the whole quote's line items. */
+export const setQuoteMaterialsPurchased = async (
+  quoteId: string,
+  purchased: boolean[],
+): Promise<void> => {
+  const q = getQuote(quoteId);
+  if (!q) return;
+  // Normalise to length of line_items so the array stays in sync.
+  const normalised = q.line_items.map((_, i) => !!purchased[i]);
+  q.materials_purchased = normalised;
+  const { error } = await supabase
+    .from("quotes")
+    .update({ materials_purchased: normalised })
+    .eq("id", quoteId);
+  if (error) {
+    console.error("[setQuoteMaterialsPurchased] update failed", error);
+    throw new Error(error.message || "Could not save materials list");
+  }
+  bumpVersion();
+};
+
+/** Render the plain-text shopping list for sharing. */
+export const buildMaterialsShareText = (q: Quote, customerName?: string): string => {
+  const mats = materialsForQuote(q);
+  const header = `Job: ${q.title}${customerName ? " - " + customerName : ""}`;
+  if (mats.length === 0) return `${header}\n(No materials on this quote)`;
+  const lines = mats.map((m) => {
+    const code = m.supplier_code ? ` [${m.supplier_code}]` : "";
+    return `- ${m.qty}x ${m.description}${code}`;
+  });
+  return [header, ...lines].join("\n");
+};
+
+
+
 export const getQuote = (id: string) => mockQuotes.find((q) => q.id === id);
 export const quotesForClient = (id: string) => mockQuotes.filter((q) => q.client_id === id);
 
