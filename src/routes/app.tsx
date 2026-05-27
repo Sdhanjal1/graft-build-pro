@@ -295,8 +295,37 @@ function AppHomePage() {
       )}
 
       {/* Voice-first hero CTA — big central mic */}
-      <section className="px-5 mt-5 flex-1 flex">
-        <div className="flex flex-col w-full rounded-3xl bg-ink text-paper p-5 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center">
+      <section ref={micCardRef} id="home-mic-card" className="px-5 mt-5 flex-1 flex flex-col scroll-mt-20">
+        {showFirstRun && (
+          <div className="relative mb-3 rounded-2xl bg-lime text-ink p-4 shadow-[0_10px_28px_-12px_rgba(0,0,0,0.35)] ring-1 ring-ink/10">
+            <button
+              type="button"
+              onClick={dismissFirstRun}
+              aria-label="Dismiss"
+              className="absolute top-2 right-2 h-7 w-7 rounded-full flex items-center justify-center hover:bg-ink/10 active:scale-95"
+            >
+              <X className="h-4 w-4 text-ink" strokeWidth={2.5} />
+            </button>
+            <p className="text-sm font-semibold pr-7">
+              Welcome, {firstName}. Tap the mic to speak your first quote.
+            </p>
+            <p className="mt-1 text-xs text-ink/75">
+              Try: &ldquo;{exampleForTrade(userProfile.trade_type)}&rdquo;
+            </p>
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={dismissFirstRun}
+                className="rounded-full bg-ink text-paper text-xs font-semibold px-4 py-2 active:scale-95"
+              >
+                Got it
+              </button>
+            </div>
+            {/* downward caret */}
+            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-3 w-3 rotate-45 bg-lime ring-1 ring-ink/10" />
+          </div>
+        )}
+        <div className="flex flex-col w-full rounded-3xl bg-ink text-paper p-5 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center flex-1">
           <Link
             to="/quotes/new"
             search={{ voice: 1 }}
