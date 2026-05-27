@@ -184,6 +184,22 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not duplicate quote");
     }
   };
+  const removeQuote = async () => {
+    if (typeof window !== "undefined" && !window.confirm("Delete this quote? This cannot be undone.")) return;
+    try {
+      await deleteQuote(quote.id);
+      feedback("success"); toast.success("Quote deleted");
+      navigate({ to: "/quotes" });
+    } catch (e) {
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not delete quote");
+    }
+  };
+  const viewAsCustomer = () => {
+    if (portalStatus?.portal_code) {
+      navigate({ to: "/portal/c/$code", params: { code: portalStatus.portal_code } });
+    } else {
+      navigate({ to: "/portal/$token", params: { token: quote.id } });
+    }
   const sendDepositRequest = () => {
     const firstName = client?.name.split(" ")[0] ?? "there";
     const { message } = buildDepositOnAcceptMessage(quote, firstName);
