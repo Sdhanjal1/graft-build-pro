@@ -576,7 +576,7 @@ export const stats = () => {
     quoteCount: mockQuotes.length,
     overdueCount: overdue.length,
     overdueAmount,
-    paid, pending, accepted, outstanding,
+    paid, pending, accepted, completed, outstanding,
     paidByCard: txByMethod("card"),
     paidByBank: txByMethod("bank"),
     paidByCash: txByMethod("cash"),
