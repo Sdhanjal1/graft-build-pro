@@ -148,15 +148,21 @@ function ChaserPage() {
           const days = daysOverdue(q.due_date);
           const toneText = isOverdue ? "text-status-overdue" : "text-status-completed";
           const toneBg = isOverdue ? "bg-status-overdue/15 text-status-overdue" : "bg-status-completed/15 text-status-completed";
+          const paused = q.auto_chase_enabled === false;
           return (
             <div key={q.id} className="card-surface p-4">
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
                     <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full ${toneBg}`}>
                       {isOverdue ? `${days} day${days === 1 ? "" : "s"} overdue` : "Awaiting payment"}
                     </span>
+                    {paused && (
+                      <span className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        Auto-chase paused
+                      </span>
+                    )}
                   </div>
                   <p className="font-semibold text-sm mt-0.5 truncate">{q.title}</p>
                   <p className="text-xs text-muted-foreground truncate">
@@ -179,6 +185,12 @@ function ChaserPage() {
                   Email
                 </a>
               </div>
+              <button
+                onClick={() => { feedback("tap"); setQuoteAutoChase(q.id, paused); force((n) => n + 1); }}
+                className="mt-2 w-full bg-card border border-border text-muted-foreground rounded-full py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5 hover:text-ink"
+              >
+                {paused ? <><Play className="h-3.5 w-3.5" /> Resume auto-chase</> : <><Pause className="h-3.5 w-3.5" /> Pause auto-chase for this invoice</>}
+              </button>
             </div>
           );
         })}
