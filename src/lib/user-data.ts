@@ -776,13 +776,19 @@ export const nextQuoteRef = () => {
 /** Save a generated quote to Lovable Cloud and return it. */
 export const saveGeneratedQuote = async (input: {
   clientName: string;
+  clientPhone?: string;
   description: string;
   title: string;
   line_items: LineItem[];
   vatRegistered: boolean;
 }): Promise<Quote> => {
   const trimmedName = input.clientName?.trim() ?? "";
-  const client = trimmedName ? await findOrCreateClient(trimmedName) : null;
+  const client = trimmedName
+    ? await findOrCreateClient(trimmedName, {
+        phone: input.clientPhone?.trim() || undefined,
+      })
+    : null;
+
   const subtotal = +input.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
   const vat_amount = input.vatRegistered ? +(subtotal * VAT_RATE).toFixed(2) : 0;
   const total = +(subtotal + vat_amount).toFixed(2);

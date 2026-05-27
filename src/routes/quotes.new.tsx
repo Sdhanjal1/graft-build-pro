@@ -425,11 +425,13 @@ function NewQuotePage() {
     try {
       const q = await saveGeneratedQuote({
         clientName: clientName.trim(),
+        clientPhone: clientPhone.trim() || undefined,
         description: desc.trim(),
         title: draft.title,
         line_items: draft.line_items,
         vatRegistered: vat,
       });
+
       feedback("success");
       navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id } });
     } catch (e) {
