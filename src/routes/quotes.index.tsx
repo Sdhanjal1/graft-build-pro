@@ -4,8 +4,8 @@ import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
 
 import { SwipeRow } from "@/components/SwipeRow";
-import { mockQuotes, getClient, formatGBP, deleteQuote, useDataVersion, buildChaserMessage, waLink, type QuoteStatus } from "@/lib/user-data";
-import { Search, FileText, Inbox } from "lucide-react";
+import { mockQuotes, getClient, formatGBP, deleteQuote, useDataVersion, buildChaserMessage, waLink, materialsForQuote, type QuoteStatus } from "@/lib/user-data";
+import { Search, FileText, Inbox, ShoppingCart } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { QuotesListSkeleton } from "@/components/Skeletons";
 import { useSession } from "@/lib/auth";
