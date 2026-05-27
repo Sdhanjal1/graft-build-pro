@@ -83,7 +83,7 @@ export function AssignClientDialog({ open, onClose, quoteId, onAssigned }: Props
         </div>
         <div className="max-h-72 overflow-y-auto -mx-1 px-1 space-y-1">
           {filtered.length === 0 && !q.trim() && (
-            <p className="text-sm text-muted-foreground text-center py-6">No clients yet. Type a name to add one.</p>
+            <p className="text-sm text-muted-foreground text-center py-6">No customers yet. Type a name to add one, or tap Add Customer for the full form.</p>
           )}
           {filtered.map((c) => (
             <button
@@ -102,14 +102,21 @@ export function AssignClientDialog({ open, onClose, quoteId, onAssigned }: Props
             </button>
           ))}
         </div>
-        {q.trim() && !exactMatch && (
+        {!exactMatch && (
           <button
-            onClick={createAndAssign}
+            onClick={() => {
+              if (q.trim()) {
+                createAndAssign();
+              } else {
+                onClose();
+                navigate({ to: "/clients/new" });
+              }
+            }}
             disabled={busy}
             className="w-full bg-lime text-ink rounded-full py-3 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-            Add "{q.trim()}" as new client
+            Add Customer
           </button>
         )}
       </DialogContent>
