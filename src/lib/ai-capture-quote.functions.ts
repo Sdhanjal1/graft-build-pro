@@ -45,7 +45,15 @@ Otherwise estimate using current UK trade pricing and mark source: "ai".
 SOURCE FIELD — REQUIRED ON EVERY LINE ITEM:
 - "voice" — price came from the tradesperson's spoken input
 - "learned" — price came from their previous pricing patterns
-- "ai" — you estimated using general UK trade pricing knowledge`;
+- "ai" — you estimated using general UK trade pricing knowledge
+
+CATEGORY FIELD — REQUIRED ON EVERY LINE ITEM:
+- 'labour' — time-based work: installation, fitting, commissioning, hourly rate work
+- 'materials' — physical products supplied: boilers, radiators, fittings, parts, pipes
+- 'certificate' — gas safety certs, EICR, building regs notifications, commissioning certs
+- 'cis_labour' — only when CIS mode is enabled. Labour income under CIS deduction
+- 'other' — anything that does not fit the above`;
+
 
 export const generateCaptureQuote = createServerFn({ method: "POST" })
   .middleware([requireActiveSubscription])
