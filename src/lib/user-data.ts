@@ -358,51 +358,15 @@ const makeQuote = (
 
 export const mockQuotes: Quote[] = [];
 
-export const TRADE_TYPES = [
-  "Plumber / Heating Engineer", "Electrician", "Builder / General Contractor",
-  "Carpenter / Joiner", "Roofer", "Decorator", "Tiler",
-];
+// Trade registry is the source of truth — these exports are derived for back-compat.
+import { allTrades } from "./trades";
 
-/** Quick-fill job description templates, grouped by trade. */
-export const QUOTE_TEMPLATES: Record<string, { label: string; prompt: string }[]> = {
-  "Plumber / Heating Engineer": [
-    { label: "Boiler swap", prompt: "Replace existing combi boiler with new Worcester Greenstar 30kW, fit magnetic system filter, power flush central heating system, fit new thermostat, test and commission, register warranty with manufacturer and notify Gas Safe." },
-    { label: "Bathroom suite", prompt: "Remove existing bathroom suite and install new, bath with shower over, basin and pedestal, close-coupled WC, chrome thermostatic shower valve, tile to half height around bath, all waste and supply pipework, silicone seal and make good." },
-    { label: "Radiator install", prompt: "Supply and fit 2 new double-panel radiators in lounge and bedroom, including TRVs, lockshield valves and pipework alterations, balance system and bleed." },
-    { label: "Leak repair", prompt: "Trace and repair leak under kitchen sink, replace flexi tails and isolation valves, test for further leaks, make good." },
-  ],
-  "Electrician": [
-    { label: "Consumer unit", prompt: "Replace existing consumer unit with new 18th edition compliant 12-way dual RCD board, full circuit testing, issue EICR and minor works certificate, notify building control via NICEIC." },
-    { label: "EV charger", prompt: "Supply and install 7.4kW tethered EV charger to external wall, run new dedicated circuit from consumer unit including isolator and Type A RCBO, commission and register with DNO." },
-    { label: "Rewire", prompt: "Full rewire of 3-bed semi, sockets, lighting, smoke alarms, consumer unit, bonding, testing and certification." },
-    { label: "Downlights", prompt: "Supply and install 8 x fire-rated LED downlights to kitchen ceiling on new circuit with dimmer switch, make good plasterboard." },
-  ],
-  "Builder / General Contractor": [
-    { label: "Single-storey extension", prompt: "Build single-storey rear extension 4m x 3m, strip foundations, blockwork cavity walls, flat roof with GRP covering, bifold doors, plastering and decorating to match." },
-    { label: "Loft conversion", prompt: "Convert loft to bedroom with en-suite, steels, dormer to rear, Velux to front, staircase, insulation to current regs, plastering and second fix." },
-    { label: "Garden wall", prompt: "Build 1.2m brick garden wall approx 8m long including concrete strip foundation, engineering brick below DPC, facing brick above with coping stones." },
-  ],
-  "Carpenter / Joiner": [
-    { label: "Fitted wardrobes", prompt: "Design and install fitted wardrobes to master bedroom, full height, sliding mirror doors, internal hanging rail, shelves and drawers in spray-finished MDF." },
-    { label: "Kitchen install", prompt: "Install supplied kitchen, base and wall units, worktops, sink and tap, integrated appliances, end panels, plinths and cornice, scribe to wall." },
-    { label: "Internal doors", prompt: "Hang 6 x oak internal doors including ironmongery, ease and adjust, fit linings where required." },
-  ],
-  "Roofer": [
-    { label: "Re-roof", prompt: "Strip existing concrete tile roof, replace battens and breathable membrane, refit existing tiles, re-bed ridge and hip tiles with dry-fix system, new lead flashings to chimney." },
-    { label: "Flat roof", prompt: "Strip existing felt flat roof to garage 5m x 3m, replace any rotten decking, install new GRP fibreglass roof system with trims, 20 year guarantee." },
-    { label: "Gutter clean", prompt: "Clean and clear all gutters and downpipes to front and rear of property, check fall and rejoint any leaking sections, dispose of waste." },
-  ],
-  "Decorator": [
-    { label: "Whole house repaint", prompt: "Paint full interior of 3-bed house, walls and ceilings 2 coats emulsion, woodwork and doors 1 undercoat 2 topcoats satin, make good minor cracks and fill nail holes." },
-    { label: "External paint", prompt: "Prepare and paint external render and fascias, wash down, fill cracks, masonry stabiliser, 2 coats Sandtex masonry paint, 2 coats Dulux Weathershield to woodwork." },
-    { label: "Feature wall", prompt: "Prepare and hang feature wallpaper to lounge chimney breast, paint surrounding walls and ceiling 2 coats emulsion." },
-  ],
-  "Tiler": [
-    { label: "Bathroom tiling", prompt: "Supply and fit ceramic wall tiles to full height around bath and shower enclosure, floor tiles to bathroom 4m², including adhesive, grout and silicone seal." },
-    { label: "Kitchen splashback", prompt: "Supply and fit metro tile splashback between worktop and wall units, including adhesive, grout and trim." },
-    { label: "Outdoor patio", prompt: "Lift existing patio and lay 20m² of new porcelain paving on full mortar bed, pointing and cleaning down." },
-  ],
-};
+export const TRADE_TYPES = allTrades().filter((t) => t.id !== "Other").map((t) => t.label);
+
+/** Quick-fill job description templates, keyed by trade label. */
+export const QUOTE_TEMPLATES: Record<string, { label: string; prompt: string }[]> =
+  Object.fromEntries(allTrades().map((t) => [t.label, t.quoteTemplates]));
+
 
 export const getClient = (id: string) => userClients.find((c) => c.id === id);
 export const getQuote = (id: string) => mockQuotes.find((q) => q.id === id);

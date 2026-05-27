@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
-import { ArrowRight, Check, Loader2, Wrench, Zap, Hammer, Home, PaintRoller, Flame, HardHat, MoreHorizontal } from "lucide-react";
+import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { useSession } from "@/lib/auth";
 import { userProfile, hydrateUserData, saveProfileToCloud } from "@/lib/user-data";
+import { allTrades } from "@/lib/trades";
 import { feedback } from "@/lib/feedback";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { toast } from "sonner";
@@ -19,16 +20,8 @@ export const Route = createFileRoute("/onboarding")({
   }),
 });
 
-const TRADES = [
-  { id: "Plumber", icon: Wrench },
-  { id: "Electrician", icon: Zap },
-  { id: "Builder", icon: HardHat },
-  { id: "Roofer", icon: Home },
-  { id: "Carpenter", icon: Hammer },
-  { id: "Decorator", icon: PaintRoller },
-  { id: "Gas Engineer", icon: Flame },
-  { id: "Other", icon: MoreHorizontal },
-];
+const TRADES = allTrades().map((t) => ({ id: t.label, icon: t.icon }));
+
 
 const TOTAL_STEPS = 5;
 

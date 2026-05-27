@@ -6,7 +6,9 @@ import {
   userProfile, stats, formatGBP, getClient, mockQuotes,
   todaysJobs, formatTime, getQuote,
 } from "@/lib/user-data";
+import { resolveTrade } from "@/lib/trades";
 import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X, CheckCircle2 } from "lucide-react";
+
 
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
@@ -44,25 +46,8 @@ export const Route = createFileRoute("/app")({
   }),
 });
 
-function exampleForTrade(trade: string): string {
-  switch ((trade || "").toLowerCase()) {
-    case "electrician":
-      return "Replace consumer unit at 12 Oak Road, £450, two hours";
-    case "gas engineer":
-      return "Annual boiler service, Worcester 30i, £95";
-    case "builder":
-      return "Garden wall, 3 metres, brick and mortar, £600";
-    case "carpenter":
-      return "Fit two internal doors, £180 plus materials";
-    case "decorator":
-      return "Paint front bedroom, two coats, £220";
-    case "roofer":
-      return "Repair flashing around chimney, £180";
-    case "plumber":
-    default:
-      return "Boiler service for Mrs Jones, £85, ready Friday";
-  }
-}
+// Mic-example copy is sourced from the trade registry — see src/lib/trades.ts.
+
 
 function AppHomePage() {
   const { session, loading } = useSession();
@@ -374,7 +359,7 @@ function AppHomePage() {
               Welcome, {firstName}. Tap the mic to speak your first quote.
             </p>
             <p className="mt-1 text-xs text-ink/75">
-              Try: &ldquo;{exampleForTrade(userProfile.trade_type)}&rdquo;
+              Try: &ldquo;{resolveTrade(userProfile.trade_type).homeMicExample}&rdquo;
             </p>
             <div className="mt-3 flex justify-end">
               <button
