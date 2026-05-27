@@ -689,6 +689,15 @@ function QuoteDetail() {
         onAssigned={() => setSendOpen(true)}
       />
 
+      <MaterialListSheet
+        open={materialsOpen}
+        onClose={() => setMaterialsOpen(false)}
+        quote={quote}
+        customerName={client?.name}
+      />
+
+
+
       {/* Bottom sheet: how did the customer pay? */}
       {askingPaid && (
         <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setAskingPaid(false)}>
