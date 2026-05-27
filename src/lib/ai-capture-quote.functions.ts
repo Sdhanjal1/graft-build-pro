@@ -52,7 +52,7 @@ export const generateCaptureQuote = createServerFn({ method: "POST" })
 
     const { supabase, userId } = context as { supabase: any; userId: string };
     const patterns = await fetchTopPatterns(supabase, userId, 50);
-    const systemPrompt = SYSTEM_PROMPT + patternsForPrompt(patterns);
+    const systemPrompt = SYSTEM_PROMPT + tradeGuidance(data.trade) + patternsForPrompt(patterns);
 
     const itemList = data.items.map((d, i) => `${i + 1}. ${d}`).join("\n");
 
