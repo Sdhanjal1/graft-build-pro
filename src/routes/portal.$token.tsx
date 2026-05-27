@@ -275,9 +275,25 @@ function PortalPage() {
                 <Check className="h-4 w-4" /> Paid
               </div>
             ) : status === "accepted" ? (
-              <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
-                <Check className="h-4 w-4" /> Accepted
-              </div>
+              canPayNow ? (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => onPay(payRequestType)}
+                    disabled={paying}
+                    className="w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
+                  >
+                    {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    <span className="truncate">
+                      {payRequestType === "deposit" ? "Pay deposit" : "Pay now"} {formatGBP(payAmount)}
+                    </span>
+                  </button>
+                  <WalletBadges />
+                </div>
+              ) : (
+                <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
+                  <Check className="h-4 w-4" /> Accepted
+                </div>
+              )
             ) : (
               <div className="h-12 rounded-full bg-muted text-muted-foreground text-sm font-semibold inline-flex items-center justify-center gap-1.5 w-full">
                 Declined
