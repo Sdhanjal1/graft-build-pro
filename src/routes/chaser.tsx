@@ -132,23 +132,29 @@ function ChaserPage() {
           const chase = encodeURIComponent(buildChaserMessage(q, firstName));
           const digits = c?.phone.replace(/\D/g, "");
           const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${chase}`;
-          const subject = encodeURIComponent(`Overdue invoice ${q.ref}, ${userProfile.business_name}`);
+          const isOverdue = q.status === "overdue";
+          const subjectLabel = isOverdue ? `Overdue invoice ${q.ref}` : `Invoice ${q.ref}`;
+          const subject = encodeURIComponent(`${subjectLabel}, ${userProfile.business_name}`);
           const mail = `mailto:${c?.email}?subject=${subject}&body=${chase}`;
           const days = daysOverdue(q.due_date);
+          const toneText = isOverdue ? "text-status-overdue" : "text-status-completed";
+          const toneBg = isOverdue ? "bg-status-overdue/15 text-status-overdue" : "bg-status-completed/15 text-status-completed";
           return (
             <div key={q.id} className="card-surface p-4">
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
-                    <span className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full bg-status-overdue/15 text-status-overdue">
-                      {days} day{days === 1 ? "" : "s"} overdue
+                    <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full ${toneBg}`}>
+                      {isOverdue ? `${days} day${days === 1 ? "" : "s"} overdue` : "Awaiting payment"}
                     </span>
                   </div>
                   <p className="font-semibold text-sm mt-0.5 truncate">{q.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">{c?.name} · due {q.due_date}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {c?.name} · {isOverdue ? `due ${q.due_date}` : "job complete"}
+                  </p>
                 </div>
-                <p className="num text-2xl text-status-overdue">{formatGBP(q.total)}</p>
+                <p className={`num text-2xl ${toneText}`}>{formatGBP(q.total)}</p>
               </div>
               <div className="grid grid-cols-3 gap-2 mt-4">
                 <a href={wa} target="_blank" rel="noreferrer" className="bg-lime text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5">
