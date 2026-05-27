@@ -190,6 +190,35 @@ function NewQuotePage() {
     });
   };
 
+  const runTranscribe = async (blob: Blob, mimeType: string) => {
+    setTranscribing(true);
+    setVoiceError(null);
+    try {
+      const audioBase64 = await blobToBase64(blob);
+      const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
+      appendTranscript(text);
+      lastBlobRef.current = null;
+    } catch (err) {
+      console.error(err);
+      setVoiceError(
+        err instanceof Error
+          ? err.message
+          : "Could not transcribe. Check your connection and retry.",
+      );
+    } finally {
+      setTranscribing(false);
+      setLivePreview("");
+      liveFinalRef.current = "";
+    }
+  };
+
+  const retryTranscription = () => {
+    const cached = lastBlobRef.current;
+    if (!cached) return;
+    void runTranscribe(cached.blob, cached.mimeType);
+  };
+
+
   const startRecording = async () => {
     setVoiceError(null);
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
