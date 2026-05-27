@@ -92,6 +92,21 @@ function PortalPage() {
   const lineItems = (quote.line_items as any[]) ?? [];
   const isPaid = status === "paid";
   const canRespond = status === "pending" || status === "sent";
+  const timing: PaymentTiming = (quote.payment_timing as PaymentTiming) ?? "on_completion";
+  const total = Number(quote.total) || 0;
+  const depositExplicit = Number(quote.deposit_amount) || 0;
+  const depositPct = Number(quote.deposit_percent) || 0;
+  const depositAmount =
+    depositExplicit > 0
+      ? depositExplicit
+      : depositPct > 0
+      ? +(total * (depositPct / 100)).toFixed(2)
+      : +(total * 0.5).toFixed(2);
+  const canPayNow =
+    status === "accepted" && !isPaid && (timing === "upfront" || timing === "staged" || timing === "on_completion");
+  const payRequestType: "deposit" | "full" =
+    timing === "staged" ? "deposit" : "full";
+  const payAmount = payRequestType === "deposit" ? depositAmount : total;
   const showBottomBar = canRespond || status === "accepted" || status === "declined" || isPaid;
 
   const handleDownloadInvoice = async () => {
