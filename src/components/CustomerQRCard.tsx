@@ -157,7 +157,7 @@ export function PushPermissionCard() {
       )}
       {subscribed && perm === "granted" && (
         <>
-          <p className="text-xs text-muted-foreground">Notifications are on for this device. You'll get a ping for new requests and customer messages.</p>
+          <p className="text-xs text-muted-foreground">Notifications are on for this device. You'll get a ping for new requests, accepted quotes, payments and customer messages.</p>
           <button
             onClick={async () => { await testPush(); toast.success("Test push sent"); }}
             className="mt-3 text-xs font-semibold text-ink underline"
