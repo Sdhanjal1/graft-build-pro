@@ -1027,7 +1027,7 @@ function LineItemsEditor({
                             if (e.key === "Enter") commitAll();
                             if (e.key === "Escape") cancelEdit();
                           }}
-                          className={`${inputClass} w-32 pl-7 text-right num`}
+                          className={`${inputClass} w-full pl-7 text-right num`}
                         />
                       </div>
                     </div>
