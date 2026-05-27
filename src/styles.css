@@ -36,6 +36,8 @@
   --color-paper: var(--paper);
   --color-status-pending: var(--status-pending);
   --color-status-accepted: var(--status-accepted);
+  --color-status-booked: var(--status-booked);
+  --color-status-completed: var(--status-completed);
   --color-status-paid: var(--status-paid);
   --color-status-overdue: var(--status-overdue);
 
