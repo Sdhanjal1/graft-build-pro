@@ -73,7 +73,7 @@ type Clip = { id: string; transcript: string };
 
 function NewQuotePage() {
   const navigate = useNavigate();
-  const { voice: voiceParam } = Route.useSearch();
+  const { voice: voiceParam, clientId } = Route.useSearch();
   const [mode, setMode] = useState<"speak" | "onsite">("speak");
   const [desc, setDesc] = useState("");
   const [clips, setClips] = useState<Clip[]>([]);
