@@ -125,14 +125,20 @@ function AppHomePage() {
 
   // Action-queue breakdown
   const pendingQuotes = mockQuotes.filter((q) => q.status === "pending");
-  const awaitingQuotes = mockQuotes.filter((q) => q.status === "sent" || q.status === "accepted");
+  const acceptedQuotes = mockQuotes.filter((q) => q.status === "accepted");
+  const sentQuotes = mockQuotes.filter((q) => q.status === "sent");
   const overdueQuotes = mockQuotes.filter((q) => q.status === "overdue");
 
   const pendingTotal = pendingQuotes.reduce((sum, q) => sum + q.total, 0);
-  const awaitingTotal = awaitingQuotes.reduce((sum, q) => sum + q.total, 0);
+  const acceptedTotal = acceptedQuotes.reduce((sum, q) => sum + q.total, 0);
+  const awaitingReplyTotal = sentQuotes.reduce((sum, q) => sum + q.total, 0);
   const overdueTotal = overdueQuotes.reduce((sum, q) => sum + q.total, 0);
 
-  const hasActions = pendingQuotes.length > 0 || awaitingQuotes.length > 0 || overdueQuotes.length > 0;
+  const hasActions =
+    pendingQuotes.length > 0 ||
+    acceptedQuotes.length > 0 ||
+    sentQuotes.length > 0 ||
+    overdueQuotes.length > 0;
 
   return (
     <AppShell>
