@@ -6,7 +6,7 @@ type Props = {
   icon: LucideIcon;
   title: string;
   body?: ReactNode;
-  cta?: { label: string; to: string };
+  cta?: { label: string; to: string; search?: Record<string, unknown> };
   tone?: "default" | "celebrate";
 };
 
