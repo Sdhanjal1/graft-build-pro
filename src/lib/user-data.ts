@@ -37,7 +37,10 @@ export type LineItem = {
   category?: LineItemCategory;
   /** How qty is measured. Labour lines use "hours" or "days"; everything else defaults to "qty". */
   unit?: LineItemUnit;
+  /** Optional supplier/merchant SKU shown on the material shopping list. */
+  supplier_code?: string;
 };
+
 
 /** True for line categories that should default to time-based units. */
 export const isLabourCategory = (c?: LineItemCategory) =>
