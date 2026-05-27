@@ -62,7 +62,18 @@ Each line item MUST have a category field. Use these rules:
 - 'materials' — physical products being supplied: boilers, radiators, fittings, parts, units, valves, pipes
 - 'certificate' — gas safety certificates, electrical certificates (EICR), boiler commissioning certificates, building regs notifications
 - 'cis_labour' — only use when CIS mode is enabled on the customer. Labour income that falls under CIS deduction
-- 'other' — anything that does not fit the above categories`;
+- 'other' — anything that does not fit the above categories
+
+UNIT FIELD — REQUIRED ON EVERY LINE ITEM:
+
+Each line item MUST have a unit field. Use these rules:
+- For 'labour' or 'cis_labour' lines: estimate realistic UK trade duration. Use 'hours' when the work takes less than a full day, 'days' for multi-day jobs. Set qty to the estimated duration (hours rounded to 0.5, days rounded to 0.5). unit_price is then the hourly or daily rate.
+- For all other categories: use 'qty'. qty is the count of items supplied.
+
+Examples:
+- Boiler install labour, 1 day on site → { qty: 1, unit_price: 480, unit: "days", category: "labour" }
+- Tap change, ~1.5 hours → { qty: 1.5, unit_price: 65, unit: "hours", category: "labour" }
+- 3 radiators → { qty: 3, unit_price: 150, unit: "qty", category: "materials" }`;
 
 export const generateAIQuote = createServerFn({ method: "POST" })
   .middleware([requireActiveSubscription])
