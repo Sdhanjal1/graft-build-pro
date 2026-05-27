@@ -228,6 +228,7 @@ const rowToQuote = (r: DbQuote): Quote => ({
   deposit_amount: Number(r.deposit_amount ?? 0),
   deposit_percent: Number(r.deposit_percent ?? 0),
   completed_at: r.completed_at ?? undefined,
+  updated_at: r.updated_at ?? undefined,
 });
 
 export async function hydrateUserData() {
