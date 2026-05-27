@@ -558,10 +558,23 @@ function QuoteDetail() {
             <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto my-3" />
             <h3 className="text-xl px-4 mb-2">More options</h3>
             <ul className="px-2">
+              <MoreItem icon={Eye} label="View as customer" onClick={() => { setMoreOpen(false); viewAsCustomer(); }} />
+              <MoreItem icon={Share2} label="Download PDF" onClick={() => { setMoreOpen(false); sharePdf(); }} />
+              <MoreItem icon={Copy} label="Duplicate quote" onClick={() => { setMoreOpen(false); duplicate(); }} />
+              {status !== "paid" && (
+                <MoreItem icon={CheckCircle2} label="Mark as paid" onClick={() => { setMoreOpen(false); setAskingPaid(true); }} />
+              )}
+              {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
+                <MoreItem icon={MessageCircle} label="Send chaser on WhatsApp" onClick={() => {
+                  setMoreOpen(false);
+                  const first = client.name.split(" ")[0] ?? "there";
+                  const msg = `Hi ${first}, just following up on ${quote.ref} for ${formatGBP(quote.total)}. Could you let me know when payment will be made? Thanks.`;
+                  const digits = client.phone.replace(/\D/g, "");
+                  window.open(`https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${encodeURIComponent(msg)}`, "_blank");
+                }} />
+              )}
               <MoreItem icon={Mail} label="Email customer" onClick={() => { setMoreOpen(false); window.location.href = mailHref; }} />
               <MoreItem icon={Phone} label="Call customer" onClick={() => { setMoreOpen(false); window.location.href = `tel:${client?.phone}`; }} />
-              <MoreItem icon={Share2} label="Share PDF" onClick={() => { setMoreOpen(false); sharePdf(); }} />
-              <MoreItem icon={Copy} label="Duplicate quote" onClick={() => { setMoreOpen(false); duplicate(); }} />
               {status === "pending" && (
                 <MoreItem icon={Send} label="Mark as sent" onClick={() => { setMoreOpen(false); markSent(); }} />
               )}
@@ -569,14 +582,15 @@ function QuoteDetail() {
                 <MoreItem icon={Zap} label="Request payment (send link)" onClick={() => { setMoreOpen(false); setRequesting(true); }} />
               )}
               {(status === "accepted" || status === "sent") && (
-                <MoreItem icon={Smartphone} label="Take 50% deposit on site" onClick={() => { setMoreOpen(false); takePaymentOnSite("deposit"); }} />
+                <MoreItem icon={Smartphone} label="Take payment on site" onClick={() => { setMoreOpen(false); takePaymentOnSite("full"); }} />
               )}
               {invoicedAt && (
                 <MoreItem icon={FileText} label="View final invoice" onClick={() => { setMoreOpen(false); navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } }); }} />
               )}
               {status !== "declined" && status !== "paid" && (
-                <MoreItem icon={XCircle} label="Mark as declined" onClick={() => { setMoreOpen(false); declineQuote(); }} danger />
+                <MoreItem icon={XCircle} label="Mark as declined" onClick={() => { setMoreOpen(false); declineQuote(); }} />
               )}
+              <MoreItem icon={Trash2} label="Delete quote" onClick={() => { setMoreOpen(false); removeQuote(); }} danger />
             </ul>
           </div>
         </div>
