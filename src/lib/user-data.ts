@@ -724,8 +724,11 @@ export const formatDayLabel = (d: Date) =>
 
 async function requireUserId(): Promise<string> {
   const { data } = await supabase.auth.getUser();
-  if (!data.user) throw new Error("Not signed in");
-  return data.user.id;
+  if (data.user) return data.user.id;
+  // Auth may not have rehydrated yet — try the cached session once.
+  const { data: sess } = await supabase.auth.getSession();
+  if (sess.session?.user) return sess.session.user.id;
+  throw new Error("Please sign in again to save");
 }
 
 /** Find existing client by name (case-insensitive) or create a new one (persisted). */
@@ -751,7 +754,10 @@ export const findOrCreateClient = async (
     .insert(insertPayload)
     .select("*")
     .single();
-  if (error) throw error;
+  if (error) {
+    console.error("[findOrCreateClient] insert failed", error);
+    throw new Error(error.message || "Could not save customer");
+  }
   const client = rowToClient(data as DbClient);
   userClients.unshift(client);
   bumpVersion();

@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { findOrCreateClient } from "@/lib/user-data";
 import { Save } from "lucide-react";
@@ -21,7 +22,12 @@ function NewClientPage() {
   const [error, setError] = useState<string | null>(null);
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || saving) return;
+    if (saving) return;
+    if (!name.trim()) {
+      setError("Please enter a name");
+      toast.error("Please enter a name");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -34,7 +40,10 @@ function NewClientPage() {
       });
       navigate({ to: "/clients/$clientId", params: { clientId: c.id } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save customer");
+      const msg = err instanceof Error ? err.message : "Could not save customer";
+      console.error("[clients.new] save failed", err);
+      setError(msg);
+      toast.error(msg);
       setSaving(false);
     }
   };
@@ -112,12 +121,16 @@ function NewClientPage() {
           />
         </Field>
 
+        {error && (
+          <p className="text-sm text-red-500 text-center" role="alert">{error}</p>
+        )}
+
         <button
           type="submit"
-          disabled={!name.trim()}
+          disabled={!name.trim() || saving}
           className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 disabled:opacity-40"
         >
-          <Save className="h-5 w-5" /> Save customer
+          <Save className="h-5 w-5" /> {saving ? "Saving…" : "Save customer"}
         </button>
       </form>
     </AppShell>
