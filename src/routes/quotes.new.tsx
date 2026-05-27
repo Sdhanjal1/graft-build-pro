@@ -1051,9 +1051,22 @@ function VoiceOverlay({
 
       <div className="w-full max-w-md min-h-[6rem] text-center space-y-2">
         {error ? (
-          <p className="text-sm text-status-overdue font-medium">{error}</p>
+          <>
+            <p className="text-sm text-status-overdue font-medium">{error}</p>
+            {onRetryTranscription && (
+              <button
+                type="button"
+                onClick={onRetryTranscription}
+                className="mt-2 inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-4 py-2 text-xs font-bold active:scale-[0.99]"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Retry without re-recording
+              </button>
+            )}
+          </>
         ) : transcribing ? (
           <p className="text-sm text-paper/60">Turning your voice into text…</p>
+
         ) : recording ? (
           <p className="text-sm text-paper/60">Describe the job, boiler, bathroom, materials, time…</p>
         ) : lastTranscript ? (
