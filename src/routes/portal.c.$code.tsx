@@ -83,25 +83,10 @@ function ClientPortalPage() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<Data | null>(null);
 
-  const nameKey = `quottr_portal_${code}_name`;
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [confirmed, setConfirmed] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(nameKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setFirstName(parsed.first ?? "");
-        setLastName(parsed.last ?? "");
-        setConfirmed(true);
-      }
-    } catch {}
-  }, [nameKey]);
 
   const load = async () => {
     try {
@@ -141,16 +126,6 @@ function ClientPortalPage() {
     }
   };
 
-  const confirmName = () => {
-    const first = firstName.trim();
-    const last = lastName.trim();
-    if (!first) return;
-    localStorage.setItem(nameKey, JSON.stringify({ first, last }));
-    setConfirmed(true);
-  };
-
-
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper">
@@ -163,76 +138,18 @@ function ClientPortalPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper px-6 text-center">
         <div>
-          <h1 className="text-2xl mb-2">Portal not available</h1>
+          <h1 className="text-2xl mb-2">Quote link expired</h1>
           <p className="text-sm text-muted-foreground">
-            {error ?? "This portal link is no longer active."}
+            This quote link is no longer active. Please contact your tradesperson for an updated link.
           </p>
         </div>
       </div>
     );
   }
+
 
   const { profile, quotes, documents, client } = data;
   const businessName = profile?.business_name ?? "Your tradesperson";
-
-  if (!confirmed) {
-    return (
-      <div className="min-h-screen bg-paper flex flex-col">
-        <header className="bg-ink text-paper px-5 pt-6 pb-5 flex items-center gap-3">
-          <BusinessLogo
-            logoUrl={(profile as any)?.logo_url}
-            businessName={businessName}
-            size="md"
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold truncate">{businessName}</p>
-            <p className="text-[10px] text-paper/60">Customer Portal</p>
-          </div>
-        </header>
-        <div className="flex-1 px-5 py-8 max-w-md mx-auto w-full">
-          <h1 className="text-3xl leading-tight">Welcome</h1>
-          <p className="text-sm text-muted-foreground mt-2">
-            To access your quotes and service history, please confirm your name.
-          </p>
-          <div className="mt-6 space-y-3">
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-                First name
-              </label>
-              <input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="mt-1 w-full bg-secondary rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40"
-                autoFocus
-              />
-            </div>
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-                Last name
-              </label>
-              <input
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="mt-1 w-full bg-secondary rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40"
-              />
-            </div>
-            <button
-              onClick={confirmName}
-              disabled={!firstName.trim()}
-              className="w-full bg-lime text-ink rounded-full py-3.5 font-bold disabled:opacity-50"
-            >
-              Confirm
-            </button>
-          </div>
-        </div>
-        <footer className="text-center py-4 text-[10px] text-muted-foreground">
-          <a href="https://quottr.co.uk" className="inline-flex items-center gap-1">
-            Powered by <QuottrLogo className="h-3 w-auto" />
-          </a>
-        </footer>
-      </div>
-    );
-  }
 
   const daysUntilService = client.service_due_date
     ? Math.ceil(
@@ -250,10 +167,11 @@ function ClientPortalPage() {
         />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold truncate">{businessName}</p>
-          <p className="text-[10px] text-paper/60 truncate">Hi {firstName}</p>
+          <p className="text-[10px] text-paper/60 truncate">Customer Portal</p>
         </div>
         <QuottrLogo className="h-5 w-auto opacity-60" />
       </header>
+
 
       {/* Service reminder */}
       {daysUntilService !== null && daysUntilService <= 60 && daysUntilService >= -30 && (
