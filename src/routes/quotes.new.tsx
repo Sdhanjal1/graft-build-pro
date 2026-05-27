@@ -110,9 +110,11 @@ function NewQuotePage() {
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const recordTargetRef = useRef<"desc" | "clip">("desc");
+  const lastBlobRef = useRef<{ blob: Blob; mimeType: string } | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const liveFinalRef = useRef<string>("");
+
 
   useEffect(() => {
     return () => {
@@ -188,6 +190,35 @@ function NewQuotePage() {
     });
   };
 
+  const runTranscribe = async (blob: Blob, mimeType: string) => {
+    setTranscribing(true);
+    setVoiceError(null);
+    try {
+      const audioBase64 = await blobToBase64(blob);
+      const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
+      appendTranscript(text);
+      lastBlobRef.current = null;
+    } catch (err) {
+      console.error(err);
+      setVoiceError(
+        err instanceof Error
+          ? err.message
+          : "Could not transcribe. Check your connection and retry.",
+      );
+    } finally {
+      setTranscribing(false);
+      setLivePreview("");
+      liveFinalRef.current = "";
+    }
+  };
+
+  const retryTranscription = () => {
+    const cached = lastBlobRef.current;
+    if (!cached) return;
+    void runTranscribe(cached.blob, cached.mimeType);
+  };
+
+
   const startRecording = async () => {
     setVoiceError(null);
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
@@ -254,22 +285,9 @@ function NewQuotePage() {
         return;
       }
 
-      setTranscribing(true);
-      try {
-        const audioBase64 = await blobToBase64(blob);
-        const { text } = await transcribeFn({ data: { audioBase64, mimeType: blobType } });
-        appendTranscript(text);
-      } catch (err) {
-        setVoiceError(
-          err instanceof Error
-            ? err.message
-            : "Could not transcribe, please try again or type the job description.",
-        );
-      } finally {
-        setTranscribing(false);
-        setLivePreview("");
-        liveFinalRef.current = "";
-      }
+      lastBlobRef.current = { blob, mimeType: blobType };
+      await runTranscribe(blob, blobType);
+
     };
 
     // Live preview via Web Speech API — visual feedback only, discarded on stop.
@@ -421,8 +439,10 @@ function NewQuotePage() {
           onStart={handleVoiceStart}
           onStop={stopRecording}
           onClose={handleVoiceClose}
+          onRetryTranscription={lastBlobRef.current ? retryTranscription : undefined}
         />
       )}
+
       <PageHeader title="New quote" subtitle="" back="/quotes" />
 
         <form
@@ -703,13 +723,16 @@ function NewQuotePage() {
               >
                 {loading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
+                ) : error ? (
+                  <RefreshCw className="h-5 w-5" />
                 ) : (
                   <Sparkles className="h-5 w-5" />
                 )}
                 {subBlocked
                   ? "Trial ended, add payment method"
-                  : loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : "Generate quote"}
+                  : loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : error ? "Retry generate" : "Generate quote"}
               </button>
+
               {error && (
                 <p className="mt-2 text-[12px] text-center text-status-overdue font-medium bg-paper/90 rounded-full py-1">{error}</p>
               )}
@@ -963,6 +986,7 @@ function VoiceOverlay({
   onStart,
   onStop,
   onClose,
+  onRetryTranscription,
 }: {
   recording: boolean;
   transcribing: boolean;
@@ -974,7 +998,9 @@ function VoiceOverlay({
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
+  onRetryTranscription?: () => void;
 }) {
+
   if (typeof document === "undefined") return null;
   const idle = !recording && !transcribing;
   return createPortal(
@@ -1028,9 +1054,22 @@ function VoiceOverlay({
 
       <div className="w-full max-w-md min-h-[6rem] text-center space-y-2">
         {error ? (
-          <p className="text-sm text-status-overdue font-medium">{error}</p>
+          <>
+            <p className="text-sm text-status-overdue font-medium">{error}</p>
+            {onRetryTranscription && (
+              <button
+                type="button"
+                onClick={onRetryTranscription}
+                className="mt-2 inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-4 py-2 text-xs font-bold active:scale-[0.99]"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Retry without re-recording
+              </button>
+            )}
+          </>
         ) : transcribing ? (
           <p className="text-sm text-paper/60">Turning your voice into text…</p>
+
         ) : recording ? (
           <p className="text-sm text-paper/60">Describe the job, boiler, bathroom, materials, time…</p>
         ) : lastTranscript ? (

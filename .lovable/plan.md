@@ -1,34 +1,28 @@
-## Step 7 — Audit & sharpen pricing-patterns influence
+## Step 8 — Voice resilience
 
-Patterns are fetched and appended, but the influence is weak: 50 unfiltered rows are dumped flat into the system prompt with no category context, no relevance ranking against the current job, and the capture handler's `LineItemSchema` is missing the `category` field (so saved patterns lose category accuracy for capture-flow quotes).
+A failed transcription currently discards the audio blob — the user must re-record from scratch, which is painful after a 60-second clip on a noisy site. A failed generation shows a red error pill but the only retry path is the same disabled-while-loading button. Progress feedback during generation already exists (`RotatingStatus` + `QUOTE_GEN_MESSAGES`) and is fine.
 
-### Findings
+### Changes — `src/routes/quotes.new.tsx`
 
-1. **`patternsForPrompt` (pricing-patterns.functions.ts:37)** — lists `description: £price (count×)` only. No `item_category`, no min/max range. Claude can't tell labour from materials in the learned block.
-2. **No relevance filter** — top 50 by `price_count` regardless of trade or current job text. A plumber asking about a boiler still sees decorating patterns.
-3. **`ai-capture-quote.functions.ts` LineItemSchema (line 15-20)** — missing `category` enum that `ai-quote.functions.ts` has. Means capture-flow line items never carry category → downstream `upsertPatternsFromQuote` relies on `inferCategory(description)` instead of the model's judgement.
-4. **System-prompt rule for `learned`** — current text says "use these prices for items they have quoted before" but doesn't tell Claude how to handle close-but-not-exact matches (e.g. "magnetic filter" vs "MagnaClean filter").
+**1. Preserve the recorded blob on transcription failure**
+- Add a ref `lastBlobRef = useRef<{ blob: Blob; mimeType: string } | null>(null)` and store it in the recorder's `onstop` handler before calling `transcribeFn` (current line ~246-260).
+- Clear `lastBlobRef.current = null` only on successful transcription.
+- Add `retryTranscription()` helper that reads `lastBlobRef.current`, sets `transcribing=true`, calls `transcribeFn` again, runs the same try/catch as the original path.
 
-### Changes
+**2. "Retry transcription" button in VoiceOverlay**
+- New optional prop `onRetryTranscription?: () => void` on `VoiceOverlay`.
+- In the error block (line 1030-1031), when `onRetryTranscription` is set, render a small lime pill button under the error message: "Retry without re-recording".
+- Pass the helper down from the parent.
 
-**1. `patternsForPrompt` — richer formatting + category grouping**
-- Group patterns by `item_category` (labour / materials / certificate / cis_labour / other).
-- Each line: `- <desc> — £<typical> (range £min–£max, n=<count>)`.
-- Cap at 40 lines total to stay token-friendly.
-- Update the surrounding instruction text: explicitly tell Claude to (a) prefer learned price for fuzzy matches (same item, different wording) and (b) keep the learned price even when their general UK estimate would differ.
+**3. Explicit "Retry" affordance on generation failure**
+- When `error` is set and not loading, change the lime CTA label to "Retry generate" with a `RotateCw` icon (instead of "Generate quote"). The button is already enabled in this state — this just makes the recovery obvious.
 
-**2. Relevance pre-filter in `fetchTopPatterns` callers**
-- Add a small `rankPatternsForJob(patterns, jobText)` helper in `pricing-patterns.ts` (client-safe, pure): token-overlap score against the job description / captured items; ties broken by `price_count`.
-- Both AI handlers fetch top 80, then `rankPatternsForJob` → top 30 passed to `patternsForPrompt`.
-
-**3. Add `category` to capture handler `LineItemSchema`**
-- Mirror the enum from `ai-quote.functions.ts`.
-- Add the same "CATEGORY FIELD" block to the capture `SYSTEM_PROMPT`.
-- Update the JSON shape example in the user prompt.
-
-**4. No DB changes, no new env vars, no payload changes for callers.**
+### What stays the same
+- No server changes (transcribe / generate handlers untouched).
+- Capture flow (`extract-jobs`) is separate and out of scope here.
+- Transcript text and clip list are already preserved across errors — no change.
+- No new DB columns, env vars, or routes.
 
 ### Verification
-- As a plumber, generate a quote referencing an item already in patterns ("install Vaillant boiler") — expect `source: "learned"` with the user's typical price, not a generic estimate.
-- As a decorator, generate a quote — verify the learned block in the prompt is dominated by decorator-relevant rows (manual inspection via a temporary `console.log` in dev, removed before finishing).
-- Save a capture-flow quote → verify line items now arrive with sensible `category` values and `upsertPatternsFromQuote` stores them with the correct `item_category`.
+- Record 5s of audio, force-disconnect network, stop → expect error + "Retry without re-recording"; reconnect, tap retry → transcript appears, no re-record needed.
+- Generate a quote with network off → expect red error pill and the CTA flips to "Retry generate" with rotate icon; one tap re-runs `generateFn` with the existing description.
