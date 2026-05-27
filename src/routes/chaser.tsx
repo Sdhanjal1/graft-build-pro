@@ -22,7 +22,9 @@ function daysOverdue(due?: string) {
 }
 
 function ChaserPage() {
-  const overdue = mockQuotes.filter((q) => q.status === "overdue");
+  // Include both completed (job done, awaiting payment) and overdue invoices —
+  // these are the unpaid jobs the trader is waiting on.
+  const overdue = mockQuotes.filter((q) => q.status === "completed" || q.status === "overdue");
   const total = overdue.reduce((s, q) => s + q.total, 0);
   const [, force] = useState(0);
   const due = chasesDueNow();
@@ -30,14 +32,14 @@ function ChaserPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Invoice chaser" subtitle="Overdue" back="/" />
+      <PageHeader title="Invoice chaser" subtitle="Awaiting payment" back="/" />
 
       <section className="px-5">
         <div className="rounded-2xl bg-status-overdue/10 border border-status-overdue/30 p-5">
-          <p className="text-xs uppercase tracking-widest text-status-overdue font-semibold">Total overdue</p>
+          <p className="text-xs uppercase tracking-widest text-status-overdue font-semibold">You are owed</p>
           <p className="num text-4xl mt-1 text-status-overdue">{formatGBP(total)}</p>
           <p className="text-xs text-muted-foreground mt-1">
-            {overdue.length} {overdue.length === 1 ? "invoice" : "invoices"} need chasing
+            {overdue.length} {overdue.length === 1 ? "invoice" : "invoices"} awaiting payment
           </p>
         </div>
       </section>
