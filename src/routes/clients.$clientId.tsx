@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { getClient, quotesForClient, formatGBP } from "@/lib/user-data";
-import { Phone, Mail, MapPin, Home, FileText, Plus } from "lucide-react";
+import { Phone, Mail, MapPin, Home, FileText, Plus, CheckCircle2, Calendar } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { CustomerPortalPanel } from "@/components/CustomerPortalPanel";
 
@@ -10,6 +10,21 @@ export const Route = createFileRoute("/clients/$clientId")({
   component: ClientDetail,
   notFoundComponent: () => <div className="p-8 text-center">Customer not found</div>,
 });
+
+function relativeFromNow(iso: string): string {
+  const diffDays = Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (diffDays < 1) return "today";
+  if (diffDays === 1) return "yesterday";
+  if (diffDays < 30) return `${diffDays}d ago`;
+  const months = Math.round(diffDays / 30);
+  if (months < 12) return `${months}mo ago`;
+  const years = (diffDays / 365).toFixed(1).replace(/\.0$/, "");
+  return `${years}y ago`;
+}
+
+function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
 
 function ClientDetail() {
   const { clientId } = Route.useParams();
@@ -20,20 +35,18 @@ function ClientDetail() {
   const totalQuoted = quotes.reduce((s, q) => s + q.total, 0);
   const totalPaid = quotes.filter((q) => q.status === "paid").reduce((s, q) => s + q.total, 0);
 
-  return (
-    <AppShell>
-      <PageHeader title={client.name} subtitle="Customer" back="/clients" />
+  // Service history derivations
+  const sortedQuotes = [...quotes].sort((a, b) => {
+    const aDate = a.completed_at ?? a.created_at;
+    const bDate = b.completed_at ?? b.created_at;
+    return new Date(bDate).getTime() - new Date(aDate).getTime();
+  });
+  const completedJobs = quotes.filter((q) => q.completed_at || q.status === "paid");
+  const lastService = completedJobs
+    .map((q) => q.completed_at ?? q.created_at)
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
 
-      <section className="px-5 grid grid-cols-2 gap-3">
-        <div className="card-surface p-4">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Total quoted</p>
-          <p className="num text-2xl mt-1">{formatGBP(totalQuoted)}</p>
-        </div>
-        <div className="card-surface p-4">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Paid</p>
-          <p className="num text-2xl mt-1 text-status-accepted">{formatGBP(totalPaid)}</p>
-        </div>
-      </section>
+
 
       <section className="px-5 mt-4">
         <div className="card-surface p-5 space-y-3">
