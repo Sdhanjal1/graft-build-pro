@@ -4,11 +4,18 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   mockQuotes, getClient, userProfile, formatGBP, buildChaserMessage,
   buildChaseMessageForOffset, chasesDueNow, upcomingChases, markChaseSent, skipChase,
-  waLink,
+  setQuoteAutoChase, waLink,
 } from "@/lib/user-data";
-import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, PartyPopper } from "lucide-react";
+import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, PartyPopper, Pause, Play } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { feedback } from "@/lib/feedback";
+
+/** Tone label + colour for an escalation step. */
+function chaseTone(offset: number, offsets: number[]) {
+  if (offset === offsets[0]) return { label: "Polite reminder", chip: "bg-lime text-ink" };
+  if (offset === offsets[1]) return { label: "Firm follow-up", chip: "bg-status-completed/20 text-status-completed" };
+  return { label: "Final notice", chip: "bg-status-overdue text-paper" };
+}
 
 
 export const Route = createFileRoute("/chaser")({
