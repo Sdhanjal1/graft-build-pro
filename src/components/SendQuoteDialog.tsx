@@ -59,8 +59,8 @@ export function SendQuoteDialog({
 
 // Always share via the branded short domain, keeps WhatsApp/email links tidy.
 const SHARE_ORIGIN = "https://quottr.co.uk";
-const shortClientPortalUrl = (portal_code: string) => `${SHARE_ORIGIN}/q/${portal_code}`;
 const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
+
 
 
 
@@ -74,17 +74,11 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
   const handleQuottr = async () => {
     try {
       setBusy("sms");
-      let url: string;
-      let text: string;
-      if (updatedLinkPortalCode) {
-        url = shortClientPortalUrl(updatedLinkPortalCode);
-        text = `Hi ${firstName}, here's an updated link for your quote: ${url}`;
-      } else {
-        const { token } = await ensureToken({ data: { quoteId, channel: "sms" } });
-        url = portalUrl(token);
-        text = `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready. View, ask questions and approve here: ${url}`;
-
-      }
+      const { token } = await ensureToken({ data: { quoteId, channel: "sms" } });
+      const url = portalUrl(token);
+      const text = updatedLinkPortalCode
+        ? `Hi ${firstName}, here's an updated link for your quote ${quoteRef}: ${url}`
+        : `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready. View, ask questions and approve here: ${url}`;
       const digits = (customerPhone ?? "").replace(/\D/g, "");
       const smsHref = digits
         ? `sms:${digits}?&body=${encodeURIComponent(text)}`
@@ -112,23 +106,18 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
     }
   };
 
+
   const handleEmail = async () => {
     try {
       setBusy("email");
-      let url: string;
-      let subject: string;
-      let body: string;
-      if (updatedLinkPortalCode) {
-        url = shortClientPortalUrl(updatedLinkPortalCode);
-        subject = `Updated link for quote ${quoteRef}`;
-        body = `Hi ${firstName}, here's an updated link for your quote: ${url}`;
-      } else {
-        const { token } = await ensureToken({ data: { quoteId, channel: "email" } });
-        url = portalUrl(token);
-        subject = `Your quote ${quoteRef}, ${quoteTitle}`;
-        body = `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}\n\nThanks.`;
-
-      }
+      const { token } = await ensureToken({ data: { quoteId, channel: "email" } });
+      const url = portalUrl(token);
+      const subject = updatedLinkPortalCode
+        ? `Updated link for quote ${quoteRef}`
+        : `Your quote ${quoteRef}, ${quoteTitle}`;
+      const body = updatedLinkPortalCode
+        ? `Hi ${firstName},\n\nHere's an updated link for your quote:\n\n${url}\n\nThanks.`
+        : `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}\n\nThanks.`;
       const mailHref = `mailto:${customerEmail ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.location.href = mailHref;
       toast.success(`Sent to ${customerName ?? firstName} via Email`);
@@ -142,6 +131,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       setBusy(null);
     }
   };
+
 
   const copyPortalLink = async () => {
     try {
@@ -284,20 +274,16 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
             onClick={async () => {
               try {
                 setBusy("wa");
-                let portalUrl = "";
-                let text: string;
-                if (updatedLinkPortalCode) {
-                  portalUrl = shortClientPortalUrl(updatedLinkPortalCode);
-                  text = `Hi ${firstName}, here's an updated link for your quote: ${portalUrl}`;
-                } else {
-                  const q = getQuote(quoteId);
-                  if (!q) throw new Error("Quote not found");
-                  const { token } = await ensureToken({ data: { quoteId, channel: "whatsapp" } });
-                  portalUrl = shortQuotePortalUrl(token);
-                  text = buildQuoteWhatsAppMessage(q, { name: customerName ?? "" }, portalUrl);
-
-                }
+                const q = getQuote(quoteId);
+                const { token } = await ensureToken({ data: { quoteId, channel: "manual" } });
+                const portalUrlStr = shortQuotePortalUrl(token);
+                const text = updatedLinkPortalCode
+                  ? `Hi ${firstName}, here's an updated link for your quote ${quoteRef}: ${portalUrlStr}`
+                  : q
+                    ? buildQuoteWhatsAppMessage(q, { name: customerName ?? "" }, portalUrlStr)
+                    : `Hi ${firstName}, your quote ${quoteRef} is ready: ${portalUrlStr}`;
                 window.open(waLink(customerPhone, text), "_blank");
+
                 toast.success(`Sent to ${customerName ?? firstName} via WhatsApp`);
                 feedback("success");
                 if (updatedLinkPortalCode) onClose();
