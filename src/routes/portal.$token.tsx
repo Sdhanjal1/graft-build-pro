@@ -81,12 +81,15 @@ function PortalPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper px-6 text-center">
         <div>
-          <h1 className="text-2xl mb-2">Link not valid</h1>
-          <p className="text-sm text-muted-foreground">{error ?? "This portal link has expired."}</p>
+          <h1 className="text-2xl mb-2">Quote link expired</h1>
+          <p className="text-sm text-muted-foreground">
+            This quote link is no longer active. Please contact your tradesperson for an updated link.
+          </p>
         </div>
       </div>
     );
   }
+
 
   const { quote, profile, client, payment } = data;
   const lineItems = (quote.line_items as any[]) ?? [];
@@ -287,8 +290,12 @@ function PortalPage() {
                       {payRequestType === "deposit" ? "Pay deposit" : "Pay now"} {formatGBP(payAmount)}
                     </span>
                   </button>
+                  <p className="text-center text-[10px] text-muted-foreground">
+                    Secured payment by Stripe
+                  </p>
                   <WalletBadges />
                 </div>
+
               ) : (
                 <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
                   <Check className="h-4 w-4" /> Accepted
