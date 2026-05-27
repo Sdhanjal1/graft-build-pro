@@ -45,8 +45,39 @@ function ClientDetail() {
   const lastService = completedJobs
     .map((q) => q.completed_at ?? q.created_at)
     .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+  const customerSince = client.created_at;
 
+  return (
+    <AppShell>
+      <PageHeader title={client.name} subtitle="Customer" back="/clients" />
 
+      <section className="px-5 grid grid-cols-2 gap-3">
+        <div className="card-surface p-4">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Total quoted</p>
+          <p className="num text-2xl mt-1">{formatGBP(totalQuoted)}</p>
+        </div>
+        <div className="card-surface p-4">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Paid</p>
+          <p className="num text-2xl mt-1 text-status-accepted">{formatGBP(totalPaid)}</p>
+        </div>
+      </section>
+
+      <section className="px-5 mt-3">
+        <div className="card-surface p-4 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+            <CheckCircle2 className="h-4 w-4" />
+          </div>
+          <div className="flex-1 min-w-0 text-sm">
+            <p className="font-semibold">
+              {completedJobs.length} job{completedJobs.length === 1 ? "" : "s"} completed
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+              {lastService ? `Last service ${relativeFromNow(lastService)} · ` : ""}
+              Customer since {formatShortDate(customerSince)}
+            </p>
+          </div>
+        </div>
+      </section>
 
       <section className="px-5 mt-4">
         <div className="card-surface p-5 space-y-3">
