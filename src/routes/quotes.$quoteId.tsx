@@ -426,21 +426,21 @@ function QuoteDetail() {
 
 
       {userProfile.quote_intro && (
-        <section className="px-5 mt-4">
+        <section className="px-5 mt-5">
           <div className="card-surface p-5">
             <p className="text-sm leading-relaxed italic text-muted-foreground">{userProfile.quote_intro}</p>
           </div>
         </section>
       )}
 
-      <section className="px-5 mt-4">
+      <section className="px-5 mt-5">
         <div className="card-surface p-5">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Job description</p>
           <p className="text-sm mt-2 leading-relaxed">{quote.job_description}</p>
         </div>
       </section>
 
-      <section className="px-5 mt-4">
+      <section className="px-5 mt-5">
         <div className="card-surface overflow-hidden">
           <div className="px-5 pt-4 pb-2">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Itemised</p>
@@ -455,8 +455,34 @@ function QuoteDetail() {
         </div>
       </section>
 
+      {/* Compact payment timing line below totals */}
+      <section className="px-5 mt-5">
+        <button
+          type="button"
+          onClick={() => setTimingOpen(true)}
+          className="w-full flex items-center justify-between px-1 py-1 text-sm"
+        >
+          <span className="text-muted-foreground">
+            Payment:{" "}
+            <span className="text-ink font-medium">
+              {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
+            </span>
+          </span>
+          <span className="text-ink font-semibold underline underline-offset-2">Change</span>
+        </button>
+        {shouldSuggestStaged(quote.total, timing) && (
+          <div className="mt-3 rounded-2xl border border-lime/50 bg-lime/15 px-4 py-3 flex items-start gap-2">
+            <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-ink" />
+            <p className="text-[12px] text-ink leading-relaxed">
+              This job is over {formatGBP(2000)} — staged payments may help cashflow.
+              <button onClick={() => onTimingChange("staged")} className="ml-1 underline font-semibold">Use staged</button>
+            </p>
+          </div>
+        )}
+      </section>
+
       {(userProfile.quote_footer || (userProfile.show_signature && (userProfile.signature_name || userProfile.full_name))) && (
-        <section className="px-5 mt-3">
+        <section className="px-5 mt-5">
           <div className="px-1 space-y-2">
             {userProfile.quote_footer && (
               <p className="text-[11px] text-muted-foreground leading-relaxed">{userProfile.quote_footer}</p>
