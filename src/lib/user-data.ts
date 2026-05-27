@@ -90,6 +90,8 @@ export type Quote = {
   deposit_percent?: number;
   /** Set once the trader marks the job as physically complete (pre-payment). */
   completed_at?: string;
+  /** Last DB write — proxy for when status changed (e.g. accepted today). */
+  updated_at?: string;
 };
 
 export type ChaseStatus = "scheduled" | "sent" | "skipped";
