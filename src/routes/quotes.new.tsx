@@ -439,8 +439,10 @@ function NewQuotePage() {
           onStart={handleVoiceStart}
           onStop={stopRecording}
           onClose={handleVoiceClose}
+          onRetryTranscription={lastBlobRef.current ? retryTranscription : undefined}
         />
       )}
+
       <PageHeader title="New quote" subtitle="" back="/quotes" />
 
         <form
