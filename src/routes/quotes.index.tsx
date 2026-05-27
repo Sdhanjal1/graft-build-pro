@@ -148,6 +148,15 @@ function QuotesPage() {
                       : <span className="text-status-pending">Tap to assign client</span>}
                   </p>
                   <p className="text-[11px] text-muted-foreground truncate mt-0.5">{quote.title}</p>
+                  {quote.status === "accepted" && (() => {
+                    const n = materialsForQuote(quote).length;
+                    return n > 0 ? (
+                      <p className="mt-1.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-widest font-semibold text-ink/70">
+                        <ShoppingCart className="h-3 w-3" />
+                        {n} material{n === 1 ? "" : "s"}
+                      </p>
+                    ) : null;
+                  })()}
                 </div>
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   <span
