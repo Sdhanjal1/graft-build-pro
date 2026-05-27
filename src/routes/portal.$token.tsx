@@ -22,11 +22,13 @@ function PortalPage() {
   const { token } = Route.useParams();
   const fetchData = useServerFn(getPortalData);
   const respond = useServerFn(respondToQuoteByToken);
+  const startCheckout = useServerFn(createPortalCheckout);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
   const [responding, setResponding] = useState(false);
+  const [paying, setPaying] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
   const load = async () => {
