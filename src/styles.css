@@ -55,6 +55,8 @@
 
   --status-pending: oklch(0.50 0.13 70);    /* darker amber — WCAG AA on cream */
   --status-accepted: oklch(0.68 0.16 145);  /* green */
+  --status-booked: oklch(0.62 0.17 55);     /* amber/orange — action needed by you */
+  --status-completed: oklch(0.55 0.14 245); /* blue — waiting on customer */
   --status-paid: var(--lime);
   --status-overdue: oklch(0.62 0.22 25);    /* red */
 
