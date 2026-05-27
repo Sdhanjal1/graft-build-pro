@@ -498,15 +498,48 @@ export const buildInvoiceMessage = (quote: Quote, clientFirstName: string) => {
   return lines.join("\n");
 };
 
-/** Standard chaser copy used by /chaser */
-export const buildChaserMessage = (quote: Quote, clientFirstName: string) =>
-  [
-    `Hi ${clientFirstName}, I hope you're well. Just following up on invoice ${quote.ref} from ${userProfile.business_name} for ${formatGBP(quote.total)}.`,
+/**
+ * Standard chaser copy. Tone depends on status:
+ * - completed → friendly "hope the job went well" reminder (invoice now due)
+ * - overdue → firmer nudge with days-overdue figure
+ * - anything else (defensive fallback) → neutral payment follow-up
+ */
+export const buildChaserMessage = (quote: Quote, clientFirstName: string) => {
+  const first = clientFirstName || "there";
+  const amount = formatGBP(quote.total);
+  const signOff = `Many thanks, ${userProfile.full_name.split(" ")[0]}`;
+  const footer = "\n\nSent via Quottr.";
+
+  if (quote.status === "overdue") {
+    const due = quote.invoice_due_date ?? quote.due_date;
+    const daysOverdue = due
+      ? Math.max(1, Math.floor((Date.now() - new Date(due).getTime()) / 86400000))
+      : null;
+    const overdueLine = daysOverdue
+      ? `this invoice is now ${daysOverdue} day${daysOverdue === 1 ? "" : "s"} overdue.`
+      : `this invoice is now overdue.`;
+    return [
+      `Hi ${first}, ${overdueLine}`,
+      `Invoice ${quote.ref} from ${userProfile.business_name} for ${amount} is still outstanding — could you settle it as soon as possible?`,
+      signOff,
+    ].join("\n") + footer;
+  }
+
+  if (quote.status === "completed") {
+    return [
+      `Hi ${first}, hope the job went well.`,
+      `Quick reminder your invoice ${quote.ref} from ${userProfile.business_name} for ${amount} is now due. Could you let me know when payment will be made?`,
+      signOff,
+    ].join("\n") + footer;
+  }
+
+  // Defensive fallback — shouldn't normally fire; chaser only runs on completed/overdue.
+  return [
+    `Hi ${first}, just following up on invoice ${quote.ref} from ${userProfile.business_name} for ${amount}.`,
     "Could you let me know when payment will be made?",
-    `Many thanks, ${userProfile.full_name.split(" ")[0]}`,
-    "",
-    "Sent via Quottr.",
-  ].join("\n");
+    signOff,
+  ].join("\n") + footer;
+};
 
 export const stats = () => {
   const totalQuoted = mockQuotes.reduce((s, q) => s + q.total, 0);
@@ -516,8 +549,11 @@ export const stats = () => {
   const paid = paidQuotes.reduce((s, q) => s + q.total, 0);
   const pending = mockQuotes.filter((q) => q.status === "pending").reduce((s, q) => s + q.total, 0);
   const accepted = mockQuotes.filter((q) => q.status === "accepted").reduce((s, q) => s + q.total, 0);
+  const completed = mockQuotes.filter((q) => q.status === "completed").reduce((s, q) => s + q.total, 0);
+  // "You are owed" = work that's done (completed) plus invoices already overdue.
+  // Booked/accepted is excluded — the work hasn't happened yet, so nothing is owed.
   const outstanding = mockQuotes
-    .filter((q) => q.status === "accepted" || q.status === "overdue" || q.status === "pending")
+    .filter((q) => q.status === "completed" || q.status === "overdue")
     .reduce((s, q) => s + q.total, 0);
   // Profit tracker totals, derived from the transactions log so card/bank/cash split
   // reflects the full trading history, not just the current quote list.
