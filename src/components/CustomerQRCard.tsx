@@ -139,7 +139,7 @@ export function PushPermissionCard() {
       {perm !== "unsupported" && !(subscribed && perm === "granted") && (
         <>
           <p className="text-xs text-muted-foreground mb-3">
-            Get an instant ping when a customer sends a new quote request, even when Quottr is closed.
+            Get an instant ping for new quote requests, when a customer accepts a quote, and when a payment lands — even when Quottr is closed.
             On iOS, add Quottr to your home screen first (iOS 16.4+).
           </p>
           <button
