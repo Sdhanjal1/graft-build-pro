@@ -8,11 +8,12 @@ import {
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming,
+  deleteQuote,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
 import { createInvoiceCheckout } from "@/lib/payments.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2 } from "lucide-react";
 import {
   computeDepositAmount, computeDepositPercent, parseDepositInput,
   paymentTimingLabel, shouldSuggestStaged, defaultDepositPercent,
@@ -74,6 +75,7 @@ function QuoteDetail() {
   const [sendOpen, setSendOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [timingOpen, setTimingOpen] = useState(false);
 
   // Payment timing state
   const initialTiming: PaymentTiming = quote.payment_timing ?? "on_completion";
@@ -182,6 +184,25 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not duplicate quote");
     }
   };
+  const removeQuote = async () => {
+    if (typeof window !== "undefined" && !window.confirm("Delete this quote? This cannot be undone.")) return;
+    try {
+      await deleteQuote(quote.id);
+      feedback("success"); toast.success("Quote deleted");
+      navigate({ to: "/quotes" });
+    } catch (e) {
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not delete quote");
+    }
+  };
+  const viewAsCustomer = () => {
+    if (portalStatus?.portal_code) {
+      navigate({ to: "/portal/c/$code", params: { code: portalStatus.portal_code } });
+    } else {
+      navigate({ to: "/portal/$token", params: { token: quote.id } });
+    }
+  };
+
+
   const sendDepositRequest = () => {
     const firstName = client?.name.split(" ")[0] ?? "there";
     const { message } = buildDepositOnAcceptMessage(quote, firstName);
@@ -377,7 +398,7 @@ function QuoteDetail() {
       <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
 
       {portalStatus && (portalStatus.expired || portalStatus.days_remaining <= 7) && (
-        <section className="px-5 mt-3">
+        <section className="px-5 mt-5">
           <div className="rounded-2xl border border-amber-500/40 bg-amber-50 text-amber-900 p-3 flex items-start gap-3">
             <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
             <div className="flex-1 min-w-0">
@@ -402,7 +423,7 @@ function QuoteDetail() {
 
 
       {status === "declined" && (
-        <section className="px-5 mt-3">
+        <section className="px-5 mt-5">
           <div className="card-surface p-3 text-center text-sm text-muted-foreground">
             Customer declined this quote. <button onClick={async () => { try { await setQuoteStatus(quote.id, "pending"); setStatusState("pending"); } catch (e) { feedback("error"); toast.error(e instanceof Error ? e.message : "Could not reopen"); } }} className="underline font-semibold text-ink ml-1">Reopen</button>
           </div>
@@ -410,7 +431,7 @@ function QuoteDetail() {
       )}
 
       {client && (
-        <section className="px-5">
+        <section className="px-5 mt-5">
           <Link to="/clients/$clientId" params={{ clientId: client.id }} className="card-surface p-4 flex items-center gap-3">
             <div className="h-11 w-11 rounded-full bg-lime/30 flex items-center justify-center text-ink font-bold">
               {client.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
@@ -423,34 +444,23 @@ function QuoteDetail() {
         </section>
       )}
 
-      {status === "pending" && (
-        <section className="px-5 mt-3">
-          <button
-            onClick={() => (client ? setSendOpen(true) : setAssignOpen(true))}
-            className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 text-base shadow-[0_8px_24px_-8px_rgba(200,224,74,0.6)] active:scale-[0.99] transition"
-          >
-            <Send className="h-4 w-4" />
-            {client ? `Send to ${client.name.split(" ")[0]}` : "Add client to send"}
-          </button>
-        </section>
-      )}
 
       {userProfile.quote_intro && (
-        <section className="px-5 mt-4">
+        <section className="px-5 mt-5">
           <div className="card-surface p-5">
             <p className="text-sm leading-relaxed italic text-muted-foreground">{userProfile.quote_intro}</p>
           </div>
         </section>
       )}
 
-      <section className="px-5 mt-4">
+      <section className="px-5 mt-5">
         <div className="card-surface p-5">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Job description</p>
           <p className="text-sm mt-2 leading-relaxed">{quote.job_description}</p>
         </div>
       </section>
 
-      <section className="px-5 mt-4">
+      <section className="px-5 mt-5">
         <div className="card-surface overflow-hidden">
           <div className="px-5 pt-4 pb-2">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Itemised</p>
@@ -465,8 +475,34 @@ function QuoteDetail() {
         </div>
       </section>
 
+      {/* Compact payment timing line below totals */}
+      <section className="px-5 mt-5">
+        <button
+          type="button"
+          onClick={() => setTimingOpen(true)}
+          className="w-full flex items-center justify-between px-1 py-1 text-sm"
+        >
+          <span className="text-muted-foreground">
+            Payment:{" "}
+            <span className="text-ink font-medium">
+              {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
+            </span>
+          </span>
+          <span className="text-ink font-semibold underline underline-offset-2">Change</span>
+        </button>
+        {shouldSuggestStaged(quote.total, timing) && (
+          <div className="mt-3 rounded-2xl border border-lime/50 bg-lime/15 px-4 py-3 flex items-start gap-2">
+            <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-ink" />
+            <p className="text-[12px] text-ink leading-relaxed">
+              This job is over {formatGBP(2000)} — staged payments may help cashflow.
+              <button onClick={() => onTimingChange("staged")} className="ml-1 underline font-semibold">Use staged</button>
+            </p>
+          </div>
+        )}
+      </section>
+
       {(userProfile.quote_footer || (userProfile.show_signature && (userProfile.signature_name || userProfile.full_name))) && (
-        <section className="px-5 mt-3">
+        <section className="px-5 mt-5">
           <div className="px-1 space-y-2">
             {userProfile.quote_footer && (
               <p className="text-[11px] text-muted-foreground leading-relaxed">{userProfile.quote_footer}</p>
@@ -485,84 +521,13 @@ function QuoteDetail() {
       )}
 
 
-      {/* Payment timing — trader-side configuration (NOT the customer payment selector) */}
-      <section className="px-5 mt-5">
-        <div className="flex items-baseline justify-between mb-2.5">
-          <h2 className="text-xl">Payment timing</h2>
-          <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">When you get paid</span>
-        </div>
-        <div className="card-surface p-2 space-y-1.5">
-          <MethodOption active={timing === "on_completion"} icon={Check} label="On completion"
-            sub="Customer pays after work is done" onClick={() => onTimingChange("on_completion")} />
-          <MethodOption active={timing === "deposit_then_balance"} icon={Banknote} label="Deposit then balance"
-            sub="Take a deposit up front, balance on completion" onClick={() => onTimingChange("deposit_then_balance")} />
-          <MethodOption active={timing === "staged"} icon={Clock} label="Staged payments"
-            sub="Multiple scheduled payments" onClick={() => onTimingChange("staged")} />
-          <MethodOption active={timing === "upfront"} icon={Zap} label="Upfront"
-            sub="Full payment before work starts" onClick={() => onTimingChange("upfront")} />
-        </div>
+      {/* Spacer so content isn't hidden behind sticky bar + bottom nav */}
+      <div className="h-44" aria-hidden />
 
-        {timing === "deposit_then_balance" && (
-          <div className="mt-3 card-surface p-4 space-y-3">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Deposit</p>
-            <div className="grid grid-cols-2 gap-2.5">
-              <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
-                <span className="text-ink/60 font-bold">£</span>
-                <input
-                  type="text" inputMode="decimal"
-                  value={depositAmtRaw}
-                  onChange={(e) => setDepositAmtRaw(e.target.value)}
-                  onFocus={(e) => e.currentTarget.select()}
-                  onBlur={onDepositAmtBlur}
-                  placeholder="0.00"
-                  className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none"
-                />
-              </label>
-              <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
-                <input
-                  type="text" inputMode="decimal"
-                  value={depositPctRaw}
-                  onChange={(e) => setDepositPctRaw(e.target.value)}
-                  onFocus={(e) => e.currentTarget.select()}
-                  onBlur={onDepositPctBlur}
-                  placeholder="0"
-                  className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none text-right"
-                />
-                <span className="text-ink/60 font-bold">%</span>
-              </label>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
-            </p>
-          </div>
-        )}
-
-        {timing !== "deposit_then_balance" && (
-          <p className="text-[11px] text-muted-foreground mt-3 px-1">
-            {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
-          </p>
-        )}
-
-        {shouldSuggestStaged(quote.total, timing) && (
-          <div className="mt-3 rounded-2xl border border-lime/50 bg-lime/15 px-4 py-3 flex items-start gap-2">
-            <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-ink" />
-            <p className="text-[12px] text-ink leading-relaxed">
-              This job is over {formatGBP(2000)} — staged payments may help cashflow.
-              <button onClick={() => onTimingChange("staged")} className="ml-1 underline font-semibold">Use staged</button>
-            </p>
-          </div>
-        )}
-      </section>
-
-
-
-      {/* Spacer so content isn't hidden behind sticky bar */}
-      <div className="h-36" aria-hidden />
-
-      {/* Sticky bottom action bar — Send · Mark Paid · Chase always visible */}
-      <div className="fixed bottom-0 inset-x-0 z-40 pointer-events-none">
-        <div className="mx-auto max-w-md px-4 pb-4 pt-3 pointer-events-auto bg-gradient-to-t from-paper via-paper to-paper/0">
-          <div className="card-surface bg-paper shadow-lg p-2.5 flex items-center gap-2">
+      {/* Sticky bottom action bar — floats above BottomNav */}
+      <div className="fixed bottom-20 inset-x-0 z-40 pointer-events-none">
+        <div className="mx-auto max-w-md px-4 pt-3 pointer-events-auto bg-gradient-to-t from-paper via-paper to-paper/0">
+          <div className="card-surface bg-paper shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)] p-2.5 flex items-center gap-2">
             <button
               onClick={primary.onClick}
               className="flex-1 bg-lime text-ink rounded-full py-3 font-bold inline-flex items-center justify-center gap-2 text-sm"
@@ -570,29 +535,6 @@ function QuoteDetail() {
               <PrimaryIcon className="h-4 w-4" />
               {primary.label}
             </button>
-            {status !== "paid" && (
-              <button
-                onClick={() => setAskingPaid(true)}
-                aria-label="Mark as paid"
-                className="h-12 w-12 rounded-full bg-ink text-paper inline-flex items-center justify-center shrink-0"
-              >
-                <CheckCircle2 className="h-5 w-5" />
-              </button>
-            )}
-            {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
-              <button
-                onClick={() => {
-                  const first = client.name.split(" ")[0] ?? "there";
-                  const msg = `Hi ${first}, just following up on ${quote.ref} for ${formatGBP(quote.total)}. Could you let me know when payment will be made? Thanks.`;
-                  const digits = client.phone.replace(/\D/g, "");
-                  window.open(`https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${encodeURIComponent(msg)}`, "_blank");
-                }}
-                aria-label="Send chaser"
-                className="h-12 w-12 rounded-full bg-secondary text-ink inline-flex items-center justify-center shrink-0"
-              >
-                <MessageCircle className="h-5 w-5" />
-              </button>
-            )}
             <button
               onClick={() => setMoreOpen(true)}
               aria-label="More options"
@@ -601,16 +543,6 @@ function QuoteDetail() {
               ⋯
             </button>
           </div>
-          {(status === "accepted" || status === "sent") && (
-            <button
-              onClick={() => takePaymentOnSite("full")}
-              disabled={takingOnSite}
-              className="w-full mt-2 bg-ink/90 text-paper rounded-full py-2.5 font-semibold inline-flex items-center justify-center gap-2 text-xs disabled:opacity-60"
-            >
-              {takingOnSite ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Nfc className="h-3.5 w-3.5" />}
-              Take payment on site · {formatGBP(quote.total)}
-            </button>
-          )}
           {status === "paid" && (
             <div className="w-full mt-2 bg-status-paid/15 border border-status-paid/40 rounded-full py-2 px-4 inline-flex items-center justify-center gap-2 text-xs font-semibold text-ink">
               <CheckCircle2 className="h-3.5 w-3.5" />
@@ -626,10 +558,23 @@ function QuoteDetail() {
             <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto my-3" />
             <h3 className="text-xl px-4 mb-2">More options</h3>
             <ul className="px-2">
+              <MoreItem icon={Eye} label="View as customer" onClick={() => { setMoreOpen(false); viewAsCustomer(); }} />
+              <MoreItem icon={Share2} label="Download PDF" onClick={() => { setMoreOpen(false); sharePdf(); }} />
+              <MoreItem icon={Copy} label="Duplicate quote" onClick={() => { setMoreOpen(false); duplicate(); }} />
+              {status !== "paid" && (
+                <MoreItem icon={CheckCircle2} label="Mark as paid" onClick={() => { setMoreOpen(false); setAskingPaid(true); }} />
+              )}
+              {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
+                <MoreItem icon={MessageCircle} label="Send chaser on WhatsApp" onClick={() => {
+                  setMoreOpen(false);
+                  const first = client.name.split(" ")[0] ?? "there";
+                  const msg = `Hi ${first}, just following up on ${quote.ref} for ${formatGBP(quote.total)}. Could you let me know when payment will be made? Thanks.`;
+                  const digits = client.phone.replace(/\D/g, "");
+                  window.open(`https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${encodeURIComponent(msg)}`, "_blank");
+                }} />
+              )}
               <MoreItem icon={Mail} label="Email customer" onClick={() => { setMoreOpen(false); window.location.href = mailHref; }} />
               <MoreItem icon={Phone} label="Call customer" onClick={() => { setMoreOpen(false); window.location.href = `tel:${client?.phone}`; }} />
-              <MoreItem icon={Share2} label="Share PDF" onClick={() => { setMoreOpen(false); sharePdf(); }} />
-              <MoreItem icon={Copy} label="Duplicate quote" onClick={() => { setMoreOpen(false); duplicate(); }} />
               {status === "pending" && (
                 <MoreItem icon={Send} label="Mark as sent" onClick={() => { setMoreOpen(false); markSent(); }} />
               )}
@@ -637,15 +582,71 @@ function QuoteDetail() {
                 <MoreItem icon={Zap} label="Request payment (send link)" onClick={() => { setMoreOpen(false); setRequesting(true); }} />
               )}
               {(status === "accepted" || status === "sent") && (
-                <MoreItem icon={Smartphone} label="Take 50% deposit on site" onClick={() => { setMoreOpen(false); takePaymentOnSite("deposit"); }} />
+                <MoreItem icon={Smartphone} label="Take payment on site" onClick={() => { setMoreOpen(false); takePaymentOnSite("full"); }} />
               )}
               {invoicedAt && (
                 <MoreItem icon={FileText} label="View final invoice" onClick={() => { setMoreOpen(false); navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } }); }} />
               )}
               {status !== "declined" && status !== "paid" && (
-                <MoreItem icon={XCircle} label="Mark as declined" onClick={() => { setMoreOpen(false); declineQuote(); }} danger />
+                <MoreItem icon={XCircle} label="Mark as declined" onClick={() => { setMoreOpen(false); declineQuote(); }} />
               )}
+              <MoreItem icon={Trash2} label="Delete quote" onClick={() => { setMoreOpen(false); removeQuote(); }} danger />
             </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom sheet: payment timing */}
+      {timingOpen && (
+        <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setTimingOpen(false)}>
+          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+            <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
+            <h3 className="text-2xl">When you get paid</h3>
+            <p className="text-xs text-muted-foreground mb-4">Choose how this customer pays you.</p>
+            <div className="space-y-1.5">
+              <MethodOption active={timing === "on_completion"} icon={Check} label="On completion"
+                sub="Customer pays after work is done" onClick={() => { onTimingChange("on_completion"); setTimingOpen(false); }} />
+              <MethodOption active={timing === "deposit_then_balance"} icon={Banknote} label="Deposit then balance"
+                sub="Take a deposit up front, balance on completion" onClick={() => { onTimingChange("deposit_then_balance"); setTimingOpen(false); }} />
+              <MethodOption active={timing === "staged"} icon={Clock} label="Staged payments"
+                sub="Multiple scheduled payments" onClick={() => { onTimingChange("staged"); setTimingOpen(false); }} />
+              <MethodOption active={timing === "upfront"} icon={Zap} label="Upfront"
+                sub="Full payment before work starts" onClick={() => { onTimingChange("upfront"); setTimingOpen(false); }} />
+            </div>
+
+            {timing === "deposit_then_balance" && (
+              <div className="mt-4 card-surface p-4 space-y-3">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Deposit</p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
+                    <span className="text-ink/60 font-bold">£</span>
+                    <input
+                      type="text" inputMode="decimal"
+                      value={depositAmtRaw}
+                      onChange={(e) => setDepositAmtRaw(e.target.value)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onBlur={onDepositAmtBlur}
+                      placeholder="0.00"
+                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none"
+                    />
+                  </label>
+                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
+                    <input
+                      type="text" inputMode="decimal"
+                      value={depositPctRaw}
+                      onChange={(e) => setDepositPctRaw(e.target.value)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onBlur={onDepositPctBlur}
+                      placeholder="0"
+                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none text-right"
+                    />
+                    <span className="text-ink/60 font-bold">%</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            <button onClick={() => setTimingOpen(false)} className="w-full mt-4 text-sm text-muted-foreground py-2">Done</button>
           </div>
         </div>
       )}
