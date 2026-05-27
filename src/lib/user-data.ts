@@ -257,7 +257,9 @@ const rowToQuote = (r: DbQuote): Quote => ({
   deposit_percent: Number(r.deposit_percent ?? 0),
   completed_at: r.completed_at ?? undefined,
   updated_at: r.updated_at ?? undefined,
+  materials_purchased: Array.isArray(r.materials_purchased) ? r.materials_purchased : [],
 });
+
 
 export async function hydrateUserData() {
   const { data: userData } = await supabase.auth.getUser();
