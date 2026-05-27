@@ -4,11 +4,18 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   mockQuotes, getClient, userProfile, formatGBP, buildChaserMessage,
   buildChaseMessageForOffset, chasesDueNow, upcomingChases, markChaseSent, skipChase,
-  waLink,
+  setQuoteAutoChase, waLink,
 } from "@/lib/user-data";
-import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, PartyPopper } from "lucide-react";
+import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, PartyPopper, Pause, Play } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { feedback } from "@/lib/feedback";
+
+/** Tone label + colour for an escalation step. */
+function chaseTone(offset: number, offsets: number[]) {
+  if (offset === offsets[0]) return { label: "Polite reminder", chip: "bg-lime text-ink" };
+  if (offset === offsets[1]) return { label: "Firm follow-up", chip: "bg-status-completed/20 text-status-completed" };
+  return { label: "Final notice", chip: "bg-status-overdue text-paper" };
+}
 
 
 export const Route = createFileRoute("/chaser")({
@@ -62,11 +69,13 @@ function ChaserPage() {
                 const autoIn = chase.auto_send_at
                   ? Math.max(0, Math.round((new Date(chase.auto_send_at).getTime() - Date.now()) / 60000))
                   : null;
+                const offsets = userProfile.chase_offsets ?? [7, 14, 21];
+                const tone = chaseTone(chase.day_offset, offsets);
                 return (
                   <div key={chase.id} className="rounded-2xl bg-lime/15 border border-lime/40 p-3.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] uppercase tracking-widest font-bold bg-lime text-ink rounded-full px-2 py-0.5">
-                        Day {chase.day_offset} · ready to send
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-[10px] uppercase tracking-widest font-bold rounded-full px-2 py-0.5 ${tone.chip}`}>
+                        Day {chase.day_offset} · {tone.label}
                       </span>
                       <p className="text-xs font-semibold text-ink truncate">{quote.ref} · {c?.name}</p>
                     </div>
@@ -139,15 +148,21 @@ function ChaserPage() {
           const days = daysOverdue(q.due_date);
           const toneText = isOverdue ? "text-status-overdue" : "text-status-completed";
           const toneBg = isOverdue ? "bg-status-overdue/15 text-status-overdue" : "bg-status-completed/15 text-status-completed";
+          const paused = q.auto_chase_enabled === false;
           return (
             <div key={q.id} className="card-surface p-4">
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
                     <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full ${toneBg}`}>
                       {isOverdue ? `${days} day${days === 1 ? "" : "s"} overdue` : "Awaiting payment"}
                     </span>
+                    {paused && (
+                      <span className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        Auto-chase paused
+                      </span>
+                    )}
                   </div>
                   <p className="font-semibold text-sm mt-0.5 truncate">{q.title}</p>
                   <p className="text-xs text-muted-foreground truncate">
@@ -170,6 +185,12 @@ function ChaserPage() {
                   Email
                 </a>
               </div>
+              <button
+                onClick={() => { feedback("tap"); setQuoteAutoChase(q.id, paused); force((n) => n + 1); }}
+                className="mt-2 w-full bg-card border border-border text-muted-foreground rounded-full py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5 hover:text-ink"
+              >
+                {paused ? <><Play className="h-3.5 w-3.5" /> Resume auto-chase</> : <><Pause className="h-3.5 w-3.5" /> Pause auto-chase for this invoice</>}
+              </button>
             </div>
           );
         })}
