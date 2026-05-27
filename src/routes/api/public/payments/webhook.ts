@@ -1,8 +1,35 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { notifyUser } from "@/lib/push.functions";
 // invoice-pdf and email modules are dynamically imported inside the handler
 // so any module-load issues in the Worker runtime never break the webhook.
+
+async function notifyTraderOfPayment(opts: {
+  userId: string;
+  quoteId: string;
+  amountCents: number | undefined;
+  currency: string;
+}) {
+  try {
+    const { data: quote } = await supabaseAdmin
+      .from("quotes")
+      .select("title, ref")
+      .eq("id", opts.quoteId)
+      .maybeSingle();
+    const title = quote?.title ?? quote?.ref ?? "Invoice";
+    const amount = ((opts.amountCents ?? 0) / 100).toFixed(2);
+    const symbol = (opts.currency || "gbp").toLowerCase() === "gbp" ? "£" : "";
+    await notifyUser(opts.userId, {
+      title: "Payment received 💰",
+      body: `${title} · ${symbol}${amount}`,
+      url: `/quotes/${opts.quoteId}`,
+      tag: `quote-${opts.quoteId}-paid`,
+    });
+  } catch (e) {
+    console.error("[payments/webhook] paid push notify failed", e);
+  }
+}
 
 async function sendBrandedInvoiceEmail(opts: {
   userId: string;
@@ -360,6 +387,9 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           paymentIntent,
           paymentMethod: "card",
         });
+
+        // Best-effort push to the trader (never throws)
+        await notifyTraderOfPayment({ userId, quoteId, amountCents, currency });
 
         return new Response("ok", { status: 200 });
       },
