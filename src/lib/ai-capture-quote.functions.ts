@@ -53,7 +53,11 @@ CATEGORY FIELD — REQUIRED ON EVERY LINE ITEM:
 - 'materials' — physical products supplied: boilers, radiators, fittings, parts, pipes
 - 'certificate' — gas safety certs, EICR, building regs notifications, commissioning certs
 - 'cis_labour' — only when CIS mode is enabled. Labour income under CIS deduction
-- 'other' — anything that does not fit the above`;
+- 'other' — anything that does not fit the above
+
+UNIT FIELD — REQUIRED ON EVERY LINE ITEM:
+- For 'labour' or 'cis_labour' lines: estimate realistic UK trade duration. Use 'hours' if under a full day, 'days' otherwise. qty = estimated duration (hours rounded to 0.5, days rounded to 0.5). unit_price = hourly or daily rate.
+- For all other categories: use 'qty'. qty is the count of items supplied.`;
 
 
 export const generateCaptureQuote = createServerFn({ method: "POST" })
