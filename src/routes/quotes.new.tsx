@@ -669,20 +669,35 @@ function NewQuotePage() {
         )}
 
         {customerMode === "existing" && clientName && (
-          <div className="card-surface p-4 flex items-center justify-between">
-            <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Customer</p>
-              <p className="text-sm font-semibold truncate mt-0.5">{clientName}</p>
+          <div className="card-surface p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Customer</p>
+                <p className="text-sm font-semibold truncate mt-0.5">{clientName}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPickerOpen(true)}
+                className="text-xs font-bold text-ink underline underline-offset-2 shrink-0 ml-3"
+              >
+                Change
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setPickerOpen(true)}
-              className="text-xs font-bold text-ink underline underline-offset-2 shrink-0 ml-3"
-            >
-              Change
-            </button>
+            <div>
+              <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                Phone number
+              </label>
+              <input
+                value={clientPhone}
+                onChange={(e) => setClientPhone(e.target.value)}
+                inputMode="tel"
+                placeholder="07XXX XXXXXX"
+                className="mt-1.5 w-full bg-transparent outline-none text-sm border-b border-border pb-1.5"
+              />
+            </div>
           </div>
         )}
+
 
         {customerMode === "new" && (
           <div className="card-surface p-4 space-y-3">
@@ -720,9 +735,11 @@ function NewQuotePage() {
             clients={filteredClients}
             onPick={(c) => {
               setClientName(c.name);
+              setClientPhone(c.phone ?? "");
               setCustomerMode("existing");
               setPickerOpen(false);
             }}
+
             onClose={() => setPickerOpen(false)}
           />
         )}

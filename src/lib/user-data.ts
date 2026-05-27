@@ -389,6 +389,25 @@ export const QUOTE_TEMPLATES: Record<string, { label: string; prompt: string }[]
 
 
 export const getClient = (id: string) => userClients.find((c) => c.id === id);
+
+/** Update a client's phone number (persisted). No-op if unchanged. */
+export const updateClientPhone = async (clientId: string, phone: string): Promise<void> => {
+  const existing = userClients.find((c) => c.id === clientId);
+  const next = phone.trim();
+  if (!existing) return;
+  if ((existing.phone ?? "").trim() === next) return;
+  const { error } = await supabase
+    .from("clients")
+    .update({ phone: next || null })
+    .eq("id", clientId);
+  if (error) {
+    console.error("[updateClientPhone] update failed", error);
+    throw new Error(error.message || "Could not update customer phone");
+  }
+  existing.phone = next;
+  bumpVersion();
+};
+
 export const getQuote = (id: string) => mockQuotes.find((q) => q.id === id);
 export const quotesForClient = (id: string) => mockQuotes.filter((q) => q.client_id === id);
 
