@@ -440,7 +440,7 @@ function StatPill({
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   count: number;
   label: string;
-  tone: "pending" | "neutral" | "overdue";
+  tone: "pending" | "neutral" | "overdue" | "accepted";
   to: string;
 }) {
   const toneCls =
@@ -448,6 +448,8 @@ function StatPill({
       ? "bg-status-pending/20 text-status-pending"
       : tone === "overdue"
       ? "bg-status-overdue/20 text-status-overdue"
+      : tone === "accepted"
+      ? "bg-lime/20 text-lime"
       : "bg-paper/10 text-paper/80";
   return (
     <Link
