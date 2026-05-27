@@ -133,7 +133,8 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       window.location.href = mailHref;
       toast.success(`Sent to ${customerName ?? firstName} via Email`);
       feedback("success");
-      onClose();
+      if (updatedLinkPortalCode) onClose();
+      else setSentVia("email");
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Could not create portal link");
