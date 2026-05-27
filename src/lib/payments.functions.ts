@@ -247,8 +247,8 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
       "line_items[0][price_data][unit_amount]": amountCents,
       "line_items[0][price_data][product_data][name]":
         `${ref}, ${quote.title}`.slice(0, 250),
-      success_url: `${data.returnOrigin}/portal/${data.token}?paid=1`,
-      cancel_url: `${data.returnOrigin}/portal/${data.token}?cancelled=1`,
+      success_url: `${returnOrigin}/portal/${data.token}?paid=1`,
+      cancel_url: `${returnOrigin}/portal/${data.token}?cancelled=1`,
       "metadata[quote_id]": quote.id,
       "metadata[quote_ref]": ref,
       "metadata[user_id]": tk.user_id,
