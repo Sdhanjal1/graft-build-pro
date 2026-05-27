@@ -168,9 +168,15 @@ function ClientDetail() {
                 className="card-surface p-4 flex items-center gap-3"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
                     <StatusBadge status={q.status} />
+                    {(certsByQuote.get(q.id) ?? []).map((c) => (
+                      <span key={c.key} className="inline-flex items-center gap-1 rounded-full bg-lime/30 text-ink text-[10px] font-bold px-2 py-0.5">
+                        <ShieldCheck className="h-2.5 w-2.5" strokeWidth={3} />
+                        {c.label}
+                      </span>
+                    ))}
                   </div>
                   <p className="font-semibold text-sm mt-1 truncate">{q.title}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
@@ -179,6 +185,7 @@ function ClientDetail() {
                     <span>· {relativeFromNow(dateIso)}</span>
                   </p>
                 </div>
+
                 <p className="num text-xl text-ink">{formatGBP(q.total)}</p>
               </Link>
             );
