@@ -20,6 +20,7 @@ const LineItemSchema = z.object({
   unit_price: z.number().nonnegative().max(100000),
   source: z.enum(["voice", "learned", "ai"]).optional().default("ai"),
   category: z.enum(["labour", "materials", "certificate", "cis_labour", "other"]).optional().default("other"),
+  unit: z.enum(["qty", "hours", "days"]).optional().default("qty"),
 });
 
 
