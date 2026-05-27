@@ -599,26 +599,38 @@ function NewQuotePage() {
 
 
 
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => { setCustomerMode("existing"); setPickerOpen(true); }}
-            className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border ${
-              customerMode === "existing" ? "border-ink" : "border-ink/25 text-ink"
-            }`}
-          >
-            Existing customer
-          </button>
+        {userClients.length === 0 ? (
           <button
             type="button"
             onClick={() => { setCustomerMode("new"); setClientName(""); setClientPhone(""); }}
-            className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border inline-flex items-center justify-center gap-1.5 ${
+            className={`w-full rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border inline-flex items-center justify-center gap-1.5 ${
               customerMode === "new" ? "border-ink" : "border-ink/25 text-ink"
             }`}
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} /> New customer
           </button>
-        </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => { setCustomerMode("existing"); setPickerOpen(true); }}
+              className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border ${
+                customerMode === "existing" ? "border-ink" : "border-ink/25 text-ink"
+              }`}
+            >
+              Existing customer
+            </button>
+            <button
+              type="button"
+              onClick={() => { setCustomerMode("new"); setClientName(""); setClientPhone(""); }}
+              className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border inline-flex items-center justify-center gap-1.5 ${
+                customerMode === "new" ? "border-ink" : "border-ink/25 text-ink"
+              }`}
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.5} /> New customer
+            </button>
+          </div>
+        )}
 
         {customerMode === "existing" && clientName && (
           <div className="card-surface p-4 flex items-center justify-between">
