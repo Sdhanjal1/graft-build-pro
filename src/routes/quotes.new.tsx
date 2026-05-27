@@ -137,6 +137,18 @@ function NewQuotePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceParam]);
 
+  // Pre-populate customer when arriving from "Quote again" on customer detail
+  useEffect(() => {
+    if (!clientId) return;
+    const client = getClient(clientId);
+    if (client) {
+      setClientName(client.name);
+      setClientPhone(client.phone);
+      setCustomerMode("existing");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
+
   const handleVoiceStart = async () => {
     setVoicePending(false);
     setVoiceError(null);
