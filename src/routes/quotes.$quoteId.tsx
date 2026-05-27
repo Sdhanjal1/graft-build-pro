@@ -398,7 +398,7 @@ function QuoteDetail() {
       <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
 
       {portalStatus && (portalStatus.expired || portalStatus.days_remaining <= 7) && (
-        <section className="px-5 mt-3">
+        <section className="px-5 mt-5">
           <div className="rounded-2xl border border-amber-500/40 bg-amber-50 text-amber-900 p-3 flex items-start gap-3">
             <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
             <div className="flex-1 min-w-0">
