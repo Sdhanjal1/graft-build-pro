@@ -377,6 +377,19 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           });
         }
 
+        // Flip quote status -> "paid" for full payments. Deposits keep "accepted".
+        if (requestType !== "deposit") {
+          try {
+            await supabaseAdmin
+              .from("quotes")
+              .update({ status: "paid", paid_at: new Date().toISOString() })
+              .eq("id", quoteId)
+              .eq("user_id", userId);
+          } catch (e) {
+            console.error("[payments/webhook] failed to mark quote paid", e);
+          }
+        }
+
         // Best-effort branded invoice email (never throws)
         await sendBrandedInvoiceEmail({
           userId,
