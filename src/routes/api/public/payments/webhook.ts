@@ -388,6 +388,9 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           paymentMethod: "card",
         });
 
+        // Best-effort push to the trader (never throws)
+        await notifyTraderOfPayment({ userId, quoteId, amountCents, currency });
+
         return new Response("ok", { status: 200 });
       },
 
