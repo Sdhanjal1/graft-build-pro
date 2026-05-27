@@ -337,7 +337,9 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
           </button>
         </div>
 
-        <button onClick={onClose} className="w-full mt-2 text-sm text-muted-foreground py-2">Cancel</button>
+        <button onClick={handleClose} className="w-full mt-2 text-sm text-muted-foreground py-2">Cancel</button>
+        </>
+        )}
       </div>
     </div>
   );
