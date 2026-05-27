@@ -118,8 +118,8 @@ export function generateQuotePdf(quote: Quote, client: Client | undefined, varia
     head: [["Description", "Qty", "Unit", "Amount"]],
     body: quote.line_items.map((li) => [
       li.description,
-      String(li.qty),
-      formatGBP(li.unit_price),
+      formatLineQty(li.qty, li.unit),
+      `${formatGBP(li.unit_price)}${unitPriceSuffix(li.unit)}`,
       formatGBP(li.qty * li.unit_price),
     ]),
     styles: { font: "helvetica", fontSize: 10, cellPadding: 8, textColor: INK, lineColor: BORDER },
