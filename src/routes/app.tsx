@@ -4,10 +4,10 @@ import CountUp from "react-countup";
 import { AppShell } from "@/components/AppShell";
 import {
   userProfile, stats, formatGBP, getClient, mockQuotes,
-  todaysJobs, formatTime, getQuote,
+  todaysJobs, formatTime, getQuote, materialsForQuote,
 } from "@/lib/user-data";
 import { resolveTrade } from "@/lib/trades";
-import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X, CheckCircle2 } from "lucide-react";
+import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X, CheckCircle2, ShoppingCart } from "lucide-react";
 
 
 import { QuottrWordmark } from "@/components/QuottrLogo";
