@@ -1,52 +1,25 @@
 ## Goal
+Fix the "Add a client to send" flow on a quote (AssignClientDialog) so adding a customer works, and rename the CTA to "Add Customer".
 
-Labour line items quote in **hours** or **days** instead of "Qty". Materials, certificates and other categories keep "Qty" unchanged. The AI that drafts quotes also estimates labour duration and pre-fills it.
+## Investigation
+1. Reproduce the failure in the preview:
+   - Open a quote with no client assigned, tap "Add a client to send".
+   - Try both paths: (a) selecting an existing client, (b) typing a new name and tapping the create button.
+   - Capture console errors and network errors (Supabase insert on `clients`, update on `quotes.client_id`).
+2. Likely suspects in `src/components/AssignClientDialog.tsx` + `src/lib/user-data.ts`:
+   - `findOrCreateClient` insert payload may be missing a required field, or RLS rejects (user_id mismatch).
+   - `assignClientToQuote` may fail silently or throw without surfacing.
+   - `userClients` cache may be empty on first open because data hasn't loaded yet (dialog shows "No clients yet" even when clients exist).
+3. Confirm the actual root cause from the reproduction before patching — do not guess-fix.
 
-## Changes
+## Fix
+- Apply the minimal targeted fix for whichever of the above is the real cause (e.g. ensure clients are loaded before the dialog opens, surface the real error via `toast.error`, or correct the insert payload).
+- Keep behaviour otherwise identical — selecting an existing client and creating a new one both assign to the quote and close the dialog.
 
-### 1. Data model — `src/lib/user-data.ts`
-Add optional `unit` to `LineItem`:
-```ts
-type LineItemUnit = "qty" | "hours" | "days";
-type LineItem = {
-  description: string;
-  qty: number;          // still the multiplier (hours / days / items)
-  unit_price: number;   // price per hour / per day / per item
-  unit?: LineItemUnit;  // missing ⇒ "qty" (back-compat)
-  category?: LineItemCategory;
-  source?: ...;
-};
-```
-Totals math (`qty * unit_price`) unchanged. Existing quotes render exactly as before.
-
-### 2. New quote editor — `src/routes/quotes.new.tsx`
-For lines with `category` of `labour` or `cis_labour`:
-- Replace "Qty" with a small **Hrs / Days** toggle (defaults to Hrs).
-- Price label flips to `£/hr` or `£/day`.
-- All other categories untouched (still "Qty" + "£").
-
-### 3. AI duration estimation
-Extend the existing quote-drafting AI call (the server function that turns the voice/text brief into line items) so that for each `labour` / `cis_labour` line it also returns:
-- `unit`: `"hours"` or `"days"`
-- `qty`: estimated duration
-
-Prompt addition: "For labour items, estimate realistic UK trade duration. Use hours for jobs under a day, days otherwise. Round hours to 0.5 and days to 0.5." The trader can override the toggle and number on the line — value is tagged `source: "ai"` so the existing "Quottr suggested" badge already shows.
-
-### 4. Read-only display surfaces
-Update labour-line rendering in:
-- `src/routes/quotes.$quoteId.tsx`
-- `src/routes/invoices.$quoteId.tsx`
-- `src/routes/portal.$token.tsx`, `src/routes/portal.c.$code.tsx`
-- `src/lib/pdf.ts`, `src/lib/portal-pdf.ts`
-
-Labour rows render as `"3 hrs × £55/hr"` or `"2 days × £320/day"`. Non-labour rows unchanged. `AccountingExportButton.tsx` keeps `qty * unit_price` for totals — no export schema change.
-
-## Verification
-- Voice-brief a labour-heavy job → AI returns labour lines pre-filled with hours/days estimates; trader can flip toggle.
-- Materials line is unchanged (still Qty + £).
-- Save, reopen, view PDF + portal → labour rows show hrs/days; legacy quotes without `unit` render as before.
+## UI copy change
+- In `src/components/AssignClientDialog.tsx`, change the create button label from `Add "{name}" as new client` to `Add Customer` (icon unchanged).
+- Leave the dialog title/description and the existing-client list rows as-is.
 
 ## Out of scope
-- Supabase schema changes (line_items is JSON — new field accepted as-is).
-- Per-trade default hourly/day rates.
-- Backfilling unit on historical quotes.
+- No changes to the standalone `/clients/new` page, customer schema, or quote model.
+- No styling overhaul of the dialog.
