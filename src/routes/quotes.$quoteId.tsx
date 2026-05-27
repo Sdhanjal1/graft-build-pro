@@ -423,7 +423,7 @@ function QuoteDetail() {
 
 
       {status === "declined" && (
-        <section className="px-5 mt-3">
+        <section className="px-5 mt-5">
           <div className="card-surface p-3 text-center text-sm text-muted-foreground">
             Customer declined this quote. <button onClick={async () => { try { await setQuoteStatus(quote.id, "pending"); setStatusState("pending"); } catch (e) { feedback("error"); toast.error(e instanceof Error ? e.message : "Could not reopen"); } }} className="underline font-semibold text-ink ml-1">Reopen</button>
           </div>
@@ -431,7 +431,7 @@ function QuoteDetail() {
       )}
 
       {client && (
-        <section className="px-5">
+        <section className="px-5 mt-5">
           <Link to="/clients/$clientId" params={{ clientId: client.id }} className="card-surface p-4 flex items-center gap-3">
             <div className="h-11 w-11 rounded-full bg-lime/30 flex items-center justify-center text-ink font-bold">
               {client.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
