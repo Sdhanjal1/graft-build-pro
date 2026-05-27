@@ -115,7 +115,10 @@ export type Quote = {
   completed_at?: string;
   /** Last DB write — proxy for when status changed (e.g. accepted today). */
   updated_at?: string;
+  /** Tick state for the material shopping list, indexed by line_items position. */
+  materials_purchased?: boolean[];
 };
+
 
 export type ChaseStatus = "scheduled" | "sent" | "skipped";
 
