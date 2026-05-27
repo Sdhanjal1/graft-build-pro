@@ -1,31 +1,34 @@
-## Step 6 — Trade-specific AI prompt tuning
+## Step 7 — Audit & sharpen pricing-patterns influence
 
-Make AI-generated quotes more accurate by appending per-trade guidance (typical line items, brand/regulatory hints, labour-rate range) to the system prompt based on `trade_type`. Today both `ai-quote.functions.ts` and `ai-capture-quote.functions.ts` use one generic `SYSTEM_PROMPT`; trade is passed in the user prompt but never used to steer the model.
+Patterns are fetched and appended, but the influence is weak: 50 unfiltered rows are dumped flat into the system prompt with no category context, no relevance ranking against the current job, and the capture handler's `LineItemSchema` is missing the `category` field (so saved patterns lose category accuracy for capture-flow quotes).
+
+### Findings
+
+1. **`patternsForPrompt` (pricing-patterns.functions.ts:37)** — lists `description: £price (count×)` only. No `item_category`, no min/max range. Claude can't tell labour from materials in the learned block.
+2. **No relevance filter** — top 50 by `price_count` regardless of trade or current job text. A plumber asking about a boiler still sees decorating patterns.
+3. **`ai-capture-quote.functions.ts` LineItemSchema (line 15-20)** — missing `category` enum that `ai-quote.functions.ts` has. Means capture-flow line items never carry category → downstream `upsertPatternsFromQuote` relies on `inferCategory(description)` instead of the model's judgement.
+4. **System-prompt rule for `learned`** — current text says "use these prices for items they have quoted before" but doesn't tell Claude how to handle close-but-not-exact matches (e.g. "magnetic filter" vs "MagnaClean filter").
 
 ### Changes
 
-**1. New helper `src/lib/ai-trade-guidance.ts`** (client-safe, no server-only code — just a const map + lookup):
-- Export `tradeGuidance(trade: string): string` that returns a block to append to the system prompt.
-- Normalises the input (lowercases, matches by substring) so "Plumber / Heating Engineer", "Plumber", "plumber" all hit the same branch.
-- Covers the 7 trades in `TRADE_TYPES`:
-  - **Plumber / Heating Engineer** — Gas Safe registration line item when boiler/gas work; common brands (Worcester Bosch, Vaillant, Ideal, Baxi, Drayton, Honeywell, Geberit); typical labour £55–£75/hr; mention power flush / magnetic filter / TRVs where relevant; building control notify via Gas Safe.
-  - **Electrician** — NICEIC/NAPIT notification; EICR/minor works certificate as separate line; 18th edition compliance; common brands (Hager, Wylex, MK, Crabtree, BG); labour £55–£75/hr; Part P building control notification.
-  - **Builder / General Contractor** — strip-out, muck-away/skip hire, building control fees, structural calcs, plastering and making good; labour £45–£65/hr; sub-trades split (electrician, plumber) as own lines.
-  - **Carpenter / Joiner** — first-fix vs second-fix split; materials (softwood/hardwood/MDF/ply); ironmongery; labour £40–£55/hr.
-  - **Roofer** — scaffolding hire as own line; tile/slate/felt/lead flashing; waste removal; labour £45–£60/hr; mention insurance-backed guarantees where relevant.
-  - **Decorator** — prep (filling, sanding, masking), undercoat + topcoats, materials by m²; brands (Dulux Trade, Crown Trade, Farrow & Ball); labour £30–£45/hr.
-  - **Tiler** — m² pricing for tiling; adhesive + grout + spacers + trims; tanking for wet areas; labour £40–£55/hr or per m².
-- Default branch (unknown trade) returns empty string so the generic prompt stands.
+**1. `patternsForPrompt` — richer formatting + category grouping**
+- Group patterns by `item_category` (labour / materials / certificate / cis_labour / other).
+- Each line: `- <desc> — £<typical> (range £min–£max, n=<count>)`.
+- Cap at 40 lines total to stay token-friendly.
+- Update the surrounding instruction text: explicitly tell Claude to (a) prefer learned price for fuzzy matches (same item, different wording) and (b) keep the learned price even when their general UK estimate would differ.
 
-**2. Wire it into both AI handlers:**
-- `src/lib/ai-quote.functions.ts` line 72: change `SYSTEM_PROMPT + patternsForPrompt(patterns)` → `SYSTEM_PROMPT + tradeGuidance(data.trade) + patternsForPrompt(patterns)`.
-- `src/lib/ai-capture-quote.functions.ts` line 54: same change, using whichever variable holds the trade in that file (verify during implementation; if it doesn't currently receive `trade`, thread it through from the `InputSchema` — `ai-capture-quote.functions.ts` already takes the same shape, so a 1-line addition).
+**2. Relevance pre-filter in `fetchTopPatterns` callers**
+- Add a small `rankPatternsForJob(patterns, jobText)` helper in `pricing-patterns.ts` (client-safe, pure): token-overlap score against the job description / captured items; ties broken by `price_count`.
+- Both AI handlers fetch top 80, then `rankPatternsForJob` → top 30 passed to `patternsForPrompt`.
 
-### What stays the same
-- No DB migration. No new env vars. No API/payload changes for callers.
-- Generic `SYSTEM_PROMPT` keeps the universal rules (pricing rules, source/category enums, JSON shape). Per-trade guidance is purely additive.
-- Pricing patterns (Step 7's territory) untouched.
+**3. Add `category` to capture handler `LineItemSchema`**
+- Mirror the enum from `ai-quote.functions.ts`.
+- Add the same "CATEGORY FIELD" block to the capture `SYSTEM_PROMPT`.
+- Update the JSON shape example in the user prompt.
+
+**4. No DB changes, no new env vars, no payload changes for callers.**
 
 ### Verification
-- Generate a quote on the preview as a Plumber and as an Electrician with the same generic description ("install new light fitting in bathroom") — Electrician should add Part P/EICR mention; Plumber should add Gas Safe / IP-rated zone wording.
-- Check the dev console / server-fn logs for any schema errors (the appended text doesn't change the JSON output shape so Zod should still pass).
+- As a plumber, generate a quote referencing an item already in patterns ("install Vaillant boiler") — expect `source: "learned"` with the user's typical price, not a generic estimate.
+- As a decorator, generate a quote — verify the learned block in the prompt is dominated by decorator-relevant rows (manual inspection via a temporary `console.log` in dev, removed before finishing).
+- Save a capture-flow quote → verify line items now arrive with sensible `category` values and `upsertPatternsFromQuote` stores them with the correct `item_category`.
