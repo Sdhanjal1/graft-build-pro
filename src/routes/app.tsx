@@ -473,7 +473,7 @@ function ActionCard({
 }: {
   to: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  tone: "pending" | "neutral" | "overdue";
+  tone: "pending" | "neutral" | "overdue" | "accepted";
   title: string;
   count: number;
   amount: number;
@@ -484,14 +484,18 @@ function ActionCard({
       ? "border-l-4 border-status-pending"
       : tone === "overdue"
       ? "border-l-4 border-status-overdue"
-      : "border-l-4 border-lime";
+      : tone === "accepted"
+      ? "border-l-4 border-lime"
+      : "border-l-4 border-paper/30";
 
   const iconBg =
     tone === "pending"
       ? "bg-status-pending/15"
       : tone === "overdue"
       ? "bg-status-overdue/15"
-      : "bg-lime/15";
+      : tone === "accepted"
+      ? "bg-lime/15"
+      : "bg-paper/10";
 
   const iconColor =
     tone === "pending"
