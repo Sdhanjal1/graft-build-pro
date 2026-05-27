@@ -723,13 +723,16 @@ function NewQuotePage() {
               >
                 {loading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
+                ) : error ? (
+                  <RefreshCw className="h-5 w-5" />
                 ) : (
                   <Sparkles className="h-5 w-5" />
                 )}
                 {subBlocked
                   ? "Trial ended, add payment method"
-                  : loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : "Generate quote"}
+                  : loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : error ? "Retry generate" : "Generate quote"}
               </button>
+
               {error && (
                 <p className="mt-2 text-[12px] text-center text-status-overdue font-medium bg-paper/90 rounded-full py-1">{error}</p>
               )}
