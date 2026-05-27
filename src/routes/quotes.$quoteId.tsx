@@ -549,6 +549,15 @@ function QuoteDetail() {
               ⋯
             </button>
           </div>
+          {showMaterialsCta && (
+            <button
+              onClick={() => setMaterialsOpen(true)}
+              className="w-full mt-2 bg-ink text-paper rounded-full py-2.5 px-4 inline-flex items-center justify-center gap-2 text-xs font-bold"
+            >
+              <ShoppingCart className="h-3.5 w-3.5" />
+              Material list ({materialsCount})
+            </button>
+          )}
           {status === "paid" && (
             <div className="w-full mt-2 bg-status-paid/15 border border-status-paid/40 rounded-full py-2 px-4 inline-flex items-center justify-center gap-2 text-xs font-semibold text-ink">
               <CheckCircle2 className="h-3.5 w-3.5" />
