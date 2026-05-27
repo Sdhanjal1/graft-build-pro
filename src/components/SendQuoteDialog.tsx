@@ -157,10 +157,81 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
     }
   };
 
+  const offsets = (userProfile.chase_offsets?.length ? userProfile.chase_offsets : [7, 14, 21]).slice(0, 3);
+  const chaseLabels = ["Friendly nudge", "Follow-up", "Final reminder"];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={handleClose}>
       <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
         <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
+
+        {sentVia ? (
+          <div>
+            <div className="flex flex-col items-center text-center pt-1 pb-3">
+              <div className="h-14 w-14 rounded-full bg-lime text-ink flex items-center justify-center mb-3">
+                <CheckCircle2 className="h-7 w-7" />
+              </div>
+              <h3 className="text-2xl">Quote sent</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Sent to {customerName ?? firstName} via {CHANNEL_LABEL[sentVia]}. We'll let you know when they open it.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-secondary p-4 mt-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-ink" />
+                  <p className="text-sm font-bold">Auto-chaser is {autoChase ? "on" : "off"}</p>
+                </div>
+                <button
+                  onClick={toggleAutoChase}
+                  className={`text-[10px] uppercase tracking-widest font-bold rounded-full px-2.5 py-1 inline-flex items-center gap-1 ${
+                    autoChase ? "bg-ink text-lime" : "bg-card border border-border text-muted-foreground"
+                  }`}
+                  aria-pressed={autoChase}
+                >
+                  {autoChase ? <Bell className="h-3 w-3" /> : <BellOff className="h-3 w-3" />}
+                  {autoChase ? "On" : "Off"}
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {autoChase
+                  ? "If they go quiet, Quottr will line up these nudges from the invoice due date. You always get to review before they send."
+                  : "Quottr won't chase this quote. You can re-enable it any time from the quote screen."}
+              </p>
+
+              {autoChase && (
+                <ol className="mt-3 space-y-1.5">
+                  {offsets.map((d, i) => (
+                    <li key={d} className="flex items-center gap-3 text-xs">
+                      <span className="num text-[10px] uppercase tracking-widest font-bold text-ink/60 w-12 shrink-0">
+                        Day {d}
+                      </span>
+                      <span className="text-ink font-semibold">{chaseLabels[i] ?? `${ORDINAL[i] ?? "next"} reminder`}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Link
+                to="/chaser"
+                onClick={handleClose}
+                className="bg-card border border-border text-ink rounded-full py-3 text-sm font-bold inline-flex items-center justify-center gap-1.5"
+              >
+                View chaser <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+              <button
+                onClick={handleClose}
+                className="bg-ink text-paper rounded-full py-3 text-sm font-bold"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ) : (
+        <>
         <h3 className="text-2xl">Send quote</h3>
         <p className="text-xs text-muted-foreground mb-4">
           Choose how to send the quote to {firstName}.
