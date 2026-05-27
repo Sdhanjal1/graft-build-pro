@@ -3,6 +3,8 @@ import { z } from "zod";
 import { requireActiveSubscription } from "@/lib/require-active-subscription";
 import { fetchTopPatterns, patternsForPrompt } from "@/lib/pricing-patterns.functions";
 import { tradeGuidance } from "@/lib/ai-trade-guidance";
+import { rankPatternsForJob } from "@/lib/pricing-patterns";
+
 
 const InputSchema = z.object({
   description: z.string().min(1).max(4000),
