@@ -74,6 +74,7 @@ function QuoteDetail() {
   const [sendOpen, setSendOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [timingOpen, setTimingOpen] = useState(false);
 
   // Payment timing state
   const initialTiming: PaymentTiming = quote.payment_timing ?? "on_completion";
