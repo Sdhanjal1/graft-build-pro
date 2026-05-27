@@ -22,7 +22,12 @@ function NewClientPage() {
   const [error, setError] = useState<string | null>(null);
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || saving) return;
+    if (saving) return;
+    if (!name.trim()) {
+      setError("Please enter a name");
+      toast.error("Please enter a name");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -35,7 +40,10 @@ function NewClientPage() {
       });
       navigate({ to: "/clients/$clientId", params: { clientId: c.id } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save customer");
+      const msg = err instanceof Error ? err.message : "Could not save customer";
+      console.error("[clients.new] save failed", err);
+      setError(msg);
+      toast.error(msg);
       setSaving(false);
     }
   };
