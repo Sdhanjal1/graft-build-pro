@@ -281,14 +281,25 @@ function AppHomePage() {
               cta="Send now"
             />
           )}
-          {awaitingQuotes.length > 0 && (
+          {acceptedQuotes.length > 0 && (
+            <ActionCard
+              to="/quotes"
+              icon={CheckCircle2}
+              tone="accepted"
+              title="Accepted — book in"
+              count={acceptedQuotes.length}
+              amount={acceptedTotal}
+              cta="Schedule"
+            />
+          )}
+          {sentQuotes.length > 0 && (
             <ActionCard
               to="/chaser"
               icon={Bell}
               tone="neutral"
-              title="Awaiting payment"
-              count={awaitingQuotes.length}
-              amount={awaitingTotal}
+              title="Awaiting reply"
+              count={sentQuotes.length}
+              amount={awaitingReplyTotal}
               cta="Chase up"
             />
           )}
