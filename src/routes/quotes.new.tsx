@@ -956,7 +956,7 @@ function NewQuotePage() {
   );
 }
 
-type PickerClient = { id: string; name: string; address?: string };
+type PickerClient = { id: string; name: string; address?: string; phone?: string };
 
 function CustomerPicker({
   search,
