@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { getClient, quotesForClient, formatGBP } from "@/lib/user-data";
-import { Phone, Mail, MapPin, Home, FileText, Plus } from "lucide-react";
+import { Phone, Mail, MapPin, Home, FileText, Plus, CheckCircle2, Calendar } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { CustomerPortalPanel } from "@/components/CustomerPortalPanel";
 
@@ -10,6 +10,21 @@ export const Route = createFileRoute("/clients/$clientId")({
   component: ClientDetail,
   notFoundComponent: () => <div className="p-8 text-center">Customer not found</div>,
 });
+
+function relativeFromNow(iso: string): string {
+  const diffDays = Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (diffDays < 1) return "today";
+  if (diffDays === 1) return "yesterday";
+  if (diffDays < 30) return `${diffDays}d ago`;
+  const months = Math.round(diffDays / 30);
+  if (months < 12) return `${months}mo ago`;
+  const years = (diffDays / 365).toFixed(1).replace(/\.0$/, "");
+  return `${years}y ago`;
+}
+
+function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
 
 function ClientDetail() {
   const { clientId } = Route.useParams();
@@ -19,6 +34,18 @@ function ClientDetail() {
   const quotes = quotesForClient(clientId);
   const totalQuoted = quotes.reduce((s, q) => s + q.total, 0);
   const totalPaid = quotes.filter((q) => q.status === "paid").reduce((s, q) => s + q.total, 0);
+
+  // Service history derivations
+  const sortedQuotes = [...quotes].sort((a, b) => {
+    const aDate = a.completed_at ?? a.created_at;
+    const bDate = b.completed_at ?? b.created_at;
+    return new Date(bDate).getTime() - new Date(aDate).getTime();
+  });
+  const completedJobs = quotes.filter((q) => q.completed_at || q.status === "paid");
+  const lastService = completedJobs
+    .map((q) => q.completed_at ?? q.created_at)
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+  const customerSince = client.created_at;
 
   return (
     <AppShell>
@@ -32,6 +59,23 @@ function ClientDetail() {
         <div className="card-surface p-4">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Paid</p>
           <p className="num text-2xl mt-1 text-status-accepted">{formatGBP(totalPaid)}</p>
+        </div>
+      </section>
+
+      <section className="px-5 mt-3">
+        <div className="card-surface p-4 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+            <CheckCircle2 className="h-4 w-4" />
+          </div>
+          <div className="flex-1 min-w-0 text-sm">
+            <p className="font-semibold">
+              {completedJobs.length} job{completedJobs.length === 1 ? "" : "s"} completed
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+              {lastService ? `Last service ${relativeFromNow(lastService)} · ` : ""}
+              Customer since {formatShortDate(customerSince)}
+            </p>
+          </div>
         </div>
       </section>
 
@@ -77,23 +121,33 @@ function ClientDetail() {
               cta={{ label: "New quote", to: "/quotes/new", search: { clientId } }}
             />
           )}
-          {quotes.map((q) => (
-            <Link
-              to="/quotes/$quoteId"
-              params={{ quoteId: q.id }}
-              key={q.id}
-              className="card-surface p-4 flex items-center gap-3"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
-                  <StatusBadge status={q.status} />
+          {sortedQuotes.map((q) => {
+            const dateIso = q.completed_at ?? q.created_at;
+            const dateLabel = q.completed_at ? `Completed ${formatShortDate(q.completed_at)}` : formatShortDate(q.created_at);
+            return (
+              <Link
+                to="/quotes/$quoteId"
+                params={{ quoteId: q.id }}
+                key={q.id}
+                className="card-surface p-4 flex items-center gap-3"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
+                    <StatusBadge status={q.status} />
+                  </div>
+                  <p className="font-semibold text-sm mt-1 truncate">{q.title}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    <span>{dateLabel}</span>
+                    <span>· {relativeFromNow(dateIso)}</span>
+                  </p>
                 </div>
-                <p className="font-semibold text-sm mt-1 truncate">{q.title}</p>
-              </div>
-              <p className="num text-xl text-ink">{formatGBP(q.total)}</p>
-            </Link>
-          ))}
+                <p className="num text-xl text-ink">{formatGBP(q.total)}</p>
+              </Link>
+            );
+          })}
+
         </div>
       </section>
     </AppShell>
