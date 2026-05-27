@@ -6,6 +6,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   userProfile,
   userClients,
+  getClient,
   saveGeneratedQuote,
   formatGBP,
   QUOTE_TEMPLATES,
@@ -62,7 +63,8 @@ async function blobToBase64(blob: Blob): Promise<string> {
 export const Route = createFileRoute("/quotes/new")({
   component: NewQuotePage,
   validateSearch: (s: Record<string, unknown>) => ({
-    voice: s.voice === 1 || s.voice === "1" ? 1 : undefined,
+    ...(s.voice === 1 || s.voice === "1" ? { voice: 1 } : {}),
+    ...(typeof s.clientId === "string" ? { clientId: s.clientId } : {}),
   }),
 });
 
@@ -72,7 +74,7 @@ type Clip = { id: string; transcript: string };
 
 function NewQuotePage() {
   const navigate = useNavigate();
-  const { voice: voiceParam } = Route.useSearch();
+  const { voice: voiceParam, clientId } = Route.useSearch();
   const [mode, setMode] = useState<"speak" | "onsite">("speak");
   const [desc, setDesc] = useState("");
   const [clips, setClips] = useState<Clip[]>([]);
@@ -134,6 +136,18 @@ function NewQuotePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceParam]);
+
+  // Pre-populate customer when arriving from "Quote again" on customer detail
+  useEffect(() => {
+    if (!clientId) return;
+    const client = getClient(clientId);
+    if (client) {
+      setClientName(client.name);
+      setClientPhone(client.phone);
+      setCustomerMode("existing");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
 
   const handleVoiceStart = async () => {
     setVoicePending(false);
