@@ -596,6 +596,61 @@ function QuoteDetail() {
         </div>
       )}
 
+      {/* Bottom sheet: payment timing */}
+      {timingOpen && (
+        <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setTimingOpen(false)}>
+          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+            <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
+            <h3 className="text-2xl">When you get paid</h3>
+            <p className="text-xs text-muted-foreground mb-4">Choose how this customer pays you.</p>
+            <div className="space-y-1.5">
+              <MethodOption active={timing === "on_completion"} icon={Check} label="On completion"
+                sub="Customer pays after work is done" onClick={() => { onTimingChange("on_completion"); setTimingOpen(false); }} />
+              <MethodOption active={timing === "deposit_then_balance"} icon={Banknote} label="Deposit then balance"
+                sub="Take a deposit up front, balance on completion" onClick={() => { onTimingChange("deposit_then_balance"); setTimingOpen(false); }} />
+              <MethodOption active={timing === "staged"} icon={Clock} label="Staged payments"
+                sub="Multiple scheduled payments" onClick={() => { onTimingChange("staged"); setTimingOpen(false); }} />
+              <MethodOption active={timing === "upfront"} icon={Zap} label="Upfront"
+                sub="Full payment before work starts" onClick={() => { onTimingChange("upfront"); setTimingOpen(false); }} />
+            </div>
+
+            {timing === "deposit_then_balance" && (
+              <div className="mt-4 card-surface p-4 space-y-3">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Deposit</p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
+                    <span className="text-ink/60 font-bold">£</span>
+                    <input
+                      type="text" inputMode="decimal"
+                      value={depositAmtRaw}
+                      onChange={(e) => setDepositAmtRaw(e.target.value)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onBlur={onDepositAmtBlur}
+                      placeholder="0.00"
+                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none"
+                    />
+                  </label>
+                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
+                    <input
+                      type="text" inputMode="decimal"
+                      value={depositPctRaw}
+                      onChange={(e) => setDepositPctRaw(e.target.value)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onBlur={onDepositPctBlur}
+                      placeholder="0"
+                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none text-right"
+                    />
+                    <span className="text-ink/60 font-bold">%</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            <button onClick={() => setTimingOpen(false)} className="w-full mt-4 text-sm text-muted-foreground py-2">Done</button>
+          </div>
+        </div>
+      )}
+
       <SendQuoteDialog
         open={sendOpen}
         onClose={() => { setSendOpen(false); setUpdatedLinkCode(undefined); }}
