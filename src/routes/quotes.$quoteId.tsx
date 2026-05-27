@@ -501,84 +501,13 @@ function QuoteDetail() {
       )}
 
 
-      {/* Payment timing — trader-side configuration (NOT the customer payment selector) */}
-      <section className="px-5 mt-5">
-        <div className="flex items-baseline justify-between mb-2.5">
-          <h2 className="text-xl">Payment timing</h2>
-          <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">When you get paid</span>
-        </div>
-        <div className="card-surface p-2 space-y-1.5">
-          <MethodOption active={timing === "on_completion"} icon={Check} label="On completion"
-            sub="Customer pays after work is done" onClick={() => onTimingChange("on_completion")} />
-          <MethodOption active={timing === "deposit_then_balance"} icon={Banknote} label="Deposit then balance"
-            sub="Take a deposit up front, balance on completion" onClick={() => onTimingChange("deposit_then_balance")} />
-          <MethodOption active={timing === "staged"} icon={Clock} label="Staged payments"
-            sub="Multiple scheduled payments" onClick={() => onTimingChange("staged")} />
-          <MethodOption active={timing === "upfront"} icon={Zap} label="Upfront"
-            sub="Full payment before work starts" onClick={() => onTimingChange("upfront")} />
-        </div>
+      {/* Spacer so content isn't hidden behind sticky bar + bottom nav */}
+      <div className="h-44" aria-hidden />
 
-        {timing === "deposit_then_balance" && (
-          <div className="mt-3 card-surface p-4 space-y-3">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Deposit</p>
-            <div className="grid grid-cols-2 gap-2.5">
-              <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
-                <span className="text-ink/60 font-bold">£</span>
-                <input
-                  type="text" inputMode="decimal"
-                  value={depositAmtRaw}
-                  onChange={(e) => setDepositAmtRaw(e.target.value)}
-                  onFocus={(e) => e.currentTarget.select()}
-                  onBlur={onDepositAmtBlur}
-                  placeholder="0.00"
-                  className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none"
-                />
-              </label>
-              <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
-                <input
-                  type="text" inputMode="decimal"
-                  value={depositPctRaw}
-                  onChange={(e) => setDepositPctRaw(e.target.value)}
-                  onFocus={(e) => e.currentTarget.select()}
-                  onBlur={onDepositPctBlur}
-                  placeholder="0"
-                  className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none text-right"
-                />
-                <span className="text-ink/60 font-bold">%</span>
-              </label>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
-            </p>
-          </div>
-        )}
-
-        {timing !== "deposit_then_balance" && (
-          <p className="text-[11px] text-muted-foreground mt-3 px-1">
-            {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
-          </p>
-        )}
-
-        {shouldSuggestStaged(quote.total, timing) && (
-          <div className="mt-3 rounded-2xl border border-lime/50 bg-lime/15 px-4 py-3 flex items-start gap-2">
-            <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-ink" />
-            <p className="text-[12px] text-ink leading-relaxed">
-              This job is over {formatGBP(2000)} — staged payments may help cashflow.
-              <button onClick={() => onTimingChange("staged")} className="ml-1 underline font-semibold">Use staged</button>
-            </p>
-          </div>
-        )}
-      </section>
-
-
-
-      {/* Spacer so content isn't hidden behind sticky bar */}
-      <div className="h-36" aria-hidden />
-
-      {/* Sticky bottom action bar — Send · Mark Paid · Chase always visible */}
-      <div className="fixed bottom-0 inset-x-0 z-40 pointer-events-none">
-        <div className="mx-auto max-w-md px-4 pb-4 pt-3 pointer-events-auto bg-gradient-to-t from-paper via-paper to-paper/0">
-          <div className="card-surface bg-paper shadow-lg p-2.5 flex items-center gap-2">
+      {/* Sticky bottom action bar — floats above BottomNav */}
+      <div className="fixed bottom-20 inset-x-0 z-40 pointer-events-none">
+        <div className="mx-auto max-w-md px-4 pt-3 pointer-events-auto bg-gradient-to-t from-paper via-paper to-paper/0">
+          <div className="card-surface bg-paper shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)] p-2.5 flex items-center gap-2">
             <button
               onClick={primary.onClick}
               className="flex-1 bg-lime text-ink rounded-full py-3 font-bold inline-flex items-center justify-center gap-2 text-sm"
