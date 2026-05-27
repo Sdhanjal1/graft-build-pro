@@ -1,26 +1,39 @@
-## Step 10 — Push notifications on accept / paid
+## Step 11 — Unmissable home-screen status
 
-Most of the plumbing already exists: VAPID keys, `push_subscriptions` table, `/sw.js` push handler, the trader-facing `PushPermissionCard` enable flow, and `respondQuoteFromPortal` already calls `notifyUser` with "Quote accepted 🎉" / "Quote declined" when a customer responds via the portal.
-
-What's missing is the **paid** ping and the user-facing promise that paid events trigger a notification. Manual mark-paid happens by the trader themselves so doesn't need a push.
+Today the `/app` header already shows "You are owed £X" plus three small stat pills (to send / awaiting / overdue) and the action-queue cards below. What's missing is the **win signal** — when a customer accepts a quote or a payment lands, nothing on the home screen celebrates or quantifies it. The goal of Step 11 is to make today's money status the first thing the trader sees, without redesigning the whole screen.
 
 ### Changes
 
-1. **`src/routes/api/public/payments/webhook.ts`** — after the `invoice_payments` insert/update on `checkout.session.completed` / `payment_intent.succeeded`, fetch `quotes.title` + customer name and call `notifyUser(userId, …)` with:
-   - title: `Payment received 💰`
-   - body: `${quote.title} · £${(amountCents/100).toFixed(2)}`
-   - url: `/quotes/${quoteId}`
-   - tag: `quote-${quoteId}-paid` (dedupes if the same event re-fires)
-   Wrap in try/catch so a push failure never breaks the webhook.
+1. **`src/lib/user-data.ts` — extend `stats()`**
+   - Add `paidToday` (sum of `mockTransactions` dated today) and `paidTodayCount`.
+   - Add `acceptedToday` (count of quotes whose `status` is `accepted` and `updated_at` is today) and `acceptedTodayAmount`.
+   - Add `awaitingReplyCount` (quotes with `status === "sent"`) and `awaitingReplyAmount`. Today the page lumps `sent` and `accepted` into one "awaiting" pill — split them so "accepted but unpaid" reads as a win, not as a chase.
 
-2. **`src/components/CustomerQRCard.tsx` → `PushPermissionCard`** — update the two copy strings to mention the three pings the trader will now get: new quote requests, quotes accepted, and payments received. No structural changes.
+2. **`src/routes/app.tsx` — header block**
+   - When `paidTodayCount > 0`, replace the small lime "You are owed" number with a **two-line hero**:
+     - Line 1 (smaller, paper/70): `Paid today` · big lime `£X` · `(N payments)`
+     - Line 2 (smaller): `You are owed £Y` linking to `/chaser`
+   - When `paidTodayCount === 0` but `acceptedToday > 0`, show a `Won today: £X` line above "You are owed" using the same lime treatment.
+   - Keep CountUp animation on the dominant figure.
+   - Update the stat-pill row: replace the single `awaiting` pill with two pills — `accepted` (neutral lime tone, links to `/quotes?filter=accepted`) and `awaiting reply` (neutral paper tone, links to `/chaser`). Keep `to send` and `overdue` as-is.
 
-### Out of scope here
-- iOS PWA install prompt and home-screen instructions (covered by Steps 11 / 17).
-- Per-event mute toggles.
-- Stripe Connect / subscription webhooks (only invoice payments here).
+3. **`src/routes/app.tsx` — action queue**
+   - Split the existing "Awaiting payment" ActionCard into two cards: `Accepted — book in` (lime border, CTA "Schedule") and `Awaiting reply` (neutral border, CTA "Chase up"). Order: to-send → accepted → awaiting reply → overdue.
+
+4. **Tile copy & sizing**
+   - Bump the action-card title from `text-sm` to `text-base font-semibold` and the amount from `text-[11px]` to `text-xs` so the figures are legible at arm's length on a 390px viewport. No structural CSS changes elsewhere.
+
+### Out of scope
+- Push/email notifications for these events (Step 10 already done; Step 14 covers receipts).
+- Realtime updates — page already refetches on focus via existing query setup, that's enough.
+- Empty-state redesign — if there's no money news, header degrades to today's existing layout.
+- Chaser-cadence changes (Step 13).
 
 ### Verification
-- Trigger a sandbox `checkout.session.completed` for a real quote → server logs show one push send, the device gets "Payment received 💰" with the correct title and total, tapping opens `/quotes/{id}`.
-- Re-fire the same event → no duplicate banner (same `tag`).
-- Disable push on the device → webhook still returns 200 and the payment row still updates.
+- Seed: one quote marked paid today, one accepted today, one sent yesterday, one overdue.
+  - Header reads `Paid today £X (1 payment)` in giant lime, then `You are owed £Y` underneath.
+  - Pills: `1 to send`, `1 accepted`, `1 awaiting`, `1 overdue` — four distinct chips, accepted in lime, awaiting in neutral.
+  - Action cards: four cards in the order to-send / accepted / awaiting / overdue, each with its CTA.
+- Zero state (no quotes): header collapses to greeting + mic, no empty tiles.
+- Only-paid state: pills row hidden, just `Paid today £X` hero.
+- 390×844 viewport: every figure fits one line, no horizontal scroll.

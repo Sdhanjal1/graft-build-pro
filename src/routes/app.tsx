@@ -6,7 +6,7 @@ import {
   userProfile, stats, formatGBP, getClient, mockQuotes,
   todaysJobs, formatTime, getQuote,
 } from "@/lib/user-data";
-import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X } from "lucide-react";
+import { Mic, ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X, CheckCircle2 } from "lucide-react";
 
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
@@ -125,14 +125,20 @@ function AppHomePage() {
 
   // Action-queue breakdown
   const pendingQuotes = mockQuotes.filter((q) => q.status === "pending");
-  const awaitingQuotes = mockQuotes.filter((q) => q.status === "sent" || q.status === "accepted");
+  const acceptedQuotes = mockQuotes.filter((q) => q.status === "accepted");
+  const sentQuotes = mockQuotes.filter((q) => q.status === "sent");
   const overdueQuotes = mockQuotes.filter((q) => q.status === "overdue");
 
   const pendingTotal = pendingQuotes.reduce((sum, q) => sum + q.total, 0);
-  const awaitingTotal = awaitingQuotes.reduce((sum, q) => sum + q.total, 0);
+  const acceptedTotal = acceptedQuotes.reduce((sum, q) => sum + q.total, 0);
+  const awaitingReplyTotal = sentQuotes.reduce((sum, q) => sum + q.total, 0);
   const overdueTotal = overdueQuotes.reduce((sum, q) => sum + q.total, 0);
 
-  const hasActions = pendingQuotes.length > 0 || awaitingQuotes.length > 0 || overdueQuotes.length > 0;
+  const hasActions =
+    pendingQuotes.length > 0 ||
+    acceptedQuotes.length > 0 ||
+    sentQuotes.length > 0 ||
+    overdueQuotes.length > 0;
 
   return (
     <AppShell>
@@ -155,20 +161,58 @@ function AppHomePage() {
           {greeting}, {firstName}
         </p>
 
-        {s.outstanding > 0 && (
+        {s.paidTodayCount > 0 ? (
           <div className="mt-1">
+            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+              Paid today
+            </p>
+            <p className="num text-6xl leading-none text-lime mt-1">
+              <ClientOnly fallback={<>{formatGBP(s.paidToday)}</>}>
+                <CountUp start={0} end={s.paidToday} duration={0.6} formattingFn={formatGBP} />
+              </ClientOnly>
+            </p>
+            <p className="text-[11px] text-paper/60 font-medium mt-1">
+              {s.paidTodayCount} payment{s.paidTodayCount !== 1 ? "s" : ""}
+              {s.outstanding > 0 && (
+                <>
+                  {" · "}
+                  <Link to="/chaser" className="text-paper/80 hover:text-lime underline-offset-2 hover:underline">
+                    You are owed {formatGBP(s.outstanding)}
+                  </Link>
+                </>
+              )}
+            </p>
+          </div>
+        ) : s.outstanding > 0 ? (
+          <div className="mt-1">
+            {s.acceptedTodayCount > 0 && (
+              <p className="text-sm text-lime font-semibold mb-1">
+                Won today: {formatGBP(s.acceptedTodayAmount)}
+              </p>
+            )}
             <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
               You are owed
             </p>
             <Link to="/chaser" className="block mt-1 active:opacity-80 transition">
-              <p className={`num text-6xl leading-none text-lime`}>
+              <p className="num text-6xl leading-none text-lime">
                 <ClientOnly fallback={<>{formatGBP(s.outstanding)}</>}>
                   <CountUp start={0} end={s.outstanding} duration={0.6} formattingFn={formatGBP} />
                 </ClientOnly>
               </p>
             </Link>
           </div>
-        )}
+        ) : s.acceptedTodayCount > 0 ? (
+          <div className="mt-1">
+            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+              Won today
+            </p>
+            <p className="num text-6xl leading-none text-lime mt-1">
+              <ClientOnly fallback={<>{formatGBP(s.acceptedTodayAmount)}</>}>
+                <CountUp start={0} end={s.acceptedTodayAmount} duration={0.6} formattingFn={formatGBP} />
+              </ClientOnly>
+            </p>
+          </div>
+        ) : null}
 
         {/* Stat pills */}
         {hasActions && (
@@ -176,8 +220,11 @@ function AppHomePage() {
             {pendingQuotes.length > 0 && (
               <StatPill icon={FileText} count={pendingQuotes.length} label="to send" tone="pending" to="/quotes" />
             )}
-            {awaitingQuotes.length > 0 && (
-              <StatPill icon={Clock} count={awaitingQuotes.length} label="awaiting" tone="neutral" to="/chaser" />
+            {acceptedQuotes.length > 0 && (
+              <StatPill icon={CheckCircle2} count={acceptedQuotes.length} label="accepted" tone="accepted" to="/quotes" />
+            )}
+            {sentQuotes.length > 0 && (
+              <StatPill icon={Clock} count={sentQuotes.length} label="awaiting reply" tone="neutral" to="/chaser" />
             )}
             {overdueQuotes.length > 0 && (
               <StatPill icon={AlertTriangle} count={overdueQuotes.length} label="overdue" tone="overdue" to="/chaser" />
@@ -234,14 +281,25 @@ function AppHomePage() {
               cta="Send now"
             />
           )}
-          {awaitingQuotes.length > 0 && (
+          {acceptedQuotes.length > 0 && (
+            <ActionCard
+              to="/quotes"
+              icon={CheckCircle2}
+              tone="accepted"
+              title="Accepted — book in"
+              count={acceptedQuotes.length}
+              amount={acceptedTotal}
+              cta="Schedule"
+            />
+          )}
+          {sentQuotes.length > 0 && (
             <ActionCard
               to="/chaser"
               icon={Bell}
               tone="neutral"
-              title="Awaiting payment"
-              count={awaitingQuotes.length}
-              amount={awaitingTotal}
+              title="Awaiting reply"
+              count={sentQuotes.length}
+              amount={awaitingReplyTotal}
               cta="Chase up"
             />
           )}
@@ -382,7 +440,7 @@ function StatPill({
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   count: number;
   label: string;
-  tone: "pending" | "neutral" | "overdue";
+  tone: "pending" | "neutral" | "overdue" | "accepted";
   to: string;
 }) {
   const toneCls =
@@ -390,6 +448,8 @@ function StatPill({
       ? "bg-status-pending/20 text-status-pending"
       : tone === "overdue"
       ? "bg-status-overdue/20 text-status-overdue"
+      : tone === "accepted"
+      ? "bg-lime/20 text-lime"
       : "bg-paper/10 text-paper/80";
   return (
     <Link
@@ -413,7 +473,7 @@ function ActionCard({
 }: {
   to: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  tone: "pending" | "neutral" | "overdue";
+  tone: "pending" | "neutral" | "overdue" | "accepted";
   title: string;
   count: number;
   amount: number;
@@ -424,14 +484,18 @@ function ActionCard({
       ? "border-l-4 border-status-pending"
       : tone === "overdue"
       ? "border-l-4 border-status-overdue"
-      : "border-l-4 border-lime";
+      : tone === "accepted"
+      ? "border-l-4 border-lime"
+      : "border-l-4 border-paper/30";
 
   const iconBg =
     tone === "pending"
       ? "bg-status-pending/15"
       : tone === "overdue"
       ? "bg-status-overdue/15"
-      : "bg-lime/15";
+      : tone === "accepted"
+      ? "bg-lime/15"
+      : "bg-paper/10";
 
   const iconColor =
     tone === "pending"
@@ -449,8 +513,8 @@ function ActionCard({
         <Icon className={`h-5 w-5 ${iconColor}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-ink">{title}</p>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-base font-semibold text-ink leading-tight">{title}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
           {count} quote{count !== 1 ? "s" : ""} · {formatGBP(amount)}
         </p>
       </div>
