@@ -423,17 +423,6 @@ function QuoteDetail() {
         </section>
       )}
 
-      {status === "pending" && (
-        <section className="px-5 mt-3">
-          <button
-            onClick={() => (client ? setSendOpen(true) : setAssignOpen(true))}
-            className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 text-base shadow-[0_8px_24px_-8px_rgba(200,224,74,0.6)] active:scale-[0.99] transition"
-          >
-            <Send className="h-4 w-4" />
-            {client ? `Send to ${client.name.split(" ")[0]}` : "Add client to send"}
-          </button>
-        </section>
-      )}
 
       {userProfile.quote_intro && (
         <section className="px-5 mt-4">
