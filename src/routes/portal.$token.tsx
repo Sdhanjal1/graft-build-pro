@@ -58,6 +58,18 @@ function PortalPage() {
     }
   };
 
+  const onPay = async (requestType: "deposit" | "full") => {
+    setPaying(true);
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const r = await startCheckout({ data: { token, requestType, returnOrigin: origin } });
+      window.location.href = r.url;
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not start payment");
+      setPaying(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper">
