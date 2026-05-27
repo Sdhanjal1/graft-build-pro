@@ -84,11 +84,11 @@ Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
 {
   "title": "Concise job title summarising the work",
   "line_items": [
-    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other" }
+    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other", "unit": "qty" | "hours" | "days" }
   ]
 }
 
-Unit prices must be ex-VAT in GBP. Quantities can be decimal. Every line item MUST include both a source field and a category field.`;
+Unit prices must be ex-VAT in GBP. Quantities can be decimal. Every line item MUST include source, category and unit. Labour lines should use "hours" or "days" with the price as the hourly/daily rate.`;
 
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
