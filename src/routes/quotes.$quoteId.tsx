@@ -19,7 +19,7 @@ import { MaterialListSheet } from "@/components/MaterialListSheet";
 import { suggestPriceForDescription } from "@/lib/pricing-patterns.functions";
 import {
   computeDepositAmount, computeDepositPercent, parseDepositInput,
-  paymentTimingLabel, shouldSuggestStaged, defaultDepositPercent,
+  paymentTimingLabel, defaultDepositPercent,
   type PaymentTiming,
 } from "@/lib/payment-timing";
 import { QuottrLogo } from "@/components/QuottrLogo";
