@@ -261,6 +261,7 @@ function PortalPage() {
                 </button>
                 <button
                   onClick={() => onRespond("accepted")}
+                  onPointerDown={() => feedback("tap")}
                   disabled={responding}
                   className="flex-[2] h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3"
                 >
