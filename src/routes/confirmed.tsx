@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Check } from "lucide-react";
 import { useSession } from "@/lib/auth";
 import { hydrateUserData, userProfile } from "@/lib/user-data";
 
@@ -10,7 +11,7 @@ export const Route = createFileRoute("/confirmed")({
 function ConfirmedPage() {
   const { session, loading } = useSession();
   const navigate = useNavigate();
-  const [ready, setReady] = useState(false);
+  const [dest, setDest] = useState<"/onboarding" | "/app">("/onboarding");
 
   useEffect(() => {
     if (loading) return;
@@ -19,23 +20,24 @@ function ConfirmedPage() {
       return;
     }
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     (async () => {
       await hydrateUserData();
       if (cancelled) return;
-      setReady(true);
-      const dest = userProfile.business_name ? "/app" : "/onboarding";
-      const t = setTimeout(() => navigate({ to: dest, replace: true }), 1500);
-      return () => clearTimeout(t);
+      const target = userProfile.business_name ? "/app" : "/onboarding";
+      setDest(target);
+      timer = setTimeout(() => navigate({ to: target, replace: true }), 1500);
     })();
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
   }, [loading, session, navigate]);
 
   const goNow = async () => {
     await hydrateUserData();
-    const dest = userProfile.business_name ? "/app" : "/onboarding";
-    navigate({ to: dest, replace: true });
+    const target = userProfile.business_name ? "/app" : "/onboarding";
+    navigate({ to: target, replace: true });
   };
 
   return (
@@ -47,23 +49,29 @@ function ConfirmedPage() {
             "radial-gradient(circle at 50% 0%, color-mix(in oklab, var(--lime) 35%, transparent), transparent 55%)",
         }}
       />
-      <div className="relative text-center max-w-sm">
+      <div className="relative text-center max-w-sm flex flex-col items-center">
         <h1
-          className="text-lime leading-[0.8] tracking-tight mb-6"
-          style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4rem, 22vw, 6rem)" }}
+          className="text-lime leading-[0.8] tracking-tight mb-10"
+          style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3rem, 14vw, 4.5rem)" }}
         >
           Quottr.
         </h1>
-        <p className="text-xl font-semibold mb-2">Thanks — your email is confirmed</p>
+        <div className="w-20 h-20 rounded-full bg-lime flex items-center justify-center mb-6 shadow-[0_0_40px_color-mix(in_oklab,var(--lime)_50%,transparent)]">
+          <Check className="w-10 h-10 text-ink" strokeWidth={3} />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">Email confirmed</h2>
         <p className="text-sm text-paper/60 mb-8">
-          {ready ? "Taking you to setup…" : "One moment…"}
+          You're all set. Let's get your account ready.
         </p>
         <button
           onClick={goNow}
           className="bg-lime text-ink rounded-full px-8 py-3.5 font-bold"
         >
-          Get started
+          Continue
         </button>
+        <p className="mt-4 text-xs text-paper/40">
+          Taking you to {dest === "/app" ? "your dashboard" : "setup"}…
+        </p>
       </div>
     </div>
   );
