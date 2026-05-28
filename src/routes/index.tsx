@@ -184,13 +184,13 @@ function HomePage() {
           Making Tax Digital ready.
         </h2>
         <p className="mt-5 text-lg text-ink/70 max-w-3xl">
-          Every invoice you raise in Quottr feeds straight into Xero, QuickBooks, FreeAgent and Sage. No double entry. No spreadsheets. HMRC happy.
+          Export your records to Xero, QuickBooks, FreeAgent and Sage — formatted to import cleanly. No double entry. No spreadsheets. HMRC happy.
         </p>
         <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
           {["Xero", "QuickBooks", "FreeAgent", "Sage"].map((name) => (
             <div key={name} className="h-24 rounded-2xl border border-ink/10 bg-card flex flex-col items-center justify-center">
               <span className="text-xl font-semibold text-ink/75">{name}</span>
-              <span className="mt-1 text-[10px] uppercase tracking-widest text-ink/45 font-semibold">Coming soon</span>
+              <span className="mt-1 text-[10px] uppercase tracking-widest text-ink/45 font-semibold">CSV export</span>
             </div>
           ))}
         </div>
