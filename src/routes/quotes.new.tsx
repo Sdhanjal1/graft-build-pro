@@ -22,7 +22,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, MapPin, X, Search } from "lucide-react";
 import { RotatingStatus, QUOTE_GEN_MESSAGES } from "@/components/RotatingStatus";
-import { feedback } from "@/lib/feedback";
+import { feedback, playSample } from "@/lib/feedback";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordingNotice";
 import { usePaidQuoteCount, normalizeSource } from "@/hooks/usePaidQuoteCount";
@@ -408,6 +408,7 @@ function NewQuotePage() {
       setDraft(g);
       if (mode === "onsite") setDesc(text);
       feedback("success");
+      playSample("ding");
     } catch (e) {
       console.error(e);
       feedback("error");
