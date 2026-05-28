@@ -6,7 +6,7 @@ import { ensurePortalToken } from "@/lib/messages.functions";
 
 import { toast } from "sonner";
 import { feedback, playSample } from "@/lib/feedback";
-import { getQuote, userProfile, setQuoteAutoChase, setQuoteStatus } from "@/lib/user-data";
+import { getQuote, userProfile, formatGBP, setQuoteAutoChase, setQuoteStatus } from "@/lib/user-data";
 
 type SentVia = "sms";
 const ORDINAL = ["first", "second", "third", "fourth", "fifth"];
