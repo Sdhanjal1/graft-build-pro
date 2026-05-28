@@ -6,7 +6,7 @@ import {
   buildChaseMessageForOffset, chasesDueNow, upcomingChases, markChaseSent, skipChase,
   setQuoteAutoChase, waLink,
 } from "@/lib/user-data";
-import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, PartyPopper, Pause, Play } from "lucide-react";
+import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, ThumbsUp, Pause, Play } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { feedback } from "@/lib/feedback";
 
