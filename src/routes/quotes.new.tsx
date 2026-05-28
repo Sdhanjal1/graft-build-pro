@@ -675,23 +675,6 @@ function NewQuotePage() {
             }}
             onClose={() => setPickerOpen(false)}
           />
-        )}
-
-        {pickerOpen && (
-          <CustomerPicker
-            search={customerSearch}
-            onSearch={setCustomerSearch}
-            clients={filteredClients}
-            onPick={(c) => {
-              setClientName(c.name);
-              setClientPhone(c.phone ?? "");
-              setCustomerMode("existing");
-              setPickerOpen(false);
-            }}
-
-            onClose={() => setPickerOpen(false)}
-          />
-        )}
 
         {!draft && (
           <div className="fixed bottom-20 inset-x-0 z-30 px-3 safe-bottom pointer-events-none">
