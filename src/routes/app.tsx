@@ -303,10 +303,10 @@ function AppHomePage() {
               to="/quotes"
               icon={CheckCircle2}
               tone="accepted"
-              title="Accepted — book in"
+              title="Booked jobs"
               count={acceptedQuotes.length}
               amount={acceptedTotal}
-              cta="Schedule"
+              cta="Mark complete"
             />
           )}
           {sentQuotes.length > 0 && (
