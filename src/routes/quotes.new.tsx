@@ -117,6 +117,7 @@ function NewQuotePage() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const recordTargetRef = useRef<"desc" | "clip">("desc");
   const lastBlobRef = useRef<{ blob: Blob; mimeType: string } | null>(null);
+  const draftRef = useRef<HTMLDivElement | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const liveFinalRef = useRef<string>("");
