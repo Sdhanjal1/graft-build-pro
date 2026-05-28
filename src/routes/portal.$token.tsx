@@ -146,7 +146,7 @@ function PortalPage() {
 
   const { quote, profile, client, payment } = data;
   const lineItems = (quote.line_items as any[]) ?? [];
-  const isPaid = status === "paid";
+  const isPaid = status === "paid" || paymentResult === "paid";
   const canRespond = status === "pending" || status === "sent";
   const timing: PaymentTiming = (quote.payment_timing as PaymentTiming) ?? "on_completion";
   const total = Number(quote.total) || 0;
