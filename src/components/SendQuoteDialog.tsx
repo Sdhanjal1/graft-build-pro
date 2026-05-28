@@ -57,7 +57,7 @@ export function SendQuoteDialog({
   };
 
   const confirmSent = (channel: SentVia) => {
-    toast.success(`Sent to ${customerName ?? firstName} via ${CHANNEL_LABEL[channel]}`);
+    toast.success(`Sent to ${customerName ?? firstName}`);
     feedback("success");
     playSample("whoosh");
     setSentVia(channel);
