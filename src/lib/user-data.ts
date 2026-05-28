@@ -323,6 +323,36 @@ export async function hydrateUserData() {
     userProfile.email = userData.user.email || "";
   }
   bumpVersion();
+  // Auto-escalate completed invoices whose due date has passed → overdue.
+  // Fire-and-forget; the chaser depends on this for escalation.
+  void markOverdueQuotes();
+}
+
+/**
+ * Flip any `completed` quote whose invoice_due_date (or due_date) is in the
+ * past to `overdue`. Safe to call on app load and on the chaser screen.
+ */
+export async function markOverdueQuotes(): Promise<number> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayMs = today.getTime();
+  const stale = mockQuotes.filter((q) => {
+    if (q.status !== "completed") return false;
+    const due = q.invoice_due_date ?? q.due_date;
+    if (!due) return false;
+    const t = new Date(due).getTime();
+    return Number.isFinite(t) && t < todayMs;
+  });
+  if (stale.length === 0) return 0;
+  for (const q of stale) {
+    const { error } = await supabase
+      .from("quotes")
+      .update({ status: "overdue" })
+      .eq("id", q.id);
+    if (!error) q.status = "overdue";
+  }
+  bumpVersion();
+  return stale.length;
 }
 
 /** Persist current `userProfile` fields to Supabase (upsert by user id). */
