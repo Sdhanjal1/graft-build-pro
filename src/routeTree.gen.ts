@@ -21,6 +21,7 @@ import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as FaqsRouteImport } from './routes/faqs'
+import { Route as ConfirmedRouteImport } from './routes/confirmed'
 import { Route as ChaserRouteImport } from './routes/chaser'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
@@ -101,6 +102,11 @@ const FeaturesRoute = FeaturesRouteImport.update({
 const FaqsRoute = FaqsRouteImport.update({
   id: '/faqs',
   path: '/faqs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfirmedRoute = ConfirmedRouteImport.update({
+  id: '/confirmed',
+  path: '/confirmed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChaserRoute = ChaserRouteImport.update({
@@ -218,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRoute
   '/auth': typeof AuthRoute
   '/chaser': typeof ChaserRoute
+  '/confirmed': typeof ConfirmedRoute
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppRoute
   '/auth': typeof AuthRoute
   '/chaser': typeof ChaserRoute
+  '/confirmed': typeof ConfirmedRoute
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -289,6 +297,7 @@ export interface FileRoutesById {
   '/app': typeof AppRoute
   '/auth': typeof AuthRoute
   '/chaser': typeof ChaserRoute
+  '/confirmed': typeof ConfirmedRoute
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -326,6 +335,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/auth'
     | '/chaser'
+    | '/confirmed'
     | '/faqs'
     | '/features'
     | '/forgot-password'
@@ -361,6 +371,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/auth'
     | '/chaser'
+    | '/confirmed'
     | '/faqs'
     | '/features'
     | '/forgot-password'
@@ -396,6 +407,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/auth'
     | '/chaser'
+    | '/confirmed'
     | '/faqs'
     | '/features'
     | '/forgot-password'
@@ -432,6 +444,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRoute
   AuthRoute: typeof AuthRoute
   ChaserRoute: typeof ChaserRoute
+  ConfirmedRoute: typeof ConfirmedRoute
   FaqsRoute: typeof FaqsRoute
   FeaturesRoute: typeof FeaturesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -545,6 +558,13 @@ declare module '@tanstack/react-router' {
       path: '/faqs'
       fullPath: '/faqs'
       preLoaderRoute: typeof FaqsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/confirmed': {
+      id: '/confirmed'
+      path: '/confirmed'
+      fullPath: '/confirmed'
+      preLoaderRoute: typeof ConfirmedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chaser': {
@@ -714,6 +734,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRoute,
   AuthRoute: AuthRoute,
   ChaserRoute: ChaserRoute,
+  ConfirmedRoute: ConfirmedRoute,
   FaqsRoute: FaqsRoute,
   FeaturesRoute: FeaturesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,

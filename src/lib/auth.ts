@@ -33,7 +33,7 @@ export async function signUpWithPassword(email: string, password: string, fullNa
     email,
     password,
     options: {
-      emailRedirectTo: window.location.origin,
+      emailRedirectTo: `${window.location.origin}/confirmed`,
       data: fullName ? { full_name: fullName } : undefined,
     },
   });
