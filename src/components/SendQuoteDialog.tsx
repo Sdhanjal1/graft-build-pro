@@ -5,7 +5,7 @@ import { MessageCircle, Mail, Sparkles, Loader2, Copy, Check, CheckCircle2, Cloc
 import { ensurePortalToken } from "@/lib/messages.functions";
 
 import { toast } from "sonner";
-import { feedback } from "@/lib/feedback";
+import { feedback, playSample } from "@/lib/feedback";
 import { buildQuoteWhatsAppMessage, getQuote, waLink, userProfile, setQuoteAutoChase } from "@/lib/user-data";
 
 type SentVia = "sms" | "email" | "wa";
@@ -88,6 +88,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
         try {
           await navigator.share({ title: `Quote ${quoteRef}`, text, url });
           feedback("success");
+          playSample("whoosh");
           if (updatedLinkPortalCode) onClose();
           else setSentVia("sms");
           return;
@@ -96,6 +97,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       window.location.href = smsHref;
       toast.success(`Sent to ${customerName ?? firstName} via SMS`);
       feedback("success");
+      playSample("whoosh");
       if (updatedLinkPortalCode) onClose();
       else setSentVia("sms");
     } catch (e) {
@@ -122,6 +124,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       window.location.href = mailHref;
       toast.success(`Sent to ${customerName ?? firstName} via Email`);
       feedback("success");
+      playSample("whoosh");
       if (updatedLinkPortalCode) onClose();
       else setSentVia("email");
     } catch (e) {
@@ -286,6 +289,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
 
                 toast.success(`Sent to ${customerName ?? firstName} via WhatsApp`);
                 feedback("success");
+                playSample("whoosh");
                 if (updatedLinkPortalCode) onClose();
                 else setSentVia("wa");
               } catch (e) {

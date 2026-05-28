@@ -106,3 +106,40 @@ export function feedback(kind: "tap" | "success" | "warn" | "error" = "tap") {
   haptic(kind);
   sound(kind);
 }
+
+// ---- Sample-based cues (mp3) ----
+// Respects the user's sound preference. Cached so we don't refetch on every play.
+// iOS needs a user-gesture-triggered play to unlock audio; these are only called
+// from user-initiated handlers so that requirement is met.
+
+const sampleCache: Record<string, HTMLAudioElement> = {};
+
+const SAMPLES = {
+  tick: { src: "/tick.mp3", volume: 0.3 },
+  whoosh: { src: "/whoosh.mp3", volume: 0.35 },
+  ding: { src: "/ding.mp3", volume: 0.4 },
+  cash: { src: "/cash.mp3", volume: 0.4 },
+} as const;
+
+export type SampleKind = keyof typeof SAMPLES;
+
+export function playSample(kind: SampleKind) {
+  if (typeof window === "undefined") return;
+  if (!read().sound) return;
+  const cfg = SAMPLES[kind];
+  try {
+    let el = sampleCache[kind];
+    if (!el) {
+      el = new Audio(cfg.src);
+      el.preload = "auto";
+      sampleCache[kind] = el;
+    }
+    el.volume = cfg.volume;
+    el.currentTime = 0;
+    void el.play().catch(() => {
+      // Autoplay/unlock failures are silent — the next user gesture will unlock.
+    });
+  } catch {
+    // ignore
+  }
+}
