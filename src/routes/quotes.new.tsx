@@ -11,8 +11,10 @@ import {
   updateClientPhone,
   formatGBP,
   QUOTE_TEMPLATES,
+  mockQuotes,
   type LineItem,
 } from "@/lib/user-data";
+import { supabase } from "@/integrations/supabase/client";
 
 
 import { generateAIQuote } from "@/lib/ai-quote.functions";
