@@ -7,15 +7,13 @@ interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
 function Skeleton({ className, shimmer = true, ...props }: SkeletonProps) {
   return (
     <div
-      className={cn(
-        "rounded-md",
-        shimmer
-          ? "animate-shimmer bg-gradient-to-r from-transparent via-foreground/10 to-transparent bg-[length:200%_100%]"
-          : "animate-pulse bg-primary/10",
-        className
-      )}
+      className={cn("rounded-md relative overflow-hidden", className)}
       {...props}
-    />
+    >
+      {shimmer && (
+        <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent bg-[length:200%_100%]" />
+      )}
+    </div>
   );
 }
 
