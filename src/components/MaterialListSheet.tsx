@@ -5,8 +5,10 @@ import {
   buildMaterialsShareText,
   materialsForQuote,
   setQuoteMaterialsPurchased,
+  userProfile,
   type Quote,
 } from "@/lib/user-data";
+import { resolveTrade } from "@/lib/trades";
 import { feedback } from "@/lib/feedback";
 
 type Props = {
@@ -123,7 +125,7 @@ export function MaterialListSheet({ open, onClose, quote, customerName }: Props)
         <div className="flex-1 overflow-y-auto -mx-1 px-1">
           {mats.length === 0 ? (
             <div className="card-surface p-6 text-center text-sm text-muted-foreground">
-              No items on this quote are categorised as materials.
+              No {resolveTrade(userProfile.trade_type).materialPhrase} on this quote yet.
             </div>
           ) : (
             <ul className="space-y-1.5">
