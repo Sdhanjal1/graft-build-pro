@@ -134,7 +134,7 @@ function AboutPage() {
         <div className="mx-auto max-w-6xl px-5 py-20 md:py-24">
           <div className="grid gap-10 md:grid-cols-3 text-center md:text-left">
             {[
-              { n: "18s", l: "Voice note to professional quote" },
+              { n: "Secs", l: "Voice note to professional quote" },
               { n: "£0", l: "Per-quote fees. Ever." },
               { n: "14d", l: "Free trial. No card required." },
             ].map((s) => (

@@ -7,9 +7,9 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Quottr: stop quoting in the evenings" },
-      { name: "description", content: "Voice to professional quote in 18 seconds. Sent via WhatsApp. Customer pays the deposit before you leave the drive." },
+      { name: "description", content: "Voice to professional quote in seconds. Sent via WhatsApp. Customer can accept and pay on the spot." },
       { property: "og:title", content: "Quottr: stop quoting in the evenings" },
-      { property: "og:description", content: "Voice to professional quote in 18 seconds. Sent via WhatsApp. Customer pays the deposit before you leave the drive." },
+      { property: "og:description", content: "Voice to professional quote in seconds. Sent via WhatsApp. Customer can accept and pay on the spot." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.quottr.co.uk/" },
     ],
@@ -46,7 +46,7 @@ function HomePage() {
           </h2>
 
           <p className="mt-6 text-base md:text-lg text-paper/75 max-w-2xl mx-auto">
-            Voice to professional quote in 18 seconds. Sent via WhatsApp. Customer pays the deposit before you leave the drive.
+            Voice to professional quote in seconds. Sent via WhatsApp. Customer can accept and pay on the spot.
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
@@ -82,11 +82,11 @@ function HomePage() {
                 playsInline
                 preload="metadata"
                 className="w-full h-auto block"
-                aria-label="One tap. Money in. Voice to quote to paid in 18 seconds."
+                aria-label="One tap. Money in. Voice to quote to paid in seconds."
               />
             </div>
             <p className="mt-3 text-xs text-paper/50 uppercase tracking-widest font-semibold">
-              Voice → Quote → Paid · 18 seconds
+              Voice → Quote → Paid · in seconds
             </p>
           </div>
         </div>
@@ -96,7 +96,7 @@ function HomePage() {
       <section id="how" className="mx-auto max-w-5xl px-5 py-20 md:py-28 text-center">
         <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">How it works</p>
         <h2 className="mt-3 text-5xl md:text-7xl leading-[0.95]">
-          18 seconds from <span className="text-lime-ink bg-lime px-2">van to paid</span>.
+          From <span className="text-lime-ink bg-lime px-2">van to paid</span>, in seconds.
         </h2>
         <ol className="mt-14 grid gap-8 md:grid-cols-3 text-left">
           {[
@@ -184,13 +184,13 @@ function HomePage() {
           Making Tax Digital ready.
         </h2>
         <p className="mt-5 text-lg text-ink/70 max-w-3xl">
-          Every invoice you raise in Quottr feeds straight into Xero, QuickBooks, FreeAgent and Sage. No double entry. No spreadsheets. HMRC happy.
+          Export your records to Xero, QuickBooks, FreeAgent and Sage — formatted to import cleanly. No double entry. No spreadsheets. HMRC happy.
         </p>
         <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
           {["Xero", "QuickBooks", "FreeAgent", "Sage"].map((name) => (
             <div key={name} className="h-24 rounded-2xl border border-ink/10 bg-card flex flex-col items-center justify-center">
               <span className="text-xl font-semibold text-ink/75">{name}</span>
-              <span className="mt-1 text-[10px] uppercase tracking-widest text-ink/45 font-semibold">Coming soon</span>
+              <span className="mt-1 text-[10px] uppercase tracking-widest text-ink/45 font-semibold">CSV export</span>
             </div>
           ))}
         </div>
