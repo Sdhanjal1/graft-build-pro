@@ -31,8 +31,12 @@ function formatShortDate(iso: string): string {
 }
 
 function ClientDetail() {
+  useDataVersion();
   const { clientId } = Route.useParams();
+  const { loading } = useSession();
   const client = getClient(clientId);
+
+  if (loading) return <ClientDetailSkeleton />;
   if (!client) throw notFound();
 
   const trade = resolveTrade(userProfile.trade_type);
