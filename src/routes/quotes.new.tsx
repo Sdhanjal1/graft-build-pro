@@ -980,31 +980,49 @@ function NewQuotePage() {
         )}
 
         {draft && (
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={generate}
-              disabled={loading}
-              className="bg-card border border-border text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-60"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              {loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : "Regenerate"}
-            </button>
-            <button
-              type="button"
-              onClick={save}
-              onPointerDown={() => feedback("tap")}
-              disabled={!clientName.trim() || saving}
-              title={!clientName.trim() ? "Assign a customer first" : undefined}
-              className="bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {!clientName.trim() ? "Assign customer to save" : "Save quote"}
-            </button>
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  const edited =
+                    originalDraftRef.current &&
+                    JSON.stringify(draft.line_items) !== originalDraftRef.current;
+                  if (edited) {
+                    const ok = window.confirm(
+                      "Regenerate will replace your edited prices. Continue?",
+                    );
+                    if (!ok) return;
+                  }
+                  generate();
+                }}
+                disabled={loading}
+                className="bg-card border border-border text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-60"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                {loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : "Regenerate"}
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                onPointerDown={() => feedback("tap")}
+                disabled={!clientName.trim() || saving}
+                title={!clientName.trim() ? "Add a customer to save this quote." : undefined}
+                className="bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save quote
+              </button>
+            </div>
+            {!clientName.trim() && (
+              <p className="text-[12px] text-center text-muted-foreground">
+                Add a customer to save this quote.
+              </p>
+            )}
           </div>
         )}
       </form>
