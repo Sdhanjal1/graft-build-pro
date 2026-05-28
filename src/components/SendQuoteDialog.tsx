@@ -37,6 +37,7 @@ export function SendQuoteDialog({
   const [busy, setBusy] = useState<null | "sms" | "email" | "wa">(null);
   const [copied, setCopied] = useState(false);
   const [sentVia, setSentVia] = useState<SentVia | null>(null);
+  const [pendingChannel, setPendingChannel] = useState<SentVia | null>(null);
   const initialAutoChase = (() => {
     const q = getQuote(quoteId);
     return q?.auto_chase_enabled ?? userProfile.auto_chase_enabled ?? true;
@@ -52,7 +53,16 @@ export function SendQuoteDialog({
 
   const handleClose = () => {
     setSentVia(null);
+    setPendingChannel(null);
     onClose();
+  };
+
+  const confirmSent = (channel: SentVia) => {
+    toast.success(`Sent to ${customerName ?? firstName} via ${CHANNEL_LABEL[channel]}`);
+    feedback("success");
+    playSample("whoosh");
+    setSentVia(channel);
+    setPendingChannel(null);
   };
 
 
@@ -87,19 +97,14 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       if (navigator.share) {
         try {
           await navigator.share({ title: `Quote ${quoteRef}`, text, url });
-          feedback("success");
-          playSample("whoosh");
           if (updatedLinkPortalCode) onClose();
-          else setSentVia("sms");
+          else setPendingChannel("sms");
           return;
         } catch { /* user cancelled or unsupported - fall through */ }
       }
       window.location.href = smsHref;
-      toast.success(`Sent to ${customerName ?? firstName} via SMS`);
-      feedback("success");
-      playSample("whoosh");
       if (updatedLinkPortalCode) onClose();
-      else setSentVia("sms");
+      else setPendingChannel("sms");
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Could not create portal link");
@@ -122,11 +127,8 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
         : `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}\n\nThanks.`;
       const mailHref = `mailto:${customerEmail ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.location.href = mailHref;
-      toast.success(`Sent to ${customerName ?? firstName} via Email`);
-      feedback("success");
-      playSample("whoosh");
       if (updatedLinkPortalCode) onClose();
-      else setSentVia("email");
+      else setPendingChannel("email");
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Could not create portal link");
@@ -158,7 +160,29 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
         <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
 
-        {sentVia ? (
+        {pendingChannel && !sentVia ? (
+          <div>
+            <h3 className="text-2xl">Did you send the quote?</h3>
+            <p className="text-xs text-muted-foreground mb-4 mt-1">
+              Confirm once you've actually sent it to {customerName ?? firstName} via {CHANNEL_LABEL[pendingChannel]}. Opening the app isn't proof it was sent.
+            </p>
+            <div className="space-y-2.5">
+              <button
+                onClick={() => confirmSent(pendingChannel)}
+                className="w-full rounded-2xl p-4 bg-lime text-ink font-bold text-sm"
+              >
+                Yes, sent
+              </button>
+              <button
+                onClick={() => setPendingChannel(null)}
+                className="w-full rounded-2xl p-4 bg-card border border-border text-ink font-bold text-sm"
+              >
+                Not yet, go back
+              </button>
+            </div>
+            <button onClick={handleClose} className="w-full mt-2 text-sm text-muted-foreground py-2">Cancel</button>
+          </div>
+        ) : sentVia ? (
           <div>
             <div className="flex flex-col items-center text-center pt-1 pb-3">
               <div className="h-14 w-14 rounded-full bg-lime text-ink flex items-center justify-center mb-3">
@@ -287,11 +311,8 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
                     : `Hi ${firstName}, your quote ${quoteRef} is ready: ${portalUrlStr}`;
                 window.open(waLink(customerPhone, text), "_blank");
 
-                toast.success(`Sent to ${customerName ?? firstName} via WhatsApp`);
-                feedback("success");
-                playSample("whoosh");
                 if (updatedLinkPortalCode) onClose();
-                else setSentVia("wa");
+                else setPendingChannel("wa");
               } catch (e) {
                 feedback("error");
                 toast.error(e instanceof Error ? e.message : "Could not open WhatsApp");
