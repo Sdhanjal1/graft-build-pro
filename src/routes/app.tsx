@@ -206,7 +206,7 @@ function AppHomePage() {
               <StatPill icon={FileText} count={pendingQuotes.length} label="to send" tone="pending" to="/quotes" />
             )}
             {acceptedQuotes.length > 0 && (
-              <StatPill icon={CheckCircle2} count={acceptedQuotes.length} label="accepted" tone="accepted" to="/quotes" />
+              <StatPill icon={CheckCircle2} count={acceptedQuotes.length} label="booked" tone="accepted" to="/quotes" />
             )}
             {sentQuotes.length > 0 && (
               <StatPill icon={Clock} count={sentQuotes.length} label="awaiting reply" tone="neutral" to="/chaser" />
@@ -303,10 +303,10 @@ function AppHomePage() {
               to="/quotes"
               icon={CheckCircle2}
               tone="accepted"
-              title="Accepted — book in"
+              title="Booked jobs"
               count={acceptedQuotes.length}
               amount={acceptedTotal}
-              cta="Schedule"
+              cta="Mark complete"
             />
           )}
           {sentQuotes.length > 0 && (

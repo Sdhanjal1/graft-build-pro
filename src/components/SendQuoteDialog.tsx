@@ -6,7 +6,7 @@ import { ensurePortalToken } from "@/lib/messages.functions";
 
 import { toast } from "sonner";
 import { feedback, playSample } from "@/lib/feedback";
-import { getQuote, userProfile, setQuoteAutoChase } from "@/lib/user-data";
+import { getQuote, userProfile, setQuoteAutoChase, setQuoteStatus } from "@/lib/user-data";
 
 type SentVia = "sms";
 const ORDINAL = ["first", "second", "third", "fourth", "fifth"];
@@ -56,7 +56,13 @@ export function SendQuoteDialog({
     onClose();
   };
 
-  const confirmSent = (channel: SentVia) => {
+  const confirmSent = async (channel: SentVia) => {
+    try {
+      const q = getQuote(quoteId);
+      if (q && q.status === "pending") {
+        await setQuoteStatus(quoteId, "sent");
+      }
+    } catch { /* non-fatal — UI still advances */ }
     toast.success(`Sent to ${customerName ?? firstName}`);
     feedback("success");
     playSample("whoosh");
