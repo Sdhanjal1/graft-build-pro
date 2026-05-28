@@ -59,7 +59,7 @@ export function SendQuoteDialog({
   const confirmSent = async (channel: SentVia) => {
     try {
       const q = getQuote(quoteId);
-      if (q && (q.status === "pending" || q.status === "draft" as never)) {
+      if (q && q.status === "pending") {
         await setQuoteStatus(quoteId, "sent");
       }
     } catch { /* non-fatal — UI still advances */ }
