@@ -51,7 +51,12 @@ function InvoicePage() {
                 <p className="text-[10px] uppercase tracking-[0.3em] text-lime font-bold">Invoice</p>
                 <h1 className="text-5xl mt-1 leading-none text-paper">{ref}</h1>
                 <p className="text-xs text-paper/60 mt-2 truncate">{userProfile.business_name}</p>
-                <p className="text-[10px] text-paper/50 truncate">{userProfile.registration_number} · VAT {userProfile.vat_number}</p>
+                <p className="text-[10px] text-paper/50 truncate">
+                  {[
+                    userProfile.registration_number,
+                    userProfile.vat_registered && userProfile.vat_number ? `VAT ${userProfile.vat_number}` : null,
+                  ].filter(Boolean).join(" · ")}
+                </p>
               </div>
             </div>
             <QuottrLogo className="h-6 w-auto opacity-60" />
