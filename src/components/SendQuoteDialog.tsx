@@ -95,15 +95,17 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       setBusy("sms");
       const { token } = await ensureToken({ data: { quoteId, channel: "sms" } });
       const url = portalUrl(token);
+      const q = getQuote(quoteId);
+      const totalStr = q ? formatGBP(q.total) + (userProfile.vat_registered ? " inc VAT" : "") : "";
       const text = updatedLinkPortalCode
-        ? `Hi ${firstName}, here's an updated link for your quote ${quoteRef}: ${url}`
-        : `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready to view, approve and pay: ${url}`;
+        ? `Hi ${firstName},\n\nHere's an updated link for your quote ${quoteRef} for ${quoteTitle}:\n\n${url}\n\nTotal: ${totalStr}\n\nThanks,\n\n${userProfile.business_name}`
+        : `Hi ${firstName},\n\nYour quote ${quoteRef} for ${quoteTitle} is ready to view, approve and pay online:\n\n${url}\n\nTotal: ${totalStr}\n\nThanks,\n\n${userProfile.business_name}`;
       if (navigator.share) {
         try {
-          await navigator.share({ title: `Quote ${quoteRef}`, text, url });
+          await navigator.share({ title: `Quote ${quoteRef}`, text });
         } catch { /* user cancelled or unsupported - still ask to confirm */ }
       } else {
-        try { await navigator.clipboard.writeText(`${text}`); toast.message("Message copied — paste it into your chat or email"); } catch { /* ignore */ }
+        try { await navigator.clipboard.writeText(text); toast.message("Message copied — paste it into your chat or email"); } catch { /* ignore */ }
       }
       if (updatedLinkPortalCode) onClose();
       else setPendingChannel("sms");
