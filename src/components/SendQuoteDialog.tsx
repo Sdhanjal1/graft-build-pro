@@ -61,9 +61,11 @@ export function SendQuoteDialog({
   const confirmSent = async (channel: SentVia) => {
     try {
       const q = getQuote(quoteId);
-      if (q && q.status === "pending") {
+      // Flip to "sent" from any pre-send state, regardless of share channel (WhatsApp/SMS/email).
+      if (q && (q.status === "pending" || q.status === "draft")) {
         await setQuoteStatus(quoteId, "sent");
       }
+      onSent?.();
     } catch { /* non-fatal — UI still advances */ }
     toast.success(`Sent to ${customerName ?? firstName}`);
     feedback("success");
