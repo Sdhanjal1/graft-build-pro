@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { MessageCircle, Mail, Sparkles, Loader2, Copy, Check, CheckCircle2, Clock, BellOff, Bell, ArrowRight } from "lucide-react";
+import { Sparkles, Loader2, Copy, Check, CheckCircle2, Clock, BellOff, Bell, ArrowRight } from "lucide-react";
 import { ensurePortalToken } from "@/lib/messages.functions";
 
 import { toast } from "sonner";
 import { feedback, playSample } from "@/lib/feedback";
-import { buildQuoteWhatsAppMessage, getQuote, waLink, userProfile, setQuoteAutoChase } from "@/lib/user-data";
+import { getQuote, userProfile, setQuoteAutoChase } from "@/lib/user-data";
 
-type SentVia = "sms" | "email" | "wa";
-const CHANNEL_LABEL: Record<SentVia, string> = { sms: "SMS", email: "Email", wa: "WhatsApp" };
+type SentVia = "sms";
 const ORDINAL = ["first", "second", "third", "fourth", "fifth"];
 
 type Props = {
