@@ -289,11 +289,8 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
                     : `Hi ${firstName}, your quote ${quoteRef} is ready: ${portalUrlStr}`;
                 window.open(waLink(customerPhone, text), "_blank");
 
-                toast.success(`Sent to ${customerName ?? firstName} via WhatsApp`);
-                feedback("success");
-                playSample("whoosh");
                 if (updatedLinkPortalCode) onClose();
-                else setSentVia("wa");
+                else setPendingChannel("wa");
               } catch (e) {
                 feedback("error");
                 toast.error(e instanceof Error ? e.message : "Could not open WhatsApp");
