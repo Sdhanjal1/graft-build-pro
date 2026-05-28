@@ -160,7 +160,29 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
         <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
 
-        {sentVia ? (
+        {pendingChannel && !sentVia ? (
+          <div>
+            <h3 className="text-2xl">Did you send the quote?</h3>
+            <p className="text-xs text-muted-foreground mb-4 mt-1">
+              Confirm once you've actually sent it to {customerName ?? firstName} via {CHANNEL_LABEL[pendingChannel]}. Opening the app isn't proof it was sent.
+            </p>
+            <div className="space-y-2.5">
+              <button
+                onClick={() => confirmSent(pendingChannel)}
+                className="w-full rounded-2xl p-4 bg-lime text-ink font-bold text-sm"
+              >
+                Yes, sent
+              </button>
+              <button
+                onClick={() => setPendingChannel(null)}
+                className="w-full rounded-2xl p-4 bg-card border border-border text-ink font-bold text-sm"
+              >
+                Not yet, go back
+              </button>
+            </div>
+            <button onClick={handleClose} className="w-full mt-2 text-sm text-muted-foreground py-2">Cancel</button>
+          </div>
+        ) : sentVia ? (
           <div>
             <div className="flex flex-col items-center text-center pt-1 pb-3">
               <div className="h-14 w-14 rounded-full bg-lime text-ink flex items-center justify-center mb-3">
