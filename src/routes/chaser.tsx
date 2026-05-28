@@ -196,10 +196,10 @@ function ChaserPage() {
         })}
         {overdue.length === 0 && (
           <EmptyState
-            icon={PartyPopper}
+            icon={ThumbsUp}
             tone="celebrate"
-            title="All caught up"
-            body="No overdue invoices. We'll nudge you the moment something needs chasing."
+            title="Nothing to chase"
+            body="Nice work."
           />
         )}
       </section>
