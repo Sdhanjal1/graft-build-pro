@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, FileText, Settings, Bell } from "lucide-react";
+import { feedback } from "@/lib/feedback";
 
 const items = [
   { to: "/app", label: "Home", icon: Home },
