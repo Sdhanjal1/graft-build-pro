@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { useSession } from "@/lib/auth";
 import { userProfile, hydrateUserData, saveProfileToCloud } from "@/lib/user-data";
-import { allTrades } from "@/lib/trades";
+import { allTrades, resolveTrade } from "@/lib/trades";
 import { feedback } from "@/lib/feedback";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { toast } from "sonner";
@@ -179,7 +179,9 @@ function OnboardingWizard() {
 
         {step === 3 && (
           <StepShell>
-            <h2 className="text-3xl leading-tight">Tell us about you.</h2>
+            <h2 className="text-3xl leading-tight">
+              {trade ? `Great — let's set up your ${resolveTrade(trade).setupLine}.` : "Tell us about you."}
+            </h2>
             <p className="mt-2 text-sm text-muted-foreground">
               Your business name shows on quotes. Your name shows when you message customers.
             </p>
