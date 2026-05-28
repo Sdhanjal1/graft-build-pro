@@ -382,7 +382,7 @@ function PortalPage() {
                   >
                     {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                     <span className="truncate">
-                      {payRequestType === "deposit" ? "Pay deposit" : "Pay now"} {formatGBP(payAmount)}
+                      Pay now {formatGBP(payAmount)}
                     </span>
                   </button>
                   <p className="text-center text-[10px] text-muted-foreground">
