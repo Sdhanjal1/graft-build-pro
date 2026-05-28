@@ -126,6 +126,20 @@ function QuoteDetail() {
     return () => { cancelled = true; };
   }, [quote.id, fetchPortalStatus]);
 
+  // First-quote celebration toast (shows once per user, set by quotes.new).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const celebrateId = sessionStorage.getItem("quottr.celebrateFirstQuote");
+      if (celebrateId && celebrateId === quote.id) {
+        sessionStorage.removeItem("quottr.celebrateFirstQuote");
+        const who = client?.name?.split(" ")[0] ?? "your customer";
+        toast.success(`Your first Quottr quote. Tap Send to share it with ${who}.`);
+      }
+    } catch { /* noop */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quote.id]);
+
   const handleRegenerateAndResend = async () => {
     if (!portalStatus) return;
     try {
