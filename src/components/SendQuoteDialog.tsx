@@ -135,7 +135,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
           <div>
             <h3 className="text-2xl">Did you send the quote?</h3>
             <p className="text-xs text-muted-foreground mb-4 mt-1">
-              Confirm once you've actually sent it to {customerName ?? firstName} via {CHANNEL_LABEL[pendingChannel]}. Opening the app isn't proof it was sent.
+              Confirm once you've actually sent it to {customerName ?? firstName}. Opening the share menu isn't proof it was sent.
             </p>
             <div className="space-y-2.5">
               <button
