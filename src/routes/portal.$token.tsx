@@ -36,20 +36,68 @@ function PortalPage() {
   const [responding, setResponding] = useState(false);
   const [paying, setPaying] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [paymentResult, setPaymentResult] = useState<"paid" | "cancelled" | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   const load = async () => {
     try {
       const r = await fetchData({ data: { token } });
       setData(r);
       setStatus(r.quote?.status ?? null);
+      return r;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load quote");
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [token]);
+  useEffect(() => {
+    // Read ?paid / ?cancelled BEFORE first load, then clean URL.
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const paid = params.get("paid");
+      const cancelled = params.get("cancelled");
+      if (paid === "1") {
+        setPaymentResult("paid");
+        setConfirming(true);
+      } else if (cancelled === "1") {
+        setPaymentResult("cancelled");
+      }
+      if (paid || cancelled) {
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    }
+    void load();
+    /* eslint-disable-next-line */
+  }, [token]);
+
+  // Poll for webhook confirmation after a paid redirect
+  useEffect(() => {
+    if (paymentResult !== "paid") return;
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 15; // 15 × 2s = 30s
+    const tick = async () => {
+      if (cancelled) return;
+      attempts++;
+      const r = await load();
+      if (r?.quote?.status === "paid") {
+        setConfirming(false);
+        return;
+      }
+      if (attempts >= maxAttempts) {
+        setConfirming(false);
+        return;
+      }
+      window.setTimeout(tick, 2000);
+    };
+    window.setTimeout(tick, 2000);
+    return () => { cancelled = true; };
+    /* eslint-disable-next-line */
+  }, [paymentResult]);
+
 
   const onRespond = async (response: "accepted" | "declined") => {
     if (response === "declined" && !confirm("Decline this quote?")) return;
