@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getPortalData, respondToQuoteByToken } from "@/lib/messages.functions";
 import { createPortalCheckout } from "@/lib/payments.functions";
-import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { WalletBadges } from "@/components/WalletBadges";
 import { downloadPortalPdf } from "@/lib/portal-pdf";
