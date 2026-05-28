@@ -21,8 +21,6 @@ function InvoicePage() {
   const { quoteId } = Route.useParams();
   const quote = getQuote(quoteId);
   if (!quote) throw notFound();
-  // Ensure invoice metadata exists if user lands here directly
-  if (!quote.invoiced_at) { void markInvoiced(quote.id); }
   const client = getClient(quote.client_id);
   const ref = invoiceRef(quote);
   const firstName = client?.name.split(" ")[0] ?? "there";
