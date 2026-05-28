@@ -136,43 +136,98 @@ function QuotesPage() {
               onChase={chaseHandler}
               chaseLabel="Chase"
             >
-              <Link
-                to="/quotes/$quoteId"
-                params={{ quoteId: quote.id }}
-                className="card-surface py-5 px-4 flex items-center gap-4 bg-card"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-[32px] font-bold leading-none text-ink">{formatGBP(quote.total)}</p>
-                  <p className="text-sm mt-2 truncate text-ink">
-                    {c && c.name && c.name.toLowerCase() !== "new client"
-                      ? c.name
-                      : <span className="text-status-pending">Tap to assign client</span>}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">{quote.title}</p>
-                  {quote.status === "accepted" && (() => {
-                    const n = materialsForQuote(quote).length;
-                    return n > 0 ? (
-                      <p className="mt-1.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-widest font-semibold text-ink/70">
-                        <ShoppingCart className="h-3 w-3" />
-                        {n} material{n === 1 ? "" : "s"}
-                      </p>
-                    ) : null;
-                  })()}
-                </div>
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <span
-                    className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT[quote.status]}`}
-                    aria-label={STATUS_LABEL[quote.status]}
-                  />
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                    {STATUS_LABEL[quote.status]}
-                  </span>
-                </div>
-              </Link>
+              <QuoteCard
+                quote={quote}
+                clientName={c?.name}
+                onOpenQuickActions={() => setActionsFor(quote)}
+              />
             </SwipeRow>
           );
         })}
       </div>
+
+      <QuoteQuickActionsSheet
+        open={actionsFor !== null}
+        onOpenChange={(open) => { if (!open) setActionsFor(null); }}
+        quoteRef={actionsFor?.ref ?? ""}
+        canMarkSent={actionsFor?.status === "pending"}
+        onAction={async (action) => {
+          const target = actionsFor;
+          if (!target) return;
+          try {
+            if (action === "duplicate") {
+              await duplicateQuote(target.id);
+              toast.success("Quote duplicated");
+            } else if (action === "mark-sent") {
+              await setQuoteStatus(target.id, "sent");
+              toast.success("Marked as sent");
+            } else if (action === "delete") {
+              await deleteQuote(target.id);
+              toast.success("Quote deleted");
+            }
+          } catch {
+            toast.error("Couldn't complete action");
+          }
+        }}
+      />
     </AppShell>
+  );
+}
+
+function QuoteCard({
+  quote,
+  clientName,
+  onOpenQuickActions,
+}: {
+  quote: Quote;
+  clientName: string | undefined;
+  onOpenQuickActions: () => void;
+}) {
+  const { handlers, didLongPress, resetLongPress } = useLongPress(onOpenQuickActions, 500);
+
+  return (
+    <Link
+      to="/quotes/$quoteId"
+      params={{ quoteId: quote.id }}
+      className="card-surface py-5 px-4 flex items-center gap-4 bg-card"
+      {...handlers}
+      onClickCapture={(e) => {
+        if (didLongPress()) {
+          e.preventDefault();
+          e.stopPropagation();
+          resetLongPress();
+        }
+      }}
+      onContextMenu={(e) => e.preventDefault()}
+      style={{ WebkitTouchCallout: "none", userSelect: "none" }}
+    >
+      <div className="flex-1 min-w-0">
+        <p className="text-[32px] font-bold leading-none text-ink">{formatGBP(quote.total)}</p>
+        <p className="text-sm mt-2 truncate text-ink">
+          {clientName && clientName.toLowerCase() !== "new client"
+            ? clientName
+            : <span className="text-status-pending">Tap to assign client</span>}
+        </p>
+        <p className="text-[11px] text-muted-foreground truncate mt-0.5">{quote.title}</p>
+        {quote.status === "accepted" && (() => {
+          const n = materialsForQuote(quote).length;
+          return n > 0 ? (
+            <p className="mt-1.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-widest font-semibold text-ink/70">
+              <ShoppingCart className="h-3 w-3" />
+              {n} material{n === 1 ? "" : "s"}
+            </p>
+          ) : null;
+        })()}
+      </div>
+      <div className="flex flex-col items-end gap-1.5 shrink-0">
+        <span
+          className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT[quote.status]}`}
+          aria-label={STATUS_LABEL[quote.status]}
+        />
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+          {STATUS_LABEL[quote.status]}
+        </span>
+      </div>
+    </Link>
   );
 }
