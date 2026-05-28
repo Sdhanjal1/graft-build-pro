@@ -97,19 +97,14 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       if (navigator.share) {
         try {
           await navigator.share({ title: `Quote ${quoteRef}`, text, url });
-          feedback("success");
-          playSample("whoosh");
           if (updatedLinkPortalCode) onClose();
-          else setSentVia("sms");
+          else setPendingChannel("sms");
           return;
         } catch { /* user cancelled or unsupported - fall through */ }
       }
       window.location.href = smsHref;
-      toast.success(`Sent to ${customerName ?? firstName} via SMS`);
-      feedback("success");
-      playSample("whoosh");
       if (updatedLinkPortalCode) onClose();
-      else setSentVia("sms");
+      else setPendingChannel("sms");
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Could not create portal link");
@@ -132,11 +127,8 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
         : `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}\n\nThanks.`;
       const mailHref = `mailto:${customerEmail ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.location.href = mailHref;
-      toast.success(`Sent to ${customerName ?? firstName} via Email`);
-      feedback("success");
-      playSample("whoosh");
       if (updatedLinkPortalCode) onClose();
-      else setSentVia("email");
+      else setPendingChannel("email");
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Could not create portal link");
