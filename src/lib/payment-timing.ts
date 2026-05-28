@@ -7,13 +7,11 @@
 export type PaymentTiming =
   | "on_completion"
   | "deposit_then_balance"
-  | "staged"
   | "upfront";
 
 export const PAYMENT_TIMING_OPTIONS: { value: PaymentTiming; label: string; sub: string }[] = [
   { value: "on_completion", label: "On completion", sub: "Customer pays after work is done" },
   { value: "deposit_then_balance", label: "Deposit then balance", sub: "Deposit upfront, balance on completion" },
-  { value: "staged", label: "Staged payments", sub: "Multiple scheduled payments" },
   { value: "upfront", label: "Upfront", sub: "Full payment before work starts" },
 ];
 
@@ -22,12 +20,7 @@ const DEFAULT_DEPOSIT_PCT_FALLBACK = 30;
 /** Auto-derive a sensible payment timing from a quote total. */
 export function deriveTimingFromTotal(total: number): PaymentTiming {
   if (total < 500) return "on_completion";
-  return "deposit_then_balance"; // covers 500–2000 and >2000
-}
-
-/** Whether a quote should be flagged in the UI as a candidate for staged payments. */
-export function shouldSuggestStaged(total: number, timing: PaymentTiming) {
-  return total > 2000 && timing !== "staged";
+  return "deposit_then_balance";
 }
 
 /** Compute deposit amount from subtotal + percentage. */
@@ -70,7 +63,7 @@ export function paymentTimingLabel(opts: {
   const { timing, total, depositAmount, depositPercent } = opts;
   if (timing === "on_completion") return "Due on completion";
   if (timing === "upfront") return `${formatGBP(total)} upfront`;
-  if (timing === "staged") return "Staged schedule";
+
   // deposit_then_balance
   const balance = Math.max(0, +(total - depositAmount).toFixed(2));
   const pctLabel = depositPercent ? ` (${Math.round(depositPercent)}%)` : "";

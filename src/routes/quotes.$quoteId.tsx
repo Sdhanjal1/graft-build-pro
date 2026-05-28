@@ -19,7 +19,7 @@ import { MaterialListSheet } from "@/components/MaterialListSheet";
 import { suggestPriceForDescription } from "@/lib/pricing-patterns.functions";
 import {
   computeDepositAmount, computeDepositPercent, parseDepositInput,
-  paymentTimingLabel, shouldSuggestStaged, defaultDepositPercent,
+  paymentTimingLabel, defaultDepositPercent,
   type PaymentTiming,
 } from "@/lib/payment-timing";
 import { QuottrLogo } from "@/components/QuottrLogo";
@@ -506,16 +506,8 @@ function QuoteDetail() {
           </span>
           <span className="text-ink font-semibold underline underline-offset-2">Change</span>
         </button>
-        {shouldSuggestStaged(quote.total, timing) && (
-          <div className="mt-3 rounded-2xl border border-lime/50 bg-lime/15 px-4 py-3 flex items-start gap-2">
-            <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-ink" />
-            <p className="text-[12px] text-ink leading-relaxed">
-              This job is over {formatGBP(2000)} — staged payments may help cashflow.
-              <button onClick={() => onTimingChange("staged")} className="ml-1 underline font-semibold">Use staged</button>
-            </p>
-          </div>
-        )}
       </section>
+
 
       {(userProfile.quote_footer || (userProfile.show_signature && (userProfile.signature_name || userProfile.full_name))) && (
         <section className="px-5 mt-5">
@@ -637,10 +629,9 @@ function QuoteDetail() {
                 sub="Customer pays after work is done" onClick={() => { onTimingChange("on_completion"); setTimingOpen(false); }} />
               <MethodOption active={timing === "deposit_then_balance"} icon={Banknote} label="Deposit then balance"
                 sub="Take a deposit up front, balance on completion" onClick={() => { onTimingChange("deposit_then_balance"); setTimingOpen(false); }} />
-              <MethodOption active={timing === "staged"} icon={Clock} label="Staged payments"
-                sub="Multiple scheduled payments" onClick={() => { onTimingChange("staged"); setTimingOpen(false); }} />
               <MethodOption active={timing === "upfront"} icon={Zap} label="Upfront"
                 sub="Full payment before work starts" onClick={() => { onTimingChange("upfront"); setTimingOpen(false); }} />
+
             </div>
 
             {timing === "deposit_then_balance" && (

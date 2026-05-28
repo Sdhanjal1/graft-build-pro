@@ -160,10 +160,10 @@ function PortalPage() {
       ? +(total * (depositPct / 100)).toFixed(2)
       : +(total * 0.5).toFixed(2);
   const canPayNow =
-    status === "accepted" && !isPaid && (timing === "upfront" || timing === "staged" || timing === "on_completion");
-  const payRequestType: "deposit" | "full" =
-    timing === "staged" ? "deposit" : "full";
-  const payAmount = payRequestType === "deposit" ? depositAmount : total;
+    status === "accepted" && !isPaid && (timing === "upfront" || timing === "on_completion");
+  const payRequestType: "deposit" | "full" = "full";
+  const payAmount = total;
+
   const showBottomBar = canRespond || status === "accepted" || status === "declined" || isPaid;
 
   const handleDownloadInvoice = async () => {
@@ -382,7 +382,7 @@ function PortalPage() {
                   >
                     {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                     <span className="truncate">
-                      {payRequestType === "deposit" ? "Pay deposit" : "Pay now"} {formatGBP(payAmount)}
+                      Pay now {formatGBP(payAmount)}
                     </span>
                   </button>
                   <p className="text-center text-[10px] text-muted-foreground">
