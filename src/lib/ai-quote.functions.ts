@@ -23,6 +23,14 @@ const LineItemSchema = z.object({
 
 const QuoteSchema = z.object({
   title: z.string().min(1).max(160),
+  clean_description: z.string().min(1).max(1000),
+  extracted_customer: z
+    .object({
+      name: z.string().max(200).optional(),
+      phone: z.string().max(50).optional(),
+      email: z.string().max(200).optional(),
+    })
+    .optional(),
   line_items: z.array(LineItemSchema).min(1).max(20),
 });
 
@@ -73,7 +81,16 @@ Each line item MUST have a unit field. Use these rules:
 Examples:
 - Boiler install labour, 1 day on site → { qty: 1, unit_price: 480, unit: "days", category: "labour" }
 - Tap change, ~1.5 hours → { qty: 1.5, unit_price: 65, unit: "hours", category: "labour" }
-- 3 radiators → { qty: 3, unit_price: 150, unit: "qty", category: "materials" }`;
+- 3 radiators → { qty: 3, unit_price: 150, unit: "qty", category: "materials" }
+
+JOB DESCRIPTION — write a clean, concise, professional summary of the work for the customer-facing quote. Extract only the scope of work from what the tradesperson said. Do NOT include:
+- Customer names, phone numbers, or email addresses
+- Conversational filler ('thank you', 'I need', 'can you', 'so basically', 'right then')
+- Asides about the customer, pricing, timing or scheduling
+
+Write it as a professional job description a customer would expect on a formal quote. For example, if the tradesperson says "I need four radiators fitted for Mr Dave Smith, his number's 07886293616, email at hotmail, thanks", the clean_description should simply be: "Supply and fit 4 radiators including connecting pipework, filling, bleeding and balancing."
+
+EXTRACTED CUSTOMER DETAILS — if the tradesperson mentioned a customer name, phone number, or email address in the voice note, return them in the extracted_customer object. Omit any field that wasn't mentioned. Do NOT make up details. These will be captured into the customer record separately from the job description.`;
 
 export const generateAIQuote = createServerFn({ method: "POST" })
   .middleware([requireActiveSubscription])
@@ -99,12 +116,14 @@ ${data.description}
 Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
 {
   "title": "Concise quote title",
+  "clean_description": "Professional scope-of-work summary, no customer names/contacts/filler",
+  "extracted_customer": { "name": "optional", "phone": "optional", "email": "optional" },
   "line_items": [
     { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other", "unit": "qty" | "hours" | "days" }
   ]
 }
 
-Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 hours). Every line item MUST include source, category and unit. Labour lines should use "hours" or "days" with the price as the hourly/daily rate.`;
+Omit extracted_customer entirely if no customer details were mentioned. Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 hours). Every line item MUST include source, category and unit. Labour lines should use "hours" or "days" with the price as the hourly/daily rate.`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

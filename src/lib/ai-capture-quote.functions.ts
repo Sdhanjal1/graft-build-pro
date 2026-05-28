@@ -26,6 +26,14 @@ const LineItemSchema = z.object({
 
 const QuoteSchema = z.object({
   title: z.string().min(1).max(160),
+  clean_description: z.string().min(1).max(1000),
+  extracted_customer: z
+    .object({
+      name: z.string().max(200).optional(),
+      phone: z.string().max(50).optional(),
+      email: z.string().max(200).optional(),
+    })
+    .optional(),
   line_items: z.array(LineItemSchema).min(1).max(30),
 });
 
@@ -57,7 +65,16 @@ CATEGORY FIELD — REQUIRED ON EVERY LINE ITEM:
 
 UNIT FIELD — REQUIRED ON EVERY LINE ITEM:
 - For 'labour' or 'cis_labour' lines: estimate realistic UK trade duration. Use 'hours' if under a full day, 'days' otherwise. qty = estimated duration (hours rounded to 0.5, days rounded to 0.5). unit_price = hourly or daily rate.
-- For all other categories: use 'qty'. qty is the count of items supplied.`;
+- For all other categories: use 'qty'. qty is the count of items supplied.
+
+JOB DESCRIPTION — write a clean, concise, professional summary of all the captured work for the customer-facing quote. Extract only the scope of work. Do NOT include:
+- Customer names, phone numbers, or email addresses
+- Conversational filler ('thank you', 'I need', 'can you', 'so basically')
+- Asides about the customer, pricing, timing or scheduling
+
+Write it as a professional job description a customer would expect on a formal quote.
+
+EXTRACTED CUSTOMER DETAILS — if any captured item mentioned a customer name, phone number, or email address, return them in the extracted_customer object. Omit any field that wasn't mentioned. Do NOT make up details.`;
 
 
 export const generateCaptureQuote = createServerFn({ method: "POST" })
@@ -83,12 +100,14 @@ ${itemList}
 Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
 {
   "title": "Concise job title summarising the work",
+  "clean_description": "Professional scope-of-work summary, no customer names/contacts/filler",
+  "extracted_customer": { "name": "optional", "phone": "optional", "email": "optional" },
   "line_items": [
     { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other", "unit": "qty" | "hours" | "days" }
   ]
 }
 
-Unit prices must be ex-VAT in GBP. Quantities can be decimal. Every line item MUST include source, category and unit. Labour lines should use "hours" or "days" with the price as the hourly/daily rate.`;
+Omit extracted_customer entirely if no customer details were mentioned. Unit prices must be ex-VAT in GBP. Quantities can be decimal. Every line item MUST include source, category and unit. Labour lines should use "hours" or "days" with the price as the hourly/daily rate.`;
 
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
