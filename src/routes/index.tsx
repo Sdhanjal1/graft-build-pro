@@ -46,7 +46,7 @@ function HomePage() {
           </h2>
 
           <p className="mt-6 text-base md:text-lg text-paper/75 max-w-2xl mx-auto">
-            Voice to professional quote in 18 seconds. Sent via WhatsApp. Customer pays the deposit before you leave the drive.
+            Voice to professional quote in seconds. Sent via WhatsApp. Customer can accept and pay on the spot.
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
