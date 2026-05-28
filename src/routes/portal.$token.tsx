@@ -16,7 +16,12 @@ export const Route = createFileRoute("/portal/$token")({
 });
 
 function formatGBP(n: number) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n || 0);
+  const safe = Number.isFinite(n) ? n : 0;
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    maximumFractionDigits: safe < 1000 ? 2 : 0,
+  }).format(safe);
 }
 
 function PortalPage() {
