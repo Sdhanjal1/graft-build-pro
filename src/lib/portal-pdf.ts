@@ -206,12 +206,15 @@ export function generatePortalPdf(
     head: [["Description", "Qty", "Unit", "Amount"]],
     body: quote.line_items.map((li) => {
       const u = (li as any).unit;
-      const qtyStr = u === "hours" ? `${li.qty} ${li.qty === 1 ? "hr" : "hrs"}` : u === "days" ? `${li.qty} ${li.qty === 1 ? "day" : "days"}` : String(li.qty);
+      const cat = (li as any).category;
+      const isLabour = cat === "labour" || cat === "cis_labour";
+      const qtyStr = isLabour ? "" : u === "hours" ? `${li.qty} ${li.qty === 1 ? "hr" : "hrs"}` : u === "days" ? `${li.qty} ${li.qty === 1 ? "day" : "days"}` : String(li.qty);
       const suffix = u === "hours" ? "/hr" : u === "days" ? "/day" : "";
+      const unitStr = isLabour ? "" : `${formatGBP(li.unit_price)}${suffix}`;
       return [
         li.description,
         qtyStr,
-        `${formatGBP(li.unit_price)}${suffix}`,
+        unitStr,
         formatGBP(li.qty * li.unit_price),
       ];
     }),

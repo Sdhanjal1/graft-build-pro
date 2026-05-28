@@ -264,7 +264,9 @@ function PortalPage() {
               <li key={i} className="px-5 py-3 flex items-start gap-3 border-t border-border first:border-t-0">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{li.description}</p>
-                  <p className="text-xs text-muted-foreground">{(li as any).unit === "hours" ? `${li.qty} ${li.qty === 1 ? "hr" : "hrs"}` : (li as any).unit === "days" ? `${li.qty} ${li.qty === 1 ? "day" : "days"}` : li.qty} × {formatGBP(li.unit_price)}{(li as any).unit === "hours" ? "/hr" : (li as any).unit === "days" ? "/day" : ""}</p>
+                  {(li as any).category !== "labour" && (li as any).category !== "cis_labour" && (
+                    <p className="text-xs text-muted-foreground">{(li as any).unit === "hours" ? `${li.qty} ${li.qty === 1 ? "hr" : "hrs"}` : (li as any).unit === "days" ? `${li.qty} ${li.qty === 1 ? "day" : "days"}` : li.qty} × {formatGBP(li.unit_price)}{(li as any).unit === "hours" ? "/hr" : (li as any).unit === "days" ? "/day" : ""}</p>
+                  )}
                 </div>
                 <p className="num text-base">{formatGBP((li.qty || 0) * (li.unit_price || 0))}</p>
               </li>
