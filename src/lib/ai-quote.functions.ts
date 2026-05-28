@@ -81,7 +81,16 @@ Each line item MUST have a unit field. Use these rules:
 Examples:
 - Boiler install labour, 1 day on site → { qty: 1, unit_price: 480, unit: "days", category: "labour" }
 - Tap change, ~1.5 hours → { qty: 1.5, unit_price: 65, unit: "hours", category: "labour" }
-- 3 radiators → { qty: 3, unit_price: 150, unit: "qty", category: "materials" }`;
+- 3 radiators → { qty: 3, unit_price: 150, unit: "qty", category: "materials" }
+
+JOB DESCRIPTION — write a clean, concise, professional summary of the work for the customer-facing quote. Extract only the scope of work from what the tradesperson said. Do NOT include:
+- Customer names, phone numbers, or email addresses
+- Conversational filler ('thank you', 'I need', 'can you', 'so basically', 'right then')
+- Asides about the customer, pricing, timing or scheduling
+
+Write it as a professional job description a customer would expect on a formal quote. For example, if the tradesperson says "I need four radiators fitted for Mr Dave Smith, his number's 07886293616, email at hotmail, thanks", the clean_description should simply be: "Supply and fit 4 radiators including connecting pipework, filling, bleeding and balancing."
+
+EXTRACTED CUSTOMER DETAILS — if the tradesperson mentioned a customer name, phone number, or email address in the voice note, return them in the extracted_customer object. Omit any field that wasn't mentioned. Do NOT make up details. These will be captured into the customer record separately from the job description.`;
 
 export const generateAIQuote = createServerFn({ method: "POST" })
   .middleware([requireActiveSubscription])
