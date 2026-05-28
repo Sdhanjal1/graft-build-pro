@@ -4,11 +4,13 @@ import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
 
 import { SwipeRow } from "@/components/SwipeRow";
-import { mockQuotes, getClient, formatGBP, deleteQuote, useDataVersion, buildChaserMessage, waLink, materialsForQuote, type QuoteStatus } from "@/lib/user-data";
+import { mockQuotes, getClient, formatGBP, deleteQuote, duplicateQuote, setQuoteStatus, useDataVersion, buildChaserMessage, waLink, materialsForQuote, type Quote, type QuoteStatus } from "@/lib/user-data";
 import { Search, FileText, Inbox, ShoppingCart } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { QuotesListSkeleton } from "@/components/Skeletons";
 import { useSession } from "@/lib/auth";
+import { useLongPress } from "@/hooks/useLongPress";
+import { QuoteQuickActionsSheet, type QuoteQuickAction } from "@/components/QuoteQuickActionsSheet";
 
 const STATUS_DOT: Record<QuoteStatus, string> = {
   pending: "bg-status-pending",
