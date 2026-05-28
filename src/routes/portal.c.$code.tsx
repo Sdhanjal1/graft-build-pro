@@ -354,14 +354,19 @@ function ClientPortalPage() {
                         <span className="text-muted-foreground">Total</span>
                         <span className="num text-lg">{formatGBP(q.total)}</span>
                       </div>
-                      <p className="px-4 pb-3 text-xs text-muted-foreground">
-                        {paymentTimingLabel({
-                          timing: ((q as any).payment_timing as PaymentTiming) ?? "on_completion",
-                          total: Number(q.total) || 0,
-                          depositAmount: Number((q as any).deposit_amount) || 0,
-                          depositPercent: Number((q as any).deposit_percent) || 0,
-                        })}
-                      </p>
+                      <div className="px-4 pb-3">
+                        <div className="rounded-xl border-2 border-lime bg-lime/10 px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
+                          <p className="text-sm font-bold text-ink leading-tight">
+                            {paymentTimingLabel({
+                              timing: ((q as any).payment_timing as PaymentTiming) ?? "on_completion",
+                              total: Number(q.total) || 0,
+                              depositAmount: Number((q as any).deposit_amount) || 0,
+                              depositPercent: Number((q as any).deposit_percent) || 0,
+                            })}
+                          </p>
+                        </div>
+                      </div>
                       {(q.status === "pending" || q.status === "sent") && (
                         <div className="px-4 py-3 border-t border-border grid grid-cols-2 gap-2">
                           <button
