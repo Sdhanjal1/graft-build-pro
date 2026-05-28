@@ -26,7 +26,7 @@ import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
-import { feedback } from "@/lib/feedback";
+import { feedback, playSample } from "@/lib/feedback";
 import { SendQuoteDialog } from "@/components/SendQuoteDialog";
 import { AssignClientDialog } from "@/components/AssignClientDialog";
 import { listQuoteMessages, sendProMessage } from "@/lib/messages.functions";
@@ -36,11 +36,7 @@ import { usePaidQuoteCount, useInvalidatePaidQuoteCount, normalizeSource } from 
 
 function celebratePaid(amount: number) {
   if (typeof window === "undefined") return;
-  try {
-    const audio = new Audio("/cash.mp3");
-    audio.volume = 0.7;
-    void audio.play().catch(() => {});
-  } catch { /* noop */ }
+  playSample("cash");
   void import("canvas-confetti").then(({ default: confetti }) => {
     try {
       confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ["#c8e04a", "#0a0a0a", "#ffffff"] });
