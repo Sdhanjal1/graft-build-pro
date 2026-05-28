@@ -143,7 +143,7 @@ function RootComponent() {
   );
 }
 
-const PUBLIC_ROUTES = new Set(["/", "/auth", "/welcome", "/pricing", "/about", "/features", "/faqs", "/trades"]);
+const PUBLIC_ROUTES = new Set(["/", "/auth", "/welcome", "/confirmed", "/pricing", "/about", "/features", "/faqs", "/trades", "/forgot-password", "/reset-password"]);
 
 function isPublicPath(path: string) {
   return PUBLIC_ROUTES.has(path) || path.startsWith("/portal/") || path.startsWith("/request/");
