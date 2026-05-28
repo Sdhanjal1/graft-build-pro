@@ -1,25 +1,26 @@
-## Placeholder audit findings
+## Plan: Accurate social glyphs in Quottr lime
 
-### Not done — real/fictional names still present:
+Replace the four placeholder line-style SVGs in `src/components/MarketingShell.tsx` with solid, brand-accurate glyph SVGs, all rendered in `text-lime` (`fill="currentColor"`).
 
-| File | Line | Current placeholder | Issue | Fix |
-|------|------|---------------------|-------|-----|
-| `src/routes/onboarding.tsx` | 197 | `e.g. Cosy Plumbing & Heating` | Sounds like a real business | `e.g. Smith Plumbing & Heating` |
-| `src/routes/onboarding.tsx` | 208 | `Full name` | Missing generic example | `e.g. John Smith` |
-| `src/routes/auth.tsx` | 109 | `e.g. Alex Smith` | Inconsistent with requested example | `e.g. John Smith` |
-| `src/routes/auth.tsx` | 111 | `you@trade.co.uk` | `.co.uk` could be real | `you@example.com` |
-| `src/routes/forgot-password.tsx` | 68 | `you@trade.co.uk` | `.co.uk` could be real | `you@example.com` |
-| `src/routes/settings.tsx` | 176 | `Street address` | Missing generic example | `e.g. 12 High Street` |
-| `src/routes/settings.tsx` | 293 | `profile.full_name` (dynamic) | **Uses actual user personal data as placeholder** | `e.g. John Smith` |
+### Icons (24×24, in order)
 
-### Already correct:
-- Phone placeholders: `07XXX XXX XXX` / `07XXX XXXXXX` — already generic across onboarding, quotes.new, clients.new
-- Email in clients.new: `name@example.com` — already correct
-- Customer name in clients.new: `e.g. Customer name` — already generic
+1. **TikTok** — the official musical-note "d" glyph (single-path filled shape).
+2. **Instagram** — rounded square camera body with inner circle lens and small top-right dot, drawn as filled shapes via `fill-rule="evenodd"` so the lime reads as the logo silhouette on the dark footer.
+3. **Facebook** — the solid "f" mark in a filled rounded square.
+4. **YouTube** — rounded-rectangle play badge with the triangle knocked out via `fill-rule="evenodd"`.
 
-### Plan
-Surgical text replacements in 4 files. No new files, no logic changes.
-1. Update `onboarding.tsx` — business name + your name placeholders
-2. Update `auth.tsx` — full name + email placeholders
-3. Update `forgot-password.tsx` — email placeholder
-4. Update `settings.tsx` — address line 1 + signature name (remove dynamic personal data)
+All four:
+
+- `width="24" height="24"`, `viewBox="0 0 24 24"`, `fill="currentColor"`, no stroke.
+- Wrapped in the existing `<a href="#" target="_blank" rel="noopener noreferrer" aria-label="Quottr on X">` anchors.
+- Anchor classes change from `text-lime hover:scale-110` to `text-lime hover:text-lime/80 transition-colors` for the "subtle brighten" hover (lime-on-dark reads brighter when lightened slightly; scale removed per the "subtle" ask — happy to keep scale if you prefer).
+- Order preserved: TikTok → Instagram → Facebook → YouTube.
+- Placeholder `href="#"` kept, with the existing "update hrefs once accounts are live" comment.
+
+### Files
+
+- `src/components/MarketingShell.tsx` — swap the four `<svg>` blocks inside the "Follow Quottr" column; no other changes.
+
+No new assets, no new dependencies — inline SVGs only so they inherit `currentColor` from Tailwind's `text-lime`.
+
+keep a *very* subtle scale (like `hover:scale-105`) AND the brighten together. A tiny scale plus a brighten gives the icons a satisfying "alive" feel on hover without being over the top.
