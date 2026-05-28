@@ -675,6 +675,8 @@ function NewQuotePage() {
             }}
             onClose={() => setPickerOpen(false)}
           />
+        )}
+
 
         {!draft && (
           <div className="fixed bottom-20 inset-x-0 z-30 px-3 safe-bottom pointer-events-none">
