@@ -50,9 +50,12 @@ export const Route = createFileRoute("/portal/c/$code")({
 });
 
 function formatGBP(n: number) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(
-    Number(n) || 0,
-  );
+  const safe = Number.isFinite(Number(n)) ? Number(n) : 0;
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    maximumFractionDigits: safe < 1000 ? 2 : 0,
+  }).format(safe);
 }
 
 const STATUS_LABEL: Record<string, string> = {
