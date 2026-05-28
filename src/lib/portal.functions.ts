@@ -295,6 +295,14 @@ export const addClientDocument = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    // Prevent IDOR: ensure the storage path belongs to the authenticated user's
+    // folder. signClientDoc uses supabaseAdmin which bypasses storage RLS, so
+    // an unchecked file_url would let one pro generate signed URLs for another
+    // pro's files.
+    const path = storagePathFromStored(data.file_url);
+    if (!path || !path.startsWith(`${context.userId}/`)) {
+      throw new Error("Invalid file path: must belong to your storage folder.");
+    }
     const { data: row, error } = await context.supabase
       .from("client_documents")
       .insert({
