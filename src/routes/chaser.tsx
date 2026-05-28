@@ -34,6 +34,7 @@ function ChaserPage() {
   const overdue = mockQuotes.filter((q) => q.status === "completed" || q.status === "overdue");
   const total = overdue.reduce((s, q) => s + q.total, 0);
   const [, force] = useState(0);
+  useEffect(() => { void markOverdueQuotes().then((n) => { if (n > 0) force((x) => x + 1); }); }, []);
   const due = chasesDueNow();
   const upcoming = upcomingChases().slice(0, 4);
 
