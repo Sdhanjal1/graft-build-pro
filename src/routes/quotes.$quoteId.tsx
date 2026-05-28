@@ -550,6 +550,7 @@ function QuoteDetail() {
           <div className="card-surface bg-paper shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)] p-2.5 flex items-center gap-2">
             <button
               onClick={primary.onClick}
+              onPointerDown={() => feedback("tap")}
               className="flex-1 bg-lime text-ink rounded-full py-3 font-bold inline-flex items-center justify-center gap-2 text-sm"
             >
               <PrimaryIcon className="h-4 w-4" />
