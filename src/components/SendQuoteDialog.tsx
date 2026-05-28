@@ -61,8 +61,8 @@ export function SendQuoteDialog({
   const confirmSent = async (channel: SentVia) => {
     try {
       const q = getQuote(quoteId);
-      // Flip to "sent" from any pre-send state, regardless of share channel (WhatsApp/SMS/email).
-      if (q && (q.status === "pending" || q.status === "draft")) {
+      // Flip to "sent" from the pre-send state, regardless of share channel (WhatsApp/SMS/email).
+      if (q && q.status === "pending") {
         await setQuoteStatus(quoteId, "sent");
       }
       onSent?.();
