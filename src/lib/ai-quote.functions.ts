@@ -23,6 +23,14 @@ const LineItemSchema = z.object({
 
 const QuoteSchema = z.object({
   title: z.string().min(1).max(160),
+  clean_description: z.string().min(1).max(1000),
+  extracted_customer: z
+    .object({
+      name: z.string().max(200).optional(),
+      phone: z.string().max(50).optional(),
+      email: z.string().max(200).optional(),
+    })
+    .optional(),
   line_items: z.array(LineItemSchema).min(1).max(20),
 });
 
