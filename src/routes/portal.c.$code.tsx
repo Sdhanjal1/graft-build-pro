@@ -90,20 +90,38 @@ function ClientPortalPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
+  const [paymentResult, setPaymentResult] = useState<"paid" | "cancelled" | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
 
   const load = async () => {
     try {
       const r = await fetchData({ data: { code } });
       setData(r);
+      return r;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load portal");
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const paid = params.get("paid");
+      const cancelled = params.get("cancelled");
+      if (paid === "1") {
+        setPaymentResult("paid");
+        setConfirming(true);
+      } else if (cancelled === "1") {
+        setPaymentResult("cancelled");
+      }
+      if (paid || cancelled) {
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    }
     void load();
     // Poll every 15s so customer sees pro replies + status changes
     pollRef.current = window.setInterval(() => void load(), 15000) as unknown as number;
@@ -112,6 +130,33 @@ function ClientPortalPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
+
+  // Fast poll for webhook confirmation after a paid redirect
+  useEffect(() => {
+    if (paymentResult !== "paid") return;
+    let stopped = false;
+    let attempts = 0;
+    const maxAttempts = 15;
+    const tick = async () => {
+      if (stopped) return;
+      attempts++;
+      const r = await load();
+      const anyPaid = r?.quotes?.some((q: any) => q.status === "paid");
+      if (anyPaid) {
+        setConfirming(false);
+        return;
+      }
+      if (attempts >= maxAttempts) {
+        setConfirming(false);
+        return;
+      }
+      window.setTimeout(tick, 2000);
+    };
+    window.setTimeout(tick, 2000);
+    return () => { stopped = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentResult]);
+
 
   const onRespond = async (quoteId: string, response: "accepted" | "declined") => {
     const confirmMsg =
@@ -175,6 +220,34 @@ function ClientPortalPage() {
         </div>
         <QuottrLogo className="h-5 w-auto opacity-60" />
       </header>
+
+      {paymentResult === "paid" && (
+        <section className="px-5 mt-5">
+          <div className="card-surface p-6 text-center border-2 border-status-accepted/40 bg-status-accepted/5">
+            <div className="h-14 w-14 rounded-full bg-status-accepted text-paper inline-flex items-center justify-center mb-3">
+              <Check className="h-7 w-7" strokeWidth={3} />
+            </div>
+            <h2 className="text-2xl leading-tight">Payment received — thank you!</h2>
+            <p className="text-sm text-muted-foreground mt-2">
+              A receipt and invoice have been emailed to you.
+            </p>
+            {confirming && (
+              <p className="text-xs text-muted-foreground mt-3 inline-flex items-center gap-1.5">
+                <Loader2 className="h-3 w-3 animate-spin" /> Confirming with {businessName}…
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {paymentResult === "cancelled" && (
+        <section className="px-5 mt-5">
+          <div className="rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground flex items-start gap-2">
+            <X className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>Payment cancelled — you can try again when ready.</span>
+          </div>
+        </section>
+      )}
 
 
       {/* Service reminder */}
