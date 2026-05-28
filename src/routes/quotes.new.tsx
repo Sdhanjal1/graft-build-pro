@@ -410,6 +410,9 @@ function NewQuotePage() {
       if (mode === "onsite") setDesc(text);
       feedback("success");
       playSample("ding");
+      requestAnimationFrame(() => {
+        draftRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     } catch (e) {
       console.error(e);
       feedback("error");
