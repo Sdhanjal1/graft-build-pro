@@ -288,16 +288,18 @@ function PortalPage() {
               <span className="num text-3xl text-ink">{formatGBP(quote.total)}</span>
             </div>
           </div>
-          <div className="mt-4 rounded-2xl border-2 border-lime bg-lime/10 px-4 py-3">
-            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-1">Payment terms</p>
-            <p className="text-base font-bold text-ink leading-tight">
-              {paymentTimingLabel({
-                timing: (quote.payment_timing as PaymentTiming) ?? "on_completion",
-                total: Number(quote.total) || 0,
-                depositAmount: Number(quote.deposit_amount) || 0,
-                depositPercent: Number(quote.deposit_percent) || 0,
-              })}
-            </p>
+          <div className="px-5 py-4 border-t border-border">
+            <div className="rounded-2xl border-2 border-lime bg-lime/10 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-1">Payment terms</p>
+              <p className="text-base font-bold text-ink leading-tight">
+                {paymentTimingLabel({
+                  timing: (quote.payment_timing as PaymentTiming) ?? "on_completion",
+                  total: Number(quote.total) || 0,
+                  depositAmount: Number(quote.deposit_amount) || 0,
+                  depositPercent: Number(quote.deposit_percent) || 0,
+                })}
+              </p>
+            </div>
           </div>
         </div>
       </section>
