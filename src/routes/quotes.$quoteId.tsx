@@ -491,21 +491,23 @@ function QuoteDetail() {
         </div>
       </section>
 
-      {/* Compact payment timing line below totals */}
+      {/* Prominent payment terms callout */}
       <section className="px-5 mt-5">
-        <button
-          type="button"
-          onClick={() => setTimingOpen(true)}
-          className="w-full flex items-center justify-between px-1 py-1 text-sm"
-        >
-          <span className="text-muted-foreground">
-            Payment:{" "}
-            <span className="text-ink font-medium">
+        <div className="rounded-2xl border-2 border-lime bg-lime/10 px-4 py-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
+            <p className="text-base font-bold text-ink leading-tight">
               {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
-            </span>
-          </span>
-          <span className="text-ink font-semibold underline underline-offset-2">Change</span>
-        </button>
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setTimingOpen(true)}
+            className="shrink-0 text-xs font-semibold text-ink underline underline-offset-2"
+          >
+            Change
+          </button>
+        </div>
       </section>
 
 
