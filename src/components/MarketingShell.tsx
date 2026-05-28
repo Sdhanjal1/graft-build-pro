@@ -85,7 +85,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
       <main className="flex-1">{children}</main>
 
       <footer className="border-t border-ink/10 bg-ink text-paper">
-        <div className="mx-auto max-w-6xl px-5 py-12 grid gap-8 md:grid-cols-3">
+        <div className="mx-auto max-w-6xl px-5 py-12 grid gap-8 md:grid-cols-4">
           <div>
             <QuottrWordmark className="text-2xl text-paper" />
             <p className="mt-3 text-sm text-paper/60 max-w-xs">
@@ -108,6 +108,59 @@ export function MarketingShell({ children }: { children: ReactNode }) {
               <li><Link to="/privacy" className="text-paper/80 hover:text-lime">Privacy</Link></li>
               <li><Link to="/terms" className="text-paper/80 hover:text-lime">Terms</Link></li>
             </ul>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-paper/50 font-semibold mb-3">Follow Quottr</p>
+            <div className="flex items-center gap-4">
+              {/* Social links — update hrefs once accounts are live */}
+              <a
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Quottr on TikTok"
+                className="text-lime hover:scale-110 transition-transform duration-200"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 12a4 4 0 1 0 4 4V4c.5.5 2 1.5 3.5 1.5" />
+                </svg>
+              </a>
+              <a
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Quottr on Instagram"
+                className="text-lime hover:scale-110 transition-transform duration-200"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                  <circle cx="12" cy="12" r="5" />
+                  <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+                </svg>
+              </a>
+              <a
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Quottr on Facebook"
+                className="text-lime hover:scale-110 transition-transform duration-200"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+                </svg>
+              </a>
+              <a
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Quottr on YouTube"
+                className="text-lime hover:scale-110 transition-transform duration-200"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2.1A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2-.1A2 2 0 0 1 2.5 17z" />
+                  <polygon points="10 15 15 12 10 9" fill="currentColor" stroke="none" />
+                </svg>
+              </a>
+            </div>
           </div>
         </div>
         <div className="border-t border-paper/10">
