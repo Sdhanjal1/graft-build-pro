@@ -90,20 +90,38 @@ function ClientPortalPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
+  const [paymentResult, setPaymentResult] = useState<"paid" | "cancelled" | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
 
   const load = async () => {
     try {
       const r = await fetchData({ data: { code } });
       setData(r);
+      return r;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load portal");
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const paid = params.get("paid");
+      const cancelled = params.get("cancelled");
+      if (paid === "1") {
+        setPaymentResult("paid");
+        setConfirming(true);
+      } else if (cancelled === "1") {
+        setPaymentResult("cancelled");
+      }
+      if (paid || cancelled) {
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    }
     void load();
     // Poll every 15s so customer sees pro replies + status changes
     pollRef.current = window.setInterval(() => void load(), 15000) as unknown as number;
@@ -112,6 +130,33 @@ function ClientPortalPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
+
+  // Fast poll for webhook confirmation after a paid redirect
+  useEffect(() => {
+    if (paymentResult !== "paid") return;
+    let stopped = false;
+    let attempts = 0;
+    const maxAttempts = 15;
+    const tick = async () => {
+      if (stopped) return;
+      attempts++;
+      const r = await load();
+      const anyPaid = r?.quotes?.some((q: any) => q.status === "paid");
+      if (anyPaid) {
+        setConfirming(false);
+        return;
+      }
+      if (attempts >= maxAttempts) {
+        setConfirming(false);
+        return;
+      }
+      window.setTimeout(tick, 2000);
+    };
+    window.setTimeout(tick, 2000);
+    return () => { stopped = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentResult]);
+
 
   const onRespond = async (quoteId: string, response: "accepted" | "declined") => {
     const confirmMsg =
