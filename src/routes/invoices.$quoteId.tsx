@@ -31,7 +31,8 @@ function InvoicePage() {
   const digits = client?.phone.replace(/\D/g, "");
   const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${encoded}`;
   const mail = `mailto:${client?.email}?subject=${encodeURIComponent(`INVOICE ${ref}, ${userProfile.business_name}`)}&body=${encoded}`;
-  const cardLink = quote.payment_request?.link ?? stripePaymentLink(quote);
+  const router = useRouter();
+  const isPaid = quote.status === "paid";
   const dueDate = quote.invoice_due_date
     ? new Date(quote.invoice_due_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     : "";
