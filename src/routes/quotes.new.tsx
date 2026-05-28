@@ -444,6 +444,20 @@ function NewQuotePage() {
         }
       }
       feedback("success");
+      // First-quote celebration: stash a flag the detail page can read once.
+      if (mockQuotes.length === 1) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const uid = session?.user?.id;
+          if (uid) {
+            const seenKey = `quottr.firstQuoteSeen:${uid}`;
+            if (typeof localStorage !== "undefined" && !localStorage.getItem(seenKey)) {
+              sessionStorage.setItem("quottr.celebrateFirstQuote", q.id);
+              localStorage.setItem(seenKey, "1");
+            }
+          }
+        } catch { /* noop */ }
+      }
       navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id } });
 
     } catch (e) {
