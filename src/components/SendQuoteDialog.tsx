@@ -106,28 +106,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
   };
 
 
-  const handleEmail = async () => {
-    try {
-      setBusy("email");
-      const { token } = await ensureToken({ data: { quoteId, channel: "email" } });
-      const url = portalUrl(token);
-      const subject = updatedLinkPortalCode
-        ? `Updated link for quote ${quoteRef}`
-        : `Your quote ${quoteRef}, ${quoteTitle}`;
-      const body = updatedLinkPortalCode
-        ? `Hi ${firstName},\n\nHere's an updated link for your quote:\n\n${url}\n\nThanks.`
-        : `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}\n\nThanks.`;
-      const mailHref = `mailto:${customerEmail ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailHref;
-      if (updatedLinkPortalCode) onClose();
-      else setPendingChannel("email");
-    } catch (e) {
-      feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not create portal link");
-    } finally {
-      setBusy(null);
-    }
-  };
+
 
 
   const copyPortalLink = async () => {
