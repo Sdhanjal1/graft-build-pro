@@ -89,10 +89,10 @@ export function PullToRefresh({
           }}
         >
           {refreshing ? (
-            <Loader2 className="h-5 w-5 animate-spin text-ink" />
+            <Loader2 className="h-5 w-5 animate-spin text-lime" />
           ) : (
             <span
-              className="text-ink leading-none tracking-tight text-2xl"
+              className="text-lime leading-none tracking-tight text-2xl"
               style={{ fontFamily: "'Bebas Neue', sans-serif" }}
             >
               Quottr.
