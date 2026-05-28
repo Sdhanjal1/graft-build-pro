@@ -117,6 +117,7 @@ function NewQuotePage() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const recordTargetRef = useRef<"desc" | "clip">("desc");
   const lastBlobRef = useRef<{ blob: Blob; mimeType: string } | null>(null);
+  const draftRef = useRef<HTMLDivElement | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const liveFinalRef = useRef<string>("");
@@ -409,6 +410,9 @@ function NewQuotePage() {
       if (mode === "onsite") setDesc(text);
       feedback("success");
       playSample("ding");
+      requestAnimationFrame(() => {
+        draftRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     } catch (e) {
       console.error(e);
       feedback("error");
@@ -662,99 +666,6 @@ function NewQuotePage() {
 
 
 
-        {userClients.length === 0 ? (
-          <button
-            type="button"
-            onClick={() => { setCustomerMode("new"); setClientName(""); setClientPhone(""); }}
-            className={`w-full rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border inline-flex items-center justify-center gap-1.5 ${
-              customerMode === "new" ? "border-ink" : "border-ink/25 text-ink"
-            }`}
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.5} /> New customer
-          </button>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => { setCustomerMode("existing"); setPickerOpen(true); }}
-              className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border ${
-                customerMode === "existing" ? "border-ink" : "border-ink/25 text-ink"
-              }`}
-            >
-              Existing customer
-            </button>
-            <button
-              type="button"
-              onClick={() => { setCustomerMode("new"); setClientName(""); setClientPhone(""); }}
-              className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border inline-flex items-center justify-center gap-1.5 ${
-                customerMode === "new" ? "border-ink" : "border-ink/25 text-ink"
-              }`}
-            >
-              <Plus className="h-4 w-4" strokeWidth={2.5} /> New customer
-            </button>
-          </div>
-        )}
-
-        {customerMode === "existing" && clientName && (
-          <div className="card-surface p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Customer</p>
-                <p className="text-sm font-semibold truncate mt-0.5">{clientName}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPickerOpen(true)}
-                className="text-xs font-bold text-ink underline underline-offset-2 shrink-0 ml-3"
-              >
-                Change
-              </button>
-            </div>
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-                Phone number
-              </label>
-              <input
-                value={clientPhone}
-                onChange={(e) => setClientPhone(e.target.value)}
-                inputMode="tel"
-                placeholder="07XXX XXXXXX"
-                className="mt-1.5 w-full bg-transparent outline-none text-sm border-b border-border pb-1.5"
-              />
-            </div>
-          </div>
-        )}
-
-
-        {customerMode === "new" && (
-          <div className="card-surface p-4 space-y-3">
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-                Name
-              </label>
-              <input
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Customer name"
-                className="mt-1.5 w-full bg-transparent outline-none text-sm border-b border-border pb-1.5"
-                autoFocus
-              />
-            </div>
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-                Phone number
-              </label>
-              <input
-                value={clientPhone}
-                onChange={(e) => setClientPhone(e.target.value)}
-                inputMode="tel"
-                placeholder="07XXX XXXXXX"
-                className="mt-1.5 w-full bg-transparent outline-none text-sm border-b border-border pb-1.5"
-              />
-            </div>
-          </div>
-        )}
-
         {pickerOpen && (
           <CustomerPicker
             search={customerSearch}
@@ -766,10 +677,10 @@ function NewQuotePage() {
               setCustomerMode("existing");
               setPickerOpen(false);
             }}
-
             onClose={() => setPickerOpen(false)}
           />
         )}
+
 
         {!draft && (
           <div className="fixed bottom-20 inset-x-0 z-30 px-3 safe-bottom pointer-events-none">
@@ -803,7 +714,8 @@ function NewQuotePage() {
 
         {/* Editable quote preview */}
         {draft && (
-          <div className="card-surface overflow-hidden">
+          <div ref={draftRef} className="card-surface overflow-hidden scroll-mt-20">
+
             <div className="bg-ink text-paper p-4">
               <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
               <p className="font-bold mt-0.5">{userProfile.business_name}</p>
@@ -955,6 +867,111 @@ function NewQuotePage() {
           </div>
         )}
 
+        {/* Step 4: Assign customer (after draft is generated) */}
+        {draft && (
+          <div className="space-y-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Step 4</p>
+              <h3 className="text-lg font-bold mt-0.5">Who's this for?</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Assign a customer so we know where this quote is going.
+              </p>
+            </div>
+
+            {userClients.length === 0 ? (
+              <button
+                type="button"
+                onClick={() => { setCustomerMode("new"); setClientName(""); setClientPhone(""); }}
+                className={`w-full rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border inline-flex items-center justify-center gap-1.5 ${
+                  customerMode === "new" ? "border-ink" : "border-ink/25 text-ink"
+                }`}
+              >
+                <Plus className="h-4 w-4" strokeWidth={2.5} /> New customer
+              </button>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setCustomerMode("existing"); setPickerOpen(true); }}
+                  className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border ${
+                    customerMode === "existing" ? "border-ink" : "border-ink/25 text-ink"
+                  }`}
+                >
+                  Existing customer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setCustomerMode("new"); setClientName(""); setClientPhone(""); }}
+                  className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border inline-flex items-center justify-center gap-1.5 ${
+                    customerMode === "new" ? "border-ink" : "border-ink/25 text-ink"
+                  }`}
+                >
+                  <Plus className="h-4 w-4" strokeWidth={2.5} /> New customer
+                </button>
+              </div>
+            )}
+
+            {customerMode === "existing" && clientName && (
+              <div className="card-surface p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Customer</p>
+                    <p className="text-sm font-semibold truncate mt-0.5">{clientName}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPickerOpen(true)}
+                    className="text-xs font-bold text-ink underline underline-offset-2 shrink-0 ml-3"
+                  >
+                    Change
+                  </button>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                    Phone number
+                  </label>
+                  <input
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(e.target.value)}
+                    inputMode="tel"
+                    placeholder="07XXX XXXXXX"
+                    className="mt-1.5 w-full bg-transparent outline-none text-sm border-b border-border pb-1.5"
+                  />
+                </div>
+              </div>
+            )}
+
+            {customerMode === "new" && (
+              <div className="card-surface p-4 space-y-3">
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                    Name
+                  </label>
+                  <input
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    placeholder="Customer name"
+                    className="mt-1.5 w-full bg-transparent outline-none text-sm border-b border-border pb-1.5"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                    Phone number
+                  </label>
+                  <input
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(e.target.value)}
+                    inputMode="tel"
+                    placeholder="07XXX XXXXXX"
+                    className="mt-1.5 w-full bg-transparent outline-none text-sm border-b border-border pb-1.5"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {draft && (
           <div className="grid grid-cols-2 gap-2.5">
             <button
@@ -974,9 +991,12 @@ function NewQuotePage() {
               type="button"
               onClick={save}
               onPointerDown={() => feedback("tap")}
-              className="bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
+              disabled={!clientName.trim() || saving}
+              title={!clientName.trim() ? "Assign a customer first" : undefined}
+              className="bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Save className="h-4 w-4" /> Save quote
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {!clientName.trim() ? "Assign customer to save" : "Save quote"}
             </button>
           </div>
         )}
