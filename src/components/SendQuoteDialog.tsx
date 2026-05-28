@@ -31,7 +31,7 @@ type Props = {
 export function SendQuoteDialog({
   open, onClose, quoteId, quoteRef, quoteTitle,
   customerName, customerPhone, customerEmail,
-  updatedLinkPortalCode,
+  updatedLinkPortalCode, onSent,
 }: Props) {
 
   const ensureToken = useServerFn(ensurePortalToken);
