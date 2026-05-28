@@ -63,7 +63,7 @@ export function paymentTimingLabel(opts: {
   const { timing, total, depositAmount, depositPercent } = opts;
   if (timing === "on_completion") return "Due on completion";
   if (timing === "upfront") return `${formatGBP(total)} upfront`;
-  if (timing === "staged") return "Staged schedule";
+
   // deposit_then_balance
   const balance = Math.max(0, +(total - depositAmount).toFixed(2));
   const pctLabel = depositPercent ? ` (${Math.round(depositPercent)}%)` : "";
