@@ -199,7 +199,6 @@ function PortalPage() {
           <p className="text-xs font-semibold truncate">{profile?.business_name ?? "Your tradesperson"}</p>
           <p className="text-[10px] text-paper/60 truncate">Quote {quote.ref ?? ""}</p>
         </div>
-        <QuottrLogo className="h-5 w-auto opacity-60" />
       </header>
 
       {paymentResult === "paid" && (
@@ -333,8 +332,8 @@ function PortalPage() {
       )}
 
       <footer className="text-center mt-8 mb-4 text-[10px] text-muted-foreground">
-        <a href="https://quottr.co.uk" className="inline-flex items-center gap-1">
-          Powered by <QuottrLogo className="h-3 w-auto" />
+        <a href="https://quottr.co.uk" className="hover:underline">
+          Powered by <span className="text-lime">Quottr</span>
         </a>
       </footer>
 
