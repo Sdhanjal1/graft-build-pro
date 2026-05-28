@@ -410,7 +410,12 @@ function NewQuotePage() {
       const g = await generateFn({ data: { description: text, trade, vatRegistered: vat } });
       setDraft(g);
       originalDraftRef.current = JSON.stringify(g.line_items);
-      if (mode === "onsite") setDesc(text);
+      // Prefer the AI-cleaned job description over the raw transcript.
+      setDesc(g.clean_description?.trim() || text);
+      // Auto-populate customer details extracted from the transcript when fields are empty.
+      const ec = g.extracted_customer;
+      if (ec?.name && !clientName.trim()) setClientName(ec.name);
+      if (ec?.phone && !clientPhone.trim()) setClientPhone(ec.phone);
       feedback("success");
       playSample("ding");
       requestAnimationFrame(() => {
