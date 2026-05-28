@@ -2,14 +2,15 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   getQuote, getClient, userProfile, formatGBP,
-  invoiceRef, buildFinalInvoiceMessage, stripePaymentLink, markInvoiced,
+  invoiceRef, buildFinalInvoiceMessage, markInvoiced, setQuoteStatus,
 } from "@/lib/user-data";
-import { MessageCircle, Mail, CreditCard, Landmark, Share2 } from "lucide-react";
+import { MessageCircle, Mail, Share2, CheckCircle2 } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
+import { useRouter } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/invoices/$quoteId")({
   component: InvoicePage,
@@ -30,7 +31,8 @@ function InvoicePage() {
   const digits = client?.phone.replace(/\D/g, "");
   const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${encoded}`;
   const mail = `mailto:${client?.email}?subject=${encodeURIComponent(`INVOICE ${ref}, ${userProfile.business_name}`)}&body=${encoded}`;
-  const cardLink = quote.payment_request?.link ?? stripePaymentLink(quote);
+  const router = useRouter();
+  const isPaid = quote.status === "paid";
   const dueDate = quote.invoice_due_date
     ? new Date(quote.invoice_due_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     : "";
@@ -66,35 +68,9 @@ function InvoicePage() {
             )}
           </div>
 
-          {/* Prominent pay-by-card */}
-          <div className="px-6 pb-6">
-            <a
-              href={cardLink}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 text-base"
-            >
-              <CreditCard className="h-5 w-5" /> Pay {formatGBP(quote.total)} by card
-            </a>
-            <p className="text-[10px] text-paper/50 text-center mt-2 break-all">{cardLink}</p>
-          </div>
-
-          {/* Bank details panel, always prominent on invoice */}
-          <div className="bg-paper/5 px-6 py-4 border-t border-paper/10">
-            <div className="flex items-center gap-2 mb-2">
-              <Landmark className="h-4 w-4 text-lime" />
-              <p className="text-[10px] uppercase tracking-widest text-paper/60 font-bold">Or pay by bank transfer</p>
-            </div>
-            <div className="grid grid-cols-2 gap-y-1.5 gap-x-3 text-xs">
-              <span className="text-paper/60">Account</span><span className="font-semibold text-paper">{userProfile.bank_account_name}</span>
-              <span className="text-paper/60">Bank</span><span className="font-semibold text-paper">{userProfile.bank_name}</span>
-              <span className="text-paper/60">Sort code</span><span className="num font-semibold text-paper">{userProfile.sort_code}</span>
-              <span className="text-paper/60">Account no.</span><span className="num font-semibold text-paper">{userProfile.account_number}</span>
-              <span className="text-paper/60">Reference</span><span className="font-bold text-lime">{ref}</span>
-            </div>
-          </div>
         </div>
       </section>
+
 
       {/* Billed to + job summary */}
       <section className="px-5 mt-4">
@@ -166,6 +142,23 @@ function InvoicePage() {
           className="w-full bg-card border-2 border-ink text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
         >
           <Share2 className="h-4 w-4" /> Download / share PDF
+        </button>
+        <button
+          disabled={isPaid}
+          onClick={async () => {
+            try {
+              await setQuoteStatus(quote.id, "paid");
+              feedback("success");
+              toast.success("Marked as paid");
+              router.invalidate();
+            } catch (e) {
+              feedback("error");
+              toast.error(e instanceof Error ? e.message : "Could not mark as paid");
+            }
+          }}
+          className="w-full bg-card border-2 border-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+        >
+          <CheckCircle2 className="h-4 w-4 text-lime" /> {isPaid ? "Paid" : "Mark as paid (cash / bank)"}
         </button>
       </section>
     </AppShell>
