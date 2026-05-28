@@ -710,7 +710,8 @@ function NewQuotePage() {
 
         {/* Editable quote preview */}
         {draft && (
-          <div className="card-surface overflow-hidden">
+          <div ref={draftRef} className="card-surface overflow-hidden scroll-mt-20">
+
             <div className="bg-ink text-paper p-4">
               <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
               <p className="font-bold mt-0.5">{userProfile.business_name}</p>
