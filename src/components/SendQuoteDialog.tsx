@@ -222,11 +222,11 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
         <>
         <h3 className="text-2xl">Send quote</h3>
         <p className="text-xs text-muted-foreground mb-4">
-          Choose how to send the quote to {firstName}.
+          One tap to share with {firstName}.
         </p>
 
         <div className="space-y-2.5">
-          {/* Option 1, Quottr (recommended) */}
+          {/* Single primary action — opens native share sheet */}
           <button
             onClick={handleQuottr}
             disabled={busy !== null}
@@ -236,77 +236,13 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
               {busy === "sms" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-bold text-sm">Send via Quottr</p>
-                <span className="text-[9px] uppercase tracking-widest font-bold bg-ink text-lime rounded-full px-2 py-0.5">
-                  Recommended
-                </span>
-              </div>
+              <p className="font-bold text-sm">Send to {firstName}</p>
               <p className="text-[11px] text-ink/70 mt-0.5">
-                Customer gets an SMS with a portal link. They approve, ask questions and you reply inside Quottr, separate from your personal WhatsApp.
+                Opens your share menu — pick WhatsApp, Messages or email. Your customer gets a link to view, approve and pay.
               </p>
             </div>
           </button>
 
-          {/* Option 2, Email */}
-          <button
-            onClick={handleEmail}
-            disabled={busy !== null || !customerEmail}
-            className="w-full text-left rounded-2xl p-4 bg-ink text-paper flex items-start gap-3 disabled:opacity-50"
-          >
-            <div className="h-10 w-10 rounded-full bg-paper/10 text-paper flex items-center justify-center shrink-0">
-              {busy === "email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm">Send via Email</p>
-              <p className="text-[11px] text-paper/60 mt-0.5">
-                {customerEmail
-                  ? "Professional email with the same portal link and experience."
-                  : "Add a customer email to enable this option."}
-              </p>
-            </div>
-          </button>
-
-          {/* Option 3, WhatsApp deep-link (pre-filled message, one tap to send) */}
-          <button
-            onClick={async () => {
-              try {
-                setBusy("wa");
-                const q = getQuote(quoteId);
-                const { token } = await ensureToken({ data: { quoteId, channel: "manual" } });
-                const portalUrlStr = shortQuotePortalUrl(token);
-                const text = updatedLinkPortalCode
-                  ? `Hi ${firstName}, here's an updated link for your quote ${quoteRef}: ${portalUrlStr}`
-                  : q
-                    ? buildQuoteWhatsAppMessage(q, { name: customerName ?? "" }, portalUrlStr)
-                    : `Hi ${firstName}, your quote ${quoteRef} is ready: ${portalUrlStr}`;
-                window.open(waLink(customerPhone, text), "_blank");
-
-                if (updatedLinkPortalCode) onClose();
-                else setPendingChannel("wa");
-              } catch (e) {
-                feedback("error");
-                toast.error(e instanceof Error ? e.message : "Could not open WhatsApp");
-              } finally {
-                setBusy(null);
-              }
-            }}
-            disabled={busy !== null}
-            className="w-full text-left rounded-2xl p-4 bg-card border border-border text-ink flex items-start gap-3 disabled:opacity-60"
-          >
-            <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
-              {busy === "wa" ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm">Send via WhatsApp</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Opens WhatsApp with the full message pre-filled, portal link, total and your details. One tap to send.
-              </p>
-              <p className="text-[10px] text-muted-foreground/80 mt-1.5 italic">
-                Tip, using Quottr keeps your business communication separate from your personal WhatsApp.
-              </p>
-            </div>
-          </button>
 
 
           {/* Copy portal link helper */}
