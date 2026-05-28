@@ -24,6 +24,8 @@ type Props = {
   whatsappHref?: string;
   /** When set, dialog skips token creation and uses this client portal_code with "updated link" copy. */
   updatedLinkPortalCode?: string;
+  /** Fired after the user confirms "Yes, sent" so the parent can sync local status to "sent". */
+  onSent?: () => void;
 };
 
 export function SendQuoteDialog({
