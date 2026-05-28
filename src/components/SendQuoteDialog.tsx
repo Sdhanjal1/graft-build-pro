@@ -24,12 +24,14 @@ type Props = {
   whatsappHref?: string;
   /** When set, dialog skips token creation and uses this client portal_code with "updated link" copy. */
   updatedLinkPortalCode?: string;
+  /** Fired after the user confirms "Yes, sent" so the parent can sync local status to "sent". */
+  onSent?: () => void;
 };
 
 export function SendQuoteDialog({
   open, onClose, quoteId, quoteRef, quoteTitle,
   customerName, customerPhone, customerEmail,
-  updatedLinkPortalCode,
+  updatedLinkPortalCode, onSent,
 }: Props) {
 
   const ensureToken = useServerFn(ensurePortalToken);
@@ -59,9 +61,11 @@ export function SendQuoteDialog({
   const confirmSent = async (channel: SentVia) => {
     try {
       const q = getQuote(quoteId);
+      // Flip to "sent" from the pre-send state, regardless of share channel (WhatsApp/SMS/email).
       if (q && q.status === "pending") {
         await setQuoteStatus(quoteId, "sent");
       }
+      onSent?.();
     } catch { /* non-fatal — UI still advances */ }
     toast.success(`Sent to ${customerName ?? firstName}`);
     feedback("success");
