@@ -87,21 +87,14 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       const url = portalUrl(token);
       const text = updatedLinkPortalCode
         ? `Hi ${firstName}, here's an updated link for your quote ${quoteRef}: ${url}`
-        : `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready. View, ask questions and approve here: ${url}`;
-      const digits = (customerPhone ?? "").replace(/\D/g, "");
-      const smsHref = digits
-        ? `sms:${digits}?&body=${encodeURIComponent(text)}`
-        : `sms:?&body=${encodeURIComponent(text)}`;
-      // Try native share first (better on iOS where sms: works inconsistently from web)
+        : `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready to view, approve and pay: ${url}`;
       if (navigator.share) {
         try {
           await navigator.share({ title: `Quote ${quoteRef}`, text, url });
-          if (updatedLinkPortalCode) onClose();
-          else setPendingChannel("sms");
-          return;
-        } catch { /* user cancelled or unsupported - fall through */ }
+        } catch { /* user cancelled or unsupported - still ask to confirm */ }
+      } else {
+        try { await navigator.clipboard.writeText(`${text}`); toast.message("Message copied — paste it into your chat or email"); } catch { /* ignore */ }
       }
-      window.location.href = smsHref;
       if (updatedLinkPortalCode) onClose();
       else setPendingChannel("sms");
     } catch (e) {
