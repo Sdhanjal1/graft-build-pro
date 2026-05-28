@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { MessageCircle, Mail, Sparkles, Loader2, Copy, Check, CheckCircle2, Clock, BellOff, Bell, ArrowRight } from "lucide-react";
+import { Sparkles, Loader2, Copy, Check, CheckCircle2, Clock, BellOff, Bell, ArrowRight } from "lucide-react";
 import { ensurePortalToken } from "@/lib/messages.functions";
 
 import { toast } from "sonner";
 import { feedback, playSample } from "@/lib/feedback";
-import { buildQuoteWhatsAppMessage, getQuote, waLink, userProfile, setQuoteAutoChase } from "@/lib/user-data";
+import { getQuote, userProfile, setQuoteAutoChase } from "@/lib/user-data";
 
-type SentVia = "sms" | "email" | "wa";
-const CHANNEL_LABEL: Record<SentVia, string> = { sms: "SMS", email: "Email", wa: "WhatsApp" };
+type SentVia = "sms";
 const ORDINAL = ["first", "second", "third", "fourth", "fifth"];
 
 type Props = {
@@ -58,7 +57,7 @@ export function SendQuoteDialog({
   };
 
   const confirmSent = (channel: SentVia) => {
-    toast.success(`Sent to ${customerName ?? firstName} via ${CHANNEL_LABEL[channel]}`);
+    toast.success(`Sent to ${customerName ?? firstName}`);
     feedback("success");
     playSample("whoosh");
     setSentVia(channel);
@@ -88,21 +87,14 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       const url = portalUrl(token);
       const text = updatedLinkPortalCode
         ? `Hi ${firstName}, here's an updated link for your quote ${quoteRef}: ${url}`
-        : `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready. View, ask questions and approve here: ${url}`;
-      const digits = (customerPhone ?? "").replace(/\D/g, "");
-      const smsHref = digits
-        ? `sms:${digits}?&body=${encodeURIComponent(text)}`
-        : `sms:?&body=${encodeURIComponent(text)}`;
-      // Try native share first (better on iOS where sms: works inconsistently from web)
+        : `Hi ${firstName}, your quote ${quoteRef} for ${quoteTitle} is ready to view, approve and pay: ${url}`;
       if (navigator.share) {
         try {
           await navigator.share({ title: `Quote ${quoteRef}`, text, url });
-          if (updatedLinkPortalCode) onClose();
-          else setPendingChannel("sms");
-          return;
-        } catch { /* user cancelled or unsupported - fall through */ }
+        } catch { /* user cancelled or unsupported - still ask to confirm */ }
+      } else {
+        try { await navigator.clipboard.writeText(`${text}`); toast.message("Message copied — paste it into your chat or email"); } catch { /* ignore */ }
       }
-      window.location.href = smsHref;
       if (updatedLinkPortalCode) onClose();
       else setPendingChannel("sms");
     } catch (e) {
@@ -114,28 +106,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
   };
 
 
-  const handleEmail = async () => {
-    try {
-      setBusy("email");
-      const { token } = await ensureToken({ data: { quoteId, channel: "email" } });
-      const url = portalUrl(token);
-      const subject = updatedLinkPortalCode
-        ? `Updated link for quote ${quoteRef}`
-        : `Your quote ${quoteRef}, ${quoteTitle}`;
-      const body = updatedLinkPortalCode
-        ? `Hi ${firstName},\n\nHere's an updated link for your quote:\n\n${url}\n\nThanks.`
-        : `Hi ${firstName},\n\nYour quote is ready to view. You can review it, ask questions and approve from your secure portal:\n\n${url}\n\nThanks.`;
-      const mailHref = `mailto:${customerEmail ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailHref;
-      if (updatedLinkPortalCode) onClose();
-      else setPendingChannel("email");
-    } catch (e) {
-      feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not create portal link");
-    } finally {
-      setBusy(null);
-    }
-  };
+
 
 
   const copyPortalLink = async () => {
@@ -164,7 +135,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
           <div>
             <h3 className="text-2xl">Did you send the quote?</h3>
             <p className="text-xs text-muted-foreground mb-4 mt-1">
-              Confirm once you've actually sent it to {customerName ?? firstName} via {CHANNEL_LABEL[pendingChannel]}. Opening the app isn't proof it was sent.
+              Confirm once you've actually sent it to {customerName ?? firstName}. Opening the share menu isn't proof it was sent.
             </p>
             <div className="space-y-2.5">
               <button
@@ -190,7 +161,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
               </div>
               <h3 className="text-2xl">Quote sent</h3>
               <p className="text-xs text-muted-foreground mt-1">
-                Sent to {customerName ?? firstName} via {CHANNEL_LABEL[sentVia]}. We'll let you know when they open it.
+                Sent to {customerName ?? firstName}. We'll let you know when they open it.
               </p>
             </div>
 
@@ -251,11 +222,11 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
         <>
         <h3 className="text-2xl">Send quote</h3>
         <p className="text-xs text-muted-foreground mb-4">
-          Choose how to send the quote to {firstName}.
+          One tap to share with {firstName}.
         </p>
 
         <div className="space-y-2.5">
-          {/* Option 1, Quottr (recommended) */}
+          {/* Single primary action — opens native share sheet */}
           <button
             onClick={handleQuottr}
             disabled={busy !== null}
@@ -265,77 +236,13 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
               {busy === "sms" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-bold text-sm">Send via Quottr</p>
-                <span className="text-[9px] uppercase tracking-widest font-bold bg-ink text-lime rounded-full px-2 py-0.5">
-                  Recommended
-                </span>
-              </div>
+              <p className="font-bold text-sm">Send to {firstName}</p>
               <p className="text-[11px] text-ink/70 mt-0.5">
-                Customer gets an SMS with a portal link. They approve, ask questions and you reply inside Quottr, separate from your personal WhatsApp.
+                Opens your share menu — pick WhatsApp, Messages or email. Your customer gets a link to view, approve and pay.
               </p>
             </div>
           </button>
 
-          {/* Option 2, Email */}
-          <button
-            onClick={handleEmail}
-            disabled={busy !== null || !customerEmail}
-            className="w-full text-left rounded-2xl p-4 bg-ink text-paper flex items-start gap-3 disabled:opacity-50"
-          >
-            <div className="h-10 w-10 rounded-full bg-paper/10 text-paper flex items-center justify-center shrink-0">
-              {busy === "email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm">Send via Email</p>
-              <p className="text-[11px] text-paper/60 mt-0.5">
-                {customerEmail
-                  ? "Professional email with the same portal link and experience."
-                  : "Add a customer email to enable this option."}
-              </p>
-            </div>
-          </button>
-
-          {/* Option 3, WhatsApp deep-link (pre-filled message, one tap to send) */}
-          <button
-            onClick={async () => {
-              try {
-                setBusy("wa");
-                const q = getQuote(quoteId);
-                const { token } = await ensureToken({ data: { quoteId, channel: "manual" } });
-                const portalUrlStr = shortQuotePortalUrl(token);
-                const text = updatedLinkPortalCode
-                  ? `Hi ${firstName}, here's an updated link for your quote ${quoteRef}: ${portalUrlStr}`
-                  : q
-                    ? buildQuoteWhatsAppMessage(q, { name: customerName ?? "" }, portalUrlStr)
-                    : `Hi ${firstName}, your quote ${quoteRef} is ready: ${portalUrlStr}`;
-                window.open(waLink(customerPhone, text), "_blank");
-
-                if (updatedLinkPortalCode) onClose();
-                else setPendingChannel("wa");
-              } catch (e) {
-                feedback("error");
-                toast.error(e instanceof Error ? e.message : "Could not open WhatsApp");
-              } finally {
-                setBusy(null);
-              }
-            }}
-            disabled={busy !== null}
-            className="w-full text-left rounded-2xl p-4 bg-card border border-border text-ink flex items-start gap-3 disabled:opacity-60"
-          >
-            <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
-              {busy === "wa" ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm">Send via WhatsApp</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Opens WhatsApp with the full message pre-filled, portal link, total and your details. One tap to send.
-              </p>
-              <p className="text-[10px] text-muted-foreground/80 mt-1.5 italic">
-                Tip, using Quottr keeps your business communication separate from your personal WhatsApp.
-              </p>
-            </div>
-          </button>
 
 
           {/* Copy portal link helper */}
