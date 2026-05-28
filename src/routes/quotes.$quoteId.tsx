@@ -407,7 +407,12 @@ function QuoteDetail() {
         <BusinessLogo logoUrl={userProfile.logo_url} businessName={userProfile.business_name} size="md" />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-paper truncate">{userProfile.business_name}</p>
-          <p className="text-[10px] text-paper/60 truncate">{userProfile.registration_number} · VAT {userProfile.vat_number}</p>
+          <p className="text-[10px] text-paper/60 truncate">
+            {[
+              userProfile.registration_number,
+              userProfile.vat_registered && userProfile.vat_number ? `VAT ${userProfile.vat_number}` : null,
+            ].filter(Boolean).join(" · ")}
+          </p>
         </div>
         <QuottrLogo className="h-5 w-auto opacity-60" />
       </div>
