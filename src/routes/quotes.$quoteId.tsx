@@ -629,10 +629,9 @@ function QuoteDetail() {
                 sub="Customer pays after work is done" onClick={() => { onTimingChange("on_completion"); setTimingOpen(false); }} />
               <MethodOption active={timing === "deposit_then_balance"} icon={Banknote} label="Deposit then balance"
                 sub="Take a deposit up front, balance on completion" onClick={() => { onTimingChange("deposit_then_balance"); setTimingOpen(false); }} />
-              <MethodOption active={timing === "staged"} icon={Clock} label="Staged payments"
-                sub="Multiple scheduled payments" onClick={() => { onTimingChange("staged"); setTimingOpen(false); }} />
               <MethodOption active={timing === "upfront"} icon={Zap} label="Upfront"
                 sub="Full payment before work starts" onClick={() => { onTimingChange("upfront"); setTimingOpen(false); }} />
+
             </div>
 
             {timing === "deposit_then_balance" && (
