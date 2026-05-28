@@ -51,9 +51,7 @@ function ClientsPage() {
           userClients.length === 0 ? (
             <EmptyState
               icon={Users}
-              title="No customers yet"
-              body="They'll be here once you send your first quote."
-              cta={{ label: "Add customer", to: "/clients/new" }}
+              title="Customers you quote for will show here"
             />
           ) : (
             <EmptyState icon={Inbox} title="No matches" body={`No customers match "${q}".`} />
