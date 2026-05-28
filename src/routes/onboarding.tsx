@@ -194,7 +194,7 @@ function OnboardingWizard() {
                   autoFocus
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="e.g. Cosy Plumbing & Heating"
+                  placeholder="e.g. Smith Plumbing & Heating"
                   className="mt-1 w-full bg-card border border-border rounded-2xl px-4 py-4 text-base outline-none focus:ring-2 focus:ring-lime"
                 />
               </div>
@@ -205,7 +205,7 @@ function OnboardingWizard() {
                 <input
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Full name"
+                  placeholder="e.g. John Smith"
                   className="mt-1 w-full bg-card border border-border rounded-2xl px-4 py-4 text-base outline-none focus:ring-2 focus:ring-lime"
                 />
               </div>
