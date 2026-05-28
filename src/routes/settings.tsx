@@ -173,7 +173,7 @@ function SettingsPage() {
           <EditField icon={User}       label="Your name"     value={profile.full_name}     onChange={(v) => saveProfile({ full_name: v })} />
           <EditField icon={Phone}      label="Phone"         value={profile.phone}         onChange={(v) => saveProfile({ phone: v })} />
           <SelectField icon={BadgeCheck} label="Trade type"  value={profile.trade_type}    onChange={(v) => saveProfile({ trade_type: v })} options={TRADE_TYPES} />
-          <EditField icon={MapPin}     label="Address line 1" value={profile.address_line_1} onChange={(v) => saveProfile({ address_line_1: v })} placeholder="Street address" />
+          <EditField icon={MapPin}     label="Address line 1" value={profile.address_line_1} onChange={(v) => saveProfile({ address_line_1: v })} placeholder="e.g. 12 High Street" />
           <EditField icon={MapPin}     label="Address line 2" value={profile.address_line_2} onChange={(v) => saveProfile({ address_line_2: v })} placeholder="Optional" />
           <EditField icon={MapPin}     label="Town / City"   value={profile.town}          onChange={(v) => saveProfile({ town: v })} />
           <EditField icon={MapPin}     label="Postcode"      value={profile.postcode}      onChange={(v) => saveProfile({ postcode: v })} />
@@ -290,7 +290,7 @@ function SettingsPage() {
                   className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
                 />
               </label>
-              <EditField icon={PenLine} label="Your name on quotes" value={profile.signature_name} onChange={(v) => saveProfile({ signature_name: v })} placeholder={profile.full_name} />
+              <EditField icon={PenLine} label="Your name on quotes" value={profile.signature_name} onChange={(v) => saveProfile({ signature_name: v })} placeholder="e.g. John Smith" />
               <ToggleRow icon={PenLine} label="Show signature on quotes" hint="Adds a signature line at the bottom" checked={profile.show_signature} onChange={(v) => saveProfile({ show_signature: v })} flush />
             </div>
           </Section>
