@@ -691,6 +691,7 @@ function QuoteDetail() {
         customerEmail={client?.email}
         whatsappHref={waHref}
         updatedLinkPortalCode={updatedLinkCode}
+        onSent={() => { if (status === "pending") setStatusState("sent"); }}
       />
 
       <AssignClientDialog
