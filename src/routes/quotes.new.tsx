@@ -894,7 +894,12 @@ function NewQuotePage() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => { setCustomerMode("existing"); setPickerOpen(true); }}
+                  onClick={() => {
+                    setCustomerMode("existing");
+                    setClientName("");
+                    setClientPhone("");
+                    setPickerOpen(true);
+                  }}
                   className={`rounded-2xl py-4 px-3 text-sm font-bold text-center transition bg-transparent border ${
                     customerMode === "existing" ? "border-ink" : "border-ink/25 text-ink"
                   }`}
