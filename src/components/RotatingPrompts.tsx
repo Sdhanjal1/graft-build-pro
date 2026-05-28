@@ -1,15 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { userProfile } from "@/lib/user-data";
+import { resolveTrade } from "@/lib/trades";
 
-const PROMPTS = [
-  "Try: Quote Mrs Jones for a combi boiler, Worcester 30i for £1,250, 8 hours labour at £65",
-  "Try: Bathroom refit, suite £850, tiles £450, labour £1,200, four days",
-  "Try: Consumer unit replacement, £450 parts, full day labour £400",
-  "Try: Three radiators at £150 each, 6 hours labour at £65 an hour, magnetic filter £85",
-  "Try: Power flush, charging £450, plus magnetic filter £85",
-  "Try: Roof repair, 10 tiles £40, lead flashing £120, half day labour £220",
+const FALLBACK = [
+  "Try: Quote Mrs Jones for the job you just finished, £180",
+  "Try: Two hours labour at £65/hr plus £40 materials",
 ];
 
 export function RotatingPrompts({ className = "" }: { className?: string }) {
+  const prompts = useMemo(() => {
+    const trade = resolveTrade(userProfile.trade_type);
+    const fromTemplates = trade.quoteTemplates.slice(0, 4).map((t) => {
+      // Keep it short — first sentence of the template prompt.
+      const short = t.prompt.split(/[.,]/)[0].trim();
+      return `Try: ${short}`;
+    });
+    const mic = `Try: ${trade.homeMicExample}`;
+    const list = [mic, ...fromTemplates].filter(Boolean);
+    return list.length > 0 ? list : FALLBACK;
+  }, []);
+
   const [i, setI] = useState(0);
   const [visible, setVisible] = useState(true);
 
@@ -17,13 +27,13 @@ export function RotatingPrompts({ className = "" }: { className?: string }) {
     const t = setInterval(() => {
       setVisible(false);
       const swap = setTimeout(() => {
-        setI((n) => (n + 1) % PROMPTS.length);
+        setI((n) => (n + 1) % prompts.length);
         setVisible(true);
       }, 300);
       return () => clearTimeout(swap);
     }, 4000);
     return () => clearInterval(t);
-  }, []);
+  }, [prompts.length]);
 
   return (
     <p
@@ -33,7 +43,7 @@ export function RotatingPrompts({ className = "" }: { className?: string }) {
       style={{ minHeight: "2.4em", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
       aria-live="polite"
     >
-      {PROMPTS[i]}
+      {prompts[i]}
     </p>
   );
 }
