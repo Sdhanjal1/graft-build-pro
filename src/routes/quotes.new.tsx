@@ -118,6 +118,7 @@ function NewQuotePage() {
   const recordTargetRef = useRef<"desc" | "clip">("desc");
   const lastBlobRef = useRef<{ blob: Blob; mimeType: string } | null>(null);
   const draftRef = useRef<HTMLDivElement | null>(null);
+  const originalDraftRef = useRef<string>("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const liveFinalRef = useRef<string>("");
