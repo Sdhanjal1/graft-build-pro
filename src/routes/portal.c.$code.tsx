@@ -221,6 +221,34 @@ function ClientPortalPage() {
         <QuottrLogo className="h-5 w-auto opacity-60" />
       </header>
 
+      {paymentResult === "paid" && (
+        <section className="px-5 mt-5">
+          <div className="card-surface p-6 text-center border-2 border-status-accepted/40 bg-status-accepted/5">
+            <div className="h-14 w-14 rounded-full bg-status-accepted text-paper inline-flex items-center justify-center mb-3">
+              <Check className="h-7 w-7" strokeWidth={3} />
+            </div>
+            <h2 className="text-2xl leading-tight">Payment received — thank you!</h2>
+            <p className="text-sm text-muted-foreground mt-2">
+              A receipt and invoice have been emailed to you.
+            </p>
+            {confirming && (
+              <p className="text-xs text-muted-foreground mt-3 inline-flex items-center gap-1.5">
+                <Loader2 className="h-3 w-3 animate-spin" /> Confirming with {businessName}…
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {paymentResult === "cancelled" && (
+        <section className="px-5 mt-5">
+          <div className="rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground flex items-start gap-2">
+            <X className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>Payment cancelled — you can try again when ready.</span>
+          </div>
+        </section>
+      )}
+
 
       {/* Service reminder */}
       {daysUntilService !== null && daysUntilService <= 60 && daysUntilService >= -30 && (
