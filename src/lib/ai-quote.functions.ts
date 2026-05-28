@@ -116,12 +116,14 @@ ${data.description}
 Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
 {
   "title": "Concise quote title",
+  "clean_description": "Professional scope-of-work summary, no customer names/contacts/filler",
+  "extracted_customer": { "name": "optional", "phone": "optional", "email": "optional" },
   "line_items": [
     { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other", "unit": "qty" | "hours" | "days" }
   ]
 }
 
-Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 hours). Every line item MUST include source, category and unit. Labour lines should use "hours" or "days" with the price as the hourly/daily rate.`;
+Omit extracted_customer entirely if no customer details were mentioned. Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 hours). Every line item MUST include source, category and unit. Labour lines should use "hours" or "days" with the price as the hourly/daily rate.`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
