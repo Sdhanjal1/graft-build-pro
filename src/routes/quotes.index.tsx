@@ -54,6 +54,7 @@ function QuotesPage() {
   const { loading } = useSession();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [q, setQ] = useState("");
+  const [actionsFor, setActionsFor] = useState<Quote | null>(null);
 
   if (loading) return <QuotesListSkeleton />;
 
