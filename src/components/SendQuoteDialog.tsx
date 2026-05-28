@@ -56,7 +56,13 @@ export function SendQuoteDialog({
     onClose();
   };
 
-  const confirmSent = (channel: SentVia) => {
+  const confirmSent = async (channel: SentVia) => {
+    try {
+      const q = getQuote(quoteId);
+      if (q && (q.status === "pending" || q.status === "draft" as never)) {
+        await setQuoteStatus(quoteId, "sent");
+      }
+    } catch { /* non-fatal — UI still advances */ }
     toast.success(`Sent to ${customerName ?? firstName}`);
     feedback("success");
     playSample("whoosh");
