@@ -1,11 +1,13 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getClient, quotesForClient, formatGBP, userProfile } from "@/lib/user-data";
+import { getClient, quotesForClient, formatGBP, userProfile, useDataVersion } from "@/lib/user-data";
 import { resolveTrade, detectCertifications, type Certification } from "@/lib/trades";
 import { Phone, Mail, MapPin, Home, FileText, Plus, CheckCircle2, Calendar, ShieldCheck, BellRing } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { CustomerPortalPanel } from "@/components/CustomerPortalPanel";
+import { ClientDetailSkeleton } from "@/components/Skeletons";
+import { useSession } from "@/lib/auth";
 
 
 export const Route = createFileRoute("/clients/$clientId")({
@@ -29,8 +31,12 @@ function formatShortDate(iso: string): string {
 }
 
 function ClientDetail() {
+  useDataVersion();
   const { clientId } = Route.useParams();
+  const { loading } = useSession();
   const client = getClient(clientId);
+
+  if (loading) return <ClientDetailSkeleton />;
   if (!client) throw notFound();
 
   const trade = resolveTrade(userProfile.trade_type);
