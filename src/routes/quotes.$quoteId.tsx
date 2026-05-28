@@ -506,16 +506,8 @@ function QuoteDetail() {
           </span>
           <span className="text-ink font-semibold underline underline-offset-2">Change</span>
         </button>
-        {shouldSuggestStaged(quote.total, timing) && (
-          <div className="mt-3 rounded-2xl border border-lime/50 bg-lime/15 px-4 py-3 flex items-start gap-2">
-            <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-ink" />
-            <p className="text-[12px] text-ink leading-relaxed">
-              This job is over {formatGBP(2000)} — staged payments may help cashflow.
-              <button onClick={() => onTimingChange("staged")} className="ml-1 underline font-semibold">Use staged</button>
-            </p>
-          </div>
-        )}
       </section>
+
 
       {(userProfile.quote_footer || (userProfile.show_signature && (userProfile.signature_name || userProfile.full_name))) && (
         <section className="px-5 mt-5">
