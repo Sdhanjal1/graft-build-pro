@@ -96,7 +96,7 @@ function HomePage() {
       <section id="how" className="mx-auto max-w-5xl px-5 py-20 md:py-28 text-center">
         <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">How it works</p>
         <h2 className="mt-3 text-5xl md:text-7xl leading-[0.95]">
-          18 seconds from <span className="text-lime-ink bg-lime px-2">van to paid</span>.
+          From <span className="text-lime-ink bg-lime px-2">van to paid</span>, in seconds.
         </h2>
         <ol className="mt-14 grid gap-8 md:grid-cols-3 text-left">
           {[
