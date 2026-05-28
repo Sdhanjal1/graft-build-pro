@@ -2,14 +2,15 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   getQuote, getClient, userProfile, formatGBP,
-  invoiceRef, buildFinalInvoiceMessage, stripePaymentLink, markInvoiced,
+  invoiceRef, buildFinalInvoiceMessage, markInvoiced, setQuoteStatus,
 } from "@/lib/user-data";
-import { MessageCircle, Mail, CreditCard, Landmark, Share2 } from "lucide-react";
+import { MessageCircle, Mail, Share2, CheckCircle2 } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
+import { useRouter } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/invoices/$quoteId")({
   component: InvoicePage,
