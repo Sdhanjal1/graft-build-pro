@@ -82,11 +82,11 @@ function HomePage() {
                 playsInline
                 preload="metadata"
                 className="w-full h-auto block"
-                aria-label="One tap. Money in. Voice to quote to paid in 18 seconds."
+                aria-label="One tap. Money in. Voice to quote to paid in seconds."
               />
             </div>
             <p className="mt-3 text-xs text-paper/50 uppercase tracking-widest font-semibold">
-              Voice → Quote → Paid · 18 seconds
+              Voice → Quote → Paid · in seconds
             </p>
           </div>
         </div>
