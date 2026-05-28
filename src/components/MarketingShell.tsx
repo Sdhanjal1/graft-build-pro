@@ -88,7 +88,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
       <footer className="border-t border-ink/10 bg-ink text-paper">
         <div className="mx-auto max-w-6xl px-5 py-12 grid gap-8 md:grid-cols-4">
           <div>
-            <QuottrWordmark className="text-2xl text-paper" />
+            <QuottrWordmark className="text-2xl" />
             <p className="mt-3 text-sm text-paper/60 max-w-xs">
               Quote in seconds. Get paid faster. Built for tradespeople.
             </p>
