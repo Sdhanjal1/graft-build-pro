@@ -161,7 +161,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
               </div>
               <h3 className="text-2xl">Quote sent</h3>
               <p className="text-xs text-muted-foreground mt-1">
-                Sent to {customerName ?? firstName} via {CHANNEL_LABEL[sentVia]}. We'll let you know when they open it.
+                Sent to {customerName ?? firstName}. We'll let you know when they open it.
               </p>
             </div>
 
