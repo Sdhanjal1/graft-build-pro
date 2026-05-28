@@ -143,6 +143,23 @@ function InvoicePage() {
         >
           <Share2 className="h-4 w-4" /> Download / share PDF
         </button>
+        <button
+          disabled={isPaid}
+          onClick={async () => {
+            try {
+              await setQuoteStatus(quote.id, "paid");
+              feedback("success");
+              toast.success("Marked as paid");
+              router.invalidate();
+            } catch (e) {
+              feedback("error");
+              toast.error(e instanceof Error ? e.message : "Could not mark as paid");
+            }
+          }}
+          className="w-full bg-card border-2 border-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+        >
+          <CheckCircle2 className="h-4 w-4 text-lime" /> {isPaid ? "Paid" : "Mark as paid (cash / bank)"}
+        </button>
       </section>
     </AppShell>
   );
