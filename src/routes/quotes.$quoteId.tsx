@@ -126,6 +126,20 @@ function QuoteDetail() {
     return () => { cancelled = true; };
   }, [quote.id, fetchPortalStatus]);
 
+  // First-quote celebration toast (shows once per user, set by quotes.new).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const celebrateId = sessionStorage.getItem("quottr.celebrateFirstQuote");
+      if (celebrateId && celebrateId === quote.id) {
+        sessionStorage.removeItem("quottr.celebrateFirstQuote");
+        const who = client?.name?.split(" ")[0] ?? "your customer";
+        toast.success(`Your first Quottr quote. Tap Send to share it with ${who}.`);
+      }
+    } catch { /* noop */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quote.id]);
+
   const handleRegenerateAndResend = async () => {
     if (!portalStatus) return;
     try {
@@ -536,6 +550,7 @@ function QuoteDetail() {
           <div className="card-surface bg-paper shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)] p-2.5 flex items-center gap-2">
             <button
               onClick={primary.onClick}
+              onPointerDown={() => feedback("tap")}
               className="flex-1 bg-lime text-ink rounded-full py-3 font-bold inline-flex items-center justify-center gap-2 text-sm"
             >
               <PrimaryIcon className="h-4 w-4" />

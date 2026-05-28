@@ -9,6 +9,7 @@ import { WalletBadges } from "@/components/WalletBadges";
 import { downloadPortalPdf } from "@/lib/portal-pdf";
 import { Loader2, Check, X, Download } from "lucide-react";
 import { acceptButtonLabel, paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
+import { feedback } from "@/lib/feedback";
 
 export const Route = createFileRoute("/portal/$token")({
   component: PortalPage,
@@ -260,6 +261,7 @@ function PortalPage() {
                 </button>
                 <button
                   onClick={() => onRespond("accepted")}
+                  onPointerDown={() => feedback("tap")}
                   disabled={responding}
                   className="flex-[2] h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3"
                 >
@@ -282,6 +284,7 @@ function PortalPage() {
                 <div className="space-y-2">
                   <button
                     onClick={() => onPay(payRequestType)}
+                    onPointerDown={() => feedback("tap")}
                     disabled={paying}
                     className="w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
                   >

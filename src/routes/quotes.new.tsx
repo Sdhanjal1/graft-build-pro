@@ -11,8 +11,10 @@ import {
   updateClientPhone,
   formatGBP,
   QUOTE_TEMPLATES,
+  mockQuotes,
   type LineItem,
 } from "@/lib/user-data";
+import { supabase } from "@/integrations/supabase/client";
 
 
 import { generateAIQuote } from "@/lib/ai-quote.functions";
@@ -442,6 +444,20 @@ function NewQuotePage() {
         }
       }
       feedback("success");
+      // First-quote celebration: stash a flag the detail page can read once.
+      if (mockQuotes.length === 1) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const uid = session?.user?.id;
+          if (uid) {
+            const seenKey = `quottr.firstQuoteSeen:${uid}`;
+            if (typeof localStorage !== "undefined" && !localStorage.getItem(seenKey)) {
+              sessionStorage.setItem("quottr.celebrateFirstQuote", q.id);
+              localStorage.setItem(seenKey, "1");
+            }
+          }
+        } catch { /* noop */ }
+      }
       navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id } });
 
     } catch (e) {
@@ -762,6 +778,7 @@ function NewQuotePage() {
                 form="new-quote-form"
                 disabled={loading || subBlocked}
                 title={subBlocked ? "Your trial has ended, add a payment method to continue" : undefined}
+                onPointerDown={() => feedback("tap")}
                 className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition disabled:opacity-60 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.35)]"
               >
                 {loading ? (
@@ -955,6 +972,7 @@ function NewQuotePage() {
             <button
               type="button"
               onClick={save}
+              onPointerDown={() => feedback("tap")}
               className="bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm"
             >
               <Save className="h-4 w-4" /> Save quote

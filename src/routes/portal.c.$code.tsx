@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { acceptButtonLabel, paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
+import { feedback } from "@/lib/feedback";
 
 export const Route = createFileRoute("/portal/c/$code")({
   component: ClientPortalPage,
@@ -297,6 +298,7 @@ function ClientPortalPage() {
                           </button>
                           <button
                             onClick={() => onRespond(q.id, "accepted")}
+                            onPointerDown={() => feedback("tap")}
                             disabled={respondingId === q.id}
                             className="inline-flex items-center justify-center gap-1.5 rounded-full bg-lime text-ink py-2.5 text-xs font-bold disabled:opacity-50 px-2"
                           >

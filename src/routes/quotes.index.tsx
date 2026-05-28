@@ -98,8 +98,7 @@ function QuotesPage() {
             <EmptyState
               icon={FileText}
               title="No quotes yet"
-              body="Speak it. Quote it. Send it. Get paid."
-              cta={{ label: "New quote", to: "/quotes/new" }}
+              body="Tap the mic on Home to make your first one."
             />
           ) : (
             <EmptyState
