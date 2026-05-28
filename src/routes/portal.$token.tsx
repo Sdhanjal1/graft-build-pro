@@ -160,10 +160,10 @@ function PortalPage() {
       ? +(total * (depositPct / 100)).toFixed(2)
       : +(total * 0.5).toFixed(2);
   const canPayNow =
-    status === "accepted" && !isPaid && (timing === "upfront" || timing === "staged" || timing === "on_completion");
-  const payRequestType: "deposit" | "full" =
-    timing === "staged" ? "deposit" : "full";
-  const payAmount = payRequestType === "deposit" ? depositAmount : total;
+    status === "accepted" && !isPaid && (timing === "upfront" || timing === "on_completion");
+  const payRequestType: "deposit" | "full" = "full";
+  const payAmount = total;
+
   const showBottomBar = canRespond || status === "accepted" || status === "declined" || isPaid;
 
   const handleDownloadInvoice = async () => {
