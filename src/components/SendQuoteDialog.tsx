@@ -37,6 +37,7 @@ export function SendQuoteDialog({
   const [busy, setBusy] = useState<null | "sms" | "email" | "wa">(null);
   const [copied, setCopied] = useState(false);
   const [sentVia, setSentVia] = useState<SentVia | null>(null);
+  const [pendingChannel, setPendingChannel] = useState<SentVia | null>(null);
   const initialAutoChase = (() => {
     const q = getQuote(quoteId);
     return q?.auto_chase_enabled ?? userProfile.auto_chase_enabled ?? true;
@@ -52,7 +53,16 @@ export function SendQuoteDialog({
 
   const handleClose = () => {
     setSentVia(null);
+    setPendingChannel(null);
     onClose();
+  };
+
+  const confirmSent = (channel: SentVia) => {
+    toast.success(`Sent to ${customerName ?? firstName} via ${CHANNEL_LABEL[channel]}`);
+    feedback("success");
+    playSample("whoosh");
+    setSentVia(channel);
+    setPendingChannel(null);
   };
 
 
