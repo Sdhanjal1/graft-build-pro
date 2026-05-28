@@ -129,7 +129,12 @@
 
 @keyframes mic-ring-outer {
   0% { transform: scale(1); opacity: 0.25; }
-100% { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 /* Prevent iOS Safari from auto-zooming when focusing form controls.
