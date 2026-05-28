@@ -5,7 +5,7 @@ import { MessageCircle, Mail, Sparkles, Loader2, Copy, Check, CheckCircle2, Cloc
 import { ensurePortalToken } from "@/lib/messages.functions";
 
 import { toast } from "sonner";
-import { feedback } from "@/lib/feedback";
+import { feedback, playSample } from "@/lib/feedback";
 import { buildQuoteWhatsAppMessage, getQuote, waLink, userProfile, setQuoteAutoChase } from "@/lib/user-data";
 
 type SentVia = "sms" | "email" | "wa";
