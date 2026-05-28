@@ -407,6 +407,7 @@ function NewQuotePage() {
     try {
       const g = await generateFn({ data: { description: text, trade, vatRegistered: vat } });
       setDraft(g);
+      originalDraftRef.current = JSON.stringify(g.line_items);
       if (mode === "onsite") setDesc(text);
       feedback("success");
       playSample("ding");
