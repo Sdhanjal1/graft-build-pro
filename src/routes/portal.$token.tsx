@@ -284,6 +284,7 @@ function PortalPage() {
                 <div className="space-y-2">
                   <button
                     onClick={() => onPay(payRequestType)}
+                    onPointerDown={() => feedback("tap")}
                     disabled={paying}
                     className="w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
                   >
