@@ -48,6 +48,10 @@ export type TradeConfig = {
   quoteTemplates: { label: string; prompt: string }[];
   /** Example shown in the home-screen mic tooltip. */
   homeMicExample: string;
+  /** Used in onboarding: "Let's set up your {setupLine}". */
+  setupLine: string;
+  /** Short phrase listing typical materials for this trade, e.g. "fittings, pipework, boiler parts". */
+  materialPhrase: string;
 };
 
 const TRADES: TradeConfig[] = [
@@ -60,6 +64,7 @@ const TRADES: TradeConfig[] = [
     defaultServiceIntervalMonths: null,
     certifications: [
       { key: "unvented", label: "G3 Unvented", validityMonths: 60 },
+      { key: "wras", label: "WRAS Compliance", validityMonths: 12 },
     ],
     quoteTemplates: [
       { label: "Bathroom suite", prompt: "Remove existing bathroom suite and install new — bath with shower over, basin and pedestal, close-coupled WC, chrome thermostatic shower valve, tile to half height around bath, all waste and supply pipework, silicone seal and make good." },
@@ -68,6 +73,8 @@ const TRADES: TradeConfig[] = [
       { label: "Cylinder swap", prompt: "Replace existing hot water cylinder with new 210L unvented unit, including G3 unvented commissioning, tundish, expansion vessel and discharge pipework." },
     ],
     homeMicExample: "Bathroom refit at 14 Elm Road, Roca suite and porcelain tiles, three days labour",
+    setupLine: "plumbing business",
+    materialPhrase: "fittings, pipework, valves and suites",
   },
   {
     id: "Gas Engineer",
@@ -88,6 +95,8 @@ const TRADES: TradeConfig[] = [
       { label: "System boiler", prompt: "Install new Vaillant ecoTEC system boiler with 8-zone wiring centre, cylinder coil reconnection, new flue run, magnetic filter and 10-year warranty registration." },
     ],
     homeMicExample: "Annual boiler service and CP12 for Mrs Jones at 12 Oak Road, £95",
+    setupLine: "gas business",
+    materialPhrase: "boilers, flues, filters and gas fittings",
   },
   {
     id: "Electrician",
@@ -108,6 +117,8 @@ const TRADES: TradeConfig[] = [
       { label: "Downlights", prompt: "Supply and install 8 x fire-rated LED downlights to kitchen ceiling on new circuit with dimmer switch, make good plasterboard." },
     ],
     homeMicExample: "Replace consumer unit at 12 Oak Road, 18th-ed compliant board, £450",
+    setupLine: "electrical business",
+    materialPhrase: "boards, RCBOs, cable, sockets and accessories",
   },
   {
     id: "Builder",
@@ -116,13 +127,18 @@ const TRADES: TradeConfig[] = [
     noun: { job: "job", jobPlural: "jobs" },
     defaultServiceType: null,
     defaultServiceIntervalMonths: null,
-    certifications: [],
+    certifications: [
+      { key: "building control", label: "Building Control Sign-off", validityMonths: 120 },
+    ],
     quoteTemplates: [
       { label: "Single-storey extension", prompt: "Build single-storey rear extension 4m x 3m — strip foundations, blockwork cavity walls, flat roof with GRP covering, bifold doors, plastering and decorating to match." },
       { label: "Loft conversion", prompt: "Convert loft to bedroom with en-suite — steels, dormer to rear, Velux to front, staircase, insulation to current regs, plastering and second fix." },
       { label: "Garden wall", prompt: "Build 1.2m brick garden wall approx 8m long including concrete strip foundation, engineering brick below DPC, facing brick above with coping stones." },
+      { label: "Knock-through", prompt: "Form structural opening between kitchen and dining room — steel beam to engineer's spec, padstones, make good plaster and decorate." },
     ],
     homeMicExample: "Garden wall, 8 metres, engineering brick and copings, £2,400",
+    setupLine: "building business",
+    materialPhrase: "blockwork, timber, steels, aggregates and fixings",
   },
   {
     id: "Carpenter",
@@ -139,6 +155,8 @@ const TRADES: TradeConfig[] = [
       { label: "Second fix", prompt: "Second fix to loft conversion — skirting, architrave, two doors hung with ironmongery, ease and adjust." },
     ],
     homeMicExample: "Hang two oak internal doors at 17 Ashfield Road, £220",
+    setupLine: "carpentry business",
+    materialPhrase: "timber, MDF, doors, ironmongery and fixings",
   },
   {
     id: "Roofer",
@@ -149,6 +167,7 @@ const TRADES: TradeConfig[] = [
     defaultServiceIntervalMonths: null,
     certifications: [
       { key: "flat roof", label: "GRP Guarantee", validityMonths: 240 },
+      { key: "ibg", label: "Insurance-Backed Guarantee", validityMonths: 120 },
     ],
     quoteTemplates: [
       { label: "Re-roof", prompt: "Strip existing concrete tile roof — replace battens and breathable membrane, refit existing tiles, re-bed ridge and hip tiles with dry-fix system, new lead flashings to chimney." },
@@ -157,6 +176,8 @@ const TRADES: TradeConfig[] = [
       { label: "Slipped tiles", prompt: "Replace 12 slipped tiles, ridge re-bedding and new lead flashing to chimney at 8 Park View." },
     ],
     homeMicExample: "Repair flashing around chimney at 8 Park View, £180",
+    setupLine: "roofing business",
+    materialPhrase: "tiles, battens, membrane, lead and flashings",
   },
   {
     id: "Decorator",
@@ -170,8 +191,11 @@ const TRADES: TradeConfig[] = [
       { label: "Whole house repaint", prompt: "Paint full interior of 3-bed house — walls and ceilings 2 coats emulsion, woodwork and doors 1 undercoat 2 topcoats satin, make good minor cracks and fill nail holes." },
       { label: "External paint", prompt: "Prepare and paint external render and fascias — wash down, fill cracks, masonry stabiliser, 2 coats Sandtex masonry paint, 2 coats Dulux Weathershield to woodwork." },
       { label: "Feature wall", prompt: "Prepare and hang feature wallpaper to lounge chimney breast, paint surrounding walls and ceiling 2 coats emulsion." },
+      { label: "Single room", prompt: "Repaint single bedroom — fill, sand, one mist coat and two topcoats Dulux Trade emulsion to walls and ceiling, satinwood to woodwork." },
     ],
     homeMicExample: "Paint front bedroom, two coats Dulux, £220",
+    setupLine: "decorating business",
+    materialPhrase: "paint, filler, sundries and dust sheets",
   },
   {
     id: "Tiler",
@@ -180,13 +204,18 @@ const TRADES: TradeConfig[] = [
     noun: { job: "job", jobPlural: "jobs" },
     defaultServiceType: null,
     defaultServiceIntervalMonths: null,
-    certifications: [],
+    certifications: [
+      { key: "tanking", label: "Wet-room Tanking", validityMonths: 240 },
+    ],
     quoteTemplates: [
       { label: "Bathroom tiling", prompt: "Supply and fit ceramic wall tiles to full height around bath and shower enclosure, floor tiles to bathroom 4m², including adhesive, grout and silicone seal." },
       { label: "Kitchen splashback", prompt: "Supply and fit metro tile splashback between worktop and wall units, including adhesive, grout and trim." },
       { label: "Outdoor patio", prompt: "Lift existing patio and lay 20m² of new porcelain paving on full mortar bed, pointing and cleaning down." },
+      { label: "Wet room", prompt: "Fully tank wet-room floor and lower walls, lay porcelain floor tiles to fall, tile walls to ceiling height, including all adhesive, grout, trims and silicone." },
     ],
     homeMicExample: "Bathroom tiling, 12m² wall and 4m² floor at 22 Hill Crescent",
+    setupLine: "tiling business",
+    materialPhrase: "tiles, adhesive, grout, trims and silicone",
   },
   {
     id: "Other",
@@ -198,6 +227,8 @@ const TRADES: TradeConfig[] = [
     certifications: [],
     quoteTemplates: [],
     homeMicExample: "Quote Mrs Jones for the job you just finished, £180",
+    setupLine: "business",
+    materialPhrase: "materials and sundries",
   },
 ];
 

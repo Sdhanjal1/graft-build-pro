@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
 
 import { SwipeRow } from "@/components/SwipeRow";
-import { mockQuotes, getClient, formatGBP, deleteQuote, duplicateQuote, setQuoteStatus, useDataVersion, buildChaserMessage, waLink, materialsForQuote, type Quote, type QuoteStatus } from "@/lib/user-data";
+import { mockQuotes, getClient, formatGBP, deleteQuote, duplicateQuote, setQuoteStatus, useDataVersion, buildChaserMessage, waLink, materialsForQuote, userProfile, type Quote, type QuoteStatus } from "@/lib/user-data";
+import { resolveTrade } from "@/lib/trades";
 import { Search, FileText, Inbox, ShoppingCart } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { QuotesListSkeleton } from "@/components/Skeletons";
@@ -97,13 +98,16 @@ function QuotesPage() {
 
       <div className="px-5 mt-5 space-y-2.5">
         {filtered.length === 0 && (
-          mockQuotes.length === 0 ? (
-            <EmptyState
-              icon={FileText}
-              title="No quotes yet"
-              body="Tap the mic on Home to make your first one."
-            />
-          ) : (
+          mockQuotes.length === 0 ? (() => {
+            const trade = resolveTrade(userProfile.trade_type);
+            return (
+              <EmptyState
+                icon={FileText}
+                title={`No ${trade.noun.jobPlural} yet`}
+                body="Tap the mic on Home to make your first one."
+              />
+            );
+          })() : (
             <EmptyState
               icon={Inbox}
               title="Nothing here"
