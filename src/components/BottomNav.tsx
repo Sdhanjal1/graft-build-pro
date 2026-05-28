@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, FileText, Settings, Bell } from "lucide-react";
-import { feedback } from "@/lib/feedback";
+import { feedback, playSample } from "@/lib/feedback";
 
 const items = [
   { to: "/app", label: "Home", icon: Home },
@@ -44,7 +44,10 @@ function NavItem({
   return (
     <Link
       to={to}
-      onPointerDown={() => feedback("tap")}
+      onPointerDown={() => {
+        feedback("tap");
+        if (!active) playSample("tick");
+      }}
       className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full min-w-0 relative"
     >
       {active && (
