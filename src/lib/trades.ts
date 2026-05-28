@@ -48,6 +48,10 @@ export type TradeConfig = {
   quoteTemplates: { label: string; prompt: string }[];
   /** Example shown in the home-screen mic tooltip. */
   homeMicExample: string;
+  /** Used in onboarding: "Let's set up your {setupLine}". */
+  setupLine: string;
+  /** Short phrase listing typical materials for this trade, e.g. "fittings, pipework, boiler parts". */
+  materialPhrase: string;
 };
 
 const TRADES: TradeConfig[] = [
