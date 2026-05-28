@@ -22,7 +22,7 @@ const faqs = [
   { q: "How do customers pay?", a: "Card, Apple Pay, Google Pay or bank transfer. Deposits land in your account, not next month." },
   { q: "Will it work in a loft / cellar / no-signal site?", a: "Yes. Capture offline, send when you're back in signal. Nothing gets lost." },
   { q: "Can I use my own branding?", a: "Yes, logo, colours, business details, VAT number. Quotes look like you, not us." },
-  { q: "Does it integrate with my accounting?", a: "Xero, QuickBooks, FreeAgent and Sage. Plug it in once, never re-enter a number." },
+  { q: "Does it integrate with my accounting?", a: "You can export all your paid records as a CSV formatted for Xero, QuickBooks, FreeAgent or Sage — no re-typing." },
   { q: "What about chasing late payers?", a: "Quottr nudges them at day 7, 14 and 21 with polite, on-brand reminders. You never have to send 'just chasing this' again." },
   { q: "Is my data safe?", a: "Yes. UK-hosted, encrypted at rest and in transit. You own your data and can export it any time." },
 ];
