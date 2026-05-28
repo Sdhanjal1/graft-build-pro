@@ -65,7 +65,16 @@ CATEGORY FIELD — REQUIRED ON EVERY LINE ITEM:
 
 UNIT FIELD — REQUIRED ON EVERY LINE ITEM:
 - For 'labour' or 'cis_labour' lines: estimate realistic UK trade duration. Use 'hours' if under a full day, 'days' otherwise. qty = estimated duration (hours rounded to 0.5, days rounded to 0.5). unit_price = hourly or daily rate.
-- For all other categories: use 'qty'. qty is the count of items supplied.`;
+- For all other categories: use 'qty'. qty is the count of items supplied.
+
+JOB DESCRIPTION — write a clean, concise, professional summary of all the captured work for the customer-facing quote. Extract only the scope of work. Do NOT include:
+- Customer names, phone numbers, or email addresses
+- Conversational filler ('thank you', 'I need', 'can you', 'so basically')
+- Asides about the customer, pricing, timing or scheduling
+
+Write it as a professional job description a customer would expect on a formal quote.
+
+EXTRACTED CUSTOMER DETAILS — if any captured item mentioned a customer name, phone number, or email address, return them in the extracted_customer object. Omit any field that wasn't mentioned. Do NOT make up details.`;
 
 
 export const generateCaptureQuote = createServerFn({ method: "POST" })
