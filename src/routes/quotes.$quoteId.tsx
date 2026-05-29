@@ -677,22 +677,18 @@ function QuoteDetail() {
 
       <SendQuoteDialog
         open={sendOpen}
-        onClose={() => { setSendOpen(false); setUpdatedLinkCode(undefined); }}
-        quoteId={quote.id}
-        quoteRef={quote.ref ?? quote.id.slice(0, 8)}
-        quoteTitle={quote.title}
+      <SendQuoteDialog
+        open={sendOpen}
+        onClose={() => setSendOpen(false)}
+        quoteId={q.id}
+        quoteRef={q.ref}
+        quoteTitle={q.title}
         customerName={client?.name}
         customerPhone={client?.phone}
         customerEmail={client?.email}
-        whatsappHref={waHref}
-        updatedLinkPortalCode={updatedLinkCode}
         onSent={() => { if (status === "pending") setStatusState("sent"); }}
+        onUndo={() => { if (status === "sent") setStatusState("pending"); }}
       />
-
-      <AssignClientDialog
-        open={assignOpen}
-        onClose={() => setAssignOpen(false)}
-        quoteId={quote.id}
         onAssigned={() => setSendOpen(true)}
       />
 
