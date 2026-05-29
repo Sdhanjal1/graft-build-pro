@@ -677,8 +677,6 @@ function QuoteDetail() {
 
       <SendQuoteDialog
         open={sendOpen}
-      <SendQuoteDialog
-        open={sendOpen}
         onClose={() => setSendOpen(false)}
         quoteId={q.id}
         quoteRef={q.ref}
@@ -688,8 +686,6 @@ function QuoteDetail() {
         customerEmail={client?.email}
         onSent={() => { if (status === "pending") setStatusState("sent"); }}
         onUndo={() => { if (status === "sent") setStatusState("pending"); }}
-      />
-        onAssigned={() => setSendOpen(true)}
       />
 
       <MaterialListSheet
