@@ -678,9 +678,9 @@ function QuoteDetail() {
       <SendQuoteDialog
         open={sendOpen}
         onClose={() => setSendOpen(false)}
-        quoteId={q.id}
-        quoteRef={q.ref}
-        quoteTitle={q.title}
+        quoteId={quote.id}
+        quoteRef={quote.ref}
+        quoteTitle={quote.title}
         customerName={client?.name}
         customerPhone={client?.phone}
         customerEmail={client?.email}
