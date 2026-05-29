@@ -677,23 +677,15 @@ function QuoteDetail() {
 
       <SendQuoteDialog
         open={sendOpen}
-        onClose={() => { setSendOpen(false); setUpdatedLinkCode(undefined); }}
+        onClose={() => setSendOpen(false)}
         quoteId={quote.id}
-        quoteRef={quote.ref ?? quote.id.slice(0, 8)}
+        quoteRef={quote.ref}
         quoteTitle={quote.title}
         customerName={client?.name}
         customerPhone={client?.phone}
         customerEmail={client?.email}
-        whatsappHref={waHref}
-        updatedLinkPortalCode={updatedLinkCode}
         onSent={() => { if (status === "pending") setStatusState("sent"); }}
-      />
-
-      <AssignClientDialog
-        open={assignOpen}
-        onClose={() => setAssignOpen(false)}
-        quoteId={quote.id}
-        onAssigned={() => setSendOpen(true)}
+        onUndo={() => { if (status === "sent") setStatusState("pending"); }}
       />
 
       <MaterialListSheet
