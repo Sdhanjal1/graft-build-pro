@@ -419,31 +419,6 @@ function QuoteDetail() {
       </div>
       <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
 
-      {portalStatus && (portalStatus.expired || portalStatus.days_remaining <= 7) && (
-        <section className="px-5 mt-5">
-          <div className="rounded-2xl border border-amber-500/40 bg-amber-50 text-amber-900 p-3 flex items-start gap-3">
-            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold">
-                {portalStatus.expired
-                  ? "This link has expired."
-                  : `This link expires in ${portalStatus.days_remaining} day${portalStatus.days_remaining === 1 ? "" : "s"}.`}
-              </p>
-              <button
-                type="button"
-                onClick={handleRegenerateAndResend}
-                disabled={regenerating}
-                className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-ink text-paper text-xs font-semibold px-3 py-1.5 disabled:opacity-60"
-              >
-                {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
-                Regenerate and resend
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-
-
       {status === "declined" && (
         <section className="px-5 mt-5">
           <div className="card-surface p-3 text-center text-sm text-muted-foreground">
@@ -497,26 +472,6 @@ function QuoteDetail() {
         </div>
       </section>
 
-      {/* Prominent payment terms callout */}
-      <section className="px-5 mt-5">
-        <div className="rounded-2xl border-2 border-lime bg-lime/10 px-4 py-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
-            <p className="text-base font-bold text-ink leading-tight">
-              {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setTimingOpen(true)}
-            className="shrink-0 text-xs font-semibold text-ink underline underline-offset-2"
-          >
-            Change
-          </button>
-        </div>
-      </section>
-
-
       {(userProfile.quote_footer || (userProfile.show_signature && (userProfile.signature_name || userProfile.full_name))) && (
         <section className="px-5 mt-5">
           <div className="px-1 space-y-2">
@@ -536,94 +491,135 @@ function QuoteDetail() {
         </section>
       )}
 
+      {/* Options: secondary controls + actions, collapsed by default */}
+      <section className="px-5 mt-5">
+        <Accordion type="single" collapsible className="card-surface px-4">
+          <AccordionItem value="options" className="border-b-0">
+            <AccordionTrigger className="text-sm font-semibold text-ink hover:no-underline">
+              Options
+            </AccordionTrigger>
+            <AccordionContent className="space-y-3 pt-1">
+              {/* Payment terms */}
+              <div className="rounded-2xl border-2 border-lime bg-lime/10 px-4 py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
+                  <p className="text-sm font-bold text-ink leading-tight">
+                    {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTimingOpen(true)}
+                  className="shrink-0 text-xs font-semibold text-ink underline underline-offset-2"
+                >
+                  Change
+                </button>
+              </div>
+
+              {/* Portal link status warning */}
+              {portalStatus && (portalStatus.expired || portalStatus.days_remaining <= 7) && (
+                <div className="rounded-2xl border border-amber-500/40 bg-amber-50 text-amber-900 p-3 flex items-start gap-3">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold">
+                      {portalStatus.expired
+                        ? "This link has expired."
+                        : `This link expires in ${portalStatus.days_remaining} day${portalStatus.days_remaining === 1 ? "" : "s"}.`}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleRegenerateAndResend}
+                      disabled={regenerating}
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-ink text-paper text-xs font-semibold px-3 py-1.5 disabled:opacity-60"
+                    >
+                      {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                      Regenerate and resend
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Paid status */}
+              {status === "paid" && (
+                <div className="rounded-2xl bg-status-paid/15 border border-status-paid/40 py-2 px-4 inline-flex items-center justify-center gap-2 text-xs font-semibold text-ink w-full">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Paid via {paidVia === "card" ? "card" : paidVia === "bank" ? "bank transfer" : "cash"}
+                </div>
+              )}
+
+              {/* Material list */}
+              {showMaterialsCta && (
+                <button
+                  onClick={() => setMaterialsOpen(true)}
+                  className="w-full bg-ink text-paper rounded-full py-2.5 px-4 inline-flex items-center justify-center gap-2 text-xs font-bold"
+                >
+                  <ShoppingCart className="h-3.5 w-3.5" />
+                  Material list ({materialsCount})
+                </button>
+              )}
+
+              {/* Action shortcuts */}
+              <ul className="pt-1">
+                <MoreItem icon={Eye} label="View as customer" onClick={viewAsCustomer} />
+                {materialsCount > 0 && (
+                  <MoreItem icon={ShoppingCart} label={`Material list (${materialsCount})`} onClick={() => setMaterialsOpen(true)} />
+                )}
+                <MoreItem icon={Share2} label="Download PDF" onClick={sharePdf} />
+                <MoreItem icon={Copy} label="Duplicate quote" onClick={duplicate} />
+                {status !== "paid" && (
+                  <MoreItem icon={CheckCircle2} label="Mark as paid" onClick={() => setAskingPaid(true)} />
+                )}
+                {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
+                  <MoreItem icon={MessageCircle} label="Send chaser on WhatsApp" onClick={() => {
+                    const first = client.name.split(" ")[0] ?? "there";
+                    const msg = `Hi ${first}, just following up on ${quote.ref} for ${formatGBP(quote.total)}. Could you let me know when payment will be made? Thanks.`;
+                    const digits = client.phone.replace(/\D/g, "");
+                    window.open(`https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${encodeURIComponent(msg)}`, "_blank");
+                  }} />
+                )}
+                <MoreItem icon={Mail} label="Email customer" onClick={() => { window.location.href = mailHref; }} />
+                <MoreItem icon={Phone} label="Call customer" onClick={() => { window.location.href = `tel:${client?.phone}`; }} />
+                {status === "pending" && (
+                  <MoreItem icon={Send} label="Mark as sent" onClick={markSent} />
+                )}
+                {status === "accepted" && (
+                  <MoreItem icon={Zap} label="Request payment (send link)" onClick={() => setRequesting(true)} />
+                )}
+                {(status === "accepted" || status === "sent") && (
+                  <MoreItem icon={Smartphone} label="Take payment on site" onClick={() => takePaymentOnSite("full")} />
+                )}
+                {invoicedAt && (
+                  <MoreItem icon={FileText} label="View final invoice" onClick={() => navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } })} />
+                )}
+                {status !== "declined" && status !== "paid" && (
+                  <MoreItem icon={XCircle} label="Mark as declined" onClick={declineQuote} />
+                )}
+                <MoreItem icon={Trash2} label="Delete quote" onClick={removeQuote} danger />
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </section>
+
 
       {/* Spacer so content isn't hidden behind sticky bar + bottom nav */}
-      <div className="h-44" aria-hidden />
+      <div className="h-32" aria-hidden />
 
-      {/* Sticky bottom action bar — floats above BottomNav */}
+      {/* Sticky bottom action bar — single primary action */}
       <div className="fixed bottom-20 inset-x-0 z-40 pointer-events-none">
         <div className="mx-auto max-w-md px-4 pt-3 pointer-events-auto bg-gradient-to-t from-paper via-paper to-paper/0">
-          <div className="card-surface bg-paper shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)] p-2.5 flex items-center gap-2">
-            <button
-              onClick={primary.onClick}
-              onPointerDown={() => feedback("tap")}
-              className="flex-1 bg-lime text-ink rounded-full py-3 font-bold inline-flex items-center justify-center gap-2 text-sm"
-            >
-              <PrimaryIcon className="h-4 w-4" />
-              {primary.label}
-            </button>
-            <button
-              onClick={() => setMoreOpen(true)}
-              aria-label="More options"
-              className="h-12 w-12 rounded-full bg-secondary text-ink inline-flex items-center justify-center shrink-0 font-bold"
-            >
-              ⋯
-            </button>
-          </div>
-          {showMaterialsCta && (
-            <button
-              onClick={() => setMaterialsOpen(true)}
-              className="w-full mt-2 bg-ink text-paper rounded-full py-2.5 px-4 inline-flex items-center justify-center gap-2 text-xs font-bold"
-            >
-              <ShoppingCart className="h-3.5 w-3.5" />
-              Material list ({materialsCount})
-            </button>
-          )}
-          {status === "paid" && (
-            <div className="w-full mt-2 bg-status-paid/15 border border-status-paid/40 rounded-full py-2 px-4 inline-flex items-center justify-center gap-2 text-xs font-semibold text-ink">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Paid via {paidVia === "card" ? "card" : paidVia === "bank" ? "bank transfer" : "cash"}
-            </div>
-          )}
+          <button
+            onClick={primary.onClick}
+            onPointerDown={() => feedback("tap")}
+            className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)]"
+          >
+            <PrimaryIcon className="h-4 w-4" />
+            {primary.label}
+          </button>
         </div>
       </div>
 
-      {moreOpen && (
-        <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setMoreOpen(false)}>
-          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-2 pb-6" onClick={(e) => e.stopPropagation()}>
-            <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto my-3" />
-            <h3 className="text-xl px-4 mb-2">More options</h3>
-            <ul className="px-2">
-              <MoreItem icon={Eye} label="View as customer" onClick={() => { setMoreOpen(false); viewAsCustomer(); }} />
-              {materialsCount > 0 && (
-                <MoreItem icon={ShoppingCart} label={`Material list (${materialsCount})`} onClick={() => { setMoreOpen(false); setMaterialsOpen(true); }} />
-              )}
-              <MoreItem icon={Share2} label="Download PDF" onClick={() => { setMoreOpen(false); sharePdf(); }} />
-              <MoreItem icon={Copy} label="Duplicate quote" onClick={() => { setMoreOpen(false); duplicate(); }} />
-              {status !== "paid" && (
-                <MoreItem icon={CheckCircle2} label="Mark as paid" onClick={() => { setMoreOpen(false); setAskingPaid(true); }} />
-              )}
-              {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
-                <MoreItem icon={MessageCircle} label="Send chaser on WhatsApp" onClick={() => {
-                  setMoreOpen(false);
-                  const first = client.name.split(" ")[0] ?? "there";
-                  const msg = `Hi ${first}, just following up on ${quote.ref} for ${formatGBP(quote.total)}. Could you let me know when payment will be made? Thanks.`;
-                  const digits = client.phone.replace(/\D/g, "");
-                  window.open(`https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${encodeURIComponent(msg)}`, "_blank");
-                }} />
-              )}
-              <MoreItem icon={Mail} label="Email customer" onClick={() => { setMoreOpen(false); window.location.href = mailHref; }} />
-              <MoreItem icon={Phone} label="Call customer" onClick={() => { setMoreOpen(false); window.location.href = `tel:${client?.phone}`; }} />
-              {status === "pending" && (
-                <MoreItem icon={Send} label="Mark as sent" onClick={() => { setMoreOpen(false); markSent(); }} />
-              )}
-              {status === "accepted" && (
-                <MoreItem icon={Zap} label="Request payment (send link)" onClick={() => { setMoreOpen(false); setRequesting(true); }} />
-              )}
-              {(status === "accepted" || status === "sent") && (
-                <MoreItem icon={Smartphone} label="Take payment on site" onClick={() => { setMoreOpen(false); takePaymentOnSite("full"); }} />
-              )}
-              {invoicedAt && (
-                <MoreItem icon={FileText} label="View final invoice" onClick={() => { setMoreOpen(false); navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } }); }} />
-              )}
-              {status !== "declined" && status !== "paid" && (
-                <MoreItem icon={XCircle} label="Mark as declined" onClick={() => { setMoreOpen(false); declineQuote(); }} />
-              )}
-              <MoreItem icon={Trash2} label="Delete quote" onClick={() => { setMoreOpen(false); removeQuote(); }} danger />
-            </ul>
-          </div>
-        </div>
-      )}
+
 
       {/* Bottom sheet: payment timing */}
       {timingOpen && (
