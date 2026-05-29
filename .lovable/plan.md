@@ -1,42 +1,66 @@
-## Generate clean job descriptions and extract customer details from voice transcripts
+File: `src/routes/quotes.$quoteId.tsx`
 
-### 1. `src/lib/ai-quote.functions.ts` (voice-quote AI)
+### Goal
+Reduce visual density on first load of the quote detail page. The trader sees their quote content + one clear primary action. All secondary settings, status info, and extra actions move behind a collapsed "Options" accordion.
 
-Extend `QuoteSchema`:
-```ts
-const QuoteSchema = z.object({
-  title: z.string().min(1).max(160),
-  clean_description: z.string().min(1).max(1000),
-  extracted_customer: z.object({
-    name: z.string().max(200).optional(),
-    phone: z.string().max(50).optional(),
-    email: z.string().max(200).optional(),
-  }).optional(),
-  line_items: z.array(LineItemSchema).min(1).max(20),
-});
-```
+### 1. Imports
+- Add `ChevronDown` to the existing lucide-react import.
+- Import `Accordion`, `AccordionItem`, `AccordionTrigger`, `AccordionContent` from `@/components/ui/accordion`.
 
-Append to `SYSTEM_PROMPT`:
-- **JOB DESCRIPTION** section: write a clean, concise, professional summary of the work. Extract only the scope. Do NOT include customer names, phone numbers, email addresses, or conversational filler ("thank you", "I need", "can you", "so basically"). Include the worked example ("Supply and fit 4 radiators including connecting pipework, filling, bleeding and balancing.").
-- **EXTRACTED CUSTOMER DETAILS** section: if the tradesperson mentioned a customer name, phone, or email in the transcript, return them in `extracted_customer`. Omit fields not mentioned.
+### 2. State
+- Remove `moreOpen` / `setMoreOpen` state — the More bottom sheet is replaced by inline content.
+- Add `optionsOpen` state to track Accordion open/closed if needed for chevron rotation.
 
-Update user-prompt JSON shape to include `clean_description` and `extracted_customer`.
+### 3. Move elements out of the main flow into Options
+- **Payment terms callout** (currently a prominent green box between line items and footer) → moves into the Options accordion.
+- **Portal link expiry warning** (currently a prominent amber alert near the top) → moves into the Options accordion.
+- **Material list CTA** (currently a second button in the sticky bar when `status === "accepted"`) → moves into the Options accordion.
+- **Paid status banner** (currently shown in the sticky bar when `status === "paid"`) → moves into the Options accordion.
 
-### 2. `src/lib/ai-capture-quote.functions.ts` (on-site capture AI)
+### 4. Sticky bottom bar — single primary action only
+- Remove the `⋯` "More" button.
+- Remove the materials CTA button.
+- Remove the paid status div.
+- Keep only the primary action button, made full-width (`w-full`) with comfortable height (`py-3.5`).
 
-Same schema additions and same prompt additions, since the same problem applies.
+### 5. Add "Options" accordion
+Insert a new section after the quote footer and before the `h-44` spacer.
 
-### 3. `src/routes/quotes.new.tsx`
+Use `<Accordion type="single" collapsible>` with a single item labelled **"Options"**.
+Inside the expanded content, render in order:
 
-After `generateFn(...)` returns at line 410:
-- If `g.clean_description` exists, `setDesc(g.clean_description)` instead of (or in addition to) the raw `text`.
-- If `g.extracted_customer?.name` and `clientName` is empty, populate it.
-- If `g.extracted_customer?.phone` and `clientPhone` is empty, populate it.
+1. **Payment terms** — the green callout with the current terms label and "Change" button (still opens the existing `timingOpen` bottom sheet).
+2. **Portal status** — if the link is expired or expiring soon, show the amber warning + "Regenerate and resend" button.
+3. **Material list** — if `showMaterialsCta`, a button that opens the existing `materialsOpen` sheet.
+4. **Paid status** — if `status === "paid"`, show how the customer paid.
+5. **Action shortcuts** — an inline list replacing the old More bottom sheet. Render as a vertical list of buttons with the same conditional logic as the old More menu:
+   - View as customer
+   - Download PDF
+   - Duplicate quote
+   - Mark as paid (if not paid)
+   - Send chaser on WhatsApp (if applicable)
+   - Email customer
+   - Call customer
+   - Mark as sent (if pending)
+   - Request payment (if accepted)
+   - Take payment on site (if accepted or sent)
+   - View final invoice (if invoiced)
+   - Mark as declined (if not declined/paid)
+   - Delete quote
 
-At line 441 (`save`), the description passed to `saveGeneratedQuote` will now be the cleaned version since `desc` is already replaced.
+Use the existing `MoreItem` component styling (or a similar inline row component) for the action list.
 
-### 4. Verify
+### 6. Remove More bottom sheet
+Delete the JSX block for the `moreOpen` bottom sheet and its backdrop.
 
-Build check. Quote detail page and customer portal already read `quote.description` — no UI changes needed.
+### 7. Keep all existing bottom sheets untouched
+- `timingOpen` (payment timing selection)
+- `askingPaid` (how did customer pay)
+- `requesting` (Stripe payment request)
+- `askDeposit` (deposit on acceptance)
+- `askInvoice` (send final invoice)
+- `sendOpen` (SendQuoteDialog)
+- `assignOpen` (AssignClientDialog)
+- `materialsOpen` (MaterialListSheet)
 
-**Scope:** 3 files. No DB migration. No portal/quote-view changes.
+No backend changes, no changes to status logic, payment logic, or sending logic. This is a purely presentational reorganisation.
