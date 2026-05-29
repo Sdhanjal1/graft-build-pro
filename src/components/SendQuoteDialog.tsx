@@ -24,21 +24,22 @@ type Props = {
   whatsappHref?: string;
   /** When set, dialog skips token creation and uses this client portal_code with "updated link" copy. */
   updatedLinkPortalCode?: string;
-  /** Fired after the user confirms "Yes, sent" so the parent can sync local status to "sent". */
+  /** Fired after the quote is marked as sent so the parent can sync local status to "sent". */
   onSent?: () => void;
+  /** Fired after the quote is reverted to pending so the parent can sync local status to "pending". */
+  onUndo?: () => void;
 };
 
 export function SendQuoteDialog({
   open, onClose, quoteId, quoteRef, quoteTitle,
   customerName, customerPhone, customerEmail,
-  updatedLinkPortalCode, onSent,
+  updatedLinkPortalCode, onSent, onUndo,
 }: Props) {
 
   const ensureToken = useServerFn(ensurePortalToken);
   const [busy, setBusy] = useState<null | "sms" | "email" | "wa">(null);
   const [copied, setCopied] = useState(false);
   const [sentVia, setSentVia] = useState<SentVia | null>(null);
-  const [pendingChannel, setPendingChannel] = useState<SentVia | null>(null);
   const initialAutoChase = (() => {
     const q = getQuote(quoteId);
     return q?.auto_chase_enabled ?? userProfile.auto_chase_enabled ?? true;
@@ -54,7 +55,6 @@ export function SendQuoteDialog({
 
   const handleClose = () => {
     setSentVia(null);
-    setPendingChannel(null);
     onClose();
   };
 
@@ -71,7 +71,21 @@ export function SendQuoteDialog({
     feedback("success");
     playSample("whoosh");
     setSentVia(channel);
-    setPendingChannel(null);
+  };
+
+  const undoSent = async () => {
+    try {
+      const q = getQuote(quoteId);
+      if (q && q.status === "sent") {
+        await setQuoteStatus(quoteId, "pending");
+      }
+      onUndo?.();
+      setSentVia(null);
+      feedback("tap");
+    } catch {
+      toast.error("Could not undo. Try again.");
+      feedback("error");
+    }
   };
 
 
@@ -103,12 +117,15 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       if (navigator.share) {
         try {
           await navigator.share({ title: `Quote ${quoteRef}`, text });
-        } catch { /* user cancelled or unsupported - still ask to confirm */ }
+        } catch { /* user cancelled or unsupported — still mark as sent */ }
       } else {
         try { await navigator.clipboard.writeText(text); toast.message("Message copied — paste it into your chat or email"); } catch { /* ignore */ }
       }
-      if (updatedLinkPortalCode) onClose();
-      else setPendingChannel("sms");
+      if (updatedLinkPortalCode) {
+        onClose();
+      } else {
+        await confirmSent("sms");
+      }
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Could not create portal link");
@@ -116,6 +133,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       setBusy(null);
     }
   };
+
 
 
 
@@ -143,29 +161,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
         <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
 
-        {pendingChannel && !sentVia ? (
-          <div>
-            <h3 className="text-2xl">Did you send the quote?</h3>
-            <p className="text-xs text-muted-foreground mb-4 mt-1">
-              Confirm once you've actually sent it to {customerName ?? firstName}. Opening the share menu isn't proof it was sent.
-            </p>
-            <div className="space-y-2.5">
-              <button
-                onClick={() => confirmSent(pendingChannel)}
-                className="w-full rounded-2xl p-4 bg-lime text-ink font-bold text-sm"
-              >
-                Yes, sent
-              </button>
-              <button
-                onClick={() => setPendingChannel(null)}
-                className="w-full rounded-2xl p-4 bg-card border border-border text-ink font-bold text-sm"
-              >
-                Not yet, go back
-              </button>
-            </div>
-            <button onClick={handleClose} className="w-full mt-2 text-sm text-muted-foreground py-2">Cancel</button>
-          </div>
-        ) : sentVia ? (
+        {sentVia ? (
           <div>
             <div className="flex flex-col items-center text-center pt-1 pb-3">
               <div className="h-14 w-14 rounded-full bg-lime text-ink flex items-center justify-center mb-3">
@@ -175,6 +171,12 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
               <p className="text-xs text-muted-foreground mt-1">
                 Sent to {customerName ?? firstName}. We'll let you know when they open it.
               </p>
+              <button
+                onClick={undoSent}
+                className="mt-1 text-xs text-muted-foreground underline underline-offset-2"
+              >
+                Not sent? Undo
+              </button>
             </div>
 
             <div className="rounded-2xl bg-secondary p-4 mt-2">
