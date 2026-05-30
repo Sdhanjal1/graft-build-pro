@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { notifyUser } from "@/lib/push.functions";
+import { notifyUser } from "@/lib/push.server";
 
 const CLIENT_DOCS_BUCKET = "client-docs";
 const SIGNED_URL_TTL = 60 * 60; // 1 hour
