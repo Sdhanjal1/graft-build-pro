@@ -6,7 +6,7 @@ import { createPortalCheckout } from "@/lib/payments.functions";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { WalletBadges } from "@/components/WalletBadges";
 import { downloadPortalPdf } from "@/lib/portal-pdf";
-import { Loader2, Check, X, Download } from "lucide-react";
+import { Loader2, Check, X, Download, Copy, Landmark, CreditCard } from "lucide-react";
 import { acceptButtonLabel, paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
 import { feedback } from "@/lib/feedback";
 
