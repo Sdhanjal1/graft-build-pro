@@ -345,12 +345,110 @@ function PortalPage() {
           </div>
         </section>
       )}
+      {status === "accepted" && (
+        <section className="px-5 mt-4">
+          <div className="rounded-2xl bg-status-accepted/15 text-status-accepted px-4 py-3 text-sm font-semibold flex items-center gap-2">
+            <Check className="h-4 w-4" /> You accepted this quote. {profile?.business_name ?? "Your tradesperson"} has been notified.
+          </div>
+        </section>
+      )}
+
+      {showPaymentOptions && (
+        <section className="px-5 mt-4 space-y-3">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">How to pay</p>
+
+          {canPayNow && (
+            <div className="card-surface p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <CreditCard className="h-4 w-4 text-ink" />
+                <p className="text-sm font-bold text-ink">Pay by card</p>
+              </div>
+              <button
+                onClick={() => onPay(payRequestType)}
+                onPointerDown={() => feedback("tap")}
+                disabled={paying}
+                className="w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
+              >
+                {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                <span className="truncate">Pay now {formatGBP(payAmount)}</span>
+              </button>
+              <p className="text-center text-[10px] text-muted-foreground mt-2">Secured payment by Stripe</p>
+              <WalletBadges className="mt-2" />
+            </div>
+          )}
+
+          {hasBank && (
+            <div className="card-surface p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Landmark className="h-4 w-4 text-ink" />
+                <p className="text-sm font-bold text-ink">Pay by bank transfer</p>
+              </div>
+              <dl className="text-sm divide-y divide-border rounded-xl border border-border overflow-hidden">
+                {accountName && (
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <dt className="text-muted-foreground">Account name</dt>
+                    <dd className="font-medium text-ink text-right truncate ml-3">{accountName}</dd>
+                  </div>
+                )}
+                {bankName && (
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <dt className="text-muted-foreground">Bank</dt>
+                    <dd className="font-medium text-ink text-right truncate ml-3">{bankName}</dd>
+                  </div>
+                )}
+                <div className="flex items-center justify-between px-3 py-2">
+                  <dt className="text-muted-foreground">Sort code</dt>
+                  <dd className="num font-medium text-ink">{formattedSort}</dd>
+                </div>
+                <div className="flex items-center justify-between px-3 py-2">
+                  <dt className="text-muted-foreground">Account number</dt>
+                  <dd className="num font-medium text-ink">{bankAccount}</dd>
+                </div>
+                {paymentRef && (
+                  <div className="flex items-center justify-between px-3 py-2 bg-lime/10">
+                    <dt className="text-muted-foreground">Reference</dt>
+                    <dd className="num font-bold text-ink">{paymentRef}</dd>
+                  </div>
+                )}
+                <div className="flex items-center justify-between px-3 py-2">
+                  <dt className="text-muted-foreground">Amount</dt>
+                  <dd className="num font-bold text-ink">{formatGBP(payAmount)}</dd>
+                </div>
+              </dl>
+              <button
+                type="button"
+                onClick={handleCopyBank}
+                className="mt-3 w-full h-11 rounded-full border border-border text-ink text-sm font-semibold inline-flex items-center justify-center gap-2"
+              >
+                <Copy className="h-4 w-4" /> Copy details
+              </button>
+              <p className="text-[11px] text-muted-foreground mt-2 leading-snug">
+                Once you've sent the transfer, your tradesperson will mark it as paid.
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
       {isPaid && (
         <section className="px-5 mt-4">
           <div className="card-surface p-5 border-2 border-status-accepted/30 bg-status-accepted/5">
             <div className="flex items-center gap-2 text-status-accepted font-bold text-sm">
               <Check className="h-4 w-4" /> Paid in full
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Thanks for your payment. A copy of your invoice has been emailed to you.
+            </p>
+            <button
+              type="button"
+              onClick={handleDownloadInvoice}
+              className="mt-3 w-full h-11 rounded-full bg-ink text-paper text-sm font-bold inline-flex items-center justify-center gap-2"
+            >
+              <Download className="h-4 w-4" /> Download invoice PDF
+            </button>
+          </div>
+        </section>
+      )}
             <p className="text-xs text-muted-foreground mt-1">
               Thanks for your payment. A copy of your invoice has been emailed to you.
             </p>
