@@ -225,7 +225,7 @@ export const postPortalMessage = createServerFn({ method: "POST" })
     }
     // Notify pro of new customer message
     try {
-      const { notifyUser } = await import("@/lib/push.functions");
+      const { notifyUser } = await import("@/lib/push.server");
       void notifyUser(tk.user_id, {
         title: "New customer message",
         body: data.body.slice(0, 140),
@@ -293,7 +293,7 @@ export const respondToQuoteByToken = createServerFn({ method: "POST" })
     });
 
     try {
-      const { notifyUser } = await import("@/lib/push.functions");
+      const { notifyUser } = await import("@/lib/push.server");
       void notifyUser(tk.user_id, {
         title: data.response === "accepted" ? "Quote accepted 🎉" : "Quote declined",
         body: `${quote.title} · £${Number(quote.total).toFixed(2)}`,

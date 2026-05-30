@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { notifyUser } from "@/lib/push.functions";
+import { notifyUser } from "@/lib/push.server";
 
 // Daily cron: notify pros about clients whose service_due_date is within
 // the next 14 days and that we haven't already nudged in the last 30 days.
