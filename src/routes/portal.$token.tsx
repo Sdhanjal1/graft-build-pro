@@ -159,7 +159,7 @@ function PortalPage() {
       ? +(total * (depositPct / 100)).toFixed(2)
       : +(total * 0.5).toFixed(2);
   const canPayNow =
-    status === "accepted" && !isPaid && (timing === "upfront" || timing === "on_completion");
+    status === "accepted" && !isPaid && (timing === "upfront" || timing === "on_completion") && !!(profile as any)?.stripe_connect_charges_enabled;
   const payRequestType: "deposit" | "full" = "full";
   const payAmount = total;
 

@@ -127,7 +127,7 @@ export const getPortalData = createServerFn({ method: "POST" })
         .order("created_at", { ascending: true }),
       supabaseAdmin
         .from("profiles")
-        .select("business_name, full_name, phone, email, town, address_line_1, address_line_2, postcode, registration_number, vat_registered, vat_number, logo_url, quote_intro, quote_footer, signature_name, show_signature")
+        .select("business_name, full_name, phone, email, town, address_line_1, address_line_2, postcode, registration_number, vat_registered, vat_number, logo_url, quote_intro, quote_footer, signature_name, show_signature, stripe_connect_charges_enabled, bank_account_name, bank_name, sort_code, account_number, payment_reference_note")
         .eq("id", tk.user_id)
         .maybeSingle(),
       supabaseAdmin
