@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { notifyUser } from "@/lib/push.functions";
+import { notifyUser } from "@/lib/push.server";
 
 // Public, fetch a pro's basic info from their id (used on the request page before auth)
 export const getProPublicInfo = createServerFn({ method: "POST" })

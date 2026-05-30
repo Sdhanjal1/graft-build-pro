@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { notifyUser } from "@/lib/push.functions";
+import { notifyUser } from "@/lib/push.server";
 // invoice-pdf and email modules are dynamically imported inside the handler
 // so any module-load issues in the Worker runtime never break the webhook.
 
