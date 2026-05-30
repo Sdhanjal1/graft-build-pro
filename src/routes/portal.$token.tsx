@@ -345,13 +345,6 @@ function PortalPage() {
           </div>
         </section>
       )}
-      {status === "accepted" && (
-        <section className="px-5 mt-4">
-          <div className="rounded-2xl bg-status-accepted/15 text-status-accepted px-4 py-3 text-sm font-semibold flex items-center gap-2">
-            <Check className="h-4 w-4" /> You accepted this quote. {profile?.business_name ?? "Your tradesperson"} has been notified.
-          </div>
-        </section>
-      )}
 
       {showPaymentOptions && (
         <section className="px-5 mt-4 space-y-3">
