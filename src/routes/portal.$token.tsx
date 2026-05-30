@@ -158,12 +158,39 @@ function PortalPage() {
       : depositPct > 0
       ? +(total * (depositPct / 100)).toFixed(2)
       : +(total * 0.5).toFixed(2);
+  const hasCard = !!(profile as any)?.stripe_connect_charges_enabled;
+  const bankAccount = ((profile as any)?.account_number ?? "").toString().trim();
+  const bankSort = ((profile as any)?.sort_code ?? "").toString().trim();
+  const hasBank = !!bankAccount && !!bankSort;
   const canPayNow =
-    status === "accepted" && !isPaid && (timing === "upfront" || timing === "on_completion") && !!(profile as any)?.stripe_connect_charges_enabled;
+    status === "accepted" && !isPaid && (timing === "upfront" || timing === "on_completion") && hasCard;
+  const showPaymentOptions = status === "accepted" && !isPaid && (canPayNow || hasBank);
   const payRequestType: "deposit" | "full" = "full";
   const payAmount = total;
 
   const showBottomBar = canRespond || status === "accepted" || status === "declined" || isPaid;
+
+  const paymentRef = ((profile as any)?.payment_reference_note ?? "").toString().trim() || (quote.ref ?? "");
+  const accountName = ((profile as any)?.bank_account_name ?? "").toString().trim() || (profile?.business_name ?? "");
+  const bankName = ((profile as any)?.bank_name ?? "").toString().trim();
+  const formattedSort = bankSort.replace(/\D/g, "").replace(/(\d{2})(?=\d)/g, "$1-");
+
+  const handleCopyBank = async () => {
+    const lines = [
+      accountName ? `Account name: ${accountName}` : null,
+      bankName ? `Bank: ${bankName}` : null,
+      `Sort code: ${formattedSort}`,
+      `Account number: ${bankAccount}`,
+      paymentRef ? `Reference: ${paymentRef}` : null,
+      `Amount: ${formatGBP(payAmount)}`,
+    ].filter(Boolean).join("\n");
+    try {
+      await navigator.clipboard.writeText(lines);
+      feedback("tap");
+    } catch {
+      /* ignore */
+    }
+  };
 
   const handleDownloadInvoice = async () => {
     try {
