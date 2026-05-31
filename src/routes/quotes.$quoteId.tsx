@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
-  getQuote, getClient, userProfile, formatGBP,
+  getQuote, getClient, userProfile, formatGBP, waLink,
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming,
@@ -223,9 +223,7 @@ function QuoteDetail() {
   const sendDepositRequest = () => {
     const firstName = client?.name.split(" ")[0] ?? "there";
     const { message } = buildDepositOnAcceptMessage(quote, firstName);
-    const text = encodeURIComponent(message);
-    const digits = client?.phone.replace(/\D/g, "");
-    const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${text}`;
+    const wa = waLink(client?.phone, message);
     window.open(wa, "_blank");
     setAskDeposit(false);
   };
@@ -397,10 +395,8 @@ function QuoteDetail() {
   }
   const PrimaryIcon = primary.icon;
   const messageBody = buildInvoiceMessage(liveQuote, client?.name.split(" ")[0] ?? "there");
-  const encoded = encodeURIComponent(messageBody);
-  const phoneDigits = client?.phone.replace(/\D/g, "");
-  const waHref = `https://wa.me/${phoneDigits ? "44" + phoneDigits.replace(/^0/, "") : ""}?text=${encoded}`;
-  const mailHref = `mailto:${client?.email}?subject=${encodeURIComponent(`Invoice ${quote.ref}, ${quote.title}`)}&body=${encoded}`;
+  const waHref = waLink(client?.phone, messageBody);
+  const mailHref = `mailto:${client?.email}?subject=${encodeURIComponent(`Invoice ${quote.ref}, ${quote.title}`)}&body=${encodeURIComponent(messageBody)}`;
 
   return (
     <AppShell>
