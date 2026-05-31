@@ -603,6 +603,13 @@ function QuoteDetail() {
                 {status !== "paid" && (
                   <MoreItem icon={CheckCircle2} label="Mark as paid" onClick={() => setAskingPaid(true)} />
                 )}
+                {status !== "paid" && timing === "deposit_then_balance" && configuredDeposit > 0 && (
+                  <MoreItem
+                    icon={Banknote}
+                    label={`Record deposit received (${formatGBP(configuredDeposit)})`}
+                    onClick={() => setRecordDepositOpen(true)}
+                  />
+                )}
                 {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
                   <MoreItem icon={MessageCircle} label="Send chaser on WhatsApp" onClick={() => {
                     const first = client.name.split(" ")[0] ?? "there";
