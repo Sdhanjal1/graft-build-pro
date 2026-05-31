@@ -269,25 +269,25 @@ function SettingsPage() {
           <Section title="Quote appearance">
             <div className="card-surface p-5 space-y-4">
               <label className="block">
-                <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
                   <ImageIcon className="h-3 w-3" /> Opening message on quotes
                 </span>
                 <textarea
                   value={profile.quote_intro}
                   onChange={(e) => saveProfile({ quote_intro: e.target.value })}
                   rows={3}
-                  className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+                  className="mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30 resize-y leading-snug"
                 />
               </label>
               <label className="block">
-                <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
                   <FileText className="h-3 w-3" /> Footer message
                 </span>
                 <textarea
                   value={profile.quote_footer}
                   onChange={(e) => saveProfile({ quote_footer: e.target.value })}
                   rows={3}
-                  className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+                  className="mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30 resize-y leading-snug"
                 />
               </label>
               <EditField icon={PenLine} label="Your name on quotes" value={profile.signature_name} onChange={(v) => saveProfile({ signature_name: v })} placeholder="e.g. John Smith" />
@@ -311,8 +311,8 @@ function SettingsPage() {
                 <Input label="Sort code" value={bank.sort_code} onChange={(v) => saveBank({ sort_code: v })} />
                 <Input label="Account number" value={bank.account_number} onChange={(v) => saveBank({ account_number: v })} />
               </div>
-              <Input label="Payment reference instructions" value={bank.payment_reference_note} onChange={(v) => saveBank({ payment_reference_note: v })} />
-              <Input label="Payment terms" value={terms} onChange={setTerms} />
+              <Input label="Payment reference instructions" value={bank.payment_reference_note} onChange={(v) => saveBank({ payment_reference_note: v })} multiline rows={2} />
+              <Input label="Payment terms" value={terms} onChange={setTerms} multiline rows={3} />
               <div>
                 <label className="block text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">
                   Default deposit % (jobs over £500)
@@ -324,7 +324,7 @@ function SettingsPage() {
                     const n = Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)));
                     setDefaultDepositPct(n);
                   }}
-                  className="w-full bg-secondary rounded-2xl px-4 py-3 text-sm font-semibold num outline-none"
+                  className="w-full h-11 bg-card border border-border rounded-2xl px-4 text-sm font-semibold num outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
                 />
                 <p className="text-[11px] text-muted-foreground mt-1.5">
                   Applied to new AI-generated quotes that fall in the deposit-then-balance band.
@@ -332,6 +332,7 @@ function SettingsPage() {
               </div>
             </div>
           </Section>
+
 
           <Section title="Notifications">
             <div className="space-y-3">
