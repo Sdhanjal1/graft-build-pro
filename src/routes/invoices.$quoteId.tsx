@@ -141,8 +141,18 @@ function InvoicePage() {
               </div>
             )}
             <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
-              <span className="text-sm uppercase tracking-widest font-semibold">Total due</span>
-              <span className="num text-3xl text-ink">{formatGBP(quote.total)}</span>
+              <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
+              <span className="num text-lg text-ink">{formatGBP(quote.total)}</span>
+            </div>
+            {depositPaid > 0 && (
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="text-muted-foreground">Less deposit paid</span>
+                <span className="num text-ink">−{formatGBP(depositPaid)}</span>
+              </div>
+            )}
+            <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
+              <span className="text-sm uppercase tracking-widest font-semibold">Balance due</span>
+              <span className="num text-3xl text-ink">{formatGBP(balance)}</span>
             </div>
           </div>
           <div className="px-5 py-3 border-t border-border bg-card">
