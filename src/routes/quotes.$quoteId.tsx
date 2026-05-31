@@ -569,8 +569,7 @@ function QuoteDetail() {
                   <MoreItem icon={MessageCircle} label="Send chaser on WhatsApp" onClick={() => {
                     const first = client.name.split(" ")[0] ?? "there";
                     const msg = `Hi ${first}, just following up on ${quote.ref} for ${formatGBP(quote.total)}. Could you let me know when payment will be made? Thanks.`;
-                    const digits = client.phone.replace(/\D/g, "");
-                    window.open(`https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${encodeURIComponent(msg)}`, "_blank");
+                    window.open(waLink(client.phone, msg), "_blank");
                   }} />
                 )}
                 <MoreItem icon={Mail} label="Email customer" onClick={() => { window.location.href = mailHref; }} />
