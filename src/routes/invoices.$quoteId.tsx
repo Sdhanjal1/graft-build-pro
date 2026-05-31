@@ -27,7 +27,6 @@ function InvoicePage() {
   const body = buildFinalInvoiceMessage(quote, firstName);
   const wa = waLink(client?.phone, body);
   const mail = `mailto:${client?.email}?subject=${encodeURIComponent(`INVOICE ${ref}, ${userProfile.business_name}`)}&body=${encodeURIComponent(body)}`;
-  const mail = `mailto:${client?.email}?subject=${encodeURIComponent(`INVOICE ${ref}, ${userProfile.business_name}`)}&body=${encoded}`;
   const router = useRouter();
   const isPaid = quote.status === "paid";
   const dueDate = quote.invoice_due_date
