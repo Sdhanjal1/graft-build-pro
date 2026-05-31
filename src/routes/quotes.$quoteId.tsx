@@ -530,10 +530,12 @@ function QuoteDetail() {
           <LineItemsEditor
             quote={quote}
             vatRegistered={userProfile.vat_registered}
+            depositPaid={status !== "paid" ? depositPaid : 0}
             onChange={(items) => {
               quote.line_items = items;
             }}
           />
+
         </div>
       </section>
 
