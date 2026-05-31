@@ -331,6 +331,22 @@ export const recordManualDeposit = createServerFn({ method: "POST" })
         : 0;
     if (deposit <= 0) throw new Error("No deposit configured for this quote");
 
+    // Dedupe: one paid deposit per quote. If a paid deposit row already exists,
+    // do not insert another — return the existing one so repeat taps from the
+    // client are idempotent and the invoice balance can't be double-subtracted.
+    const { data: existing, error: existingErr } = await supabaseAdmin
+      .from("invoice_payments")
+      .select("id, amount_cents, payment_method")
+      .eq("quote_id", quote.id)
+      .eq("request_type", "deposit")
+      .eq("status", "paid")
+      .limit(1)
+      .maybeSingle();
+    if (existingErr) throw existingErr;
+    if (existing) {
+      return { ok: true, amount: (existing.amount_cents ?? 0) / 100, alreadyRecorded: true };
+    }
+
     const { error: insErr } = await supabaseAdmin.from("invoice_payments").insert({
       user_id: context.userId,
       quote_id: quote.id,
