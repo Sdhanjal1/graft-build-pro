@@ -1,7 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
-  getQuote, getClient, userProfile, formatGBP,
+  getQuote, getClient, userProfile, formatGBP, waLink,
   invoiceRef, buildFinalInvoiceMessage, markInvoiced, setQuoteStatus,
 } from "@/lib/user-data";
 import { MessageCircle, Mail, Share2, CheckCircle2 } from "lucide-react";
@@ -25,10 +25,8 @@ function InvoicePage() {
   const ref = invoiceRef(quote);
   const firstName = client?.name.split(" ")[0] ?? "there";
   const body = buildFinalInvoiceMessage(quote, firstName);
-  const encoded = encodeURIComponent(body);
-  const digits = client?.phone.replace(/\D/g, "");
-  const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${encoded}`;
-  const mail = `mailto:${client?.email}?subject=${encodeURIComponent(`INVOICE ${ref}, ${userProfile.business_name}`)}&body=${encoded}`;
+  const wa = waLink(client?.phone, body);
+  const mail = `mailto:${client?.email}?subject=${encodeURIComponent(`INVOICE ${ref}, ${userProfile.business_name}`)}&body=${encodeURIComponent(body)}`;
   const router = useRouter();
   const isPaid = quote.status === "paid";
   const dueDate = quote.invoice_due_date
@@ -49,12 +47,17 @@ function InvoicePage() {
                 <p className="text-[10px] uppercase tracking-[0.3em] text-lime font-bold">Invoice</p>
                 <h1 className="text-5xl mt-1 leading-none text-paper">{ref}</h1>
                 <p className="text-xs text-paper/60 mt-2 truncate">{userProfile.business_name}</p>
-                <p className="text-[10px] text-paper/50 truncate">
-                  {[
+                {(() => {
+                  const parts = [
                     userProfile.registration_number,
                     userProfile.vat_registered && userProfile.vat_number ? `VAT ${userProfile.vat_number}` : null,
-                  ].filter(Boolean).join(" · ")}
-                </p>
+                  ].filter(Boolean);
+                  return parts.length > 0 ? (
+                    <p className="text-[10px] text-paper/50 truncate">
+                      {parts.join(" · ")}
+                    </p>
+                  ) : null;
+                })()}
               </div>
             </div>
             <QuottrLogo className="h-6 w-auto opacity-60" />
@@ -120,7 +123,7 @@ function InvoicePage() {
           </div>
           <div className="px-5 py-3 border-t border-border bg-card">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Payment terms</p>
-            <p className="text-xs text-muted-foreground mt-1">{userProfile.payment_terms}</p>
+            <p className="text-xs text-ink font-semibold mt-1">{userProfile.payment_terms}</p>
           </div>
         </div>
       </section>
