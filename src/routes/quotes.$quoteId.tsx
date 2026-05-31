@@ -12,7 +12,7 @@ import {
   materialsForQuote,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
-import { createInvoiceCheckout } from "@/lib/payments.functions";
+import { createInvoiceCheckout, recordManualDeposit } from "@/lib/payments.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
 import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus, ShoppingCart, ChevronDown } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
@@ -105,6 +105,39 @@ function QuoteDetail() {
   const createCheckout = useServerFn(createInvoiceCheckout);
   const fetchPortalStatus = useServerFn(getPortalLinkStatusForQuote);
   const regeneratePortalCodeFn = useServerFn(regeneratePortalCode);
+  const recordDepositFn = useServerFn(recordManualDeposit);
+  const [recordingDeposit, setRecordingDeposit] = useState(false);
+
+  // Real configured deposit for this quote (not a hardcoded 50%).
+  const configuredDeposit = (() => {
+    const total = Number(quote.total) || 0;
+    const explicit = Number(quote.deposit_amount) || 0;
+    const pct = Number(quote.deposit_percent) || 0;
+    if (explicit > 0) return explicit;
+    if (pct > 0) return +(total * (pct / 100)).toFixed(2);
+    return 0;
+  })();
+  const configuredDepositPct = (() => {
+    const total = Number(quote.total) || 0;
+    if (total <= 0 || configuredDeposit <= 0) return 0;
+    return Math.round((configuredDeposit / total) * 100);
+  })();
+
+  const handleRecordManualDeposit = async (method: "cash" | "bank") => {
+    if (recordingDeposit) return;
+    setRecordingDeposit(true);
+    try {
+      await recordDepositFn({ data: { quoteId: quote.id, method } });
+      feedback("success");
+      toast.success("Deposit recorded");
+      setAskDeposit(false);
+    } catch (e) {
+      feedback("error");
+      toast.error(e instanceof Error ? e.message : "Could not record deposit");
+    } finally {
+      setRecordingDeposit(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -772,18 +805,43 @@ function QuoteDetail() {
             <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
             <h3 className="text-2xl">Quote accepted 🎉</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Request 50% deposit now? We'll send {client?.name.split(" ")[0] ?? "the customer"} a WhatsApp with the payment options.
+              {configuredDeposit > 0
+                ? <>Request the deposit now? We'll send {client?.name.split(" ")[0] ?? "the customer"} a WhatsApp with the payment options — or record it if you've already taken it.</>
+                : <>No deposit is configured on this quote. You can still send a payment request from the actions below.</>}
             </p>
-            <div className="mt-4 rounded-2xl bg-ink text-paper p-4 flex items-baseline justify-between">
-              <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">Deposit (50%)</span>
-              <span className="num text-3xl text-lime">{formatGBP(quote.total * 0.5)}</span>
-            </div>
+            {configuredDeposit > 0 && (
+              <div className="mt-4 rounded-2xl bg-ink text-paper p-4 flex items-baseline justify-between">
+                <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">
+                  Deposit{configuredDepositPct ? ` (${configuredDepositPct}%)` : ""}
+                </span>
+                <span className="num text-3xl text-lime">{formatGBP(configuredDeposit)}</span>
+              </div>
+            )}
             <button
               onClick={sendDepositRequest}
-              className="w-full mt-4 bg-lime text-ink rounded-full py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2"
+              disabled={configuredDeposit <= 0}
+              className="w-full mt-4 bg-lime text-ink rounded-full py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <MessageCircle className="h-4 w-4" /> Yes, send deposit request
             </button>
+            {configuredDeposit > 0 && (
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handleRecordManualDeposit("cash")}
+                  disabled={recordingDeposit}
+                  className="rounded-full border border-ink/15 py-3 font-semibold text-sm disabled:opacity-50"
+                >
+                  Cash received
+                </button>
+                <button
+                  onClick={() => handleRecordManualDeposit("bank")}
+                  disabled={recordingDeposit}
+                  className="rounded-full border border-ink/15 py-3 font-semibold text-sm disabled:opacity-50"
+                >
+                  Bank received
+                </button>
+              </div>
+            )}
             <button onClick={() => setAskDeposit(false)} className="w-full mt-2 text-sm text-muted-foreground py-2">
               No, skip for now
             </button>

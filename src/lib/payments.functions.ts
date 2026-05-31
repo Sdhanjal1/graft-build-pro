@@ -296,3 +296,52 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
 
     return { url: json.url, sessionId: json.id, env, amount };
   });
+
+// Record a manual (cash / bank) deposit. Writes the same shape of
+// invoice_payments row the Stripe webhook writes for card deposits, so the
+// final invoice's "Less deposit paid" line picks it up automatically.
+export const recordManualDeposit = createServerFn({ method: "POST" })
+  .middleware([requireActiveSubscription])
+  .inputValidator(
+    z.object({
+      quoteId: z.string().min(1).max(128),
+      method: z.enum(["cash", "bank"]),
+    }),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+
+    const { data: quote, error: quoteErr } = await supabase
+      .from("quotes")
+      .select("id, total, deposit_amount, deposit_percent")
+      .eq("id", data.quoteId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (quoteErr) throw quoteErr;
+    if (!quote) throw new Error("Quote not found");
+
+    const total = Number(quote.total) || 0;
+    const explicit = Number(quote.deposit_amount) || 0;
+    const pct = Number(quote.deposit_percent) || 0;
+    const deposit =
+      explicit > 0
+        ? explicit
+        : pct > 0
+        ? +(total * (pct / 100)).toFixed(2)
+        : 0;
+    if (deposit <= 0) throw new Error("No deposit configured for this quote");
+
+    const { error: insErr } = await supabaseAdmin.from("invoice_payments").insert({
+      user_id: context.userId,
+      quote_id: quote.id,
+      request_type: "deposit",
+      status: "paid",
+      amount_cents: Math.round(deposit * 100),
+      currency: "gbp",
+      payment_method: data.method,
+      paid_at: new Date().toISOString(),
+    });
+    if (insErr) throw insErr;
+
+    return { ok: true, amount: deposit };
+  });
