@@ -16,6 +16,7 @@ import { createInvoiceCheckout, recordManualDeposit } from "@/lib/payments.funct
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
 import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus, ShoppingCart, ChevronDown } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { MaterialListSheet } from "@/components/MaterialListSheet";
 import { suggestPriceForDescription } from "@/lib/pricing-patterns.functions";
 import {
@@ -107,6 +108,7 @@ function QuoteDetail() {
   const regeneratePortalCodeFn = useServerFn(regeneratePortalCode);
   const recordDepositFn = useServerFn(recordManualDeposit);
   const [recordingDeposit, setRecordingDeposit] = useState(false);
+  const [recordDepositOpen, setRecordDepositOpen] = useState(false);
 
   // Real configured deposit for this quote (not a hardcoded 50%).
   const configuredDeposit = (() => {
@@ -131,6 +133,7 @@ function QuoteDetail() {
       feedback("success");
       toast.success("Deposit recorded");
       setAskDeposit(false);
+      setRecordDepositOpen(false);
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Could not record deposit");
@@ -600,6 +603,13 @@ function QuoteDetail() {
                 {status !== "paid" && (
                   <MoreItem icon={CheckCircle2} label="Mark as paid" onClick={() => setAskingPaid(true)} />
                 )}
+                {status !== "paid" && timing === "deposit_then_balance" && configuredDeposit > 0 && (
+                  <MoreItem
+                    icon={Banknote}
+                    label={`Record deposit received (${formatGBP(configuredDeposit)})`}
+                    onClick={() => setRecordDepositOpen(true)}
+                  />
+                )}
                 {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
                   <MoreItem icon={MessageCircle} label="Send chaser on WhatsApp" onClick={() => {
                     const first = client.name.split(" ")[0] ?? "there";
@@ -850,6 +860,34 @@ function QuoteDetail() {
           </div>
         </div>
       )}
+
+      {/* Bottom sheet: record deposit received (cash/bank) — available any time after acceptance */}
+      <Sheet open={recordDepositOpen} onOpenChange={setRecordDepositOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl border-0 bg-paper p-0">
+          <SheetHeader className="px-5 pt-5 pb-2 text-left">
+            <SheetTitle className="text-base text-muted-foreground font-normal">
+              Record deposit received · {formatGBP(configuredDeposit)}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="px-5 pb-6 pt-2 grid grid-cols-2 gap-2">
+            <button
+              onClick={() => handleRecordManualDeposit("cash")}
+              disabled={recordingDeposit}
+              className="rounded-full border border-ink/15 py-3 font-semibold text-sm disabled:opacity-50"
+            >
+              Cash received
+            </button>
+            <button
+              onClick={() => handleRecordManualDeposit("bank")}
+              disabled={recordingDeposit}
+              className="rounded-full border border-ink/15 py-3 font-semibold text-sm disabled:opacity-50"
+            >
+              Bank received
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
 
       {/* Bottom sheet: send final invoice */}
       {askInvoice && (
