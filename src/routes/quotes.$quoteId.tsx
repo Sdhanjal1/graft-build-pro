@@ -405,7 +405,9 @@ function QuoteDetail() {
   const onDepositPctBlur = () => {
     const parsed = parseDepositInput(depositPctRaw);
     if (!parsed) return;
-    const pct = parsed.kind === "pct" ? parsed.value : computeDepositPercent(quote.subtotal, parsed.value);
+    // In the percent field, a bare number means PERCENT (not pounds).
+    const rawPct = parsed.value;
+    const pct = Math.max(0, Math.min(100, rawPct));
     const amt = computeDepositAmount(quote.subtotal, pct);
     setDepositPct(pct); setDepositAmt(amt);
     setDepositPctRaw(String(pct)); setDepositAmtRaw(String(amt));
