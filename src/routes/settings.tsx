@@ -10,9 +10,9 @@ import {
 import { signOut } from "@/lib/auth";
 import { feedback } from "@/lib/feedback";
 import {
-  Building2, User, Phone, BadgeCheck, Receipt, LogOut,
+  Receipt, LogOut,
   CheckCircle2, FileText, MessageSquare, AlertTriangle, Trash2,
-  Camera, ImageIcon, Pencil, PenLine, MapPin,
+  Camera, Pencil, PenLine,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { PushPermissionCard } from "@/components/CustomerQRCard";
