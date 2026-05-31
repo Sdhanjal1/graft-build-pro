@@ -579,6 +579,8 @@ function QuoteDetail() {
           </button>
         </div>
       </section>
+
+      {(userProfile.quote_footer || (userProfile.show_signature && (userProfile.signature_name || userProfile.full_name))) && (
         <section className="px-5 mt-5">
           <div className="px-1 space-y-2">
             {userProfile.quote_footer && (
