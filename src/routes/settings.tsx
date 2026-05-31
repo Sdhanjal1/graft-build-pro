@@ -192,7 +192,7 @@ function SettingsPage() {
 
 
       {/* SIGN OUT */}
-      <section className="px-5 mt-8">
+      <section className="px-5 mt-5">
         <button
           onClick={handleSignOut}
           className="w-full py-3 flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-status-overdue transition"
@@ -203,7 +203,7 @@ function SettingsPage() {
       </section>
 
       {/* MORE SETTINGS */}
-      <section className="px-5 mt-4">
+      <section className="px-5 mt-5">
         <button
           type="button"
           onClick={() => { feedback("tap"); setShowMore((s) => !s); }}
