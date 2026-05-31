@@ -144,7 +144,7 @@ function ChaserPage() {
           const isOverdue = q.status === "overdue";
           const subjectLabel = isOverdue ? `Overdue invoice ${q.ref}` : `Invoice ${q.ref}`;
           const subject = encodeURIComponent(`${subjectLabel}, ${userProfile.business_name}`);
-          const mail = `mailto:${c?.email}?subject=${subject}&body=${chase}`;
+          const mail = `mailto:${c?.email}?subject=${subject}&body=${encodeURIComponent(chase)}`;
           const days = daysOverdue(q.due_date);
           const toneText = isOverdue ? "text-status-overdue" : "text-status-completed";
           const toneBg = isOverdue ? "bg-status-overdue/15 text-status-overdue" : "bg-status-completed/15 text-status-completed";
