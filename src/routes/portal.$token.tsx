@@ -37,6 +37,7 @@ function PortalPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [paymentResult, setPaymentResult] = useState<"paid" | "cancelled" | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const load = async () => {
     try {
@@ -187,6 +188,8 @@ function PortalPage() {
     try {
       await navigator.clipboard.writeText(lines);
       feedback("tap");
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
     } catch {
       /* ignore */
     }
@@ -413,7 +416,8 @@ function PortalPage() {
                 onClick={handleCopyBank}
                 className="mt-3 w-full h-11 rounded-full border border-border text-ink text-sm font-semibold inline-flex items-center justify-center gap-2"
               >
-                <Copy className="h-4 w-4" /> Copy details
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? "Copied!" : "Copy details"}
               </button>
               <p className="text-[11px] text-muted-foreground mt-2 leading-snug">
                 Once you've sent the transfer, your tradesperson will mark it as paid.
@@ -470,11 +474,13 @@ function PortalPage() {
                 >
                   {responding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   <span className="truncate">
-                    {acceptButtonLabel({
-                      timing: (quote.payment_timing as PaymentTiming) ?? "on_completion",
-                      total: Number(quote.total) || 0,
-                      depositAmount: Number(quote.deposit_amount) || 0,
-                    })}
+                    {hasCard || hasBank
+                      ? acceptButtonLabel({
+                          timing: (quote.payment_timing as PaymentTiming) ?? "on_completion",
+                          total: Number(quote.total) || 0,
+                          depositAmount: Number(quote.deposit_amount) || 0,
+                        })
+                      : "Accept quote"}
                   </span>
                 </button>
               </div>
