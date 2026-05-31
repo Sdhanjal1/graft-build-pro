@@ -502,19 +502,8 @@ function QuoteDetail() {
         </section>
       )}
 
-      {/* Deposit status — glanceable payment state */}
-      {depositPaid > 0 && status !== "paid" && (
-        <section className="px-5 mt-3">
-          <div className="rounded-2xl bg-lime/20 border border-lime/40 px-4 py-2.5 flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-ink">
-              Deposit paid {formatGBP(depositPaid)}
-            </span>
-            <span className="text-xs font-medium text-muted-foreground">
-              Balance {formatGBP(Math.max(0, quote.total - depositPaid))}
-            </span>
-          </div>
-        </section>
-      )}
+
+
 
 
 
