@@ -246,6 +246,27 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
     }
   };
+  const removeRecordedDeposit = async () => {
+    if (!window.confirm("Remove the recorded deposit? The balance will go back to the full amount.")) return;
+    try {
+      await removeDepositFn({ data: { quoteId: quote.id } });
+      setDepositPaid(0);
+      setDepositRecorded(false);
+      feedback("success"); toast.success("Deposit removed");
+    } catch (e) {
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not remove deposit");
+    }
+  };
+  const markUnpaid = async () => {
+    if (!window.confirm("Mark this quote as unpaid? It will go back to awaiting payment.")) return;
+    try {
+      await setQuoteStatus(quote.id, "completed");
+      setStatusState("completed");
+      feedback("success"); toast.success("Marked as unpaid");
+    } catch (e) {
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
+    }
+  };
   // (confirmSchedule removed)
   const markPaid = (m: PaymentMethod) => {
     quote.paid_via = m; quote.status = "paid";
