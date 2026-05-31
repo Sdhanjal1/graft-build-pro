@@ -89,8 +89,8 @@ function InvoicePage() {
 
           {/* Hero amount due */}
           <div className="px-6 pb-5">
-            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-bold">Amount due</p>
-            <p className="num text-6xl text-lime leading-none mt-1">{formatGBP(quote.total)}</p>
+            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-bold">{depositPaid > 0 ? "Balance due" : "Amount due"}</p>
+            <p className="num text-6xl text-lime leading-none mt-1">{formatGBP(balance)}</p>
             {dueDate && (
               <p className="text-xs text-paper/80 mt-2">
                 Payment due by <span className="font-semibold text-paper">{dueDate}</span>
