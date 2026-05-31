@@ -413,10 +413,15 @@ function PortalPage() {
                   </div>
                 )}
                 <div className="flex items-center justify-between px-3 py-2">
-                  <dt className="text-muted-foreground">Amount</dt>
+                  <dt className="text-muted-foreground">{isDepositFlow ? "Deposit due now" : "Amount"}</dt>
                   <dd className="num font-bold text-ink">{formatGBP(payAmount)}</dd>
                 </div>
               </dl>
+              {isDepositFlow && (
+                <p className="text-[11px] text-muted-foreground mt-2 leading-snug">
+                  Balance of {formatGBP(balanceAmount)} due on completion.
+                </p>
+              )}
               <button
                 type="button"
                 onClick={handleCopyBank}
