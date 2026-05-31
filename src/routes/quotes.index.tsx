@@ -26,9 +26,20 @@ const STATUS_DOT: Record<QuoteStatus, string> = {
 const STATUS_LABEL: Record<QuoteStatus, string> = {
   pending: "Draft",
   sent: "Sent",
-  accepted: "Booked",
+  accepted: "Accepted",
   declined: "Declined",
   completed: "Completed",
+  paid: "Paid",
+  overdue: "Overdue",
+};
+
+const FILTER_LABEL: Record<FilterKey, string> = {
+  all: "All",
+  pending: "Pending",
+  sent: "Sent",
+  booked: "Accepted",
+  completed: "Completed",
+  invoiced: "Invoiced",
   paid: "Paid",
   overdue: "Overdue",
 };
@@ -40,14 +51,15 @@ export const Route = createFileRoute("/quotes/")({
   component: QuotesPage,
 });
 
-type FilterKey = "all" | "pending" | "sent" | "booked" | "completed" | "paid" | "overdue";
-const FILTERS: FilterKey[] = ["all", "pending", "sent", "booked", "completed", "paid", "overdue"];
+type FilterKey = "all" | "pending" | "sent" | "booked" | "completed" | "invoiced" | "paid" | "overdue";
+const FILTERS: FilterKey[] = ["all", "pending", "sent", "booked", "completed", "invoiced", "paid", "overdue"];
 
 // Map UI filter chip → underlying QuoteStatus value(s).
-const filterMatches = (filter: FilterKey, status: QuoteStatus) => {
+const filterMatches = (filter: FilterKey, quote: Quote) => {
   if (filter === "all") return true;
-  if (filter === "booked") return status === "accepted";
-  return status === filter;
+  if (filter === "booked") return quote.status === "accepted";
+  if (filter === "invoiced") return quote.invoiced_at != null && quote.status !== "paid";
+  return quote.status === filter;
 };
 
 function QuotesPage() {
@@ -60,7 +72,7 @@ function QuotesPage() {
   if (loading) return <QuotesListSkeleton />;
 
   const filtered = mockQuotes.filter((x) => {
-    if (!filterMatches(filter, x.status)) return false;
+    if (!filterMatches(filter, x)) return false;
     if (q && !`${x.title} ${x.ref}`.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
@@ -91,7 +103,7 @@ function QuotesPage() {
               filter === f ? "bg-ink text-paper" : "bg-card text-muted-foreground border border-border"
             }`}
           >
-            {f}
+            {FILTER_LABEL[f]}
           </button>
         ))}
       </div>
