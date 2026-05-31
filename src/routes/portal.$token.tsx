@@ -164,10 +164,13 @@ function PortalPage() {
   const bankSort = ((profile as any)?.sort_code ?? "").toString().trim();
   const hasBank = !!bankAccount && !!bankSort;
   const canPayNow =
-    status === "accepted" && !isPaid && (timing === "upfront" || timing === "on_completion") && hasCard;
+    status === "accepted" && !isPaid &&
+    (timing === "upfront" || timing === "on_completion" || timing === "deposit_then_balance") && hasCard;
   const showPaymentOptions = status === "accepted" && !isPaid && (canPayNow || hasBank);
-  const payRequestType: "deposit" | "full" = "full";
-  const payAmount = total;
+  const isDepositFlow = timing === "deposit_then_balance";
+  const payRequestType: "deposit" | "full" = isDepositFlow ? "deposit" : "full";
+  const payAmount = isDepositFlow ? depositAmount : total;
+  const balanceAmount = Math.max(0, +(total - payAmount).toFixed(2));
 
   const showBottomBar = canRespond || status === "accepted" || status === "declined" || isPaid;
 
