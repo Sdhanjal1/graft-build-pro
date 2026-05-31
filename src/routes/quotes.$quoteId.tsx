@@ -109,6 +109,7 @@ function QuoteDetail() {
   const recordDepositFn = useServerFn(recordManualDeposit);
   const [recordingDeposit, setRecordingDeposit] = useState(false);
   const [recordDepositOpen, setRecordDepositOpen] = useState(false);
+  const [depositRecorded, setDepositRecorded] = useState(false);
 
   // Real configured deposit for this quote (not a hardcoded 50%).
   const configuredDeposit = (() => {
@@ -126,14 +127,22 @@ function QuoteDetail() {
   })();
 
   const handleRecordManualDeposit = async (method: "cash" | "bank") => {
-    if (recordingDeposit) return;
+    if (recordingDeposit || depositRecorded) return;
     setRecordingDeposit(true);
     try {
-      await recordDepositFn({ data: { quoteId: quote.id, method } });
+      const res = await recordDepositFn({ data: { quoteId: quote.id, method } });
       feedback("success");
-      toast.success("Deposit recorded");
-      setAskDeposit(false);
-      setRecordDepositOpen(false);
+      setDepositRecorded(true);
+      toast.success(
+        (res as { alreadyRecorded?: boolean })?.alreadyRecorded
+          ? "Deposit already recorded"
+          : "Deposit recorded",
+      );
+      // Brief delay so the user sees the success state before the sheet closes.
+      setTimeout(() => {
+        setAskDeposit(false);
+        setRecordDepositOpen(false);
+      }, 800);
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Could not record deposit");
