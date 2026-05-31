@@ -37,7 +37,7 @@ function InvoicePage() {
   const [depositPaid, setDepositPaid] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const load = async () => {
       try {
         const res = await fetchPaymentStatus({ data: { quoteId: quote.id } });
         if (cancelled) return;
@@ -48,8 +48,19 @@ function InvoicePage() {
       } catch {
         if (!cancelled) setDepositPaid(0);
       }
-    })();
-    return () => { cancelled = true; };
+    };
+    load();
+    // Refetch when the tab regains focus or visibility — so a deposit recorded
+    // on the quote screen is reflected when the user returns to this invoice.
+    const onFocus = () => load();
+    const onVisible = () => { if (document.visibilityState === "visible") load(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [quote.id, fetchPaymentStatus]);
 
   const balance = Math.max(0, +(quote.total - depositPaid).toFixed(2));
