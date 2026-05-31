@@ -51,14 +51,15 @@ export const Route = createFileRoute("/quotes/")({
   component: QuotesPage,
 });
 
-type FilterKey = "all" | "pending" | "sent" | "booked" | "completed" | "paid" | "overdue";
-const FILTERS: FilterKey[] = ["all", "pending", "sent", "booked", "completed", "paid", "overdue"];
+type FilterKey = "all" | "pending" | "sent" | "booked" | "completed" | "invoiced" | "paid" | "overdue";
+const FILTERS: FilterKey[] = ["all", "pending", "sent", "booked", "completed", "invoiced", "paid", "overdue"];
 
 // Map UI filter chip → underlying QuoteStatus value(s).
-const filterMatches = (filter: FilterKey, status: QuoteStatus) => {
+const filterMatches = (filter: FilterKey, quote: Quote) => {
   if (filter === "all") return true;
-  if (filter === "booked") return status === "accepted";
-  return status === filter;
+  if (filter === "booked") return quote.status === "accepted";
+  if (filter === "invoiced") return quote.invoiced_at != null && quote.status !== "paid";
+  return quote.status === filter;
 };
 
 function QuotesPage() {
