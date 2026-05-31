@@ -330,7 +330,7 @@ function QuoteDetail() {
     setError(null);
     try {
       const amt =
-        type === "deposit" ? quote.total * 0.5 :
+        type === "deposit" ? configuredDeposit :
         type === "full" ? quote.total :
         (amount ?? 0);
       const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -369,7 +369,7 @@ function QuoteDetail() {
     setError(null);
     try {
       const amt =
-        type === "deposit" ? quote.total * 0.5 :
+        type === "deposit" ? configuredDeposit :
         type === "full" ? quote.total :
         (amount ?? 0);
       const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -829,8 +829,8 @@ function QuoteDetail() {
             )}
             <fieldset disabled={creating} className="space-y-2 disabled:opacity-60">
               <RequestOption
-                label="Deposit (50%)"
-                amount={formatGBP(quote.total * 0.5)}
+                label={`Deposit${configuredDepositPct ? ` (${configuredDepositPct}%)` : ""}`}
+                amount={formatGBP(configuredDeposit)}
                 onClick={() => createPaymentRequest("deposit")}
               />
               <RequestOption
