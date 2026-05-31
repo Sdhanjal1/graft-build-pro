@@ -11,6 +11,9 @@ import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import { feedback } from "@/lib/feedback";
 import { useRouter } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { getQuotePaymentStatus } from "@/lib/payments.functions";
 
 export const Route = createFileRoute("/invoices/$quoteId")({
   component: InvoicePage,
@@ -29,6 +32,27 @@ function InvoicePage() {
   const mail = `mailto:${client?.email}?subject=${encodeURIComponent(`INVOICE ${ref}, ${userProfile.business_name}`)}&body=${encodeURIComponent(body)}`;
   const router = useRouter();
   const isPaid = quote.status === "paid";
+
+  const fetchPaymentStatus = useServerFn(getQuotePaymentStatus);
+  const [depositPaid, setDepositPaid] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetchPaymentStatus({ data: { quoteId: quote.id } });
+        if (cancelled) return;
+        const paid = (res?.payments ?? [])
+          .filter((p: any) => p.status === "paid" && p.request_type === "deposit")
+          .reduce((sum: number, p: any) => sum + (Number(p.amount_cents) || 0), 0);
+        setDepositPaid(paid / 100);
+      } catch {
+        if (!cancelled) setDepositPaid(0);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [quote.id, fetchPaymentStatus]);
+
+  const balance = Math.max(0, +(quote.total - depositPaid).toFixed(2));
   const dueDate = quote.invoice_due_date
     ? new Date(quote.invoice_due_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     : "";
@@ -65,8 +89,8 @@ function InvoicePage() {
 
           {/* Hero amount due */}
           <div className="px-6 pb-5">
-            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-bold">Amount due</p>
-            <p className="num text-6xl text-lime leading-none mt-1">{formatGBP(quote.total)}</p>
+            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-bold">{depositPaid > 0 ? "Balance due" : "Amount due"}</p>
+            <p className="num text-6xl text-lime leading-none mt-1">{formatGBP(balance)}</p>
             {dueDate && (
               <p className="text-xs text-paper/80 mt-2">
                 Payment due by <span className="font-semibold text-paper">{dueDate}</span>
@@ -117,8 +141,18 @@ function InvoicePage() {
               </div>
             )}
             <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
-              <span className="text-sm uppercase tracking-widest font-semibold">Total due</span>
-              <span className="num text-3xl text-ink">{formatGBP(quote.total)}</span>
+              <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
+              <span className="num text-lg text-ink">{formatGBP(quote.total)}</span>
+            </div>
+            {depositPaid > 0 && (
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="text-muted-foreground">Less deposit paid</span>
+                <span className="num text-ink">−{formatGBP(depositPaid)}</span>
+              </div>
+            )}
+            <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
+              <span className="text-sm uppercase tracking-widest font-semibold">Balance due</span>
+              <span className="num text-3xl text-ink">{formatGBP(balance)}</span>
             </div>
           </div>
           <div className="px-5 py-3 border-t border-border bg-card">
