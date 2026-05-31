@@ -540,8 +540,16 @@ export const buildPaymentRequest = (
   type: PaymentRequestType,
   customAmount?: number,
 ): PaymentRequest => {
+  const configuredDeposit = (() => {
+    const total = Number(quote.total) || 0;
+    const explicit = Number(quote.deposit_amount) || 0;
+    const pct = Number(quote.deposit_percent) || 0;
+    if (explicit > 0) return +explicit.toFixed(2);
+    if (pct > 0) return +(total * (pct / 100)).toFixed(2);
+    return 0;
+  })();
   const amount =
-    type === "deposit" ? +(quote.total * 0.5).toFixed(2)
+    type === "deposit" ? configuredDeposit
     : type === "full" ? quote.total
     : Math.max(0, +(customAmount ?? 0).toFixed(2));
   const label = type === "deposit" ? "deposit" : type === "full" ? "balance" : "amount";
@@ -1385,13 +1393,19 @@ export const buildFinalInvoiceMessage = (quote: Quote, clientFirstName: string) 
 
 /** Build the WhatsApp-ready deposit request message immediately after a quote is accepted. */
 export const buildDepositOnAcceptMessage = (quote: Quote, clientFirstName: string) => {
-  const amount = +(quote.total * 0.5).toFixed(2);
+  const total = Number(quote.total) || 0;
+  const explicit = Number(quote.deposit_amount) || 0;
+  const pct = Number(quote.deposit_percent) || 0;
+  const amount =
+    explicit > 0 ? +explicit.toFixed(2)
+    : pct > 0 ? +(total * (pct / 100)).toFixed(2)
+    : 0;
   const link = stripePaymentLink(quote, amount);
   const method = quote.payment_method ?? "card";
   const lines = [
     `Hi ${clientFirstName}, thanks for accepting your quote ${quote.ref} from ${userProfile.business_name}!`,
     "",
-    `To get you booked in, please pay a 50% deposit of ${formatGBP(amount)}.`,
+    `To get you booked in, please pay a deposit of ${formatGBP(amount)}.`,
     "",
   ];
   if (method === "card") {
