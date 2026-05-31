@@ -502,19 +502,8 @@ function QuoteDetail() {
         </section>
       )}
 
-      {/* Deposit status — glanceable payment state */}
-      {depositPaid > 0 && status !== "paid" && (
-        <section className="px-5 mt-3">
-          <div className="rounded-2xl bg-lime/20 border border-lime/40 px-4 py-2.5 flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-ink">
-              Deposit paid {formatGBP(depositPaid)}
-            </span>
-            <span className="text-xs font-medium text-muted-foreground">
-              Balance {formatGBP(Math.max(0, quote.total - depositPaid))}
-            </span>
-          </div>
-        </section>
-      )}
+
+
 
 
 
@@ -541,10 +530,12 @@ function QuoteDetail() {
           <LineItemsEditor
             quote={quote}
             vatRegistered={userProfile.vat_registered}
+            depositPaid={status !== "paid" ? depositPaid : 0}
             onChange={(items) => {
               quote.line_items = items;
             }}
           />
+
         </div>
       </section>
 
@@ -1045,12 +1036,15 @@ function badgeText(source: LineItem["source"]) {
 function LineItemsEditor({
   quote,
   vatRegistered,
+  depositPaid = 0,
   onChange,
 }: {
   quote: Quote;
   vatRegistered: boolean;
+  depositPaid?: number;
   onChange?: (items: LineItem[]) => void;
 }) {
+
   const [items, setItems] = useState<LineItem[]>(quote.line_items.map((li) => ({ ...li })));
   // editingIdx: null = idle, -1 = adding new, >=0 = editing existing
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -1361,6 +1355,16 @@ function LineItemsEditor({
           <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
           <span className="num text-3xl text-ink">{formatGBP(total)}</span>
         </div>
+        {depositPaid > 0 && (
+          <>
+            <Row label="Less deposit paid" value={`−${formatGBP(depositPaid)}`} />
+            <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
+              <span className="text-sm uppercase tracking-widest font-semibold">Balance due</span>
+              <span className="num text-2xl text-ink">{formatGBP(Math.max(0, total - depositPaid))}</span>
+            </div>
+          </>
+        )}
+
         {saving && (
           <p className="text-[10px] text-muted-foreground pt-1">Saving…</p>
         )}
