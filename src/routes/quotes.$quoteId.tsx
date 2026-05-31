@@ -109,6 +109,7 @@ function QuoteDetail() {
   const recordDepositFn = useServerFn(recordManualDeposit);
   const [recordingDeposit, setRecordingDeposit] = useState(false);
   const [recordDepositOpen, setRecordDepositOpen] = useState(false);
+  const [depositRecorded, setDepositRecorded] = useState(false);
 
   // Real configured deposit for this quote (not a hardcoded 50%).
   const configuredDeposit = (() => {
@@ -126,14 +127,22 @@ function QuoteDetail() {
   })();
 
   const handleRecordManualDeposit = async (method: "cash" | "bank") => {
-    if (recordingDeposit) return;
+    if (recordingDeposit || depositRecorded) return;
     setRecordingDeposit(true);
     try {
-      await recordDepositFn({ data: { quoteId: quote.id, method } });
+      const res = await recordDepositFn({ data: { quoteId: quote.id, method } });
       feedback("success");
-      toast.success("Deposit recorded");
-      setAskDeposit(false);
-      setRecordDepositOpen(false);
+      setDepositRecorded(true);
+      toast.success(
+        (res as { alreadyRecorded?: boolean })?.alreadyRecorded
+          ? "Deposit already recorded"
+          : "Deposit recorded",
+      );
+      // Brief delay so the user sees the success state before the sheet closes.
+      setTimeout(() => {
+        setAskDeposit(false);
+        setRecordDepositOpen(false);
+      }, 800);
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Could not record deposit");
@@ -840,17 +849,17 @@ function QuoteDetail() {
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <button
                   onClick={() => handleRecordManualDeposit("cash")}
-                  disabled={recordingDeposit}
+                  disabled={recordingDeposit || depositRecorded}
                   className="rounded-full border border-ink/15 py-3 font-semibold text-sm disabled:opacity-50"
                 >
-                  Cash received
+                  {depositRecorded ? "Recorded ✓" : recordingDeposit ? "Saving…" : "Cash received"}
                 </button>
                 <button
                   onClick={() => handleRecordManualDeposit("bank")}
-                  disabled={recordingDeposit}
+                  disabled={recordingDeposit || depositRecorded}
                   className="rounded-full border border-ink/15 py-3 font-semibold text-sm disabled:opacity-50"
                 >
-                  Bank received
+                  {depositRecorded ? "Recorded ✓" : recordingDeposit ? "Saving…" : "Bank received"}
                 </button>
               </div>
             )}
@@ -872,17 +881,17 @@ function QuoteDetail() {
           <div className="px-5 pb-6 pt-2 grid grid-cols-2 gap-2">
             <button
               onClick={() => handleRecordManualDeposit("cash")}
-              disabled={recordingDeposit}
+              disabled={recordingDeposit || depositRecorded}
               className="rounded-full border border-ink/15 py-3 font-semibold text-sm disabled:opacity-50"
             >
-              Cash received
+              {depositRecorded ? "Recorded ✓" : recordingDeposit ? "Saving…" : "Cash received"}
             </button>
             <button
               onClick={() => handleRecordManualDeposit("bank")}
-              disabled={recordingDeposit}
+              disabled={recordingDeposit || depositRecorded}
               className="rounded-full border border-ink/15 py-3 font-semibold text-sm disabled:opacity-50"
             >
-              Bank received
+              {depositRecorded ? "Recorded ✓" : recordingDeposit ? "Saving…" : "Bank received"}
             </button>
           </div>
         </SheetContent>
