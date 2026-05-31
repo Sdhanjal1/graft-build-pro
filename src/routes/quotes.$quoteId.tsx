@@ -105,6 +105,39 @@ function QuoteDetail() {
   const createCheckout = useServerFn(createInvoiceCheckout);
   const fetchPortalStatus = useServerFn(getPortalLinkStatusForQuote);
   const regeneratePortalCodeFn = useServerFn(regeneratePortalCode);
+  const recordDepositFn = useServerFn(recordManualDeposit);
+  const [recordingDeposit, setRecordingDeposit] = useState(false);
+
+  // Real configured deposit for this quote (not a hardcoded 50%).
+  const configuredDeposit = (() => {
+    const total = Number(quote.total) || 0;
+    const explicit = Number(quote.deposit_amount) || 0;
+    const pct = Number(quote.deposit_percent) || 0;
+    if (explicit > 0) return explicit;
+    if (pct > 0) return +(total * (pct / 100)).toFixed(2);
+    return 0;
+  })();
+  const configuredDepositPct = (() => {
+    const total = Number(quote.total) || 0;
+    if (total <= 0 || configuredDeposit <= 0) return 0;
+    return Math.round((configuredDeposit / total) * 100);
+  })();
+
+  const handleRecordManualDeposit = async (method: "cash" | "bank") => {
+    if (recordingDeposit) return;
+    setRecordingDeposit(true);
+    try {
+      await recordDepositFn({ data: { quoteId: quote.id, method } });
+      feedback("success");
+      toast.success("Deposit recorded");
+      setAskDeposit(false);
+    } catch (e) {
+      feedback("error");
+      toast.error(e instanceof Error ? e.message : "Could not record deposit");
+    } finally {
+      setRecordingDeposit(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
