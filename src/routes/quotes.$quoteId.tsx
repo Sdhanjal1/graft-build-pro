@@ -107,6 +107,7 @@ function QuoteDetail() {
   const regeneratePortalCodeFn = useServerFn(regeneratePortalCode);
   const recordDepositFn = useServerFn(recordManualDeposit);
   const [recordingDeposit, setRecordingDeposit] = useState(false);
+  const [recordDepositOpen, setRecordDepositOpen] = useState(false);
 
   // Real configured deposit for this quote (not a hardcoded 50%).
   const configuredDeposit = (() => {
