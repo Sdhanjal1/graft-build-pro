@@ -416,7 +416,8 @@ function PortalPage() {
                 onClick={handleCopyBank}
                 className="mt-3 w-full h-11 rounded-full border border-border text-ink text-sm font-semibold inline-flex items-center justify-center gap-2"
               >
-                <Copy className="h-4 w-4" /> Copy details
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? "Copied!" : "Copy details"}
               </button>
               <p className="text-[11px] text-muted-foreground mt-2 leading-snug">
                 Once you've sent the transfer, your tradesperson will mark it as paid.
