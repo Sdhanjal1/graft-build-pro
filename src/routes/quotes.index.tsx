@@ -72,7 +72,7 @@ function QuotesPage() {
   if (loading) return <QuotesListSkeleton />;
 
   const filtered = mockQuotes.filter((x) => {
-    if (!filterMatches(filter, x.status)) return false;
+    if (!filterMatches(filter, x)) return false;
     if (q && !`${x.title} ${x.ref}`.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
