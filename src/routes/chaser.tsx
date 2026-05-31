@@ -139,9 +139,8 @@ function ChaserPage() {
         {overdue.map((q) => {
           const c = getClient(q.client_id);
           const firstName = c?.name.split(" ")[0] ?? "there";
-          const chase = encodeURIComponent(buildChaserMessage(q, firstName));
-          const digits = c?.phone.replace(/\D/g, "");
-          const wa = `https://wa.me/${digits ? "44" + digits.replace(/^0/, "") : ""}?text=${chase}`;
+          const chase = buildChaserMessage(q, firstName);
+          const wa = waLink(c?.phone, chase);
           const isOverdue = q.status === "overdue";
           const subjectLabel = isOverdue ? `Overdue invoice ${q.ref}` : `Invoice ${q.ref}`;
           const subject = encodeURIComponent(`${subjectLabel}, ${userProfile.business_name}`);
