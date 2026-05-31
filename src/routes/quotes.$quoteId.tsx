@@ -561,7 +561,24 @@ function QuoteDetail() {
         </div>
       </section>
 
-      {(userProfile.quote_footer || (userProfile.show_signature && (userProfile.signature_name || userProfile.full_name))) && (
+      {/* Payment terms — visible at a glance */}
+      <section className="px-5 mt-5">
+        <div className="rounded-2xl border-2 border-lime bg-lime/10 px-4 py-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
+            <p className="text-sm font-bold text-ink leading-tight">
+              {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setTimingOpen(true)}
+            className="shrink-0 text-xs font-semibold text-ink underline underline-offset-2"
+          >
+            Change
+          </button>
+        </div>
+      </section>
         <section className="px-5 mt-5">
           <div className="px-1 space-y-2">
             {userProfile.quote_footer && (
