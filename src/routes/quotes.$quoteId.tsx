@@ -12,9 +12,9 @@ import {
   materialsForQuote,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
-import { createInvoiceCheckout, recordManualDeposit, getQuotePaymentStatus } from "@/lib/payments.functions";
+import { createInvoiceCheckout, recordManualDeposit, removeManualDeposit, getQuotePaymentStatus } from "@/lib/payments.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus, ShoppingCart, ChevronDown } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus, ShoppingCart, ChevronDown, RotateCcw, Undo2 } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { MaterialListSheet } from "@/components/MaterialListSheet";
@@ -107,6 +107,7 @@ function QuoteDetail() {
   const fetchPortalStatus = useServerFn(getPortalLinkStatusForQuote);
   const regeneratePortalCodeFn = useServerFn(regeneratePortalCode);
   const recordDepositFn = useServerFn(recordManualDeposit);
+  const removeDepositFn = useServerFn(removeManualDeposit);
   const fetchPaymentsFn = useServerFn(getQuotePaymentStatus);
   const [recordingDeposit, setRecordingDeposit] = useState(false);
   const [recordDepositOpen, setRecordDepositOpen] = useState(false);
@@ -241,6 +242,27 @@ function QuoteDetail() {
       await setQuoteStatus(quote.id, "declined");
       setStatusState("declined");
       feedback("success"); toast.success("Quote declined");
+    } catch (e) {
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
+    }
+  };
+  const removeRecordedDeposit = async () => {
+    if (!window.confirm("Remove the recorded deposit? The balance will go back to the full amount.")) return;
+    try {
+      await removeDepositFn({ data: { quoteId: quote.id } });
+      setDepositPaid(0);
+      setDepositRecorded(false);
+      feedback("success"); toast.success("Deposit removed");
+    } catch (e) {
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not remove deposit");
+    }
+  };
+  const markUnpaid = async () => {
+    if (!window.confirm("Mark this quote as unpaid? It will go back to awaiting payment.")) return;
+    try {
+      await setQuoteStatus(quote.id, "completed");
+      setStatusState("completed");
+      feedback("success"); toast.success("Marked as unpaid");
     } catch (e) {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
     }
@@ -642,6 +664,12 @@ function QuoteDetail() {
                     label={`Record deposit received (${formatGBP(configuredDeposit)})`}
                     onClick={() => setRecordDepositOpen(true)}
                   />
+                )}
+                {status !== "paid" && depositPaid > 0 && (
+                  <MoreItem icon={Undo2} label="Remove recorded deposit" onClick={removeRecordedDeposit} />
+                )}
+                {status === "paid" && (
+                  <MoreItem icon={RotateCcw} label="Mark as unpaid" onClick={markUnpaid} />
                 )}
                 {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
                   <MoreItem icon={MessageCircle} label="Send chaser on WhatsApp" onClick={() => {

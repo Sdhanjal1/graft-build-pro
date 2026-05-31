@@ -361,3 +361,33 @@ export const recordManualDeposit = createServerFn({ method: "POST" })
 
     return { ok: true, amount: deposit };
   });
+
+// Reverse a manually-recorded cash/bank deposit. Only deletes rows the trader
+// entered themselves — never card/Stripe rows, which represent real settled
+// funds. Idempotent: if nothing matches, returns ok with deleted: 0.
+export const removeManualDeposit = createServerFn({ method: "POST" })
+  .middleware([requireActiveSubscription])
+  .inputValidator(z.object({ quoteId: z.string().min(1).max(128) }))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+
+    const { data: quote, error: quoteErr } = await supabase
+      .from("quotes")
+      .select("id")
+      .eq("id", data.quoteId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (quoteErr) throw quoteErr;
+    if (!quote) throw new Error("Quote not found");
+
+    const { error: delErr, count } = await supabaseAdmin
+      .from("invoice_payments")
+      .delete({ count: "exact" })
+      .eq("quote_id", quote.id)
+      .eq("request_type", "deposit")
+      .eq("status", "paid")
+      .in("payment_method", ["cash", "bank"]);
+    if (delErr) throw delErr;
+
+    return { ok: true, deleted: count ?? 0 };
+  });
