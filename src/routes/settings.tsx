@@ -443,16 +443,16 @@ function EditField({
 }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0 mt-5">
         <Icon className="h-4 w-4" />
       </div>
       <label className="min-w-0 flex-1 block">
-        <span className="text-xs text-muted-foreground font-semibold">{label}</span>
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
         <input
           value={value}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
-          className="mt-0.5 w-full bg-transparent outline-none text-sm font-medium border-b border-transparent focus:border-ink/30 py-0.5"
+          className="mt-1.5 w-full h-11 bg-card border border-border rounded-2xl px-4 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
         />
       </label>
     </div>
@@ -464,15 +464,15 @@ function SelectField({
 }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0 mt-5">
         <Icon className="h-4 w-4" />
       </div>
       <label className="min-w-0 flex-1 block">
-        <span className="text-xs text-muted-foreground font-semibold">{label}</span>
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="mt-0.5 w-full bg-transparent outline-none text-sm font-medium border-b border-transparent focus:border-ink/30 py-0.5"
+          className="mt-1.5 w-full h-11 bg-card border border-border rounded-2xl px-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
         >
           {options.map((o) => <option key={o}>{o}</option>)}
         </select>
