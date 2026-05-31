@@ -132,6 +132,7 @@ function QuoteDetail() {
       feedback("success");
       toast.success("Deposit recorded");
       setAskDeposit(false);
+      setRecordDepositOpen(false);
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Could not record deposit");
