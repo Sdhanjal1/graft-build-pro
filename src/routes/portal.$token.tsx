@@ -164,10 +164,13 @@ function PortalPage() {
   const bankSort = ((profile as any)?.sort_code ?? "").toString().trim();
   const hasBank = !!bankAccount && !!bankSort;
   const canPayNow =
-    status === "accepted" && !isPaid && (timing === "upfront" || timing === "on_completion") && hasCard;
+    status === "accepted" && !isPaid &&
+    (timing === "upfront" || timing === "on_completion" || timing === "deposit_then_balance") && hasCard;
   const showPaymentOptions = status === "accepted" && !isPaid && (canPayNow || hasBank);
-  const payRequestType: "deposit" | "full" = "full";
-  const payAmount = total;
+  const isDepositFlow = timing === "deposit_then_balance";
+  const payRequestType: "deposit" | "full" = isDepositFlow ? "deposit" : "full";
+  const payAmount = isDepositFlow ? depositAmount : total;
+  const balanceAmount = Math.max(0, +(total - payAmount).toFixed(2));
 
   const showBottomBar = canRespond || status === "accepted" || status === "declined" || isPaid;
 
@@ -366,8 +369,11 @@ function PortalPage() {
                 className="w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
               >
                 {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                <span className="truncate">Pay now {formatGBP(payAmount)}</span>
+                <span className="truncate">{isDepositFlow ? "Pay deposit" : "Pay now"} {formatGBP(payAmount)}</span>
               </button>
+              {isDepositFlow && (
+                <p className="text-center text-[11px] text-muted-foreground mt-2">Balance of {formatGBP(balanceAmount)} due on completion.</p>
+              )}
               <p className="text-center text-[10px] text-muted-foreground mt-2">Secured payment by Stripe</p>
               <WalletBadges className="mt-2" />
             </div>
@@ -407,10 +413,15 @@ function PortalPage() {
                   </div>
                 )}
                 <div className="flex items-center justify-between px-3 py-2">
-                  <dt className="text-muted-foreground">Amount</dt>
+                  <dt className="text-muted-foreground">{isDepositFlow ? "Deposit due now" : "Amount"}</dt>
                   <dd className="num font-bold text-ink">{formatGBP(payAmount)}</dd>
                 </div>
               </dl>
+              {isDepositFlow && (
+                <p className="text-[11px] text-muted-foreground mt-2 leading-snug">
+                  Balance of {formatGBP(balanceAmount)} due on completion.
+                </p>
+              )}
               <button
                 type="button"
                 onClick={handleCopyBank}
