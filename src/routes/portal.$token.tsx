@@ -188,6 +188,8 @@ function PortalPage() {
     try {
       await navigator.clipboard.writeText(lines);
       feedback("tap");
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
     } catch {
       /* ignore */
     }
