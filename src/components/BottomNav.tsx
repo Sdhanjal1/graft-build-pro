@@ -14,8 +14,7 @@ export function BottomNav() {
   const hide = pathname.startsWith("/auth") || pathname.startsWith("/capture") || pathname.startsWith("/portal/");
   if (hide) return null;
 
-  const isActive = (to: string) =>
-    to === "/app" ? pathname === "/app" : pathname.startsWith(to);
+  const isActive = (to: string) => (to === "/app" ? pathname === "/app" : pathname.startsWith(to));
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 safe-bottom">
@@ -50,9 +49,7 @@ function NavItem({
       }}
       className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full min-w-0 relative"
     >
-      {active && (
-        <span className="absolute top-1.5 h-1 w-1 rounded-full bg-lime animate-pulse" />
-      )}
+      {active && <span className="absolute top-1.5 h-1 w-1 rounded-full bg-lime animate-pulse" />}
       <Icon className={`h-5 w-5 ${active ? "text-lime" : "text-paper/60"}`} strokeWidth={active ? 2.5 : 2} />
       <span className={`text-[11px] font-semibold ${active ? "text-lime" : "text-paper/60"}`}>{label}</span>
     </Link>
