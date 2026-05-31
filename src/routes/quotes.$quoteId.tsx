@@ -1036,12 +1036,15 @@ function badgeText(source: LineItem["source"]) {
 function LineItemsEditor({
   quote,
   vatRegistered,
+  depositPaid = 0,
   onChange,
 }: {
   quote: Quote;
   vatRegistered: boolean;
+  depositPaid?: number;
   onChange?: (items: LineItem[]) => void;
 }) {
+
   const [items, setItems] = useState<LineItem[]>(quote.line_items.map((li) => ({ ...li })));
   // editingIdx: null = idle, -1 = adding new, >=0 = editing existing
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
