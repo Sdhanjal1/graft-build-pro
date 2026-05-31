@@ -32,6 +32,27 @@ function InvoicePage() {
   const mail = `mailto:${client?.email}?subject=${encodeURIComponent(`INVOICE ${ref}, ${userProfile.business_name}`)}&body=${encodeURIComponent(body)}`;
   const router = useRouter();
   const isPaid = quote.status === "paid";
+
+  const fetchPaymentStatus = useServerFn(getQuotePaymentStatus);
+  const [depositPaid, setDepositPaid] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetchPaymentStatus({ data: { quoteId: quote.id } });
+        if (cancelled) return;
+        const paid = (res?.payments ?? [])
+          .filter((p: any) => p.status === "paid" && p.request_type === "deposit")
+          .reduce((sum: number, p: any) => sum + (Number(p.amount_cents) || 0), 0);
+        setDepositPaid(paid / 100);
+      } catch {
+        if (!cancelled) setDepositPaid(0);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [quote.id, fetchPaymentStatus]);
+
+  const balance = Math.max(0, +(quote.total - depositPaid).toFixed(2));
   const dueDate = quote.invoice_due_date
     ? new Date(quote.invoice_due_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     : "";
