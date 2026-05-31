@@ -103,7 +103,7 @@ function QuotesPage() {
               filter === f ? "bg-ink text-paper" : "bg-card text-muted-foreground border border-border"
             }`}
           >
-            {f}
+            {FILTER_LABEL[f]}
           </button>
         ))}
       </div>
