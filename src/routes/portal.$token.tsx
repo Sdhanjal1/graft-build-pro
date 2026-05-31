@@ -369,8 +369,11 @@ function PortalPage() {
                 className="w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
               >
                 {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                <span className="truncate">Pay now {formatGBP(payAmount)}</span>
+                <span className="truncate">{isDepositFlow ? "Pay deposit" : "Pay now"} {formatGBP(payAmount)}</span>
               </button>
+              {isDepositFlow && (
+                <p className="text-center text-[11px] text-muted-foreground mt-2">Balance of {formatGBP(balanceAmount)} due on completion.</p>
+              )}
               <p className="text-center text-[10px] text-muted-foreground mt-2">Secured payment by Stripe</p>
               <WalletBadges className="mt-2" />
             </div>
