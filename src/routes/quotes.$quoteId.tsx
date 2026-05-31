@@ -861,6 +861,34 @@ function QuoteDetail() {
         </div>
       )}
 
+      {/* Bottom sheet: record deposit received (cash/bank) — available any time after acceptance */}
+      <Sheet open={recordDepositOpen} onOpenChange={setRecordDepositOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl border-0 bg-paper p-0">
+          <SheetHeader className="px-5 pt-5 pb-2 text-left">
+            <SheetTitle className="text-base text-muted-foreground font-normal">
+              Record deposit received · {formatGBP(configuredDeposit)}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="px-5 pb-6 pt-2 grid grid-cols-2 gap-2">
+            <button
+              onClick={() => handleRecordManualDeposit("cash")}
+              disabled={recordingDeposit}
+              className="rounded-full border border-ink/15 py-3 font-semibold text-sm disabled:opacity-50"
+            >
+              Cash received
+            </button>
+            <button
+              onClick={() => handleRecordManualDeposit("bank")}
+              disabled={recordingDeposit}
+              className="rounded-full border border-ink/15 py-3 font-semibold text-sm disabled:opacity-50"
+            >
+              Bank received
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+
       {/* Bottom sheet: send final invoice */}
       {askInvoice && (
         <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setAskInvoice(false)}>
