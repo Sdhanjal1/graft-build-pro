@@ -1355,6 +1355,16 @@ function LineItemsEditor({
           <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
           <span className="num text-3xl text-ink">{formatGBP(total)}</span>
         </div>
+        {depositPaid > 0 && (
+          <>
+            <Row label="Less deposit paid" value={`−${formatGBP(depositPaid)}`} />
+            <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
+              <span className="text-sm uppercase tracking-widest font-semibold">Balance due</span>
+              <span className="num text-2xl text-ink">{formatGBP(Math.max(0, total - depositPaid))}</span>
+            </div>
+          </>
+        )}
+
         {saving && (
           <p className="text-[10px] text-muted-foreground pt-1">Saving…</p>
         )}
