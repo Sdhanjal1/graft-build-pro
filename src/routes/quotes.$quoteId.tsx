@@ -107,6 +107,7 @@ function QuoteDetail() {
   const fetchPortalStatus = useServerFn(getPortalLinkStatusForQuote);
   const regeneratePortalCodeFn = useServerFn(regeneratePortalCode);
   const recordDepositFn = useServerFn(recordManualDeposit);
+  const removeDepositFn = useServerFn(removeManualDeposit);
   const fetchPaymentsFn = useServerFn(getQuotePaymentStatus);
   const [recordingDeposit, setRecordingDeposit] = useState(false);
   const [recordDepositOpen, setRecordDepositOpen] = useState(false);
