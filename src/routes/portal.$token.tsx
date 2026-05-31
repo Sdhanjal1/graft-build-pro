@@ -474,11 +474,13 @@ function PortalPage() {
                 >
                   {responding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   <span className="truncate">
-                    {acceptButtonLabel({
-                      timing: (quote.payment_timing as PaymentTiming) ?? "on_completion",
-                      total: Number(quote.total) || 0,
-                      depositAmount: Number(quote.deposit_amount) || 0,
-                    })}
+                    {hasCard || hasBank
+                      ? acceptButtonLabel({
+                          timing: (quote.payment_timing as PaymentTiming) ?? "on_completion",
+                          total: Number(quote.total) || 0,
+                          depositAmount: Number(quote.deposit_amount) || 0,
+                        })
+                      : "Accept quote"}
                   </span>
                 </button>
               </div>
