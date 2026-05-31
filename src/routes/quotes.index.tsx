@@ -26,9 +26,20 @@ const STATUS_DOT: Record<QuoteStatus, string> = {
 const STATUS_LABEL: Record<QuoteStatus, string> = {
   pending: "Draft",
   sent: "Sent",
-  accepted: "Booked",
+  accepted: "Accepted",
   declined: "Declined",
   completed: "Completed",
+  paid: "Paid",
+  overdue: "Overdue",
+};
+
+const FILTER_LABEL: Record<FilterKey, string> = {
+  all: "All",
+  pending: "Pending",
+  sent: "Sent",
+  booked: "Accepted",
+  completed: "Completed",
+  invoiced: "Invoiced",
   paid: "Paid",
   overdue: "Overdue",
 };
