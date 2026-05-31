@@ -849,17 +849,17 @@ function QuoteDetail() {
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <button
                   onClick={() => handleRecordManualDeposit("cash")}
-                  disabled={recordingDeposit}
+                  disabled={recordingDeposit || depositRecorded}
                   className="rounded-full border border-ink/15 py-3 font-semibold text-sm disabled:opacity-50"
                 >
-                  Cash received
+                  {depositRecorded ? "Recorded ✓" : recordingDeposit ? "Saving…" : "Cash received"}
                 </button>
                 <button
                   onClick={() => handleRecordManualDeposit("bank")}
-                  disabled={recordingDeposit}
+                  disabled={recordingDeposit || depositRecorded}
                   className="rounded-full border border-ink/15 py-3 font-semibold text-sm disabled:opacity-50"
                 >
-                  Bank received
+                  {depositRecorded ? "Recorded ✓" : recordingDeposit ? "Saving…" : "Bank received"}
                 </button>
               </div>
             )}
