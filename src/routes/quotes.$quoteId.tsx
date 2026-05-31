@@ -12,7 +12,7 @@ import {
   materialsForQuote,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
-import { createInvoiceCheckout, recordManualDeposit } from "@/lib/payments.functions";
+import { createInvoiceCheckout, recordManualDeposit, getQuotePaymentStatus } from "@/lib/payments.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
 import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus, ShoppingCart, ChevronDown } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
@@ -107,9 +107,11 @@ function QuoteDetail() {
   const fetchPortalStatus = useServerFn(getPortalLinkStatusForQuote);
   const regeneratePortalCodeFn = useServerFn(regeneratePortalCode);
   const recordDepositFn = useServerFn(recordManualDeposit);
+  const fetchPaymentsFn = useServerFn(getQuotePaymentStatus);
   const [recordingDeposit, setRecordingDeposit] = useState(false);
   const [recordDepositOpen, setRecordDepositOpen] = useState(false);
   const [depositRecorded, setDepositRecorded] = useState(false);
+  const [depositPaid, setDepositPaid] = useState(0);
 
   // Real configured deposit for this quote (not a hardcoded 50%).
   const configuredDeposit = (() => {
@@ -150,6 +152,22 @@ function QuoteDetail() {
       setRecordingDeposit(false);
     }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchPaymentsFn({ data: { quoteId: quote.id } })
+      .then((res) => {
+        if (cancelled) return;
+        const rows = res?.payments ?? [];
+        const paid = rows
+          .filter((r) => r.status === "paid" && r.request_type === "deposit")
+          .reduce((sum, r) => sum + (Number(r.amount_cents) || 0), 0) / 100;
+        setDepositPaid(paid);
+        if (paid > 0) setDepositRecorded(true);
+      })
+      .catch(() => { /* non-blocking */ });
+    return () => { cancelled = true; };
+  }, [quote.id, fetchPaymentsFn]);
 
   useEffect(() => {
     let cancelled = false;
@@ -483,6 +501,21 @@ function QuoteDetail() {
           </Link>
         </section>
       )}
+
+      {/* Deposit status — glanceable payment state */}
+      {depositPaid > 0 && status !== "paid" && (
+        <section className="px-5 mt-3">
+          <div className="rounded-2xl bg-lime/20 border border-lime/40 px-4 py-2.5 flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-ink">
+              Deposit paid {formatGBP(depositPaid)}
+            </span>
+            <span className="text-xs font-medium text-muted-foreground">
+              Balance {formatGBP(Math.max(0, quote.total - depositPaid))}
+            </span>
+          </div>
+        </section>
+      )}
+
 
 
       {userProfile.quote_intro && (
