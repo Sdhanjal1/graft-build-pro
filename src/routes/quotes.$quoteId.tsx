@@ -665,6 +665,12 @@ function QuoteDetail() {
                     onClick={() => setRecordDepositOpen(true)}
                   />
                 )}
+                {status !== "paid" && depositPaid > 0 && (
+                  <MoreItem icon={Undo2} label="Remove recorded deposit" onClick={removeRecordedDeposit} />
+                )}
+                {status === "paid" && (
+                  <MoreItem icon={RotateCcw} label="Mark as unpaid" onClick={markUnpaid} />
+                )}
                 {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
                   <MoreItem icon={MessageCircle} label="Send chaser on WhatsApp" onClick={() => {
                     const first = client.name.split(" ")[0] ?? "there";
