@@ -154,21 +154,32 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const path = router.state.location.pathname;
   const isPublic = isPublicPath(path);
+  const [hydratedForUserId, setHydratedForUserId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (loading) return;
+    let cancelled = false;
     if (!session && !isPublic) {
       router.navigate({ to: "/auth" });
     } else if (session) {
-      void hydrateUserData();
+      const userId = session.user.id;
+      if (hydratedForUserId === userId) return;
+      void hydrateUserData()
+        .catch((error) => console.error(error))
+        .finally(() => {
+          if (!cancelled) setHydratedForUserId(userId);
+        });
     } else {
       // Signed out, clear cached user data so it doesn't bleed into the next session.
       clearUserData();
+      setHydratedForUserId(null);
     }
-  }, [session, loading, isPublic, router]);
+    return () => { cancelled = true; };
+  }, [session, loading, isPublic, router, hydratedForUserId]);
 
   if (loading) return null;
   if (!session && !isPublic) return null;
+  if (session && !isPublic && hydratedForUserId !== session.user.id) return null;
   return <>{children}</>;
 }
 
