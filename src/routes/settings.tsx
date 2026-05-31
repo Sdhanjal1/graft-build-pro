@@ -169,14 +169,14 @@ function SettingsPage() {
       {/* BUSINESS PROFILE — always open */}
       <Section title="Business profile" defaultOpen>
         <div className="card-surface p-5 space-y-3.5">
-          <EditField icon={Building2}  label="Business name" value={profile.business_name} onChange={(v) => saveProfile({ business_name: v })} />
-          <EditField icon={User}       label="Your name"     value={profile.full_name}     onChange={(v) => saveProfile({ full_name: v })} />
-          <EditField icon={Phone}      label="Phone"         value={profile.phone}         onChange={(v) => saveProfile({ phone: v })} />
-          <SelectField icon={BadgeCheck} label="Trade type"  value={profile.trade_type}    onChange={(v) => saveProfile({ trade_type: v })} options={TRADE_TYPES} />
-          <EditField icon={MapPin}     label="Address line 1" value={profile.address_line_1} onChange={(v) => saveProfile({ address_line_1: v })} placeholder="e.g. 12 High Street" />
-          <EditField icon={MapPin}     label="Address line 2" value={profile.address_line_2} onChange={(v) => saveProfile({ address_line_2: v })} placeholder="Optional" />
-          <EditField icon={MapPin}     label="Town / City"   value={profile.town}          onChange={(v) => saveProfile({ town: v })} />
-          <EditField icon={MapPin}     label="Postcode"      value={profile.postcode}      onChange={(v) => saveProfile({ postcode: v })} />
+          <EditField label="Business name" value={profile.business_name} onChange={(v) => saveProfile({ business_name: v })} />
+          <EditField label="Your name"     value={profile.full_name}     onChange={(v) => saveProfile({ full_name: v })} />
+          <EditField label="Phone"         value={profile.phone}         onChange={(v) => saveProfile({ phone: v })} />
+          <SelectField label="Trade type"  value={profile.trade_type}    onChange={(v) => saveProfile({ trade_type: v })} options={TRADE_TYPES} />
+          <EditField label="Address line 1" value={profile.address_line_1} onChange={(v) => saveProfile({ address_line_1: v })} placeholder="e.g. 12 High Street" />
+          <EditField label="Address line 2" value={profile.address_line_2} onChange={(v) => saveProfile({ address_line_2: v })} placeholder="Optional" />
+          <EditField label="Town / City"   value={profile.town}          onChange={(v) => saveProfile({ town: v })} />
+          <EditField label="Postcode"      value={profile.postcode}      onChange={(v) => saveProfile({ postcode: v })} />
         </div>
       </Section>
 
@@ -269,8 +269,8 @@ function SettingsPage() {
           <Section title="Quote appearance">
             <div className="card-surface p-5 space-y-4">
               <label className="block">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
-                  <ImageIcon className="h-3 w-3" /> Opening message on quotes
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                  Opening message on quotes
                 </span>
                 <textarea
                   value={profile.quote_intro}
@@ -280,8 +280,8 @@ function SettingsPage() {
                 />
               </label>
               <label className="block">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
-                  <FileText className="h-3 w-3" /> Footer message
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                  Footer message
                 </span>
                 <textarea
                   value={profile.quote_footer}
@@ -290,15 +290,15 @@ function SettingsPage() {
                   className="mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30 resize-y leading-snug"
                 />
               </label>
-              <EditField icon={PenLine} label="Your name on quotes" value={profile.signature_name} onChange={(v) => saveProfile({ signature_name: v })} placeholder="e.g. John Smith" />
+              <EditField label="Your name on quotes" value={profile.signature_name} onChange={(v) => saveProfile({ signature_name: v })} placeholder="e.g. John Smith" />
               <ToggleRow icon={PenLine} label="Show signature on quotes" hint="Adds a signature line at the bottom" checked={profile.show_signature} onChange={(v) => saveProfile({ show_signature: v })} flush />
             </div>
           </Section>
 
           <Section title="VAT & registration">
             <div className="card-surface p-5 space-y-3.5">
-              <EditField icon={BadgeCheck} label="Gas Safe registration number" value={profile.registration_number} onChange={(v) => saveProfile({ registration_number: v })} />
-              <EditField icon={Receipt} label="VAT number" value={profile.vat_number} onChange={(v) => saveProfile({ vat_number: v })} />
+              <EditField label="Gas Safe registration number" value={profile.registration_number} onChange={(v) => saveProfile({ registration_number: v })} />
+              <EditField label="VAT number" value={profile.vat_number} onChange={(v) => saveProfile({ vat_number: v })} />
               <ToggleRow icon={Receipt} label="VAT registered" hint="Adds 20% VAT to every quote" checked={vatRegistered} onChange={setVatRegistered} flush />
             </div>
           </Section>
@@ -372,7 +372,7 @@ function Section({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="px-5 mt-3">
+    <section className="px-5 mt-5">
       <button
         type="button"
         onClick={() => {
@@ -440,45 +440,35 @@ function ToggleRow({
 }
 
 function EditField({
-  icon: Icon, label, value, onChange, placeholder,
-}: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  label, value, onChange, placeholder,
+}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0 mt-5">
-        <Icon className="h-4 w-4" />
-      </div>
-      <label className="min-w-0 flex-1 block">
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
-        <input
-          value={value}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
-          className="mt-1.5 w-full h-11 bg-card border border-border rounded-2xl px-4 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
-        />
-      </label>
-    </div>
+    <label className="block">
+      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
+      <input
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1.5 w-full h-11 bg-card border border-border rounded-2xl px-4 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
+      />
+    </label>
   );
 }
 
 function SelectField({
-  icon: Icon, label, value, onChange, options,
-}: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; onChange: (v: string) => void; options: string[] }) {
+  label, value, onChange, options,
+}: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0 mt-5">
-        <Icon className="h-4 w-4" />
-      </div>
-      <label className="min-w-0 flex-1 block">
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="mt-1.5 w-full h-11 bg-card border border-border rounded-2xl px-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
-        >
-          {options.map((o) => <option key={o}>{o}</option>)}
-        </select>
-      </label>
-    </div>
+    <label className="block">
+      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1.5 w-full h-11 bg-card border border-border rounded-2xl px-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
+      >
+        {options.map((o) => <option key={o}>{o}</option>)}
+      </select>
+    </label>
   );
 }
 
