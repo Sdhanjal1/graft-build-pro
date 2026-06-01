@@ -35,7 +35,7 @@ function HomePage() {
             className="mt-8 text-lime leading-[0.8] tracking-tight"
             style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(5rem, 22vw, 18rem)" }}
           >
-            Quottr.
+            VocaTrade.
           </h1>
 
           <h2
