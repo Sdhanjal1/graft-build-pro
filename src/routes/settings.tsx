@@ -678,6 +678,47 @@ function Input({
   );
 }
 
+function MoneyField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  placeholder?: string;
+}) {
+  const [text, setText] = useState<string>(value ? String(value) : "");
+  useEffect(() => {
+    setText(value ? String(value) : "");
+  }, [value]);
+  const commit = () => {
+    const n = Math.max(0, Number(text) || 0);
+    onChange(n);
+    setText(n ? String(n) : "");
+  };
+  return (
+    <label className="block">
+      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
+      <div className="relative mt-1.5">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground pointer-events-none">£</span>
+        <input
+          type="number"
+          inputMode="decimal"
+          min={0}
+          step="0.01"
+          value={text}
+          placeholder={placeholder}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commit}
+          className="w-full h-11 bg-card border border-border rounded-2xl pl-8 pr-4 text-sm font-semibold num outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
+        />
+      </div>
+    </label>
+  );
+}
+
 
 
 
