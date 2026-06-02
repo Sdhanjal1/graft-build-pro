@@ -104,11 +104,13 @@ function SettingsPage() {
         payment_reference_note: bank.payment_reference_note,
         payment_terms: terms,
         default_deposit_percent: defaultDepositPct,
+        labour_hourly_rate: labourHourly,
+        labour_day_rate: labourDay,
       });
     }, 600);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile, vatRegistered, bank, terms, defaultDepositPct]);
+  }, [profile, vatRegistered, bank, terms, defaultDepositPct, labourHourly, labourDay]);
 
   const saveBank = (patch: Partial<typeof bank>) => setBank((b) => ({ ...b, ...patch }));
 
