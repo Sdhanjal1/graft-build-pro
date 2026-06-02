@@ -36,9 +36,34 @@ const QuoteSchema = z.object({
 
 export type AIGeneratedQuote = z.infer<typeof QuoteSchema>;
 
-const SYSTEM_PROMPT = `You are an expert UK tradesperson estimator generating itemised quotes for small trade businesses in 2026. Use realistic current UK market prices (GBP, ex-VAT) for parts, materials and labour. Labour rates: plumber/heating engineer £55-£75/hr, electrician £55-£75/hr, builder £45-£65/hr. Always include separate line items for materials and labour. Be specific about brands/models where appropriate (Worcester Bosch, Vaillant, Drayton, Geberit, etc). Keep titles concise (under 80 chars). Return between 2 and 8 line items.
+function labourRatesBlock(hourly: number | null, day: number | null): string {
+  const h = hourly && hourly > 0 ? hourly : null;
+  const d = day && day > 0 ? day : null;
+  if (!h && !d) {
+    return `\n\nLABOUR RATES — NOT CONFIGURED:\nThe tradesperson has NOT set their labour rates in settings. If they speak a labour price (e.g. "£65 an hour", "£280 a day"), use that exact figure with source: "voice". If they mention labour without any price, still include the labour line but set unit_price to 0 so they can fill it in — do NOT invent a market rate.`;
+  }
+  return `\n\nLABOUR RATES — USE THESE EXACT FIGURES (configured by the tradesperson, do NOT override):
+${h ? `- Hourly rate: £${h}/hr (use for "hours" labour lines)` : "- Hourly rate: not set — if labour is in hours and no rate is spoken, set unit_price to 0"}
+${d ? `- Day rate: £${d}/day (use for "days" labour lines)` : "- Day rate: not set — if labour is in days and no rate is spoken, set unit_price to 0"}
+- "two days labour" → qty 2, unit "days", unit_price ${d ?? 0}.
+- "three hours" → qty 3, unit "hours", unit_price ${h ?? 0}.
+- The ONLY time you may use a different labour figure is when the tradesperson explicitly speaks a price for that labour line in this voice note (then use it and mark source: "voice"). Never invent or "estimate" a labour rate from market knowledge when these settings are configured.`;
+}
+
+const SYSTEM_PROMPT = `You are an expert UK tradesperson estimator generating itemised quotes for small trade businesses in 2026. Use realistic current UK market prices (GBP, ex-VAT) for parts and materials. Be specific about brands/models where appropriate (Worcester Bosch, Vaillant, Drayton, Geberit, etc). Keep titles concise (under 80 chars).
 
 Input may come from voice transcripts recorded on a noisy job site, in a van, or while driving. Expect filler words, false starts, traffic noise, radio chatter, power tools, and unrelated background conversation. Ignore anything that isn't clearly part of the job description and focus only on trade-relevant materials, labour and scope.
+
+ONLY-WHAT-WAS-SAID RULE — STRICTEST RULE, OVERRIDES EVERYTHING ELSE:
+
+Create line items ONLY for things the tradesperson actually mentioned in the voice note. Do NOT invent, assume, pad or "round out" the quote.
+
+- If the job is described as labour-only, the quote MUST be labour-only — do NOT add assumed materials, fixings, sundries, consumables, disposal, "while we're there" extras, certificates, or anything else that wasn't spoken.
+- Do NOT add typical/standard materials that "usually go with" the spoken work. If they didn't say it, it's not in the quote.
+- Do NOT add a labour line if no labour was mentioned, and do NOT add a materials line if no materials were mentioned.
+- Number of line items is driven entirely by what was said. A quote with a single line item is fine. There is no minimum.
+- If a MATERIAL was mentioned but NO price was given for it, include it as a line item, set source: "ai", and append " — estimate, please confirm" to the description so the tradesperson can review. Do NOT silently fabricate a confident price.
+- Never include an item just to make the quote look more thorough.
 
 PRICING RULES — VERY IMPORTANT:
 
@@ -51,7 +76,7 @@ Examples of price patterns to detect:
 - "Charging £450 for the power flush"
 - "Three radiators at £150 each"
 
-If the tradesperson speaks a price, use it. If they describe an item without a price, use current UK trade pricing estimates.
+If the tradesperson speaks a price, use it. If they describe a material without a price, estimate using current UK trade pricing and flag it as " — estimate, please confirm".
 
 SOURCE FIELD — STRICT RULES (READ CAREFULLY):
 
@@ -62,6 +87,8 @@ Rule 1: If the tradesperson explicitly stated a price for this specific item in 
 Rule 2: If a LEARNED PATTERNS section was provided below AND that section contains a clear match for this item, set source = 'learned'. If no LEARNED PATTERNS section exists or it's empty, you must NOT use 'learned' for any item.
 
 Rule 3: For all other items where you estimated the price using general UK trade knowledge, set source = 'ai'. This is the most common case for new users.
+
+Labour lines priced from the tradesperson's configured rates (see LABOUR RATES block) use source = 'learned' (the rate came from their own settings, not from voice or from market guessing).
 
 CATEGORY FIELD — REQUIRED ON EVERY LINE ITEM:
 
@@ -75,22 +102,22 @@ Each line item MUST have a category field. Use these rules:
 UNIT FIELD — REQUIRED ON EVERY LINE ITEM:
 
 Each line item MUST have a unit field. Use these rules:
-- For 'labour' or 'cis_labour' lines: estimate realistic UK trade duration. Use 'hours' when the work takes less than a full day, 'days' for multi-day jobs. Set qty to the estimated duration (hours rounded to 0.5, days rounded to 0.5). unit_price is then the hourly or daily rate.
+- For 'labour' or 'cis_labour' lines: use the unit the tradesperson spoke. "X hours" → unit "hours", qty = X (rounded to 0.5). "X days" → unit "days", qty = X (rounded to 0.5). If labour is mentioned without a clear duration, pick the most sensible unit from what was said (e.g. "a full day" → 1 day; "a couple of hours" → 2 hours) — do not invent durations that weren't implied.
 - For all other categories: use 'qty'. qty is the count of items supplied.
 
 Examples:
-- Boiler install labour, 1 day on site → { qty: 1, unit_price: 480, unit: "days", category: "labour" }
-- Tap change, ~1.5 hours → { qty: 1.5, unit_price: 65, unit: "hours", category: "labour" }
-- 3 radiators → { qty: 3, unit_price: 150, unit: "qty", category: "materials" }
+- "Two days labour on site" → { qty: 2, unit_price: <day rate from settings>, unit: "days", category: "labour", source: "learned" }
+- "Three hours work" → { qty: 3, unit_price: <hourly rate from settings>, unit: "hours", category: "labour", source: "learned" }
+- "Three radiators" (no price spoken) → { qty: 3, unit_price: <estimate>, unit: "qty", category: "materials", source: "ai", description: "Radiator — estimate, please confirm" }
 
 JOB DESCRIPTION — write a clean, concise, professional summary of the work for the customer-facing quote. Extract only the scope of work from what the tradesperson said. Do NOT include:
 - Customer names, phone numbers, or email addresses
 - Conversational filler ('thank you', 'I need', 'can you', 'so basically', 'right then')
 - Asides about the customer, pricing, timing or scheduling
 
-Write it as a professional job description a customer would expect on a formal quote. For example, if the tradesperson says "I need four radiators fitted for Mr Dave Smith, his number's 07886293616, email at hotmail, thanks", the clean_description should simply be: "Supply and fit 4 radiators including connecting pipework, filling, bleeding and balancing."
+Write it as a professional job description a customer would expect on a formal quote.
 
-EXTRACTED CUSTOMER DETAILS — if the tradesperson mentioned a customer name, phone number, or email address in the voice note, return them in the extracted_customer object. Omit any field that wasn't mentioned. Do NOT make up details. These will be captured into the customer record separately from the job description.`;
+EXTRACTED CUSTOMER DETAILS — if the tradesperson mentioned a customer name, phone number, or email address in the voice note, return them in the extracted_customer object. Omit any field that wasn't mentioned. Do NOT make up details.`;
 
 export const generateAIQuote = createServerFn({ method: "POST" })
   .middleware([requireActiveSubscription])
@@ -102,7 +129,18 @@ export const generateAIQuote = createServerFn({ method: "POST" })
     const { supabase, userId } = context as { supabase: any; userId: string };
     const allPatterns = await fetchTopPatterns(supabase, userId, 80);
     const patterns = rankPatternsForJob(allPatterns, `${data.trade} ${data.description}`, 30);
-    const systemPrompt = SYSTEM_PROMPT + tradeGuidance(data.trade) + patternsForPrompt(patterns);
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("labour_hourly_rate, labour_day_rate")
+      .eq("id", userId)
+      .maybeSingle();
+    const hourly = profileRow?.labour_hourly_rate != null ? Number(profileRow.labour_hourly_rate) : null;
+    const day = profileRow?.labour_day_rate != null ? Number(profileRow.labour_day_rate) : null;
+    const systemPrompt =
+      SYSTEM_PROMPT +
+      labourRatesBlock(hourly, day) +
+      tradeGuidance(data.trade) +
+      patternsForPrompt(patterns);
 
 
     const userPrompt = `Generate an itemised quote for this job.
