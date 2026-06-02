@@ -190,6 +190,9 @@ export const EMPTY_PROFILE = {
   } as Record<LineItemCategory, string>,
   // ---- Default deposit % applied to new quotes over £500 ----
   default_deposit_percent: 30,
+  // ---- Labour rates ----
+  labour_hourly_rate: 0,
+  labour_day_rate: 0,
 };
 
 export const userProfile = { ...EMPTY_PROFILE };
