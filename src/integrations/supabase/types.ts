@@ -204,6 +204,8 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          labour_day_rate: number | null
+          labour_hourly_rate: number | null
           logo_url: string | null
           payment_reference_note: string | null
           payment_terms: string | null
@@ -240,6 +242,8 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          labour_day_rate?: number | null
+          labour_hourly_rate?: number | null
           logo_url?: string | null
           payment_reference_note?: string | null
           payment_terms?: string | null
@@ -276,6 +280,8 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          labour_day_rate?: number | null
+          labour_hourly_rate?: number | null
           logo_url?: string | null
           payment_reference_note?: string | null
           payment_terms?: string | null
