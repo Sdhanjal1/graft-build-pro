@@ -111,7 +111,18 @@ export const generateCaptureQuote = createServerFn({ method: "POST" })
     const { supabase, userId } = context as { supabase: any; userId: string };
     const allPatterns = await fetchTopPatterns(supabase, userId, 80);
     const patterns = rankPatternsForJob(allPatterns, `${data.trade} ${data.items.join(" ")}`, 30);
-    const systemPrompt = SYSTEM_PROMPT + tradeGuidance(data.trade) + patternsForPrompt(patterns);
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("labour_hourly_rate, labour_day_rate")
+      .eq("id", userId)
+      .maybeSingle();
+    const hourly = profileRow?.labour_hourly_rate != null ? Number(profileRow.labour_hourly_rate) : null;
+    const day = profileRow?.labour_day_rate != null ? Number(profileRow.labour_day_rate) : null;
+    const systemPrompt =
+      SYSTEM_PROMPT +
+      labourRatesBlock(hourly, day) +
+      tradeGuidance(data.trade) +
+      patternsForPrompt(patterns);
 
     const itemList = data.items.map((d, i) => `${i + 1}. ${d}`).join("\n");
 
