@@ -190,6 +190,9 @@ export const EMPTY_PROFILE = {
   } as Record<LineItemCategory, string>,
   // ---- Default deposit % applied to new quotes over £500 ----
   default_deposit_percent: 30,
+  // ---- Labour rates ----
+  labour_hourly_rate: 0,
+  labour_day_rate: 0,
 };
 
 export const userProfile = { ...EMPTY_PROFILE };
@@ -319,6 +322,12 @@ export async function hydrateUserData() {
     if (typeof p.default_deposit_percent === "number") {
       userProfile.default_deposit_percent = p.default_deposit_percent;
     }
+    if (p.labour_hourly_rate != null && !isNaN(Number(p.labour_hourly_rate))) {
+      userProfile.labour_hourly_rate = Number(p.labour_hourly_rate);
+    }
+    if (p.labour_day_rate != null && !isNaN(Number(p.labour_day_rate))) {
+      userProfile.labour_day_rate = Number(p.labour_day_rate);
+    }
   } else {
     userProfile.email = userData.user.email || "";
   }
@@ -388,6 +397,8 @@ export async function saveProfileToCloud(patch: Partial<typeof userProfile>) {
     accounting_software: userProfile.accounting_software || null,
     accounting_codes: userProfile.accounting_codes,
     default_deposit_percent: userProfile.default_deposit_percent,
+    labour_hourly_rate: userProfile.labour_hourly_rate || null,
+    labour_day_rate: userProfile.labour_day_rate || null,
   };
   const { error } = await supabase.from("profiles").upsert(row, { onConflict: "id" });
   if (error) console.error("[profile] save failed", error);

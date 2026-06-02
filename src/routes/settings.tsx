@@ -86,6 +86,8 @@ function SettingsPage() {
   });
   const [terms, setTerms] = useState(userProfile.payment_terms);
   const [defaultDepositPct, setDefaultDepositPct] = useState<number>(userProfile.default_deposit_percent ?? 30);
+  const [labourHourly, setLabourHourly] = useState<number>(userProfile.labour_hourly_rate ?? 0);
+  const [labourDay, setLabourDay] = useState<number>(userProfile.labour_day_rate ?? 0);
 
   // Debounced cloud-save
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -102,11 +104,13 @@ function SettingsPage() {
         payment_reference_note: bank.payment_reference_note,
         payment_terms: terms,
         default_deposit_percent: defaultDepositPct,
+        labour_hourly_rate: labourHourly,
+        labour_day_rate: labourDay,
       });
     }, 600);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile, vatRegistered, bank, terms, defaultDepositPct]);
+  }, [profile, vatRegistered, bank, terms, defaultDepositPct, labourHourly, labourDay]);
 
   const saveBank = (patch: Partial<typeof bank>) => setBank((b) => ({ ...b, ...patch }));
 
@@ -332,6 +336,30 @@ function SettingsPage() {
               </div>
             </div>
           </Section>
+
+          <Section title="Labour rates">
+            <div className="card-surface p-5 space-y-3">
+              <div className="grid grid-cols-2 gap-2.5">
+                <MoneyField
+                  label="Hourly rate"
+                  value={labourHourly}
+                  onChange={setLabourHourly}
+                  placeholder="45"
+                />
+                <MoneyField
+                  label="Day rate"
+                  value={labourDay}
+                  onChange={setLabourDay}
+                  placeholder="280"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Used to price labour on your quotes — so you never have to correct it.
+              </p>
+            </div>
+          </Section>
+
+
 
 
           <Section title="Notifications">
@@ -646,6 +674,47 @@ function Input({
           className={fieldClass + " h-11"}
         />
       )}
+    </label>
+  );
+}
+
+function MoneyField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  placeholder?: string;
+}) {
+  const [text, setText] = useState<string>(value ? String(value) : "");
+  useEffect(() => {
+    setText(value ? String(value) : "");
+  }, [value]);
+  const commit = () => {
+    const n = Math.max(0, Number(text) || 0);
+    onChange(n);
+    setText(n ? String(n) : "");
+  };
+  return (
+    <label className="block">
+      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
+      <div className="relative mt-1.5">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground pointer-events-none">£</span>
+        <input
+          type="number"
+          inputMode="decimal"
+          min={0}
+          step="0.01"
+          value={text}
+          placeholder={placeholder}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commit}
+          className="w-full h-11 bg-card border border-border rounded-2xl pl-8 pr-4 text-sm font-semibold num outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
+        />
+      </div>
     </label>
   );
 }
