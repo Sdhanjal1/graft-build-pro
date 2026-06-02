@@ -322,6 +322,12 @@ export async function hydrateUserData() {
     if (typeof p.default_deposit_percent === "number") {
       userProfile.default_deposit_percent = p.default_deposit_percent;
     }
+    if (p.labour_hourly_rate != null && !isNaN(Number(p.labour_hourly_rate))) {
+      userProfile.labour_hourly_rate = Number(p.labour_hourly_rate);
+    }
+    if (p.labour_day_rate != null && !isNaN(Number(p.labour_day_rate))) {
+      userProfile.labour_day_rate = Number(p.labour_day_rate);
+    }
   } else {
     userProfile.email = userData.user.email || "";
   }
