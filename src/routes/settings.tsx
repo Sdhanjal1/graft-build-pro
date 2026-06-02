@@ -86,6 +86,8 @@ function SettingsPage() {
   });
   const [terms, setTerms] = useState(userProfile.payment_terms);
   const [defaultDepositPct, setDefaultDepositPct] = useState<number>(userProfile.default_deposit_percent ?? 30);
+  const [labourHourly, setLabourHourly] = useState<number>(userProfile.labour_hourly_rate ?? 0);
+  const [labourDay, setLabourDay] = useState<number>(userProfile.labour_day_rate ?? 0);
 
   // Debounced cloud-save
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
