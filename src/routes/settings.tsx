@@ -337,6 +337,30 @@ function SettingsPage() {
             </div>
           </Section>
 
+          <Section title="Labour rates">
+            <div className="card-surface p-5 space-y-3">
+              <div className="grid grid-cols-2 gap-2.5">
+                <MoneyField
+                  label="Hourly rate"
+                  value={labourHourly}
+                  onChange={setLabourHourly}
+                  placeholder="45"
+                />
+                <MoneyField
+                  label="Day rate"
+                  value={labourDay}
+                  onChange={setLabourDay}
+                  placeholder="280"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Used to price labour on your quotes — so you never have to correct it.
+              </p>
+            </div>
+          </Section>
+
+
+
 
           <Section title="Notifications">
             <div className="space-y-3">
