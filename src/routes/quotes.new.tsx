@@ -1542,12 +1542,14 @@ function VoiceOverlay({
                   </li>
                 );
               }
+              const justLanded = i >= justLandedFrom;
               return (
                 <li
                   key={i}
                   onClick={() => beginEdit(i, li)}
-                  className="rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-2 flex items-start gap-3 animate-scale-in cursor-pointer active:bg-paper/[0.1]"
+                  className={`rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-2 flex items-start gap-3 animate-scale-in cursor-pointer active:bg-paper/[0.1] ${justLanded ? "animate-line-glow" : ""}`}
                 >
+
                   <span className="num text-[11px] font-bold text-paper/40 mt-0.5 shrink-0 w-5 text-right">
                     {i + 1}
                   </span>
