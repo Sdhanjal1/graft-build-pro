@@ -189,6 +189,11 @@ function NewQuotePage() {
     setLivePreview("");
     liveFinalRef.current = "";
     setPendingItems([]);
+    pendingCountRef.current = 0;
+    setLiveItems([]);
+    liveItemsRef.current = [];
+    phraseSeqRef.current = 0;
+    lastFinalIdxRef.current = -1;
     stopRecording();
   };
 
