@@ -165,7 +165,7 @@ function QuotesPage() {
             <EmptyState
               icon={Inbox}
               title="Nothing here"
-              body={q ? `No quotes match "${q}".` : `No ${filter} quotes right now.`}
+              body={q ? `No quotes match "${q}".` : tile ? `No ${TILE_LABEL[tile].toLowerCase()} quotes right now.` : `No quotes right now.`}
             />
           )
         )}
