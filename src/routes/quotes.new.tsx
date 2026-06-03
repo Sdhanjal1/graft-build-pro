@@ -1503,6 +1503,20 @@ function VoiceOverlay({
                 </li>
               );
             })}
+            {pendingItems.map((p, i) => (
+              <li
+                key={p.id}
+                className="rounded-lg bg-paper/[0.03] border-l-2 border-paper/30 pl-3 pr-3 py-2 flex items-start gap-3 animate-scale-in"
+              >
+                <span className="num text-[11px] font-bold text-paper/30 mt-0.5 shrink-0 w-5 text-right">
+                  {liveItems.length + i + 1}
+                </span>
+                <p className="flex-1 text-sm leading-snug text-paper/70 italic">
+                  {p.text}
+                </p>
+                <Loader2 className="h-3.5 w-3.5 text-paper/40 animate-spin shrink-0 mt-1" />
+              </li>
+            ))}
           </ul>
         )}
       </div>
