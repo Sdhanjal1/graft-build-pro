@@ -756,6 +756,7 @@ function NewQuotePage() {
           lastTranscript={lastTranscript}
           livePreview={livePreview}
           liveSupported={liveSupported}
+          liveItems={draft?.line_items ?? []}
           onStart={handleVoiceStart}
           onStop={stopRecording}
           onClose={handleVoiceClose}
