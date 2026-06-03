@@ -802,6 +802,17 @@ function NewQuotePage() {
           onStop={stopRecording}
           onClose={handleVoiceClose}
           onRetryTranscription={lastBlobRef.current ? retryTranscription : undefined}
+          onUpdateItem={(index, patch) => {
+            if (!draft) return;
+            const next = draft.line_items.map((it, i) => (i === index ? { ...it, ...patch } : it));
+            setDraft({ ...draft, line_items: next });
+          }}
+          onDeleteItem={(index) => {
+            if (!draft) return;
+            const next = draft.line_items.filter((_, i) => i !== index);
+            setDraft({ ...draft, line_items: next });
+            feedback("warn");
+          }}
         />
       )}
 
