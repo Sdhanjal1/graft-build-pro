@@ -124,49 +124,17 @@ function NewQuotePage() {
   const recognitionRef = useRef<any>(null);
   const liveFinalRef = useRef<string>("");
 
-  // Phrase-by-phrase chunk processing (speak mode only).
-  // We use real audio silence detection (AudioContext + AnalyserNode) to cut
-  // the MediaRecorder at each natural pause. Each phrase becomes its own audio
-  // blob → transcribed → line items appended. This works reliably on iOS where
-  // SpeechRecognition is not available / not continuous.
-  const SILENCE_RMS = 0.012;
-  // Snappy: ~0.9s of silence cuts the phrase. Item boundaries are decided
-  // by the AI from CONTENT (not by this timer) — if a slow speaker pauses
-  // mid-item, the next chunk is merged into the previous in-progress line
-  // via continues_previous; if a fast speaker keeps going, the AI splits
-  // the single chunk into multiple line_items. So this threshold only
-  // controls responsiveness, not correctness of item separation.
-  const SILENCE_MS = 900;
-  const MIN_PHRASE_MS = 600;
-  const chunkProcessedCountRef = useRef<number>(0);
-  const chunkQueueRef = useRef<Promise<void>>(Promise.resolve());
-  // Language-driven boundary detection state: the raw transcript of the
-  // last chunk and the description of the last line item it produced. Sent
-  // to the AI with the next chunk so it can decide continuation vs new item.
-  const prevChunkTextRef = useRef<string>("");
-  const prevItemDescriptionRef = useRef<string>("");
-
-  // Pending (un-priced) line previews: shown instantly on pause-detection so
-  // the user sees the spoken words appear right away, then replaced in place
-  // with the structured/priced line items once the chunk finishes processing.
+  // Pending preview slots are no longer used (we no longer cut phrases on
+  // silence). Kept as empty state so the VoiceOverlay prop contract stays
+  // intact. Always cleared in stopRecording/finalize so nothing stale ever
+  // lingers into the draft editor.
   const [pendingItems, setPendingItems] = useState<{ id: string; text: string }[]>([]);
-  const pendingIdQueueRef = useRef<string[]>([]);
 
-  // Audio analysis refs
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const rafRef = useRef<number | null>(null);
-
-  // Per-phrase recorder
-  const phraseChunksRef = useRef<BlobPart[]>([]);
-  const phraseHasSpeechRef = useRef<boolean>(false);
-  const phraseStartedAtRef = useRef<number>(0);
-  const silenceStartRef = useRef<number | null>(null);
-  const stoppingFinalRef = useRef<boolean>(false);
-  const phraseMimeRef = useRef<string>("");
+  // Per-phrase plumbing kept as inert refs so any stragglers from older code
+  // paths cannot leak. Not driven by the new flow.
   const sharedStreamRef = useRef<MediaStream | null>(null);
   const finalizeRef = useRef<() => void>(() => {});
+
 
 
 
