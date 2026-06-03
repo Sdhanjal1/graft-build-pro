@@ -264,18 +264,54 @@ function NewQuotePage() {
     return { combinedDesc: combined, target: "desc" };
   };
 
-  // Process a single spoken chunk into line items and APPEND to the draft.
-  // First chunk also seeds title, clean description and extracted customer.
+  // Process a single spoken chunk into line items and APPEND (or MERGE) on
+  // the draft. The AI decides — from the MEANING of this chunk vs the
+  // previous in-progress item — whether this chunk continues the same item
+  // (merge into the last line) or starts new items (append).
   const processChunkNow = async (text: string) => {
     const clean = text.trim();
     if (!clean) return;
     try {
-      const g = await generateFn({ data: { description: clean, trade, vatRegistered: vat } });
+      const prevText = prevChunkTextRef.current;
+      const prevDesc = prevItemDescriptionRef.current;
+      const g = await generateFn({
+        data: {
+          description: clean,
+          trade,
+          vatRegistered: vat,
+          ...(prevText && prevDesc
+            ? { previousChunkText: prevText, previousItemDescription: prevDesc }
+            : {}),
+        },
+      });
       const isFirst = chunkProcessedCountRef.current === 0;
+      const canMerge = !isFirst && g.continues_previous && g.line_items.length >= 1;
+
       setDraft((prev) => {
         if (!prev) return { title: g.title, line_items: g.line_items };
+        if (canMerge && prev.line_items.length > 0) {
+          // Replace the last (in-progress) line with the merged item.
+          const merged = [...prev.line_items];
+          merged[merged.length - 1] = g.line_items[0];
+          return { ...prev, line_items: merged };
+        }
         return { ...prev, line_items: [...prev.line_items, ...g.line_items] };
       });
+
+      // Update boundary context for the NEXT chunk.
+      if (canMerge) {
+        // Same item continues — keep accumulating the raw text so later
+        // chunks see the full in-progress utterance.
+        prevChunkTextRef.current = `${prevText} ${clean}`.trim().slice(-2000);
+        prevItemDescriptionRef.current = g.line_items[0].description;
+      } else {
+        // New item(s) committed — the LAST returned line is the one that's
+        // still "in-progress" and eligible for continuation next time.
+        prevChunkTextRef.current = clean.slice(-2000);
+        prevItemDescriptionRef.current =
+          g.line_items[g.line_items.length - 1]?.description ?? "";
+      }
+
       chunkProcessedCountRef.current += 1;
       if (isFirst) {
         setDesc((d) => (d.trim() ? d : (g.clean_description?.trim() || clean)));
@@ -288,9 +324,6 @@ function NewQuotePage() {
         feedback("tap");
       }
     } catch (e) {
-      // Swallow per-chunk failures: the stop-time fallback will run a full
-      // whisper+generate if NO chunks ever succeeded. If some chunks succeeded
-      // and one fails, we just drop that phrase (better than corrupting the draft).
       console.error("[chunk] generate failed", e);
     }
   };
