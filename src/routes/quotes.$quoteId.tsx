@@ -580,6 +580,32 @@ function QuoteDetail() {
         </div>
       </section>
 
+      {/* Materials — next step after payment terms */}
+      {showMaterialsCta && (
+        <section className="px-5 mt-3">
+          <button
+            type="button"
+            onClick={() => setMaterialsOpen(true)}
+            className="w-full rounded-2xl border border-border bg-card px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition"
+          >
+            <div className="h-10 w-10 rounded-full bg-lime text-ink flex items-center justify-center shrink-0">
+              <ShoppingCart className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Materials</p>
+              <p className="text-sm font-bold text-ink leading-tight">
+                {materialsCount > 0
+                  ? `${materialsCount} item${materialsCount === 1 ? "" : "s"} on the list`
+                  : "No materials yet — add what you need for this job"}
+              </p>
+            </div>
+            <span className="shrink-0 text-xs font-semibold text-ink underline underline-offset-2">
+              {materialsCount > 0 ? "Open" : "Add"}
+            </span>
+          </button>
+        </section>
+      )}
+
       {(userProfile.quote_footer || (userProfile.show_signature && (userProfile.signature_name || userProfile.full_name))) && (
         <section className="px-5 mt-5">
           <div className="px-1 space-y-2">
@@ -638,25 +664,11 @@ function QuoteDetail() {
                 </div>
               )}
 
-              {/* Material list */}
-              {showMaterialsCta && (
-                <button
-                  onClick={() => setMaterialsOpen(true)}
-                  className="w-full bg-ink text-paper rounded-full py-2.5 px-4 inline-flex items-center justify-center gap-2 text-xs font-bold"
-                >
-                  <ShoppingCart className="h-3.5 w-3.5" />
-                  Material list ({materialsCount})
-                </button>
-              )}
-
               {/* Action shortcuts */}
               <div className="space-y-2 pt-1">
                 {/* Sharing & communication */}
                 <ul className="space-y-0.5">
                   <MoreItem icon={Eye} label="View as customer" onClick={viewAsCustomer} />
-                  {materialsCount > 0 && (
-                    <MoreItem icon={ShoppingCart} label={`Material list (${materialsCount})`} onClick={() => setMaterialsOpen(true)} />
-                  )}
                   <MoreItem icon={Share2} label="Download PDF" onClick={sharePdf} />
                   <MoreItem icon={Mail} label="Email customer" onClick={() => { window.location.href = mailHref; }} />
                   <MoreItem icon={Phone} label="Call customer" onClick={() => { window.location.href = `tel:${client?.phone}`; }} />
