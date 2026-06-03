@@ -130,10 +130,19 @@ function NewQuotePage() {
   // blob → transcribed → line items appended. This works reliably on iOS where
   // SpeechRecognition is not available / not continuous.
   const SILENCE_RMS = 0.012;
-  const SILENCE_MS = 1500;
+  // Snappy: ~0.9s of silence cuts the phrase. Combined with MIN_PHRASE_MS we
+  // still avoid firing on a mid-sentence breath.
+  const SILENCE_MS = 900;
   const MIN_PHRASE_MS = 600;
   const chunkProcessedCountRef = useRef<number>(0);
   const chunkQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  // Pending (un-priced) line previews: shown instantly on pause-detection so
+  // the user sees the spoken words appear right away, then replaced in place
+  // with the structured/priced line items once the chunk finishes processing.
+  const [pendingItems, setPendingItems] = useState<{ id: string; text: string }[]>([]);
+  const pendingIdQueueRef = useRef<string[]>([]);
+  const liveMarkRef = useRef<string>("");
 
   // Audio analysis refs
   const audioCtxRef = useRef<AudioContext | null>(null);
