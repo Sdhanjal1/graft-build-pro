@@ -279,29 +279,29 @@ function NewQuotePage() {
     return chunkQueueRef.current;
   };
 
-  // Take any newly-spoken text since last flush and queue it for processing.
-  const flushPendingChunk = () => {
-    if (pauseTimerRef.current) {
-      clearTimeout(pauseTimerRef.current);
-      pauseTimerRef.current = null;
-    }
-    const fullFinal = liveFinalRef.current;
-    const newText = fullFinal.slice(processedFinalLenRef.current).trim();
-    if (!newText) return Promise.resolve();
-    processedFinalLenRef.current = fullFinal.length;
-    return enqueueChunkProcessing(newText);
+  // Transcribe a single phrase blob then run it through generate; append the
+  // resulting line items to the draft. Serialised via chunkQueueRef so phrases
+  // are appended in the order they were spoken.
+  const enqueuePhraseBlob = (blob: Blob, mimeType: string) => {
+    chunkQueueRef.current = chunkQueueRef.current
+      .then(async () => {
+        try {
+          if (blob.size < 1200) return; // too short, likely no real speech
+          const audioBase64 = await blobToBase64(blob);
+          const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
+          const clean = (text || "").trim();
+          if (!clean) return;
+          // Append the phrase to the desc transcript for the saved record.
+          setDesc((d) => (d.trim() ? `${d.trim()} ${clean}` : clean));
+          await processChunkNow(clean);
+        } catch (e) {
+          console.error("[phrase] failed", e);
+        }
+      })
+      .catch(() => {});
+    return chunkQueueRef.current;
   };
 
-  // Debounce: a quiet gap of PAUSE_MS in continuous speech == phrase boundary.
-  // Only active in speak-mode targeting the description (not on-site clips).
-  const scheduleChunkFlush = () => {
-    if (mode !== "speak" || recordTargetRef.current !== "desc") return;
-    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
-    pauseTimerRef.current = setTimeout(() => {
-      pauseTimerRef.current = null;
-      void flushPendingChunk();
-    }, PAUSE_MS);
-  };
 
   const runTranscribe = async (blob: Blob, mimeType: string) => {
     setTranscribing(true);
