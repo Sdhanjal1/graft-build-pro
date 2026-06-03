@@ -77,6 +77,8 @@ type Draft = { title: string; line_items: LineItem[] } | null;
 
 type Clip = { id: string; transcript: string };
 
+type PendingItem = { id: string; text: string };
+
 function NewQuotePage() {
   const navigate = useNavigate();
   const { voice: voiceParam, clientId } = Route.useSearch();
@@ -129,10 +131,13 @@ function NewQuotePage() {
   // Haiku generate call. Items append as soon as their phrase resolves.
   const [liveItems, setLiveItems] = useState<LineItem[]>([]);
   const liveItemsRef = useRef<LineItem[]>([]);
-  const [pendingItems, setPendingItems] = useState<{ id: string; text: string }[]>([]);
+  const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
+  const pendingItemsRef = useRef<PendingItem[]>([]);
   const pendingCountRef = useRef(0);
   const phraseSeqRef = useRef(0);
   const lastFinalIdxRef = useRef(-1);
+  const voiceSessionRef = useRef(0);
+  const closeRequestedRef = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const prefetchedContextRef = useRef<any>(null);
 
