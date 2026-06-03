@@ -1421,7 +1421,7 @@ function MicLevelRings({
         analyser.fftSize = 512;
         analyser.smoothingTimeConstant = 0.85;
         source.connect(analyser);
-        data = new Uint8Array(analyser.frequencyBinCount);
+        data = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount));
       } catch {
         ctx = null;
         analyser = null;
