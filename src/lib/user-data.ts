@@ -491,7 +491,7 @@ const persistMaterialsList = async (quoteId: string, list: MaterialItem[]) => {
   q.materials_list = list;
   const { error } = await supabase
     .from("quotes")
-    .update({ materials_list: list as unknown as Json })
+    .update({ materials_list: list as unknown as never })
     .eq("id", quoteId);
   if (error) {
     console.error("[persistMaterialsList] update failed", error);
