@@ -224,6 +224,8 @@ export function BillingSection({ show = "both" }: { show?: "both" | "subscriptio
           )}
         </div>
       </div>
+      )}
     </div>
   );
+
 }
