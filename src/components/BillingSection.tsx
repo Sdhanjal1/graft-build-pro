@@ -14,7 +14,7 @@ import {
   refreshConnectStatus,
 } from "@/lib/connect.functions";
 
-export function BillingSection() {
+export function BillingSection({ show = "both" }: { show?: "both" | "subscription" | "connect" } = {}) {
   const { sub, trialDaysLeft, canUse, showWarn, showExpired } = useSubscription();
   const connect = useConnectStatus();
   const startCheckout = useServerFn(startSubscriptionCheckout);
