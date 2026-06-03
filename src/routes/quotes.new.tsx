@@ -429,6 +429,8 @@ function NewQuotePage() {
     phraseMimeRef.current = mimeType;
     chunkProcessedCountRef.current = 0;
     chunkQueueRef.current = Promise.resolve();
+    prevChunkTextRef.current = "";
+    prevItemDescriptionRef.current = "";
     stoppingFinalRef.current = false;
     liveFinalRef.current = "";
     liveMarkRef.current = "";
