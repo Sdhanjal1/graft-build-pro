@@ -289,22 +289,35 @@ function NewQuotePage() {
   // resulting line items to the draft. Serialised via chunkQueueRef so phrases
   // are appended in the order they were spoken.
   const enqueuePhraseBlob = (blob: Blob, mimeType: string) => {
+    const pendingId = pendingIdQueueRef.current.shift() ?? null;
+    const clearPending = () => {
+      if (!pendingId) return;
+      setPendingItems((prev) => prev.filter((p) => p.id !== pendingId));
+    };
     chunkQueueRef.current = chunkQueueRef.current
       .then(async () => {
         try {
-          if (blob.size < 1200) return; // too short, likely no real speech
+          if (blob.size < 1200) return;
           const audioBase64 = await blobToBase64(blob);
           const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
           const clean = (text || "").trim();
           if (!clean) return;
-          // Append the phrase to the desc transcript for the saved record.
+          // Update the pending preview in place with the cleaned transcription
+          // so the line shown matches what we actually heard while pricing runs.
+          if (pendingId) {
+            setPendingItems((prev) =>
+              prev.map((p) => (p.id === pendingId ? { ...p, text: clean } : p)),
+            );
+          }
           setDesc((d) => (d.trim() ? `${d.trim()} ${clean}` : clean));
           await processChunkNow(clean);
         } catch (e) {
           console.error("[phrase] failed", e);
+        } finally {
+          clearPending();
         }
       })
-      .catch(() => {});
+      .catch(() => { clearPending(); });
     return chunkQueueRef.current;
   };
 
