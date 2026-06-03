@@ -130,10 +130,19 @@ function NewQuotePage() {
   // blob → transcribed → line items appended. This works reliably on iOS where
   // SpeechRecognition is not available / not continuous.
   const SILENCE_RMS = 0.012;
-  const SILENCE_MS = 1500;
+  // Snappy: ~0.9s of silence cuts the phrase. Combined with MIN_PHRASE_MS we
+  // still avoid firing on a mid-sentence breath.
+  const SILENCE_MS = 900;
   const MIN_PHRASE_MS = 600;
   const chunkProcessedCountRef = useRef<number>(0);
   const chunkQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  // Pending (un-priced) line previews: shown instantly on pause-detection so
+  // the user sees the spoken words appear right away, then replaced in place
+  // with the structured/priced line items once the chunk finishes processing.
+  const [pendingItems, setPendingItems] = useState<{ id: string; text: string }[]>([]);
+  const pendingIdQueueRef = useRef<string[]>([]);
+  const liveMarkRef = useRef<string>("");
 
   // Audio analysis refs
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -198,6 +207,9 @@ function NewQuotePage() {
     setLastTranscript(null);
     setLivePreview("");
     liveFinalRef.current = "";
+    liveMarkRef.current = "";
+    pendingIdQueueRef.current = [];
+    setPendingItems([]);
     stopRecording();
   };
 
@@ -280,22 +292,35 @@ function NewQuotePage() {
   // resulting line items to the draft. Serialised via chunkQueueRef so phrases
   // are appended in the order they were spoken.
   const enqueuePhraseBlob = (blob: Blob, mimeType: string) => {
+    const pendingId = pendingIdQueueRef.current.shift() ?? null;
+    const clearPending = () => {
+      if (!pendingId) return;
+      setPendingItems((prev) => prev.filter((p) => p.id !== pendingId));
+    };
     chunkQueueRef.current = chunkQueueRef.current
       .then(async () => {
         try {
-          if (blob.size < 1200) return; // too short, likely no real speech
+          if (blob.size < 1200) return;
           const audioBase64 = await blobToBase64(blob);
           const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
           const clean = (text || "").trim();
           if (!clean) return;
-          // Append the phrase to the desc transcript for the saved record.
+          // Update the pending preview in place with the cleaned transcription
+          // so the line shown matches what we actually heard while pricing runs.
+          if (pendingId) {
+            setPendingItems((prev) =>
+              prev.map((p) => (p.id === pendingId ? { ...p, text: clean } : p)),
+            );
+          }
           setDesc((d) => (d.trim() ? `${d.trim()} ${clean}` : clean));
           await processChunkNow(clean);
         } catch (e) {
           console.error("[phrase] failed", e);
+        } finally {
+          clearPending();
         }
       })
-      .catch(() => {});
+      .catch(() => { clearPending(); });
     return chunkQueueRef.current;
   };
 
@@ -364,6 +389,9 @@ function NewQuotePage() {
     chunkQueueRef.current = Promise.resolve();
     stoppingFinalRef.current = false;
     liveFinalRef.current = "";
+    liveMarkRef.current = "";
+    pendingIdQueueRef.current = [];
+    setPendingItems([]);
     setLivePreview("");
 
     // Use on-site clip mode? It bypasses the phrase chunker: record one whole
@@ -622,6 +650,18 @@ function NewQuotePage() {
             const pmr = mediaRecorderRef.current;
             silenceStartRef.current = null;
             if (pmr && pmr.state === "recording") {
+              // Instant feedback: show the spoken text as a pending line right
+              // now, before we even transcribe/price. It'll be replaced by the
+              // real line item in place once the chunk resolves.
+              const fullLive = liveFinalRef.current;
+              const newText = fullLive.slice(liveMarkRef.current.length).trim();
+              liveMarkRef.current = fullLive;
+              const id = `p-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+              pendingIdQueueRef.current.push(id);
+              setPendingItems((prev) => [
+                ...prev,
+                { id, text: newText || "Capturing line…" },
+              ]);
               try { pmr.stop(); } catch (e) { console.error(e); }
             }
           }
@@ -757,6 +797,7 @@ function NewQuotePage() {
           livePreview={livePreview}
           liveSupported={liveSupported}
           liveItems={draft?.line_items ?? []}
+          pendingItems={pendingItems}
           onStart={handleVoiceStart}
           onStop={stopRecording}
           onClose={handleVoiceClose}
@@ -1387,6 +1428,7 @@ function VoiceOverlay({
   livePreview,
   liveSupported,
   liveItems,
+  pendingItems,
   onStart,
   onStop,
   onClose,
@@ -1400,6 +1442,7 @@ function VoiceOverlay({
   livePreview: string;
   liveSupported: boolean;
   liveItems: LineItem[];
+  pendingItems: { id: string; text: string }[];
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
@@ -1408,7 +1451,7 @@ function VoiceOverlay({
 
   if (typeof document === "undefined") return null;
   const idle = !recording && !transcribing;
-  const showItems = (recording || transcribing) && liveItems.length > 0;
+  const showItems = (recording || transcribing) && (liveItems.length > 0 || pendingItems.length > 0);
   return createPortal(
     <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col items-center justify-between px-6 pt-12 pb-8 safe-top safe-bottom">
 
@@ -1460,6 +1503,20 @@ function VoiceOverlay({
                 </li>
               );
             })}
+            {pendingItems.map((p, i) => (
+              <li
+                key={p.id}
+                className="rounded-lg bg-paper/[0.03] border-l-2 border-paper/30 pl-3 pr-3 py-2 flex items-start gap-3 animate-scale-in"
+              >
+                <span className="num text-[11px] font-bold text-paper/30 mt-0.5 shrink-0 w-5 text-right">
+                  {liveItems.length + i + 1}
+                </span>
+                <p className="flex-1 text-sm leading-snug text-paper/70 italic">
+                  {p.text}
+                </p>
+                <Loader2 className="h-3.5 w-3.5 text-paper/40 animate-spin shrink-0 mt-1" />
+              </li>
+            ))}
           </ul>
         )}
       </div>
