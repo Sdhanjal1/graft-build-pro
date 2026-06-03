@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
 
@@ -117,9 +117,11 @@ function QuotesPage() {
                   {t.count}
                 </span>
               </div>
-              <p className={`mt-1.5 text-xl font-bold leading-none tabular-nums ${active ? "text-paper" : "text-ink"}`}>
-                {formatGBP(t.total)}
-              </p>
+              <CountUpGBP
+                value={t.total}
+                className={`mt-1.5 block text-xl font-bold leading-none tabular-nums ${active ? "text-paper" : "text-ink"}`}
+              />
+
             </button>
           );
         })}
@@ -285,4 +287,42 @@ function QuoteCard({
       </div>
     </Link>
   );
+}
+
+function prefersReducedMotion() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
+function CountUpGBP({ value, className }: { value: number; className?: string }) {
+  const [display, setDisplay] = useState(0);
+  const fromRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (prefersReducedMotion()) {
+      setDisplay(value);
+      fromRef.current = value;
+      return;
+    }
+    const from = fromRef.current;
+    const to = value;
+    if (from === to) {
+      setDisplay(to);
+      return;
+    }
+    const duration = 420;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(from + (to - from) * eased);
+      if (t < 1) rafRef.current = requestAnimationFrame(tick);
+      else fromRef.current = to;
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [value]);
+  return <span className={className}>{formatGBP(display)}</span>;
 }

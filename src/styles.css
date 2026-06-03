@@ -180,11 +180,19 @@
 }
 
 @keyframes pulse-soft {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--status-overdue, #e11d48) 0%, transparent); }
-  50% { box-shadow: 0 0 0 6px color-mix(in oklab, var(--status-overdue, #e11d48) 12%, transparent); }
+  0%, 100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--status-overdue, #e11d48) 0%, transparent),
+                0 0 0 0 color-mix(in oklab, var(--status-overdue, #e11d48) 0%, transparent);
+    border-color: color-mix(in oklab, var(--status-overdue, #e11d48) 25%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--status-overdue, #e11d48) 10%, transparent),
+                0 8px 28px -6px color-mix(in oklab, var(--status-overdue, #e11d48) 35%, transparent);
+    border-color: color-mix(in oklab, var(--status-overdue, #e11d48) 55%, transparent);
+  }
 }
 .animate-pulse-soft {
-  animation: pulse-soft 2s ease-in-out infinite;
+  animation: pulse-soft 2.6s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-pulse-soft { animation: none; }
