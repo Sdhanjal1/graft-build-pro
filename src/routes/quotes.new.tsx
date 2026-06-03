@@ -1662,9 +1662,11 @@ function VoiceOverlay({
                   <p className="flex-1 text-sm leading-snug text-paper font-medium">
                     {li.description}
                   </p>
-                  <p className="num text-sm font-semibold text-paper shrink-0 whitespace-nowrap">
-                    {li.qty}
-                    {unit !== "qty" ? `${unit === "hours" ? "h" : "d"}` : ""} ·{" "}
+                  <p className="num text-sm font-semibold text-paper shrink-0 whitespace-nowrap text-right">
+                    <span className="text-paper/60 text-xs font-medium">
+                      {li.qty}{unit === "hours" ? "h" : unit === "days" ? "d" : ""} × {formatGBP(li.unit_price)}
+                    </span>
+                    <span className="text-paper/40 mx-1">=</span>
                     {formatGBP(li.qty * li.unit_price)}
                     {suffix && <span className="text-paper/50 text-[10px]"> {suffix}</span>}
                   </p>
