@@ -3,8 +3,19 @@ import { z } from "zod";
 import { requireActiveSubscription } from "@/lib/require-active-subscription";
 import { fetchTopPatterns, patternsForPrompt } from "@/lib/pricing-patterns.functions";
 import { tradeGuidance } from "@/lib/ai-trade-guidance";
-import { rankPatternsForJob } from "@/lib/pricing-patterns";
+import { rankPatternsForJob, type PricingPattern } from "@/lib/pricing-patterns";
 
+
+const PatternSchema = z.object({
+  id: z.string(),
+  item_description: z.string(),
+  item_category: z.string(),
+  typical_price: z.number(),
+  price_count: z.number(),
+  price_min: z.number(),
+  price_max: z.number(),
+  last_quoted_at: z.string(),
+});
 
 const InputSchema = z.object({
   description: z.string().min(1).max(4000),
@@ -15,6 +26,15 @@ const InputSchema = z.object({
   // speaker pausing mid-thought) or starts NEW item(s) (moved on to next job).
   previousChunkText: z.string().max(4000).optional(),
   previousItemDescription: z.string().max(240).optional(),
+  // Optional pre-fetched context — client passes this on per-phrase live
+  // calls so the server skips DB lookups (rates + patterns) every phrase.
+  prefetchedContext: z
+    .object({
+      hourly: z.number().nullable(),
+      day: z.number().nullable(),
+      patterns: z.array(PatternSchema).max(120),
+    })
+    .optional(),
 });
 
 const LineItemSchema = z.object({
