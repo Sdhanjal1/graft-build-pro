@@ -365,13 +365,21 @@ function NewQuotePage() {
         clearInterval(tickRef.current);
         tickRef.current = null;
       }
-      // Tear down live preview recognizer (display only — never used as result).
+      // Give the live SpeechRecognition a brief moment to settle so any
+      // trailing isFinal result is captured before we flush the last chunk.
+      await new Promise((r) => setTimeout(r, 300));
       try {
         recognitionRef.current?.stop?.();
       } catch {
         // ignore
       }
       recognitionRef.current = null;
+
+      // Flush any pause-detected text that wasn't processed yet, then wait
+      // for the per-chunk processing queue to drain.
+      await flushPendingChunk();
+      await chunkQueueRef.current;
+
       setRecording(false);
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -380,6 +388,19 @@ function NewQuotePage() {
       const blob = new Blob(chunksRef.current, { type: blobType });
       chunksRef.current = [];
 
+      // If the phrase-by-phrase path produced any line items, we're done —
+      // do NOT re-transcribe the full recording (that would duplicate items).
+      if (chunkProcessedCountRef.current > 0) {
+        setDesc((d) => (d.trim() ? d : liveFinalRef.current.trim()));
+        if (liveFinalRef.current.trim()) setLastTranscript(liveFinalRef.current.trim());
+        lastBlobRef.current = null;
+        setLivePreview("");
+        liveFinalRef.current = "";
+        return;
+      }
+
+      // Fallback: no chunks processed (no SpeechRecognition support, or it
+      // didn't detect speech). Use the existing whisper + auto-generate path.
       if (blob.size < 1000) {
         setVoiceError(
           "Recording was too short. Hold the button and speak for at least 2 seconds.",
@@ -391,6 +412,7 @@ function NewQuotePage() {
       await runTranscribe(blob, blobType);
 
     };
+
 
     // Live preview via Web Speech API — visual feedback only, discarded on stop.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
