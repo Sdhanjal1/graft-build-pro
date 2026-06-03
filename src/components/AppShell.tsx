@@ -1,4 +1,4 @@
-import { Link, useRouterState, useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { QuottrWordmark } from "@/components/QuottrLogo";
 import { PullToRefresh } from "@/components/PullToRefresh";
