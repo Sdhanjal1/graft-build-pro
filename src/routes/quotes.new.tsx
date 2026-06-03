@@ -125,14 +125,31 @@ function NewQuotePage() {
   const liveFinalRef = useRef<string>("");
 
   // Phrase-by-phrase chunk processing (speak mode only).
-  // We use SpeechRecognition pauses as the trigger to flush the latest spoken
-  // chunk to the AI and append the resulting line items to the draft, so the
-  // tradesperson sees the quote build live without tapping between items.
-  const PAUSE_MS = 1700;
-  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const processedFinalLenRef = useRef<number>(0);
+  // We use real audio silence detection (AudioContext + AnalyserNode) to cut
+  // the MediaRecorder at each natural pause. Each phrase becomes its own audio
+  // blob → transcribed → line items appended. This works reliably on iOS where
+  // SpeechRecognition is not available / not continuous.
+  const SILENCE_RMS = 0.012;
+  const SILENCE_MS = 1500;
+  const MIN_PHRASE_MS = 600;
   const chunkProcessedCountRef = useRef<number>(0);
   const chunkQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  // Audio analysis refs
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  // Per-phrase recorder
+  const phraseChunksRef = useRef<BlobPart[]>([]);
+  const phraseHasSpeechRef = useRef<boolean>(false);
+  const phraseStartedAtRef = useRef<number>(0);
+  const silenceStartRef = useRef<number | null>(null);
+  const stoppingFinalRef = useRef<boolean>(false);
+  const phraseMimeRef = useRef<string>("");
+  const sharedStreamRef = useRef<MediaStream | null>(null);
+  const finalizeRef = useRef<() => void>(() => {});
 
 
 
