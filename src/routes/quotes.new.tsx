@@ -207,6 +207,9 @@ function NewQuotePage() {
     setLastTranscript(null);
     setLivePreview("");
     liveFinalRef.current = "";
+    liveMarkRef.current = "";
+    pendingIdQueueRef.current = [];
+    setPendingItems([]);
     stopRecording();
   };
 
