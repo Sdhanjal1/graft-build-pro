@@ -10,6 +10,11 @@ const InputSchema = z.object({
   description: z.string().min(1).max(4000),
   trade: z.string().min(1).max(120),
   vatRegistered: z.boolean(),
+  // Optional context for live phrase-by-phrase capture so the AI can decide
+  // whether this new chunk CONTINUES the previous in-progress item (slow
+  // speaker pausing mid-thought) or starts NEW item(s) (moved on to next job).
+  previousChunkText: z.string().max(4000).optional(),
+  previousItemDescription: z.string().max(240).optional(),
 });
 
 const LineItemSchema = z.object({
@@ -31,6 +36,12 @@ const QuoteSchema = z.object({
       email: z.string().max(200).optional(),
     })
     .optional(),
+  // When previous-item context is provided and this new chunk continues the
+  // SAME item the speaker was already describing, set true and return a SINGLE
+  // line_items entry representing the merged/extended item (which replaces the
+  // previous in-progress line). When false (default), line_items are appended
+  // as new items.
+  continues_previous: z.boolean().optional().default(false),
   line_items: z.array(LineItemSchema).min(1).max(20),
 });
 
@@ -117,7 +128,33 @@ JOB DESCRIPTION — write a clean, concise, professional summary of the work for
 
 Write it as a professional job description a customer would expect on a formal quote.
 
-EXTRACTED CUSTOMER DETAILS — if the tradesperson mentioned a customer name, phone number, or email address in the voice note, return them in the extracted_customer object. Omit any field that wasn't mentioned. Do NOT make up details.`;
+EXTRACTED CUSTOMER DETAILS — if the tradesperson mentioned a customer name, phone number, or email address in the voice note, return them in the extracted_customer object. Omit any field that wasn't mentioned. Do NOT make up details.
+
+ITEM BOUNDARY DETECTION (LIVE PHRASE CAPTURE) — VERY IMPORTANT:
+
+When a "PREVIOUS IN-PROGRESS ITEM" block is included below, the tradesperson is describing a job live, phrase by phrase, with natural pauses. Your job is to decide — from the MEANING of the new chunk, not from any timer — whether this new chunk:
+
+(a) CONTINUES the same item the speaker was already describing (they paused to think, took a breath, said "erm…", added more detail to the SAME task/object), OR
+(b) STARTS one or more NEW items (they have moved on to a different task/object/room/material).
+
+Heuristics:
+- Same task/object/material being elaborated on, qualified, given a price, given a quantity, or refined → CONTINUATION. Example: previous "replace radiator in living room", new chunk "the big double panel one, about 1200 wide" → continuation.
+- A new verb/task on a different object, a new room, a new material category, or an obvious topic shift → NEW item(s). Example: previous "replace radiator in living room", new chunk "and then fit a new toilet seat" → new item.
+- Filler/connector words at the start ("and", "also", "then", "next", "after that", "oh and") usually signal a NEW item, but only when followed by a different task/object. "And it needs bleeding too" after a radiator line is still about that radiator.
+- A bare price or quantity on its own ("…about three hundred quid", "…times two") is a CONTINUATION applying to the previous item.
+- If the new chunk clearly contains MULTIPLE distinct items, return them all in line_items with continues_previous: false (the first item is a NEW item, not a merge).
+
+When continues_previous is true:
+- line_items MUST contain exactly ONE entry representing the FULL merged item (previous text + new text combined), re-priced and re-described as a single clean professional line. This replaces the previous in-progress line on the client.
+- Apply all the usual rules (filler stripping, only-what-was-said, labour from settings) to the COMBINED text.
+
+When continues_previous is false:
+- line_items are the NEW items only — do NOT re-emit the previous item.
+- The previous item is already committed and will not be changed.
+
+If NO "PREVIOUS IN-PROGRESS ITEM" block is included, treat the input as a fresh chunk: continues_previous must be false and line_items are the items from this chunk.
+
+Default continues_previous to FALSE when uncertain — splitting a continuation into two lines is a smaller mistake than merging two genuinely different items into one.`;
 
 export const generateAIQuote = createServerFn({ method: "POST" })
   .middleware([requireActiveSubscription])
@@ -143,12 +180,17 @@ export const generateAIQuote = createServerFn({ method: "POST" })
       patternsForPrompt(patterns);
 
 
+    const prevBlock =
+      data.previousChunkText && data.previousItemDescription
+        ? `\n\nPREVIOUS IN-PROGRESS ITEM (currently the last line on the live quote — decide if the new chunk continues this item or starts new ones):\n- Previous spoken text: "${data.previousChunkText}"\n- Previous line description: "${data.previousItemDescription}"\n`
+        : "";
+
     const userPrompt = `Generate an itemised quote for this job.
 
 Trade: ${data.trade}
 VAT registered: ${data.vatRegistered ? "Yes (20% VAT will be added)" : "No"}
-
-Job description:
+${prevBlock}
+New spoken chunk (job description):
 ${data.description}
 
 Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
@@ -156,6 +198,7 @@ Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
   "title": "Concise quote title",
   "clean_description": "Professional scope-of-work summary, no customer names/contacts/filler",
   "extracted_customer": { "name": "optional", "phone": "optional", "email": "optional" },
+  "continues_previous": false,
   "line_items": [
     { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other", "unit": "qty" | "hours" | "days" }
   ]
