@@ -225,6 +225,67 @@ function NewQuotePage() {
     return { combinedDesc: combined, target: "desc" };
   };
 
+  // Process a single spoken chunk into line items and APPEND to the draft.
+  // First chunk also seeds title, clean description and extracted customer.
+  const processChunkNow = async (text: string) => {
+    const clean = text.trim();
+    if (!clean) return;
+    try {
+      const g = await generateFn({ data: { description: clean, trade, vatRegistered: vat } });
+      const isFirst = chunkProcessedCountRef.current === 0;
+      setDraft((prev) => {
+        if (!prev) return { title: g.title, line_items: g.line_items };
+        return { ...prev, line_items: [...prev.line_items, ...g.line_items] };
+      });
+      chunkProcessedCountRef.current += 1;
+      if (isFirst) {
+        setDesc((d) => (d.trim() ? d : (g.clean_description?.trim() || clean)));
+        const ec = g.extracted_customer;
+        if (ec?.name) setClientName((n) => (n.trim() ? n : ec.name!));
+        if (ec?.phone) setClientPhone((p) => (p.trim() ? p : ec.phone!));
+        feedback("success");
+        playSample("ding");
+      } else {
+        feedback("tap");
+      }
+    } catch (e) {
+      // Swallow per-chunk failures: the stop-time fallback will run a full
+      // whisper+generate if NO chunks ever succeeded. If some chunks succeeded
+      // and one fails, we just drop that phrase (better than corrupting the draft).
+      console.error("[chunk] generate failed", e);
+    }
+  };
+
+  // Serialize chunk processing so phrases are appended in spoken order.
+  const enqueueChunkProcessing = (text: string) => {
+    chunkQueueRef.current = chunkQueueRef.current.then(() => processChunkNow(text)).catch(() => {});
+    return chunkQueueRef.current;
+  };
+
+  // Take any newly-spoken text since last flush and queue it for processing.
+  const flushPendingChunk = () => {
+    if (pauseTimerRef.current) {
+      clearTimeout(pauseTimerRef.current);
+      pauseTimerRef.current = null;
+    }
+    const fullFinal = liveFinalRef.current;
+    const newText = fullFinal.slice(processedFinalLenRef.current).trim();
+    if (!newText) return Promise.resolve();
+    processedFinalLenRef.current = fullFinal.length;
+    return enqueueChunkProcessing(newText);
+  };
+
+  // Debounce: a quiet gap of PAUSE_MS in continuous speech == phrase boundary.
+  // Only active in speak-mode targeting the description (not on-site clips).
+  const scheduleChunkFlush = () => {
+    if (mode !== "speak" || recordTargetRef.current !== "desc") return;
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    pauseTimerRef.current = setTimeout(() => {
+      pauseTimerRef.current = null;
+      void flushPendingChunk();
+    }, PAUSE_MS);
+  };
+
   const runTranscribe = async (blob: Blob, mimeType: string) => {
     setTranscribing(true);
     setVoiceError(null);
@@ -257,6 +318,7 @@ function NewQuotePage() {
     if (!cached) return;
     void runTranscribe(cached.blob, cached.mimeType);
   };
+
 
 
   const startRecording = async () => {
