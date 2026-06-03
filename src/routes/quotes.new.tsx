@@ -191,15 +191,17 @@ function NewQuotePage() {
     mr.stop();
   };
 
-  const appendTranscript = (text: string) => {
+  const appendTranscript = (text: string): { combinedDesc: string; target: "desc" | "clip" } => {
     const clean = text.trim();
-    if (!clean) return;
+    const currentTarget = recordTargetRef.current;
+    if (!clean) return { combinedDesc: desc, target: currentTarget };
     setLastTranscript(clean);
-    if (recordTargetRef.current === "clip") {
+    if (currentTarget === "clip") {
       setClips((prev) => [...prev, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, transcript: clean }]);
-      return;
+      return { combinedDesc: desc, target: "clip" };
     }
-    setDesc((prev) => (prev ? `${prev.trim()} ${clean}` : clean));
+    const combined = desc ? `${desc.trim()} ${clean}` : clean;
+    setDesc(combined);
     requestAnimationFrame(() => {
       const el = textareaRef.current;
       if (el) {
@@ -209,6 +211,7 @@ function NewQuotePage() {
         el.scrollTop = el.scrollHeight;
       }
     });
+    return { combinedDesc: combined, target: "desc" };
   };
 
   const runTranscribe = async (blob: Blob, mimeType: string) => {
@@ -217,8 +220,13 @@ function NewQuotePage() {
     try {
       const audioBase64 = await blobToBase64(blob);
       const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
-      appendTranscript(text);
+      const { combinedDesc, target } = appendTranscript(text);
       lastBlobRef.current = null;
+      // Auto-process the quote as soon as transcription returns for the main
+      // speak-mode flow. No separate "Generate" tap required.
+      if (target === "desc" && mode === "speak" && combinedDesc.trim() && !draft) {
+        void generate(combinedDesc);
+      }
     } catch (err) {
       console.error(err);
       setVoiceError(
@@ -394,8 +402,10 @@ function NewQuotePage() {
       .filter((s) => s.trim().length > 0)
       .join("\n");
 
-  const generate = async () => {
-    const text = mode === "onsite" ? combinedClipsText() : desc.trim();
+  const generate = async (overrideText?: string) => {
+    const text = overrideText !== undefined
+      ? overrideText.trim()
+      : mode === "onsite" ? combinedClipsText() : desc.trim();
     if (!text) {
       setError(
         mode === "onsite"
@@ -1011,43 +1021,17 @@ function NewQuotePage() {
 
         {draft && (
           <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => {
-                  const edited =
-                    originalDraftRef.current &&
-                    JSON.stringify(draft.line_items) !== originalDraftRef.current;
-                  if (edited) {
-                    const ok = window.confirm(
-                      "Regenerate will replace your edited prices. Continue?",
-                    );
-                    if (!ok) return;
-                  }
-                  generate();
-                }}
-                disabled={loading}
-                className="bg-card border border-border text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-60"
-              >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                {loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : "Regenerate"}
-              </button>
-              <button
-                type="button"
-                onClick={save}
-                onPointerDown={() => feedback("tap")}
-                disabled={!clientName.trim() || saving}
-                title={!clientName.trim() ? "Add a customer to save this quote." : undefined}
-                className="bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save quote
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={save}
+              onPointerDown={() => feedback("tap")}
+              disabled={!clientName.trim() || saving}
+              title={!clientName.trim() ? "Add a customer to save this quote." : undefined}
+              className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Save quote
+            </button>
             {!clientName.trim() && (
               <p className="text-[12px] text-center text-muted-foreground">
                 Add a customer to save this quote.
