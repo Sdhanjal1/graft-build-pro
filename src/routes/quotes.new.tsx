@@ -143,7 +143,27 @@ function NewQuotePage() {
 
   // Kept as inert ref so nothing from older code paths leaks.
   const sharedStreamRef = useRef<MediaStream | null>(null);
-  
+
+  const updatePendingItems = (updater: (items: PendingItem[]) => PendingItem[]) => {
+    setPendingItems((prev) => {
+      const next = updater(prev);
+      pendingItemsRef.current = next;
+      return next;
+    });
+  };
+
+  const clearPendingItems = () => {
+    pendingItemsRef.current = [];
+    setPendingItems([]);
+  };
+
+  const waitForPendingPhraseProcessing = async (maxWaitMs = 12000) => {
+    const started = Date.now();
+    while (pendingCountRef.current > 0 || pendingItemsRef.current.length > 0) {
+      if (Date.now() - started >= maxWaitMs) break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  };
 
 
 
@@ -180,6 +200,7 @@ function NewQuotePage() {
   }, [clientId]);
 
   const handleVoiceStart = async () => {
+    closeRequestedRef.current = false;
     setVoicePending(false);
     setVoiceError(null);
     setLastTranscript(null);
@@ -188,18 +209,32 @@ function NewQuotePage() {
     await startRecording();
   };
   const handleVoiceClose = () => {
+    closeRequestedRef.current = true;
+    voiceSessionRef.current++;
+    try { recognitionRef.current?.stop?.(); } catch { /* noop */ }
+    recognitionRef.current = null;
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== "inactive") {
+      try { mr.stop(); } catch { /* noop */ }
+    }
+    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+    sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    sharedStreamRef.current = null;
+    streamRef.current = null;
     setVoicePending(false);
+    setRecording(false);
+    setTranscribing(false);
     setVoiceError(null);
     setLastTranscript(null);
     setLivePreview("");
     liveFinalRef.current = "";
-    setPendingItems([]);
+    clearPendingItems();
     pendingCountRef.current = 0;
     setLiveItems([]);
     liveItemsRef.current = [];
     phraseSeqRef.current = 0;
     lastFinalIdxRef.current = -1;
-    stopRecording();
   };
 
   const recordStartRef = useRef<number>(0);
