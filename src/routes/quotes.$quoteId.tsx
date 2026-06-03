@@ -1345,7 +1345,9 @@ function LineItemsEditor({
       <ul>
         {items.map((li, i) => {
           const effectiveSource = normalizeSource(li.source, paidQuoteCount);
-          const label = badgeText(effectiveSource);
+          const isPleaseConfirm = /please confirm|estimate/i.test(li.description);
+          // Only show the "Quottr suggested" tag on uncertain AI lines that ask to be confirmed.
+          const label = effectiveSource === "ai" && isPleaseConfirm ? badgeText(effectiveSource) : null;
           const isEditing = editingIdx === i;
           if (isEditing && draft) {
             return renderEditPanel(li, `edit-${i}`);
@@ -1353,11 +1355,11 @@ function LineItemsEditor({
           return (
             <li
               key={i}
-              className="px-5 py-3 flex items-start gap-3 border-t border-border first:border-t-0"
+              className="px-5 py-4 flex items-start gap-3 border-t border-border first:border-t-0"
             >
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium">{li.description}</span>
+                <div className="flex items-start gap-2 flex-wrap">
+                  <span className="text-[15px] leading-snug font-medium text-ink">{li.description}</span>
                   {label && (
                     <span
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeClass(effectiveSource)}`}
@@ -1367,14 +1369,15 @@ function LineItemsEditor({
                   )}
                 </div>
                 {(li as any).category !== "labour" && (li as any).category !== "cis_labour" && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-1">
                     <span className="num">{(li as any).unit === "hours" ? `${li.qty} ${li.qty === 1 ? "hr" : "hrs"}` : (li as any).unit === "days" ? `${li.qty} ${li.qty === 1 ? "day" : "days"}` : li.qty}</span> × <span className="num">{formatGBP(li.unit_price)}{(li as any).unit === "hours" ? "/hr" : (li as any).unit === "days" ? "/day" : ""}</span>
                   </p>
                 )}
               </div>
-              <span className="num text-base text-ink">
+              <span className="num text-lg font-semibold text-ink tabular-nums">
                 {formatGBP(li.qty * li.unit_price)}
               </span>
+
               <button
                 type="button"
                 onClick={() => beginEdit(i)}
