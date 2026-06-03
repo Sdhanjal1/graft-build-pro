@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { resolveTrade } from "@/lib/trades";
 
 
-import { generateAIQuote } from "@/lib/ai-quote.functions";
+import { generateAIQuote, prefetchQuoteContext } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, MapPin, X, Search } from "lucide-react";
