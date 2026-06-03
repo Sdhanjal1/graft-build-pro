@@ -157,9 +157,12 @@ export function BillingSection({ show = "both" }: { show?: "both" | "subscriptio
           )}
         </div>
       </div>
+      )}
 
-      {/* Stripe Connect, take card payments from clients */}
+      {show !== "subscription" && (
+      /* Stripe Connect, take card payments from clients */
       <div className="card-surface p-5 space-y-3">
+
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-lime text-ink flex items-center justify-center shrink-0">
             <ShieldCheck className="h-4 w-4" />
