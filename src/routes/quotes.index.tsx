@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
 
 import { SwipeRow } from "@/components/SwipeRow";
-import { mockQuotes, getClient, formatGBP, deleteQuote, duplicateQuote, setQuoteStatus, useDataVersion, buildChaserMessage, waLink, materialsForQuote, userProfile, type Quote, type QuoteStatus } from "@/lib/user-data";
+import { mockQuotes, getClient, formatGBP, deleteQuote, duplicateQuote, setQuoteStatus, useDataVersion, buildChaserMessage, waLink, materialsForQuote, userProfile, markOverdueQuotes, type Quote, type QuoteStatus } from "@/lib/user-data";
 import { resolveTrade } from "@/lib/trades";
 import { Search, FileText, Inbox, ShoppingCart } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
@@ -74,6 +74,8 @@ function QuotesPage() {
   const [tile, setTile] = useState<TileKey | null>(null);
   const [q, setQ] = useState("");
   const [actionsFor, setActionsFor] = useState<Quote | null>(null);
+
+  useEffect(() => { void markOverdueQuotes(); }, []);
 
   if (loading) return <QuotesListSkeleton />;
 
