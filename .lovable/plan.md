@@ -1,16 +1,27 @@
-Remove remaining hardcoded 50% deposit assumptions across two files so all card-request amounts and WhatsApp message text use the quote's actual configured deposit (`deposit_amount` / `deposit_percent`).
+## Fix: keep the Overdue tile fresh on the Quotes dashboard
 
-### Changes
+`markOverdueQuotes()` (in `src/lib/user-data.ts`) currently only runs on app bootstrap and on the Chaser screen. The Quotes dashboard's Overdue tile reads `q.status === "overdue"` directly, so if a quote tips past its `invoice_due_date` between sweeps, the tile can be stale.
 
-**src/routes/quotes.$quoteId.tsx**
+### Change
 
-1. `createPaymentRequest` — `type === "deposit" ? quote.total * 0.5` → `configuredDeposit`.
-2. `takePaymentOnSite` — same `quote.total * 0.5` → `configuredDeposit`.
-3. "Request payment" sheet `RequestOption` — label `"Deposit (50%)"` → `"Deposit (${configuredDepositPct}%)"`, amount `formatGBP(quote.total * 0.5)` → `formatGBP(configuredDeposit)`.
+In `src/routes/quotes.index.tsx`:
 
-**src/lib/user-data.ts**
+1. Import `markOverdueQuotes` from `@/lib/user-data`.
+2. Inside `QuotesPage`, add a mount-time `useEffect` that fires the sweep:
+   ```ts
+   useEffect(() => {
+     void markOverdueQuotes();
+   }, []);
+   ```
+   `markOverdueQuotes` already calls `bumpVersion()` internally on any change, and the page subscribes via `useDataVersion()`, so tiles and the list re-render automatically once the sweep finishes. Fire-and-forget — no await, no loading state, no UI flicker.
 
-4. `buildPaymentRequest` — `type === "deposit" ? +(quote.total * 0.5)...` → compute the quote's configured deposit (explicit `deposit_amount` first, then `total * (deposit_percent/100)`).
-5. `buildDepositOnAcceptMessage` — amount from `quote.total * 0.5` to configured deposit; message text `"a 50% deposit of £X"` → `"a deposit of £X"`.
+### Out of scope
 
-No other logic changes. Invoice balance and deposit recording already use the real configured deposit.
+- No changes to `markOverdueQuotes` logic itself.
+- No changes to the bootstrap or Chaser call sites.
+- No changes to tile rendering or filtering.
+
+### Verification
+
+- Open the Quotes screen → `markOverdueQuotes()` runs once on mount.
+- If a `completed` quote's `invoice_due_date` is in the past, its status flips to `overdue` and the Overdue tile count + total update without needing a reload or a visit to the Chaser.
