@@ -126,6 +126,7 @@ function NewQuotePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const liveFinalRef = useRef<string>("");
+  const liveInterimRef = useRef<string>("");
 
   // LIVE per-phrase pipeline: each recognised final phrase fires a parallel
   // Haiku generate call. Items append as soon as their phrase resolves.
@@ -206,6 +207,7 @@ function NewQuotePage() {
     setLastTranscript(null);
     setLivePreview("");
     liveFinalRef.current = "";
+    liveInterimRef.current = "";
     await startRecording();
   };
   const handleVoiceClose = () => {
@@ -229,6 +231,7 @@ function NewQuotePage() {
     setLastTranscript(null);
     setLivePreview("");
     liveFinalRef.current = "";
+    liveInterimRef.current = "";
     clearPendingItems();
     pendingCountRef.current = 0;
     setLiveItems([]);
