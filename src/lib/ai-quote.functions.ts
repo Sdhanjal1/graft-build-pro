@@ -180,12 +180,17 @@ export const generateAIQuote = createServerFn({ method: "POST" })
       patternsForPrompt(patterns);
 
 
+    const prevBlock =
+      data.previousChunkText && data.previousItemDescription
+        ? `\n\nPREVIOUS IN-PROGRESS ITEM (currently the last line on the live quote — decide if the new chunk continues this item or starts new ones):\n- Previous spoken text: "${data.previousChunkText}"\n- Previous line description: "${data.previousItemDescription}"\n`
+        : "";
+
     const userPrompt = `Generate an itemised quote for this job.
 
 Trade: ${data.trade}
 VAT registered: ${data.vatRegistered ? "Yes (20% VAT will be added)" : "No"}
-
-Job description:
+${prevBlock}
+New spoken chunk (job description):
 ${data.description}
 
 Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
@@ -193,6 +198,7 @@ Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
   "title": "Concise quote title",
   "clean_description": "Professional scope-of-work summary, no customer names/contacts/filler",
   "extracted_customer": { "name": "optional", "phone": "optional", "email": "optional" },
+  "continues_previous": false,
   "line_items": [
     { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other", "unit": "qty" | "hours" | "days" }
   ]
