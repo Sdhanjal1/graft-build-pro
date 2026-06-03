@@ -1444,6 +1444,8 @@ function VoiceOverlay({
   onStop,
   onClose,
   onRetryTranscription,
+  onUpdateItem,
+  onDeleteItem,
 }: {
   recording: boolean;
   transcribing: boolean;
@@ -1458,7 +1460,29 @@ function VoiceOverlay({
   onStop: () => void;
   onClose: () => void;
   onRetryTranscription?: () => void;
+  onUpdateItem: (index: number, patch: Partial<LineItem>) => void;
+  onDeleteItem: (index: number) => void;
 }) {
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editDesc, setEditDesc] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+
+  function beginEdit(i: number, li: LineItem) {
+    setEditingIndex(i);
+    setEditDesc(li.description);
+    setEditPrice(String(li.qty * li.unit_price));
+  }
+  function commitEdit(i: number, li: LineItem) {
+    const total = parseFloat(editPrice);
+    const safeTotal = isFinite(total) && total >= 0 ? total : li.qty * li.unit_price;
+    const qty = li.qty || 1;
+    onUpdateItem(i, {
+      description: editDesc.trim() || li.description,
+      unit_price: +(safeTotal / qty).toFixed(2),
+    });
+    setEditingIndex(null);
+    feedback("success");
+  }
 
   if (typeof document === "undefined") return null;
   const idle = !recording && !transcribing;
@@ -1486,19 +1510,69 @@ function VoiceOverlay({
           </div>
         )}
 
-        {/* LIVE LINE ITEMS — built phrase-by-phrase as the tradesperson speaks.
-            High-contrast paper text on the dark overlay, with a lime left
-            border as the only accent. The lime is NEVER used for body text. */}
         {showItems && (
           <ul className="mt-4 w-full space-y-1.5 max-h-[46vh] overflow-y-auto pb-24">
             {liveItems.map((li, i) => {
               const isLabour = li.category === "labour" || li.category === "cis_labour";
               const unit = li.unit ?? (isLabour ? "hours" : "qty");
               const suffix = unit === "hours" ? "/hr" : unit === "days" ? "/day" : "";
+              const isEditing = editingIndex === i;
+              if (isEditing) {
+                return (
+                  <li
+                    key={i}
+                    className="rounded-lg bg-paper/[0.08] border-l-2 border-lime pl-3 pr-3 py-2 space-y-2"
+                  >
+                    <textarea
+                      value={editDesc}
+                      onChange={(e) => setEditDesc(e.target.value)}
+                      rows={2}
+                      autoFocus
+                      className="w-full rounded-md bg-ink/60 border border-paper/20 px-2 py-1.5 text-sm text-paper placeholder-paper/40 focus:outline-none focus:border-lime"
+                      placeholder="Description"
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-paper/60">£</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.01"
+                        value={editPrice}
+                        onChange={(e) => setEditPrice(e.target.value)}
+                        className="flex-1 rounded-md bg-ink/60 border border-paper/20 px-2 py-1.5 num text-sm text-paper focus:outline-none focus:border-lime"
+                        placeholder="0.00"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { onDeleteItem(i); setEditingIndex(null); }}
+                        className="rounded-md bg-status-overdue/20 text-status-overdue px-2 py-1.5"
+                        aria-label="Delete line item"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingIndex(null)}
+                        className="rounded-md bg-paper/10 text-paper px-3 py-1.5 text-xs font-semibold"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => commitEdit(i, li)}
+                        className="rounded-md bg-lime text-ink px-3 py-1.5 text-xs font-bold"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </li>
+                );
+              }
               return (
                 <li
                   key={i}
-                  className="rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-2 flex items-start gap-3 animate-scale-in"
+                  onClick={() => beginEdit(i, li)}
+                  className="rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-2 flex items-start gap-3 animate-scale-in cursor-pointer active:bg-paper/[0.1]"
                 >
                   <span className="num text-[11px] font-bold text-paper/40 mt-0.5 shrink-0 w-5 text-right">
                     {i + 1}
@@ -1532,6 +1606,7 @@ function VoiceOverlay({
           </ul>
         )}
       </div>
+
 
       {/* EMPTY STATE: large central mic — hero of an empty screen */}
       {!hasItems && (
