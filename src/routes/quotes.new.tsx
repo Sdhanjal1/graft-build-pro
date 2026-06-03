@@ -127,6 +127,7 @@ function NewQuotePage() {
   const recognitionRef = useRef<any>(null);
   const liveFinalRef = useRef<string>("");
   const liveInterimRef = useRef<string>("");
+  const processedPhraseKeysRef = useRef<Set<string>>(new Set());
 
   // LIVE per-phrase pipeline: each recognised final phrase fires a parallel
   // Haiku generate call. Items append as soon as their phrase resolves.
@@ -208,6 +209,7 @@ function NewQuotePage() {
     setLivePreview("");
     liveFinalRef.current = "";
     liveInterimRef.current = "";
+    processedPhraseKeysRef.current.clear();
     await startRecording();
   };
   const handleVoiceClose = () => {
@@ -232,6 +234,7 @@ function NewQuotePage() {
     setLivePreview("");
     liveFinalRef.current = "";
     liveInterimRef.current = "";
+    processedPhraseKeysRef.current.clear();
     clearPendingItems();
     pendingCountRef.current = 0;
     setLiveItems([]);
