@@ -75,6 +75,8 @@ function QuotesPage() {
   const [q, setQ] = useState("");
   const [actionsFor, setActionsFor] = useState<Quote | null>(null);
 
+  useEffect(() => { void markOverdueQuotes(); }, []);
+
   if (loading) return <QuotesListSkeleton />;
 
   const tiles: { key: TileKey; total: number; count: number }[] = (["pending", "accepted", "awaiting", "overdue"] as TileKey[]).map((k) => {
