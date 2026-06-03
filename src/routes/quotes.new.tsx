@@ -273,10 +273,8 @@ function NewQuotePage() {
     void runTranscribe(cached.blob, cached.mimeType);
   };
 
-  // NEW FLOW (speak mode): one continuous MediaRecorder + Web Speech API for
-  // live preview only. No per-phrase server calls, no silence detection, no
-  // chunk queue. On stop: one Whisper transcription, then one generate call.
-  const startRecording = async () => {
+
+
   // Filter out breath/noise/filler-only phrases — only let real speech
   // trigger a per-phrase generate call.
   const isMeaningfulPhrase = (text: string): boolean => {
