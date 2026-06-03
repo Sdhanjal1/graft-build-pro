@@ -482,65 +482,92 @@ export const updateClientPhone = async (clientId: string, phone: string): Promis
   bumpVersion();
 };
 
-// ---------- Materials shopping list ----------
+// ---------- Materials shopping list (separate from quote line items) ----------
 
-/** Indexed entry for a material line on the shopping list. */
-export type MaterialEntry = {
-  /** Index into the quote's line_items array (kept so tick state lines up). */
-  index: number;
-  description: string;
-  qty: number;
-  unit?: LineItemUnit;
-  supplier_code?: string;
-  purchased: boolean;
+/** Persist the whole materials list for a job. */
+const persistMaterialsList = async (quoteId: string, list: MaterialItem[]) => {
+  const q = getQuote(quoteId);
+  if (!q) return;
+  q.materials_list = list;
+  const { error } = await supabase
+    .from("quotes")
+    .update({ materials_list: list as unknown as Json })
+    .eq("id", quoteId);
+  if (error) {
+    console.error("[persistMaterialsList] update failed", error);
+    throw new Error(error.message || "Could not save materials list");
+  }
+  bumpVersion();
 };
 
-/** Pull just the materials lines out of a quote, preserving original indices. */
-export const materialsForQuote = (q: Quote): MaterialEntry[] => {
-  const checks = q.materials_purchased ?? [];
-  return q.line_items
-    .map((li, index) => ({ li, index }))
-    .filter(({ li }) => li.category === "materials")
-    .map(({ li, index }) => ({
-      index,
-      description: li.description,
-      qty: li.qty,
-      unit: li.unit,
-      supplier_code: li.supplier_code,
-      purchased: !!checks[index],
-    }));
+/** Read the materials shopping list for a job. */
+export const materialsForQuote = (q: Quote): MaterialItem[] => {
+  return Array.isArray(q.materials_list) ? q.materials_list : [];
 };
 
-/** Persist the tick state for the whole quote's line items. */
+/** Add a manual material item to a job. */
+export const addMaterialItem = async (
+  quoteId: string,
+  input: { description: string; qty: number },
+): Promise<void> => {
+  const q = getQuote(quoteId);
+  if (!q) return;
+  const desc = input.description.trim();
+  if (!desc) return;
+  const qty = Math.max(1, Math.floor(Number(input.qty) || 1));
+  const next: MaterialItem[] = [
+    ...(q.materials_list ?? []),
+    { id: cryptoRandomId(), description: desc, qty, purchased: false },
+  ];
+  await persistMaterialsList(quoteId, next);
+};
+
+/** Toggle / set the purchased flag for a single material item by id. */
+export const setMaterialPurchased = async (
+  quoteId: string,
+  itemId: string,
+  purchased: boolean,
+): Promise<void> => {
+  const q = getQuote(quoteId);
+  if (!q) return;
+  const next = (q.materials_list ?? []).map((m) =>
+    m.id === itemId ? { ...m, purchased } : m,
+  );
+  await persistMaterialsList(quoteId, next);
+};
+
+/** Remove a material item by id. */
+export const removeMaterialItem = async (
+  quoteId: string,
+  itemId: string,
+): Promise<void> => {
+  const q = getQuote(quoteId);
+  if (!q) return;
+  const next = (q.materials_list ?? []).filter((m) => m.id !== itemId);
+  await persistMaterialsList(quoteId, next);
+};
+
+/**
+ * Legacy bulk-set: kept for backwards compatibility. Accepts an array of
+ * purchased flags aligned with the current materials_list order.
+ */
 export const setQuoteMaterialsPurchased = async (
   quoteId: string,
   purchased: boolean[],
 ): Promise<void> => {
   const q = getQuote(quoteId);
   if (!q) return;
-  // Normalise to length of line_items so the array stays in sync.
-  const normalised = q.line_items.map((_, i) => !!purchased[i]);
-  q.materials_purchased = normalised;
-  const { error } = await supabase
-    .from("quotes")
-    .update({ materials_purchased: normalised })
-    .eq("id", quoteId);
-  if (error) {
-    console.error("[setQuoteMaterialsPurchased] update failed", error);
-    throw new Error(error.message || "Could not save materials list");
-  }
-  bumpVersion();
+  const list = q.materials_list ?? [];
+  const next = list.map((m, i) => ({ ...m, purchased: !!purchased[i] }));
+  await persistMaterialsList(quoteId, next);
 };
 
 /** Render the plain-text shopping list for sharing. */
 export const buildMaterialsShareText = (q: Quote, customerName?: string): string => {
   const mats = materialsForQuote(q);
   const header = `Job: ${q.title}${customerName ? " - " + customerName : ""}`;
-  if (mats.length === 0) return `${header}\n(No materials on this quote)`;
-  const lines = mats.map((m) => {
-    const code = m.supplier_code ? ` [${m.supplier_code}]` : "";
-    return `- ${m.qty}x ${m.description}${code}`;
-  });
+  if (mats.length === 0) return `${header}\n(No materials added yet)`;
+  const lines = mats.map((m) => `- ${m.qty}x ${m.description}`);
   return [header, ...lines].join("\n");
 };
 
