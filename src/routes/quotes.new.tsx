@@ -77,6 +77,8 @@ type Draft = { title: string; line_items: LineItem[] } | null;
 
 type Clip = { id: string; transcript: string };
 
+type PendingItem = { id: string; text: string };
+
 function NewQuotePage() {
   const navigate = useNavigate();
   const { voice: voiceParam, clientId } = Route.useSearch();
@@ -124,21 +126,44 @@ function NewQuotePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const liveFinalRef = useRef<string>("");
+  const liveInterimRef = useRef<string>("");
+  const processedPhraseKeysRef = useRef<Set<string>>(new Set());
 
   // LIVE per-phrase pipeline: each recognised final phrase fires a parallel
   // Haiku generate call. Items append as soon as their phrase resolves.
   const [liveItems, setLiveItems] = useState<LineItem[]>([]);
   const liveItemsRef = useRef<LineItem[]>([]);
-  const [pendingItems, setPendingItems] = useState<{ id: string; text: string }[]>([]);
+  const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
+  const pendingItemsRef = useRef<PendingItem[]>([]);
   const pendingCountRef = useRef(0);
   const phraseSeqRef = useRef(0);
   const lastFinalIdxRef = useRef(-1);
+  const voiceSessionRef = useRef(0);
+  const closeRequestedRef = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const prefetchedContextRef = useRef<any>(null);
 
   // Kept as inert ref so nothing from older code paths leaks.
   const sharedStreamRef = useRef<MediaStream | null>(null);
-  
+
+  const updatePendingItems = (updater: (items: PendingItem[]) => PendingItem[]) => {
+    setPendingItems((prev) => {
+      const next = updater(prev);
+      pendingItemsRef.current = next;
+      return next;
+    });
+  };
+
+  const clearPendingItems = () => {
+    pendingItemsRef.current = [];
+    setPendingItems([]);
+  };
+
+  const waitForPendingPhraseProcessing = async () => {
+    while (pendingCountRef.current > 0 || pendingItemsRef.current.length > 0) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  };
 
 
 
@@ -175,26 +200,45 @@ function NewQuotePage() {
   }, [clientId]);
 
   const handleVoiceStart = async () => {
+    closeRequestedRef.current = false;
     setVoicePending(false);
     setVoiceError(null);
     setLastTranscript(null);
     setLivePreview("");
     liveFinalRef.current = "";
+    liveInterimRef.current = "";
+    processedPhraseKeysRef.current.clear();
     await startRecording();
   };
   const handleVoiceClose = () => {
+    closeRequestedRef.current = true;
+    voiceSessionRef.current++;
+    try { recognitionRef.current?.stop?.(); } catch { /* noop */ }
+    recognitionRef.current = null;
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== "inactive") {
+      try { mr.stop(); } catch { /* noop */ }
+    }
+    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+    sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    sharedStreamRef.current = null;
+    streamRef.current = null;
     setVoicePending(false);
+    setRecording(false);
+    setTranscribing(false);
     setVoiceError(null);
     setLastTranscript(null);
     setLivePreview("");
     liveFinalRef.current = "";
-    setPendingItems([]);
+    liveInterimRef.current = "";
+    processedPhraseKeysRef.current.clear();
+    clearPendingItems();
     pendingCountRef.current = 0;
     setLiveItems([]);
     liveItemsRef.current = [];
     phraseSeqRef.current = 0;
     lastFinalIdxRef.current = -1;
-    stopRecording();
   };
 
   const recordStartRef = useRef<number>(0);
@@ -243,7 +287,7 @@ function NewQuotePage() {
   const runTranscribe = async (blob: Blob, mimeType: string) => {
     setTranscribing(true);
     setVoiceError(null);
-    setPendingItems([]);
+    clearPendingItems();
     try {
       const audioBase64 = await blobToBase64(blob);
       const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
@@ -263,7 +307,7 @@ function NewQuotePage() {
       setTranscribing(false);
       setLivePreview("");
       liveFinalRef.current = "";
-      setPendingItems([]);
+      clearPendingItems();
     }
   };
 
@@ -296,10 +340,11 @@ function NewQuotePage() {
 
   // Fire-and-forget per-phrase generate. Runs in PARALLEL — phrase 2 starts
   // immediately even while phrase 1 is still in flight.
-  const processPhrase = async (text: string) => {
+  const processPhrase = async (text: string, sessionId: number) => {
+    if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
     const id = `p-${++phraseSeqRef.current}`;
-    setPendingItems((prev) => [...prev, { id, text }]);
     pendingCountRef.current++;
+    updatePendingItems((prev) => [...prev, { id, text }]);
     try {
       const ctx = prefetchedContextRef.current;
       const g = await generateFn({
@@ -310,6 +355,7 @@ function NewQuotePage() {
           ...(ctx ? { prefetchedContext: ctx } : {}),
         },
       });
+      if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
       if (g.line_items?.length) {
         setLiveItems((prev) => {
           const next = [...prev, ...g.line_items];
@@ -322,16 +368,21 @@ function NewQuotePage() {
       // or surface a scary error mid-recording. Stop fallback still runs.
       console.warn("[voice] phrase generate failed", err);
     } finally {
-      pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
-      setPendingItems((prev) => prev.filter((p) => p.id !== id));
+      if (sessionId === voiceSessionRef.current) {
+        pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
+        updatePendingItems((prev) => prev.filter((p) => p.id !== id));
+      }
     }
   };
 
   // LIVE FLOW: continuous MediaRecorder (only used as a stop-time fallback if
   // Web Speech produced no items) + Web Speech API per-phrase pipeline.
   const startRecording = async () => {
+    const sessionId = voiceSessionRef.current + 1;
+    voiceSessionRef.current = sessionId;
+    closeRequestedRef.current = false;
     setVoiceError(null);
-    setPendingItems([]);
+    clearPendingItems();
     pendingCountRef.current = 0;
     setLiveItems([]);
     liveItemsRef.current = [];
@@ -368,6 +419,8 @@ function NewQuotePage() {
 
     const mimeType = pickMimeType();
     liveFinalRef.current = "";
+    liveInterimRef.current = "";
+    processedPhraseKeysRef.current.clear();
     setLivePreview("");
     stopRequestedRef.current = false;
 
@@ -399,6 +452,10 @@ function NewQuotePage() {
       const blob = new Blob(chunksRef.current, { type: blobType });
       chunksRef.current = [];
 
+      if (closeRequestedRef.current || sessionId !== voiceSessionRef.current) {
+        return;
+      }
+
       if (isClipMode) {
         // Clip mode uses single-pass Whisper for on-site capture.
         if (blob.size < 1000) {
@@ -410,12 +467,19 @@ function NewQuotePage() {
         return;
       }
 
-      // Wait briefly for any in-flight phrase generates to settle so their
-      // items make it into the draft. Max ~12s, then we materialise anyway.
-      setTranscribing(true);
-      for (let i = 0; i < 120 && pendingCountRef.current > 0; i++) {
-        await new Promise((r) => setTimeout(r, 100));
+      const finalInterim = liveInterimRef.current.trim();
+      if (isMeaningfulPhrase(finalInterim)) {
+        const key = finalInterim.toLowerCase();
+        if (!processedPhraseKeysRef.current.has(key)) {
+          processedPhraseKeysRef.current.add(key);
+          void processPhrase(finalInterim, sessionId);
+        }
       }
+
+      // Wait for all in-flight phrase generates to settle before snapshotting
+      // liveItemsRef so the final spoken phrase cannot be orphaned or dropped.
+      setTranscribing(true);
+      await waitForPendingPhraseProcessing();
       setTranscribing(false);
 
       const items = liveItemsRef.current;
@@ -425,11 +489,10 @@ function NewQuotePage() {
         setDraft(built);
         originalDraftRef.current = JSON.stringify(items);
         setDesc(transcript);
-        setLiveItems([]);
-        liveItemsRef.current = [];
-        setPendingItems([]);
+        clearPendingItems();
         setLivePreview("");
         liveFinalRef.current = "";
+        liveInterimRef.current = "";
         feedback("success");
         playSample("ding");
         requestAnimationFrame(() => {
@@ -439,7 +502,7 @@ function NewQuotePage() {
       }
 
       // FALLBACK: Web Speech produced nothing usable → single Whisper pass.
-      setPendingItems([]);
+      clearPendingItems();
       if (blob.size < 1000) {
         setLivePreview("");
         liveFinalRef.current = "";
@@ -475,14 +538,17 @@ function NewQuotePage() {
                 lastFinalIdxRef.current = i;
                 liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
                 const phrase = txt.trim();
-                if (isMeaningfulPhrase(phrase)) {
-                  void processPhrase(phrase);
+                const key = phrase.toLowerCase();
+                if (isMeaningfulPhrase(phrase) && !processedPhraseKeysRef.current.has(key)) {
+                  processedPhraseKeysRef.current.add(key);
+                  void processPhrase(phrase, sessionId);
                 }
               }
             } else {
               interim += txt;
             }
           }
+          liveInterimRef.current = interim.trim();
           setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
         };
         rec.onerror = () => { /* silent: pipeline only */ };
@@ -633,7 +699,7 @@ function NewQuotePage() {
 
   return (
     <AppShell>
-      {(recording || transcribing || voicePending || voiceError) && (
+      {!draft && (recording || transcribing || voicePending || voiceError) && (
         <VoiceOverlay
           recording={recording}
           transcribing={transcribing}
