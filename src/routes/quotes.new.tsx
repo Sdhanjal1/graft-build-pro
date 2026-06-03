@@ -124,6 +124,17 @@ function NewQuotePage() {
   const recognitionRef = useRef<any>(null);
   const liveFinalRef = useRef<string>("");
 
+  // Phrase-by-phrase chunk processing (speak mode only).
+  // We use SpeechRecognition pauses as the trigger to flush the latest spoken
+  // chunk to the AI and append the resulting line items to the draft, so the
+  // tradesperson sees the quote build live without tapping between items.
+  const PAUSE_MS = 1700;
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const processedFinalLenRef = useRef<number>(0);
+  const chunkProcessedCountRef = useRef<number>(0);
+  const chunkQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+
 
   useEffect(() => {
     return () => {
