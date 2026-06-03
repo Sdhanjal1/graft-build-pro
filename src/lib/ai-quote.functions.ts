@@ -10,6 +10,11 @@ const InputSchema = z.object({
   description: z.string().min(1).max(4000),
   trade: z.string().min(1).max(120),
   vatRegistered: z.boolean(),
+  // Optional context for live phrase-by-phrase capture so the AI can decide
+  // whether this new chunk CONTINUES the previous in-progress item (slow
+  // speaker pausing mid-thought) or starts NEW item(s) (moved on to next job).
+  previousChunkText: z.string().max(4000).optional(),
+  previousItemDescription: z.string().max(240).optional(),
 });
 
 const LineItemSchema = z.object({
@@ -31,6 +36,12 @@ const QuoteSchema = z.object({
       email: z.string().max(200).optional(),
     })
     .optional(),
+  // When previous-item context is provided and this new chunk continues the
+  // SAME item the speaker was already describing, set true and return a SINGLE
+  // line_items entry representing the merged/extended item (which replaces the
+  // previous in-progress line). When false (default), line_items are appended
+  // as new items.
+  continues_previous: z.boolean().optional().default(false),
   line_items: z.array(LineItemSchema).min(1).max(20),
 });
 
