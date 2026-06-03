@@ -130,12 +130,21 @@ function NewQuotePage() {
   // blob → transcribed → line items appended. This works reliably on iOS where
   // SpeechRecognition is not available / not continuous.
   const SILENCE_RMS = 0.012;
-  // Snappy: ~0.9s of silence cuts the phrase. Combined with MIN_PHRASE_MS we
-  // still avoid firing on a mid-sentence breath.
+  // Snappy: ~0.9s of silence cuts the phrase. Item boundaries are decided
+  // by the AI from CONTENT (not by this timer) — if a slow speaker pauses
+  // mid-item, the next chunk is merged into the previous in-progress line
+  // via continues_previous; if a fast speaker keeps going, the AI splits
+  // the single chunk into multiple line_items. So this threshold only
+  // controls responsiveness, not correctness of item separation.
   const SILENCE_MS = 900;
   const MIN_PHRASE_MS = 600;
   const chunkProcessedCountRef = useRef<number>(0);
   const chunkQueueRef = useRef<Promise<void>>(Promise.resolve());
+  // Language-driven boundary detection state: the raw transcript of the
+  // last chunk and the description of the last line item it produced. Sent
+  // to the AI with the next chunk so it can decide continuation vs new item.
+  const prevChunkTextRef = useRef<string>("");
+  const prevItemDescriptionRef = useRef<string>("");
 
   // Pending (un-priced) line previews: shown instantly on pause-detection so
   // the user sees the spoken words appear right away, then replaced in place
