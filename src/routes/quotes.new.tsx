@@ -1531,7 +1531,8 @@ function VoiceOverlay({
   if (typeof document === "undefined") return null;
   const idle = !recording && !transcribing;
   const hasItems = liveItems.length > 0;
-  const showItems = (recording || transcribing) && hasItems;
+  const hasPending = pendingItems.length > 0;
+  const showList = (recording || transcribing) && (hasItems || hasPending);
   return createPortal(
     <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col items-center justify-between px-6 pt-12 pb-8 safe-top safe-bottom">
 
@@ -1542,13 +1543,13 @@ function VoiceOverlay({
         <p className="num text-2xl mt-1 text-paper">
           <span className="text-lime">●</span> <span className="text-paper">{formatMMSS(seconds)}</span>
         </p>
-        {recording && !hasItems && (
+        {recording && !hasItems && !hasPending && (
           <div className="mt-2 w-full min-h-[1rem] px-2 text-center">
             <p className="text-xs italic text-paper/40">Listening…</p>
           </div>
         )}
 
-        {showItems && (
+        {showList && (
           <ul className="mt-4 w-full space-y-1.5 max-h-[46vh] overflow-y-auto pb-24">
             {liveItems.map((li, i) => {
               const isLabour = li.category === "labour" || li.category === "cis_labour";
@@ -1627,14 +1628,30 @@ function VoiceOverlay({
                 </li>
               );
             })}
-            {/* Pending raw-transcript previews intentionally hidden — only resolved line items appear, for a calmer feel. */}
+            {pendingItems.map((p) => (
+              <li
+                key={p.id}
+                className="rounded-lg bg-paper/[0.04] border-l-2 border-paper/20 pl-3 pr-3 py-2 flex items-center gap-3 animate-scale-in"
+                aria-live="polite"
+              >
+                <span className="num text-[11px] font-bold text-paper/30 mt-0.5 shrink-0 w-5 text-right">
+                  {liveItems.length + 1}
+                </span>
+                <div className="flex-1 flex items-center gap-2">
+                  <span className="text-sm text-paper/50 italic">Got it…</span>
+                  <span className="relative flex-1 h-2 overflow-hidden rounded-full bg-paper/[0.06]">
+                    <span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-paper/30 to-transparent bg-[length:200%_100%]" />
+                  </span>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </div>
 
 
       {/* EMPTY STATE: large central mic — hero of an empty screen */}
-      {!hasItems && (
+      {!hasItems && !hasPending && (
         <button
           type="button"
           onClick={idle ? onStart : onStop}
@@ -1665,7 +1682,7 @@ function VoiceOverlay({
       )}
 
       {/* ACTIVE / BUILDING STATE: smaller FAB docked at bottom-centre */}
-      {hasItems && (
+      {(hasItems || hasPending) && (
         <button
           type="button"
           onClick={idle ? onStart : onStop}
@@ -1696,7 +1713,7 @@ function VoiceOverlay({
       )}
 
       {/* Bottom text area — pushes up when mic is large, stays above FAB when mic is small */}
-      <div className={`w-full max-w-md min-h-[4rem] text-center space-y-2 ${hasItems ? "pb-16" : ""}`}>
+      <div className={`w-full max-w-md min-h-[4rem] text-center space-y-2 ${(hasItems || hasPending) ? "pb-16" : ""}`}>
         {error ? (
           <>
             <p className="text-sm text-status-overdue font-medium">{error}</p>
@@ -1736,7 +1753,7 @@ function VoiceOverlay({
           {error || lastTranscript ? "Done" : "Cancel"}
         </button>
       )}
-      {!idle && <div className={`h-12 ${hasItems ? "pb-8" : ""}`} />}
+      {!idle && <div className={`h-12 ${(hasItems || hasPending) ? "pb-8" : ""}`} />}
     </div>,
     document.body,
   );
