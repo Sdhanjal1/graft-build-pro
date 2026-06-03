@@ -419,6 +419,8 @@ function NewQuotePage() {
 
     const mimeType = pickMimeType();
     liveFinalRef.current = "";
+    liveInterimRef.current = "";
+    processedPhraseKeysRef.current.clear();
     setLivePreview("");
     stopRequestedRef.current = false;
 
@@ -461,12 +463,19 @@ function NewQuotePage() {
         return;
       }
 
-      // Wait briefly for any in-flight phrase generates to settle so their
-      // items make it into the draft. Max ~12s, then we materialise anyway.
-      setTranscribing(true);
-      for (let i = 0; i < 120 && pendingCountRef.current > 0; i++) {
-        await new Promise((r) => setTimeout(r, 100));
+      const finalInterim = liveInterimRef.current.trim();
+      if (isMeaningfulPhrase(finalInterim)) {
+        const key = finalInterim.toLowerCase();
+        if (!processedPhraseKeysRef.current.has(key)) {
+          processedPhraseKeysRef.current.add(key);
+          void processPhrase(finalInterim, sessionId);
+        }
       }
+
+      // Wait for all in-flight phrase generates to settle before snapshotting
+      // liveItemsRef so the final spoken phrase cannot be orphaned or dropped.
+      setTranscribing(true);
+      await waitForPendingPhraseProcessing();
       setTranscribing(false);
 
       const items = liveItemsRef.current;
@@ -476,11 +485,10 @@ function NewQuotePage() {
         setDraft(built);
         originalDraftRef.current = JSON.stringify(items);
         setDesc(transcript);
-        setLiveItems([]);
-        liveItemsRef.current = [];
-        setPendingItems([]);
+        clearPendingItems();
         setLivePreview("");
         liveFinalRef.current = "";
+        liveInterimRef.current = "";
         feedback("success");
         playSample("ding");
         requestAnimationFrame(() => {
@@ -490,7 +498,7 @@ function NewQuotePage() {
       }
 
       // FALLBACK: Web Speech produced nothing usable → single Whisper pass.
-      setPendingItems([]);
+      clearPendingItems();
       if (blob.size < 1000) {
         setLivePreview("");
         liveFinalRef.current = "";
