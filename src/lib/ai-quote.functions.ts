@@ -183,16 +183,25 @@ export const generateAIQuote = createServerFn({ method: "POST" })
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
 
-    const { supabase, userId } = context as { supabase: any; userId: string };
-    const allPatterns = await fetchTopPatterns(supabase, userId, 80);
+    let hourly: number | null;
+    let day: number | null;
+    let allPatterns: PricingPattern[];
+    if (data.prefetchedContext) {
+      hourly = data.prefetchedContext.hourly;
+      day = data.prefetchedContext.day;
+      allPatterns = data.prefetchedContext.patterns as PricingPattern[];
+    } else {
+      const { supabase, userId } = context as { supabase: any; userId: string };
+      allPatterns = await fetchTopPatterns(supabase, userId, 80);
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("labour_hourly_rate, labour_day_rate")
+        .eq("id", userId)
+        .maybeSingle();
+      hourly = profileRow?.labour_hourly_rate != null ? Number(profileRow.labour_hourly_rate) : null;
+      day = profileRow?.labour_day_rate != null ? Number(profileRow.labour_day_rate) : null;
+    }
     const patterns = rankPatternsForJob(allPatterns, `${data.trade} ${data.description}`, 30);
-    const { data: profileRow } = await supabase
-      .from("profiles")
-      .select("labour_hourly_rate, labour_day_rate")
-      .eq("id", userId)
-      .maybeSingle();
-    const hourly = profileRow?.labour_hourly_rate != null ? Number(profileRow.labour_hourly_rate) : null;
-    const day = profileRow?.labour_day_rate != null ? Number(profileRow.labour_day_rate) : null;
     const systemPrompt =
       SYSTEM_PROMPT +
       labourRatesBlock(hourly, day) +
