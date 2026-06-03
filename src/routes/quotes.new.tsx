@@ -1384,6 +1384,118 @@ function CountUpGBP({ value, className }: { value: number; className?: string })
 }
 
 
+function MicLevelRings({
+  streamRef,
+  active,
+  size,
+}: {
+  streamRef?: React.RefObject<MediaStream | null>;
+  active: boolean;
+  size: "lg" | "sm";
+}) {
+  const innerRef = useRef<HTMLSpanElement | null>(null);
+  const outerRef = useRef<HTMLSpanElement | null>(null);
+  const levelRef = useRef(0);
+  const phaseRef = useRef(0);
+
+  useEffect(() => {
+    if (!active) return;
+    const reduced = typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    const stream = streamRef?.current;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const AC: typeof AudioContext | undefined = (window as any).AudioContext || (window as any).webkitAudioContext;
+    let ctx: AudioContext | null = null;
+    let analyser: AnalyserNode | null = null;
+    let source: MediaStreamAudioSourceNode | null = null;
+    let data: Uint8Array | null = null;
+    let raf = 0;
+    let stopped = false;
+
+    if (!reduced && stream && AC) {
+      try {
+        ctx = new AC();
+        source = ctx.createMediaStreamSource(stream);
+        analyser = ctx.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.85;
+        source.connect(analyser);
+        data = new Uint8Array(analyser.frequencyBinCount);
+      } catch {
+        ctx = null;
+        analyser = null;
+      }
+    }
+
+    const tick = () => {
+      if (stopped) return;
+      let level = 0;
+      if (analyser && data) {
+        analyser.getByteTimeDomainData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = (data[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / data.length);
+        // Map rms (typically 0..0.3 for speech) to 0..1, then smooth.
+        const target = Math.min(1, rms * 4);
+        levelRef.current += (target - levelRef.current) * 0.25;
+        level = levelRef.current;
+      }
+      // Idle breathing pulse so it never feels dead.
+      phaseRef.current += 0.05;
+      const breathe = (Math.sin(phaseRef.current) + 1) / 2; // 0..1
+      const breatheAmt = 0.12 + breathe * 0.08; // gentle baseline
+
+      const combined = Math.max(breatheAmt, level);
+      const innerScale = 1 + combined * 0.55;
+      const outerScale = 1 + combined * 1.05;
+      const innerOpacity = 0.25 + combined * 0.45;
+      const outerOpacity = 0.12 + combined * 0.25;
+
+      if (innerRef.current) {
+        innerRef.current.style.transform = `scale(${innerScale.toFixed(3)})`;
+        innerRef.current.style.opacity = innerOpacity.toFixed(3);
+      }
+      if (outerRef.current) {
+        outerRef.current.style.transform = `scale(${outerScale.toFixed(3)})`;
+        outerRef.current.style.opacity = outerOpacity.toFixed(3);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+
+    return () => {
+      stopped = true;
+      cancelAnimationFrame(raf);
+      try { source?.disconnect(); } catch { /* noop */ }
+      try { analyser?.disconnect(); } catch { /* noop */ }
+      try { ctx?.close(); } catch { /* noop */ }
+    };
+  }, [active, streamRef]);
+
+  const dims = size === "lg"
+    ? { inner: "h-44 w-44", outer: "h-56 w-56" }
+    : { inner: "h-16 w-16", outer: "h-20 w-20" };
+
+  return (
+    <>
+      <span
+        ref={outerRef}
+        className={`absolute ${dims.outer} rounded-full bg-lime/20 will-change-transform`}
+        style={{ transform: "scale(1)", opacity: 0.18, transition: "opacity 120ms linear" }}
+      />
+      <span
+        ref={innerRef}
+        className={`absolute ${dims.inner} rounded-full bg-lime/30 will-change-transform`}
+        style={{ transform: "scale(1)", opacity: 0.32, transition: "opacity 120ms linear" }}
+      />
+    </>
+  );
+}
+
 function VoiceOverlay({
   recording,
   transcribing,
@@ -1394,6 +1506,7 @@ function VoiceOverlay({
   liveSupported,
   liveItems,
   pendingItems,
+  streamRef,
   onStart,
   onStop,
   onClose,
@@ -1410,6 +1523,7 @@ function VoiceOverlay({
   liveSupported: boolean;
   liveItems: LineItem[];
   pendingItems: { id: string; text: string }[];
+  streamRef?: React.RefObject<MediaStream | null>;
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
