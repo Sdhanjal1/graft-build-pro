@@ -159,10 +159,8 @@ function NewQuotePage() {
     setPendingItems([]);
   };
 
-  const waitForPendingPhraseProcessing = async (maxWaitMs = 12000) => {
-    const started = Date.now();
+  const waitForPendingPhraseProcessing = async () => {
     while (pendingCountRef.current > 0 || pendingItemsRef.current.length > 0) {
-      if (Date.now() - started >= maxWaitMs) break;
       await new Promise((r) => setTimeout(r, 100));
     }
   };
