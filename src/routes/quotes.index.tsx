@@ -33,14 +33,12 @@ const STATUS_LABEL: Record<QuoteStatus, string> = {
   overdue: "Overdue",
 };
 
-const FILTER_LABEL: Record<FilterKey, string> = {
-  all: "All",
+type TileKey = "pending" | "accepted" | "awaiting" | "overdue";
+
+const TILE_LABEL: Record<TileKey, string> = {
   pending: "Pending",
-  sent: "Sent",
-  booked: "Accepted",
-  completed: "Completed",
-  invoiced: "Invoiced",
-  paid: "Paid",
+  accepted: "Accepted",
+  awaiting: "Awaiting payment",
   overdue: "Overdue",
 };
 
@@ -51,28 +49,41 @@ export const Route = createFileRoute("/quotes/")({
   component: QuotesPage,
 });
 
-type FilterKey = "all" | "pending" | "sent" | "booked" | "completed" | "invoiced" | "paid" | "overdue";
-const FILTERS: FilterKey[] = ["all", "pending", "sent", "booked", "completed", "invoiced", "paid", "overdue"];
-
-// Map UI filter chip → underlying QuoteStatus value(s).
-const filterMatches = (filter: FilterKey, quote: Quote) => {
-  if (filter === "all") return true;
-  if (filter === "booked") return quote.status === "accepted";
-  if (filter === "invoiced") return quote.invoiced_at != null && quote.status !== "paid";
-  return quote.status === filter;
+const tileMatches = (tile: TileKey, q: Quote): boolean => {
+  if (tile === "pending") return q.status === "pending" || q.status === "sent";
+  if (tile === "accepted") return (q.status === "accepted" || q.status === "completed") && q.invoiced_at == null;
+  if (tile === "awaiting") return q.invoiced_at != null && q.status !== "paid" && q.status !== "overdue";
+  if (tile === "overdue") return q.status === "overdue";
+  return false;
 };
+
+const STATUS_PILL: Record<QuoteStatus, string> = {
+  pending: "bg-status-pending/15 text-status-pending",
+  sent: "bg-status-sent/15 text-status-sent",
+  accepted: "bg-status-booked/15 text-status-booked",
+  declined: "bg-status-overdue/15 text-status-overdue",
+  completed: "bg-status-completed/15 text-status-completed",
+  paid: "bg-status-paid/15 text-status-paid",
+  overdue: "bg-status-overdue/15 text-status-overdue",
+};
+
 
 function QuotesPage() {
   useDataVersion();
   const { loading } = useSession();
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [tile, setTile] = useState<TileKey | null>(null);
   const [q, setQ] = useState("");
   const [actionsFor, setActionsFor] = useState<Quote | null>(null);
 
   if (loading) return <QuotesListSkeleton />;
 
+  const tiles: { key: TileKey; total: number; count: number }[] = (["pending", "accepted", "awaiting", "overdue"] as TileKey[]).map((k) => {
+    const items = mockQuotes.filter((x) => tileMatches(k, x));
+    return { key: k, total: items.reduce((s, x) => s + (x.total || 0), 0), count: items.length };
+  });
+
   const filtered = mockQuotes.filter((x) => {
-    if (!filterMatches(filter, x)) return false;
+    if (tile && !tileMatches(tile, x)) return false;
     if (q && !`${x.title} ${x.ref}`.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
@@ -80,6 +91,39 @@ function QuotesPage() {
   return (
     <AppShell>
       <PageHeader title="Quotes" subtitle="All work" />
+
+      {/* Pipeline tiles */}
+      <div className="px-5 mt-4 grid grid-cols-2 gap-2.5">
+        {tiles.map((t) => {
+          const active = tile === t.key;
+          const isOverdue = t.key === "overdue";
+          const pulse = isOverdue && t.count > 0;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTile(active ? null : t.key)}
+              className={`relative text-left rounded-2xl px-4 py-3.5 border transition ${
+                active
+                  ? "bg-ink text-paper border-ink"
+                  : "bg-card text-ink border-border hover:border-ink/30"
+              } ${pulse ? "motion-safe:animate-pulse-soft" : ""}`}
+              aria-pressed={active}
+            >
+              <div className="flex items-center justify-between">
+                <span className={`text-[10px] uppercase tracking-widest font-semibold ${active ? "text-paper/70" : "text-muted-foreground"}`}>
+                  {TILE_LABEL[t.key]}
+                </span>
+                <span className={`text-[10px] font-bold tabular-nums ${active ? "text-paper" : isOverdue && t.count > 0 ? "text-status-overdue" : "text-ink/60"}`}>
+                  {t.count}
+                </span>
+              </div>
+              <p className={`mt-1.5 text-xl font-bold leading-none tabular-nums ${active ? "text-paper" : "text-ink"}`}>
+                {formatGBP(t.total)}
+              </p>
+            </button>
+          );
+        })}
+      </div>
 
       <div className="px-5 mt-4">
         <div className="card-surface flex items-center gap-2 px-4 py-3">
@@ -93,20 +137,18 @@ function QuotesPage() {
         </div>
       </div>
 
-      {/* Filter chips */}
-      <div className="px-5 mt-5 flex gap-2 overflow-x-auto no-scrollbar">
-        {FILTERS.map((f) => (
+      {tile && (
+        <div className="px-5 mt-3">
           <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider whitespace-nowrap transition ${
-              filter === f ? "bg-ink text-paper" : "bg-card text-muted-foreground border border-border"
-            }`}
+            onClick={() => setTile(null)}
+            className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground hover:text-ink"
           >
-            {FILTER_LABEL[f]}
+            Showing {TILE_LABEL[tile]} · Clear filter
           </button>
-        ))}
-      </div>
+        </div>
+      )}
+
+
 
       <div className="px-5 mt-5 space-y-2.5">
         {filtered.length === 0 && (
@@ -123,7 +165,7 @@ function QuotesPage() {
             <EmptyState
               icon={Inbox}
               title="Nothing here"
-              body={q ? `No quotes match "${q}".` : `No ${filter} quotes right now.`}
+              body={q ? `No quotes match "${q}".` : tile ? `No ${TILE_LABEL[tile].toLowerCase()} quotes right now.` : `No quotes right now.`}
             />
           )
         )}
@@ -236,12 +278,8 @@ function QuoteCard({
           ) : null;
         })()}
       </div>
-      <div className="flex flex-col items-end gap-1.5 shrink-0">
-        <span
-          className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT[quote.status]}`}
-          aria-label={STATUS_LABEL[quote.status]}
-        />
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+      <div className="shrink-0">
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider font-bold ${STATUS_PILL[quote.status]}`}>
           {STATUS_LABEL[quote.status]}
         </span>
       </div>
