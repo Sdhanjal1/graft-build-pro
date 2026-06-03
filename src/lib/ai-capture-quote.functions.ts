@@ -79,6 +79,16 @@ Create line items ONLY for things the tradesperson actually captured. Do NOT inv
 - Number of line items is driven entirely by what was captured. There is no minimum.
 - If a MATERIAL was captured but NO price was given, include it as a line item with source: "ai" and append " — estimate, please confirm" to the description. Do NOT silently fabricate a confident price.
 
+NEVER-SPLIT-INTO-LABOUR RULE — CRITICAL:
+
+Do NOT automatically split a captured item into a separate material line PLUS a labour line. A single captured phrase becomes a single line unless the tradesperson explicitly said BOTH the material AND labour/time in that phrase.
+
+- "Replace one living room radiator" → ONE line for the radiator. NO labour line. Even though replacing a radiator obviously involves labour in real life, the tradesperson did not say it, so it is NOT in the quote.
+- "Fit a new boiler" → ONE line for the boiler. NO labour line.
+- "Rip out old bathroom" (verb-only, no material) → ONE labour line for the strip-out (because labour/work IS what was said).
+- A labour line is ONLY created when the tradesperson explicitly says labour, time, hours, days, or a pure work action ("half hour labour", "two days work", "6 hours fitting", "strip out", "rip out", "first fix"). If labour/time is not spoken, there is NO labour line — full stop.
+- Do NOT invent task detail or sub-scope the tradesperson didn't say. For "replace one living room radiator" do NOT add descriptions like "remove old radiator, connect pipework, bleed and balance" — those words were not spoken. Keep the description faithful to what was said.
+
 PRICING RULES — VERY IMPORTANT:
 
 When a captured item includes a specific price spoken by the tradesperson (e.g. "Worcester Bosch for £1,200", "6 hours labour at £65", "magnetic filter £85"), use that exact price and mark source: "voice".
@@ -99,8 +109,18 @@ CATEGORY FIELD — REQUIRED ON EVERY LINE ITEM:
 - 'cis_labour' — only when CIS mode is enabled. Labour income under CIS deduction
 - 'other' — anything that does not fit the above
 
+LABOUR PRICING — MUST BE CONSISTENT AND FROM SETTINGS:
+
+Every labour line MUST be priced from the configured LABOUR RATES block above. Never output a guessed flat figure (e.g. "£80 labour") that ignores those rates.
+
+- Duration spoken → use it. "half an hour" → qty 0.5, unit "hours", unit_price = configured hourly rate. "two days" → qty 2, unit "days", unit_price = configured day rate. Total = qty × configured rate. Do NOT invent a different per-hour or per-day figure.
+- No duration spoken but labour clearly described (e.g. "strip out old bathroom") → unit "hours" or "days" based on the sensible scale of the job, qty as a sensible whole/half number, unit_price = the configured hourly/daily rate. Mark source: "learned" (rate came from settings).
+- A price was explicitly spoken FOR that labour line (e.g. "6 hours at £65") → use the spoken figures verbatim, source: "voice". This is the ONLY exception to using the configured rate.
+- If the LABOUR RATES block says rates are NOT configured, set unit_price to 0 on labour lines (per that block) — do NOT substitute a guessed market rate.
+- Be consistent across ALL labour lines in the same quote. Never mix a flat "£80" line and a "0.5h × £65" line. Every labour line is qty × configured rate (or qty × spoken rate), never a lump-sum guess.
+
 UNIT FIELD — REQUIRED ON EVERY LINE ITEM:
-- For 'labour' or 'cis_labour' lines: use the unit the tradesperson captured. "X hours" → unit "hours", qty = X (rounded to 0.5). "X days" → unit "days", qty = X (rounded to 0.5). unit_price = the configured hourly/daily rate from the LABOUR RATES block above (unless a different price was explicitly spoken for this line). If labour is mentioned without a clear duration, pick the most sensible unit from what was said — do not invent durations.
+- For 'labour' or 'cis_labour' lines: see LABOUR PRICING above. "X hours" → unit "hours", qty = X (rounded to 0.5). "X days" → unit "days", qty = X (rounded to 0.5).
 - For all other categories: use 'qty'. qty is the count of items supplied.
 
 JOB DESCRIPTION — write a clean, concise, professional summary of all the captured work for the customer-facing quote. Extract only the scope of work. Do NOT include:
