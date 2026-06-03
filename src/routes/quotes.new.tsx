@@ -274,11 +274,7 @@ function NewQuotePage() {
     }
   };
 
-  // Serialize chunk processing so phrases are appended in spoken order.
-  const enqueueChunkProcessing = (text: string) => {
-    chunkQueueRef.current = chunkQueueRef.current.then(() => processChunkNow(text)).catch(() => {});
-    return chunkQueueRef.current;
-  };
+
 
   // Transcribe a single phrase blob then run it through generate; append the
   // resulting line items to the draft. Serialised via chunkQueueRef so phrases
