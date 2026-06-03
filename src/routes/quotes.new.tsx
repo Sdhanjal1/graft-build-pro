@@ -1426,8 +1426,13 @@ function VoiceOverlay({
         )}
 
 
+        {showList && hasItems && (
+          <p className="mt-4 mb-1 text-[10px] uppercase tracking-widest text-paper/40 text-center">
+            Tap a line to edit
+          </p>
+        )}
         {showList && (
-          <ul className="mt-4 w-full space-y-1.5 max-h-[46vh] overflow-y-auto pb-24">
+          <ul className="mt-2 w-full space-y-1.5 max-h-[46vh] overflow-y-auto pb-24">
             {liveItems.map((li, i) => {
               const isLabour = li.category === "labour" || li.category === "cis_labour";
               const unit = li.unit ?? (isLabour ? "hours" : "qty");
