@@ -79,7 +79,7 @@ function QuoteDetail() {
   const [timingOpen, setTimingOpen] = useState(false);
   const [materialsOpen, setMaterialsOpen] = useState(false);
   const materialsCount = materialsForQuote(quote).length;
-  const showMaterialsCta = (status === "accepted") && materialsCount > 0;
+  const showMaterialsCta = status === "accepted";
 
   // Payment timing state
   const initialTiming: PaymentTiming = quote.payment_timing ?? "on_completion";
