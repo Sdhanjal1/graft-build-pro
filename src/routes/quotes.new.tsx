@@ -191,15 +191,17 @@ function NewQuotePage() {
     mr.stop();
   };
 
-  const appendTranscript = (text: string) => {
+  const appendTranscript = (text: string): { combinedDesc: string; target: "desc" | "clip" } => {
     const clean = text.trim();
-    if (!clean) return;
+    const currentTarget = recordTargetRef.current;
+    if (!clean) return { combinedDesc: desc, target: currentTarget };
     setLastTranscript(clean);
-    if (recordTargetRef.current === "clip") {
+    if (currentTarget === "clip") {
       setClips((prev) => [...prev, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, transcript: clean }]);
-      return;
+      return { combinedDesc: desc, target: "clip" };
     }
-    setDesc((prev) => (prev ? `${prev.trim()} ${clean}` : clean));
+    const combined = desc ? `${desc.trim()} ${clean}` : clean;
+    setDesc(combined);
     requestAnimationFrame(() => {
       const el = textareaRef.current;
       if (el) {
@@ -209,6 +211,7 @@ function NewQuotePage() {
         el.scrollTop = el.scrollHeight;
       }
     });
+    return { combinedDesc: combined, target: "desc" };
   };
 
   const runTranscribe = async (blob: Blob, mimeType: string) => {
@@ -217,8 +220,13 @@ function NewQuotePage() {
     try {
       const audioBase64 = await blobToBase64(blob);
       const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
-      appendTranscript(text);
+      const { combinedDesc, target } = appendTranscript(text);
       lastBlobRef.current = null;
+      // Auto-process the quote as soon as transcription returns for the main
+      // speak-mode flow. No separate "Generate" tap required.
+      if (target === "desc" && mode === "speak" && combinedDesc.trim() && !draft) {
+        void generate(combinedDesc);
+      }
     } catch (err) {
       console.error(err);
       setVoiceError(
