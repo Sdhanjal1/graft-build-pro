@@ -1221,16 +1221,21 @@ function VoiceOverlay({
 
       <div className="flex flex-col items-center w-full max-w-md">
         <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-          {transcribing ? "Transcribing" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
+          {transcribing ? "Building your quote" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
         </p>
         <p className="num text-2xl mt-1 text-paper">
           <span className="text-lime">●</span> <span className="text-paper">{formatMMSS(seconds)}</span>
         </p>
-        {recording && !hasItems && !hasPending && (
-          <div className="mt-2 w-full min-h-[1rem] px-2 text-center">
-            <p className="text-xs italic text-paper/40">Listening…</p>
+        {recording && (
+          <div className="mt-3 w-full min-h-[2.5rem] px-2 text-center">
+            {livePreview ? (
+              <p className="text-sm text-paper/80 leading-snug">{livePreview}</p>
+            ) : (
+              <p className="text-xs italic text-paper/40">Listening…</p>
+            )}
           </div>
         )}
+
 
         {showList && (
           <ul className="mt-4 w-full space-y-1.5 max-h-[46vh] overflow-y-auto pb-24">
