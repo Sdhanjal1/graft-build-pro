@@ -115,8 +115,17 @@ export type Quote = {
   completed_at?: string;
   /** Last DB write — proxy for when status changed (e.g. accepted today). */
   updated_at?: string;
-  /** Tick state for the material shopping list, indexed by line_items position. */
+  /** Tick state for the material shopping list, indexed by line_items position. (legacy) */
   materials_purchased?: boolean[];
+  /** Separate materials shopping list for the job — independent of quote line items. */
+  materials_list?: MaterialItem[];
+};
+
+export type MaterialItem = {
+  id: string;
+  description: string;
+  qty: number;
+  purchased: boolean;
 };
 
 
