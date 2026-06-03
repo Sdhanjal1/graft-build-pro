@@ -178,3 +178,14 @@
     font-size: 16px !important;
   }
 }
+
+@keyframes pulse-soft {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--status-overdue, #e11d48) 0%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in oklab, var(--status-overdue, #e11d48) 12%, transparent); }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-soft { animation: none; }
+}
