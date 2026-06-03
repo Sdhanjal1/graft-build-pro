@@ -151,7 +151,6 @@ function NewQuotePage() {
   // with the structured/priced line items once the chunk finishes processing.
   const [pendingItems, setPendingItems] = useState<{ id: string; text: string }[]>([]);
   const pendingIdQueueRef = useRef<string[]>([]);
-  const liveMarkRef = useRef<string>("");
 
   // Audio analysis refs
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -216,7 +215,6 @@ function NewQuotePage() {
     setLastTranscript(null);
     setLivePreview("");
     liveFinalRef.current = "";
-    liveMarkRef.current = "";
     pendingIdQueueRef.current = [];
     setPendingItems([]);
     stopRecording();
@@ -433,7 +431,6 @@ function NewQuotePage() {
     prevItemDescriptionRef.current = "";
     stoppingFinalRef.current = false;
     liveFinalRef.current = "";
-    liveMarkRef.current = "";
     pendingIdQueueRef.current = [];
     setPendingItems([]);
     setLivePreview("");
