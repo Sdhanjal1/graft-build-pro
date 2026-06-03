@@ -535,13 +535,14 @@ function NewQuotePage() {
                 liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
                 const phrase = txt.trim();
                 if (isMeaningfulPhrase(phrase)) {
-                  void processPhrase(phrase);
+                  void processPhrase(phrase, sessionId);
                 }
               }
             } else {
               interim += txt;
             }
           }
+          liveInterimRef.current = interim.trim();
           setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
         };
         rec.onerror = () => { /* silent: pipeline only */ };
