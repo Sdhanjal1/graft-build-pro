@@ -699,7 +699,7 @@ function NewQuotePage() {
 
   return (
     <AppShell>
-      {(recording || transcribing || voicePending || voiceError) && (
+      {!draft && (recording || transcribing || voicePending || voiceError) && (
         <VoiceOverlay
           recording={recording}
           transcribing={transcribing}
