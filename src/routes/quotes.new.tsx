@@ -644,6 +644,18 @@ function NewQuotePage() {
             const pmr = mediaRecorderRef.current;
             silenceStartRef.current = null;
             if (pmr && pmr.state === "recording") {
+              // Instant feedback: show the spoken text as a pending line right
+              // now, before we even transcribe/price. It'll be replaced by the
+              // real line item in place once the chunk resolves.
+              const fullLive = liveFinalRef.current;
+              const newText = fullLive.slice(liveMarkRef.current.length).trim();
+              liveMarkRef.current = fullLive;
+              const id = `p-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+              pendingIdQueueRef.current.push(id);
+              setPendingItems((prev) => [
+                ...prev,
+                { id, text: newText || "Capturing line…" },
+              ]);
               try { pmr.stop(); } catch (e) { console.error(e); }
             }
           }
