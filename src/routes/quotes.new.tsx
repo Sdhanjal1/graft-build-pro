@@ -1574,15 +1574,6 @@ function VoiceOverlay({
         <p className="num text-2xl mt-1 text-paper">
           <span className="text-lime">●</span> <span className="text-paper">{formatMMSS(seconds)}</span>
         </p>
-        {recording && (
-          <div className="mt-3 flex items-center gap-2 text-paper/40">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-60" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-lime" />
-            </span>
-            <span className="text-[10px] uppercase tracking-widest">Listening</span>
-          </div>
-        )}
 
         {showList && hasItems && (
           <div className="mt-4 flex flex-col items-center">
@@ -1671,9 +1662,11 @@ function VoiceOverlay({
                   <p className="flex-1 text-sm leading-snug text-paper font-medium">
                     {li.description}
                   </p>
-                  <p className="num text-sm font-semibold text-paper shrink-0 whitespace-nowrap">
-                    {li.qty}
-                    {unit !== "qty" ? `${unit === "hours" ? "h" : "d"}` : ""} ·{" "}
+                  <p className="num text-sm font-semibold text-paper shrink-0 whitespace-nowrap text-right">
+                    <span className="text-paper/60 text-xs font-medium">
+                      {li.qty}{unit === "hours" ? "h" : unit === "days" ? "d" : ""} × {formatGBP(li.unit_price)}
+                    </span>
+                    <span className="text-paper/40 mx-1">=</span>
                     {formatGBP(li.qty * li.unit_price)}
                     {suffix && <span className="text-paper/50 text-[10px]"> {suffix}</span>}
                   </p>
