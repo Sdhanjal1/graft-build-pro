@@ -1432,7 +1432,7 @@ function MicLevelRings({
       if (stopped) return;
       let level = 0;
       if (analyser && data) {
-        analyser.getByteTimeDomainData(data);
+        analyser.getByteTimeDomainData(data as Uint8Array<ArrayBuffer>);
         let sum = 0;
         for (let i = 0; i < data.length; i++) {
           const v = (data[i] - 128) / 128;
