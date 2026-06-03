@@ -273,3 +273,25 @@ Omit extracted_customer entirely if no customer details were mentioned. Unit pri
     }
     return QuoteSchema.parse(parsed);
   });
+
+/**
+ * Prefetch the per-user context the AI needs (labour rates + pricing patterns)
+ * so the live per-phrase pipeline can skip a DB round-trip on every phrase.
+ * Called once when voice recording starts; the result is passed back into
+ * generateAIQuote.prefetchedContext for each phrase.
+ */
+export const prefetchQuoteContext = createServerFn({ method: "POST" })
+  .middleware([requireActiveSubscription])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as { supabase: any; userId: string };
+    const allPatterns = await fetchTopPatterns(supabase, userId, 80);
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("labour_hourly_rate, labour_day_rate")
+      .eq("id", userId)
+      .maybeSingle();
+    const hourly = profileRow?.labour_hourly_rate != null ? Number(profileRow.labour_hourly_rate) : null;
+    const day = profileRow?.labour_day_rate != null ? Number(profileRow.labour_day_rate) : null;
+    return { hourly, day, patterns: allPatterns };
+  });
+
