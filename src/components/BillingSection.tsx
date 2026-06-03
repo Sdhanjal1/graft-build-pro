@@ -14,7 +14,7 @@ import {
   refreshConnectStatus,
 } from "@/lib/connect.functions";
 
-export function BillingSection() {
+export function BillingSection({ show = "both" }: { show?: "both" | "subscription" | "connect" } = {}) {
   const { sub, trialDaysLeft, canUse, showWarn, showExpired } = useSubscription();
   const connect = useConnectStatus();
   const startCheckout = useServerFn(startSubscriptionCheckout);
@@ -108,8 +108,10 @@ export function BillingSection() {
 
   return (
     <div className="space-y-3">
-      {/* Quottr subscription */}
+      {show !== "connect" && (
+      /* Quottr subscription */
       <div className="card-surface p-5 space-y-3">
+
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-lime text-ink flex items-center justify-center shrink-0">
             <CreditCard className="h-4 w-4" />
@@ -155,9 +157,12 @@ export function BillingSection() {
           )}
         </div>
       </div>
+      )}
 
-      {/* Stripe Connect, take card payments from clients */}
+      {show !== "subscription" && (
+      /* Stripe Connect, take card payments from clients */
       <div className="card-surface p-5 space-y-3">
+
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-lime text-ink flex items-center justify-center shrink-0">
             <ShieldCheck className="h-4 w-4" />
@@ -219,6 +224,8 @@ export function BillingSection() {
           )}
         </div>
       </div>
+      )}
     </div>
   );
+
 }
