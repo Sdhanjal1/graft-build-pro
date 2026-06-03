@@ -3,8 +3,19 @@ import { z } from "zod";
 import { requireActiveSubscription } from "@/lib/require-active-subscription";
 import { fetchTopPatterns, patternsForPrompt } from "@/lib/pricing-patterns.functions";
 import { tradeGuidance } from "@/lib/ai-trade-guidance";
-import { rankPatternsForJob } from "@/lib/pricing-patterns";
+import { rankPatternsForJob, type PricingPattern } from "@/lib/pricing-patterns";
 
+
+const PatternSchema = z.object({
+  id: z.string(),
+  item_description: z.string(),
+  item_category: z.string(),
+  typical_price: z.number(),
+  price_count: z.number(),
+  price_min: z.number(),
+  price_max: z.number(),
+  last_quoted_at: z.string(),
+});
 
 const InputSchema = z.object({
   description: z.string().min(1).max(4000),
@@ -15,6 +26,15 @@ const InputSchema = z.object({
   // speaker pausing mid-thought) or starts NEW item(s) (moved on to next job).
   previousChunkText: z.string().max(4000).optional(),
   previousItemDescription: z.string().max(240).optional(),
+  // Optional pre-fetched context — client passes this on per-phrase live
+  // calls so the server skips DB lookups (rates + patterns) every phrase.
+  prefetchedContext: z
+    .object({
+      hourly: z.number().nullable(),
+      day: z.number().nullable(),
+      patterns: z.array(PatternSchema).max(120),
+    })
+    .optional(),
 });
 
 const LineItemSchema = z.object({
@@ -163,16 +183,25 @@ export const generateAIQuote = createServerFn({ method: "POST" })
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
 
-    const { supabase, userId } = context as { supabase: any; userId: string };
-    const allPatterns = await fetchTopPatterns(supabase, userId, 80);
+    let hourly: number | null;
+    let day: number | null;
+    let allPatterns: PricingPattern[];
+    if (data.prefetchedContext) {
+      hourly = data.prefetchedContext.hourly;
+      day = data.prefetchedContext.day;
+      allPatterns = data.prefetchedContext.patterns as PricingPattern[];
+    } else {
+      const { supabase, userId } = context as { supabase: any; userId: string };
+      allPatterns = await fetchTopPatterns(supabase, userId, 80);
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("labour_hourly_rate, labour_day_rate")
+        .eq("id", userId)
+        .maybeSingle();
+      hourly = profileRow?.labour_hourly_rate != null ? Number(profileRow.labour_hourly_rate) : null;
+      day = profileRow?.labour_day_rate != null ? Number(profileRow.labour_day_rate) : null;
+    }
     const patterns = rankPatternsForJob(allPatterns, `${data.trade} ${data.description}`, 30);
-    const { data: profileRow } = await supabase
-      .from("profiles")
-      .select("labour_hourly_rate, labour_day_rate")
-      .eq("id", userId)
-      .maybeSingle();
-    const hourly = profileRow?.labour_hourly_rate != null ? Number(profileRow.labour_hourly_rate) : null;
-    const day = profileRow?.labour_day_rate != null ? Number(profileRow.labour_day_rate) : null;
     const systemPrompt =
       SYSTEM_PROMPT +
       labourRatesBlock(hourly, day) +
@@ -244,3 +273,25 @@ Omit extracted_customer entirely if no customer details were mentioned. Unit pri
     }
     return QuoteSchema.parse(parsed);
   });
+
+/**
+ * Prefetch the per-user context the AI needs (labour rates + pricing patterns)
+ * so the live per-phrase pipeline can skip a DB round-trip on every phrase.
+ * Called once when voice recording starts; the result is passed back into
+ * generateAIQuote.prefetchedContext for each phrase.
+ */
+export const prefetchQuoteContext = createServerFn({ method: "POST" })
+  .middleware([requireActiveSubscription])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as { supabase: any; userId: string };
+    const allPatterns = await fetchTopPatterns(supabase, userId, 80);
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("labour_hourly_rate, labour_day_rate")
+      .eq("id", userId)
+      .maybeSingle();
+    const hourly = profileRow?.labour_hourly_rate != null ? Number(profileRow.labour_hourly_rate) : null;
+    const day = profileRow?.labour_day_rate != null ? Number(profileRow.labour_day_rate) : null;
+    return { hourly, day, patterns: allPatterns };
+  });
+
