@@ -107,6 +107,7 @@ function NewQuotePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const generateFn = useServerFn(generateAIQuote);
+  const prefetchFn = useServerFn(prefetchQuoteContext);
   const transcribeFn = useServerFn(transcribeAudio);
   const { canUse: subActive, blocked: subBlocked } = useSubscription();
   const paidQuoteCount = usePaidQuoteCount();
@@ -124,14 +125,18 @@ function NewQuotePage() {
   const recognitionRef = useRef<any>(null);
   const liveFinalRef = useRef<string>("");
 
-  // Pending preview slots are no longer used (we no longer cut phrases on
-  // silence). Kept as empty state so the VoiceOverlay prop contract stays
-  // intact. Always cleared in stopRecording/finalize so nothing stale ever
-  // lingers into the draft editor.
+  // LIVE per-phrase pipeline: each recognised final phrase fires a parallel
+  // Haiku generate call. Items append as soon as their phrase resolves.
+  const [liveItems, setLiveItems] = useState<LineItem[]>([]);
+  const liveItemsRef = useRef<LineItem[]>([]);
   const [pendingItems, setPendingItems] = useState<{ id: string; text: string }[]>([]);
+  const pendingCountRef = useRef(0);
+  const phraseSeqRef = useRef(0);
+  const lastFinalIdxRef = useRef(-1);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const prefetchedContextRef = useRef<any>(null);
 
-  // Per-phrase plumbing kept as inert refs so any stragglers from older code
-  // paths cannot leak. Not driven by the new flow.
+  // Kept as inert ref so nothing from older code paths leaks.
   const sharedStreamRef = useRef<MediaStream | null>(null);
   
 
