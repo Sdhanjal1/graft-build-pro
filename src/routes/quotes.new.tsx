@@ -1740,10 +1740,7 @@ function VoiceOverlay({
           className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[70] flex items-center justify-center disabled:opacity-60"
         >
           {recording && (
-            <>
-              <span className="absolute h-20 w-20 rounded-full bg-lime/20 animate-ping" />
-              <span className="absolute h-16 w-16 rounded-full bg-lime/30 animate-pulse" />
-            </>
+            <MicLevelRings streamRef={streamRef} active={recording} size="sm" />
           )}
           <div
             className={`relative h-14 w-14 rounded-full bg-lime flex items-center justify-center shadow-[0_8px_24px_-6px_rgba(200,224,74,0.6)] transition-all ${
