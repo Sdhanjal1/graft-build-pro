@@ -133,7 +133,7 @@ function NewQuotePage() {
   // Per-phrase plumbing kept as inert refs so any stragglers from older code
   // paths cannot leak. Not driven by the new flow.
   const sharedStreamRef = useRef<MediaStream | null>(null);
-  const finalizeRef = useRef<() => void>(() => {});
+  
 
 
 
