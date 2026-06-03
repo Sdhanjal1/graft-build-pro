@@ -1417,11 +1417,12 @@ function VoiceOverlay({
             )}
           </>
         ) : transcribing ? (
-          <p className="text-sm text-paper/70">Turning your voice into text…</p>
+          <p className="text-sm text-paper/70">Building your quote…</p>
         ) : recording ? (
           <p className="text-sm text-paper/70">
-            {hasItems ? "Keep going — pause between items to add a new line." : "Describe the job, boiler, bathroom, materials, time…"}
+            Keep talking — describe the job, materials, time. Tap stop when done.
           </p>
+
         ) : lastTranscript ? (
           <>
             <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">Captured</p>
