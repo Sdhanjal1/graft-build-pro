@@ -277,8 +277,68 @@ function NewQuotePage() {
   // live preview only. No per-phrase server calls, no silence detection, no
   // chunk queue. On stop: one Whisper transcription, then one generate call.
   const startRecording = async () => {
+  // Filter out breath/noise/filler-only phrases — only let real speech
+  // trigger a per-phrase generate call.
+  const isMeaningfulPhrase = (text: string): boolean => {
+    const t = text.trim();
+    if (t.length < 4) return false;
+    const words = t.split(/\s+/).filter((w) => /[a-z]{2,}/i.test(w));
+    if (words.length < 2) return false;
+    // Reject pure filler ("uh um er erm yeah ok okay right so").
+    const filler = /^(?:uh|um|er|erm|yeah|ok|okay|right|so|hmm|well|and|or)$/i;
+    if (words.every((w) => filler.test(w))) return false;
+    return true;
+  };
+
+  const deriveTitle = (items: LineItem[]): string => {
+    const first = items[0]?.description?.trim();
+    if (first) return first.length > 60 ? `${first.slice(0, 57)}…` : first;
+    return `${trade} quote`;
+  };
+
+  // Fire-and-forget per-phrase generate. Runs in PARALLEL — phrase 2 starts
+  // immediately even while phrase 1 is still in flight.
+  const processPhrase = async (text: string) => {
+    const id = `p-${++phraseSeqRef.current}`;
+    setPendingItems((prev) => [...prev, { id, text }]);
+    pendingCountRef.current++;
+    try {
+      const ctx = prefetchedContextRef.current;
+      const g = await generateFn({
+        data: {
+          description: text,
+          trade,
+          vatRegistered: vat,
+          ...(ctx ? { prefetchedContext: ctx } : {}),
+        },
+      });
+      if (g.line_items?.length) {
+        setLiveItems((prev) => {
+          const next = [...prev, ...g.line_items];
+          liveItemsRef.current = next;
+          return next;
+        });
+      }
+    } catch (err) {
+      // Quiet failure for live phrases — don't break the recogniser pipeline
+      // or surface a scary error mid-recording. Stop fallback still runs.
+      console.warn("[voice] phrase generate failed", err);
+    } finally {
+      pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
+      setPendingItems((prev) => prev.filter((p) => p.id !== id));
+    }
+  };
+
+  // LIVE FLOW: continuous MediaRecorder (only used as a stop-time fallback if
+  // Web Speech produced no items) + Web Speech API per-phrase pipeline.
+  const startRecording = async () => {
     setVoiceError(null);
     setPendingItems([]);
+    pendingCountRef.current = 0;
+    setLiveItems([]);
+    liveItemsRef.current = [];
+    phraseSeqRef.current = 0;
+    lastFinalIdxRef.current = -1;
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
       return;
@@ -299,6 +359,14 @@ function NewQuotePage() {
     }
     streamRef.current = stream;
     sharedStreamRef.current = stream;
+
+    // Prefetch labour rates + patterns ONCE — reused for every per-phrase call.
+    // Fire-and-forget; per-phrase calls fall back to server-side fetch if it
+    // hasn't arrived yet.
+    prefetchedContextRef.current = null;
+    void prefetchFn()
+      .then((ctx) => { prefetchedContextRef.current = ctx; })
+      .catch((e) => console.warn("[voice] prefetch failed", e));
 
     const mimeType = pickMimeType();
     liveFinalRef.current = "";
@@ -332,22 +400,59 @@ function NewQuotePage() {
       const blobType = mr.mimeType || mimeType || "audio/webm";
       const blob = new Blob(chunksRef.current, { type: blobType });
       chunksRef.current = [];
+
+      if (isClipMode) {
+        // Clip mode uses single-pass Whisper for on-site capture.
+        if (blob.size < 1000) {
+          setVoiceError("Recording was too short. Hold and speak for at least 2 seconds.");
+          return;
+        }
+        lastBlobRef.current = { blob, mimeType: blobType };
+        await runTranscribe(blob, blobType);
+        return;
+      }
+
+      // Wait briefly for any in-flight phrase generates to settle so their
+      // items make it into the draft. Max ~12s, then we materialise anyway.
+      setTranscribing(true);
+      for (let i = 0; i < 120 && pendingCountRef.current > 0; i++) {
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      setTranscribing(false);
+
+      const items = liveItemsRef.current;
+      if (items.length > 0) {
+        const transcript = liveFinalRef.current.trim();
+        const built = { title: deriveTitle(items), line_items: items };
+        setDraft(built);
+        originalDraftRef.current = JSON.stringify(items);
+        setDesc(transcript);
+        setLiveItems([]);
+        liveItemsRef.current = [];
+        setPendingItems([]);
+        setLivePreview("");
+        liveFinalRef.current = "";
+        feedback("success");
+        playSample("ding");
+        requestAnimationFrame(() => {
+          draftRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        return;
+      }
+
+      // FALLBACK: Web Speech produced nothing usable → single Whisper pass.
       setPendingItems([]);
       if (blob.size < 1000) {
         setLivePreview("");
         liveFinalRef.current = "";
-        setVoiceError(
-          isClipMode
-            ? "Recording was too short. Hold and speak for at least 2 seconds."
-            : "We didn't catch any speech. Tap the mic and describe the job out loud.",
-        );
+        setVoiceError("We didn't catch any speech. Tap the mic and describe the job out loud.");
         return;
       }
       lastBlobRef.current = { blob, mimeType: blobType };
       await runTranscribe(blob, blobType);
     };
 
-    // Live preview via Web Speech API (visual only — no server calls).
+    // Web Speech API: drives live preview AND per-phrase processing.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR: any =
       typeof window !== "undefined"
@@ -368,18 +473,24 @@ function NewQuotePage() {
             const res = event.results[i];
             const txt = res[0]?.transcript ?? "";
             if (res.isFinal) {
-              liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
+              if (i > lastFinalIdxRef.current) {
+                lastFinalIdxRef.current = i;
+                liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
+                const phrase = txt.trim();
+                if (isMeaningfulPhrase(phrase)) {
+                  void processPhrase(phrase);
+                }
+              }
             } else {
               interim += txt;
             }
           }
           setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
         };
-        rec.onerror = () => { /* silent: preview only */ };
+        rec.onerror = () => { /* silent: pipeline only */ };
         rec.onend = () => {
-          // If recording is still active (browsers auto-stop SR after silence),
-          // restart so the live preview keeps updating.
           if (!stopRequestedRef.current && mediaRecorderRef.current?.state === "recording") {
+            lastFinalIdxRef.current = -1; // new session, fresh result indices
             try { rec.start(); } catch { /* noop */ }
           }
         };
