@@ -386,6 +386,9 @@ function NewQuotePage() {
     chunkQueueRef.current = Promise.resolve();
     stoppingFinalRef.current = false;
     liveFinalRef.current = "";
+    liveMarkRef.current = "";
+    pendingIdQueueRef.current = [];
+    setPendingItems([]);
     setLivePreview("");
 
     // Use on-site clip mode? It bypasses the phrase chunker: record one whole
