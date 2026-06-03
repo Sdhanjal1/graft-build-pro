@@ -283,7 +283,7 @@ function NewQuotePage() {
   const runTranscribe = async (blob: Blob, mimeType: string) => {
     setTranscribing(true);
     setVoiceError(null);
-    setPendingItems([]);
+    clearPendingItems();
     try {
       const audioBase64 = await blobToBase64(blob);
       const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
@@ -303,7 +303,7 @@ function NewQuotePage() {
       setTranscribing(false);
       setLivePreview("");
       liveFinalRef.current = "";
-      setPendingItems([]);
+      clearPendingItems();
     }
   };
 
@@ -336,10 +336,11 @@ function NewQuotePage() {
 
   // Fire-and-forget per-phrase generate. Runs in PARALLEL — phrase 2 starts
   // immediately even while phrase 1 is still in flight.
-  const processPhrase = async (text: string) => {
+  const processPhrase = async (text: string, sessionId: number) => {
+    if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
     const id = `p-${++phraseSeqRef.current}`;
-    setPendingItems((prev) => [...prev, { id, text }]);
     pendingCountRef.current++;
+    updatePendingItems((prev) => [...prev, { id, text }]);
     try {
       const ctx = prefetchedContextRef.current;
       const g = await generateFn({
@@ -350,6 +351,7 @@ function NewQuotePage() {
           ...(ctx ? { prefetchedContext: ctx } : {}),
         },
       });
+      if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
       if (g.line_items?.length) {
         setLiveItems((prev) => {
           const next = [...prev, ...g.line_items];
@@ -362,16 +364,21 @@ function NewQuotePage() {
       // or surface a scary error mid-recording. Stop fallback still runs.
       console.warn("[voice] phrase generate failed", err);
     } finally {
-      pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
-      setPendingItems((prev) => prev.filter((p) => p.id !== id));
+      if (sessionId === voiceSessionRef.current) {
+        pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
+        updatePendingItems((prev) => prev.filter((p) => p.id !== id));
+      }
     }
   };
 
   // LIVE FLOW: continuous MediaRecorder (only used as a stop-time fallback if
   // Web Speech produced no items) + Web Speech API per-phrase pipeline.
   const startRecording = async () => {
+    const sessionId = voiceSessionRef.current + 1;
+    voiceSessionRef.current = sessionId;
+    closeRequestedRef.current = false;
     setVoiceError(null);
-    setPendingItems([]);
+    clearPendingItems();
     pendingCountRef.current = 0;
     setLiveItems([]);
     liveItemsRef.current = [];
