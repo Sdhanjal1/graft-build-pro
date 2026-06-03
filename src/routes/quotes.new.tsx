@@ -642,21 +642,25 @@ function NewQuotePage() {
           lastTranscript={lastTranscript}
           livePreview={livePreview}
           liveSupported={liveSupported}
-          liveItems={draft?.line_items ?? []}
+          liveItems={liveItems}
           pendingItems={pendingItems}
           onStart={handleVoiceStart}
           onStop={stopRecording}
           onClose={handleVoiceClose}
           onRetryTranscription={lastBlobRef.current ? retryTranscription : undefined}
           onUpdateItem={(index, patch) => {
-            if (!draft) return;
-            const next = draft.line_items.map((it, i) => (i === index ? { ...it, ...patch } : it));
-            setDraft({ ...draft, line_items: next });
+            setLiveItems((prev) => {
+              const next = prev.map((it, i) => (i === index ? { ...it, ...patch } : it));
+              liveItemsRef.current = next;
+              return next;
+            });
           }}
           onDeleteItem={(index) => {
-            if (!draft) return;
-            const next = draft.line_items.filter((_, i) => i !== index);
-            setDraft({ ...draft, line_items: next });
+            setLiveItems((prev) => {
+              const next = prev.filter((_, i) => i !== index);
+              liveItemsRef.current = next;
+              return next;
+            });
             feedback("warn");
           }}
         />
