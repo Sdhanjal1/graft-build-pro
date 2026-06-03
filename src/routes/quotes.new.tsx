@@ -429,20 +429,34 @@ function NewQuotePage() {
         rec.interimResults = true;
         rec.lang = "en-GB";
         liveFinalRef.current = "";
+        processedFinalLenRef.current = 0;
+        chunkProcessedCountRef.current = 0;
+        chunkQueueRef.current = Promise.resolve();
+        if (pauseTimerRef.current) {
+          clearTimeout(pauseTimerRef.current);
+          pauseTimerRef.current = null;
+        }
         setLivePreview("");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         rec.onresult = (event: any) => {
           let interim = "";
+          let gotFinal = false;
           for (let i = event.resultIndex; i < event.results.length; i++) {
             const res = event.results[i];
             const txt = res[0]?.transcript ?? "";
             if (res.isFinal) {
               liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
+              gotFinal = true;
             } else {
               interim += txt;
             }
           }
           setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
+          // Reset/extend pause timer on every result; a quiet gap == phrase end.
+          // gotFinal isn't required — also debounce on interim updates so we
+          // don't fire mid-sentence.
+          void gotFinal;
+          scheduleChunkFlush();
         };
         rec.onerror = () => {
           // Silent: this is preview only.
@@ -455,6 +469,7 @@ function NewQuotePage() {
     } else {
       setLiveSupported(false);
     }
+
 
     // Timeslice of 1s ensures a chunk is flushed every second even on iOS Safari.
     recordStartRef.current = Date.now();
