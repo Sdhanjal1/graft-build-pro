@@ -1350,12 +1350,12 @@ function VoiceOverlay({
           <span className="text-lime">●</span> <span className="text-paper">{formatMMSS(seconds)}</span>
         </p>
         {recording && (
-          <div className="mt-3 w-full min-h-[2.5rem] px-2 text-center">
-            {livePreview ? (
-              <p className="text-sm text-paper/80 leading-snug">{livePreview}</p>
-            ) : (
-              <p className="text-xs italic text-paper/40">Listening…</p>
-            )}
+          <div className="mt-3 flex items-center gap-2 text-paper/40">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-60" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-lime" />
+            </span>
+            <span className="text-[10px] uppercase tracking-widest">Listening</span>
           </div>
         )}
 
