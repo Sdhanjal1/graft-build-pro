@@ -1419,6 +1419,13 @@ function VoiceOverlay({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editDesc, setEditDesc] = useState("");
   const [editPrice, setEditPrice] = useState("");
+  const prevCountRef = useRef(0);
+  const justLandedFrom = prevCountRef.current;
+  useEffect(() => {
+    prevCountRef.current = liveItems.length;
+  }, [liveItems.length]);
+  const liveTotal = liveItems.reduce((s, li) => s + li.qty * li.unit_price, 0);
+
 
   function beginEdit(i: number, li: LineItem) {
     setEditingIndex(i);
