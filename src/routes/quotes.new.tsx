@@ -360,84 +360,181 @@ function NewQuotePage() {
       return;
     }
     streamRef.current = stream;
+    sharedStreamRef.current = stream;
 
     const mimeType = pickMimeType();
-    let mr: MediaRecorder;
-    try {
-      mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-    } catch (err) {
-      console.error(err);
-      stream.getTracks().forEach((t) => t.stop());
-      setVoiceError("Could not start recorder on this browser.");
-      return;
-    }
-    mediaRecorderRef.current = mr;
-    chunksRef.current = [];
+    phraseMimeRef.current = mimeType;
+    chunkProcessedCountRef.current = 0;
+    chunkQueueRef.current = Promise.resolve();
+    stoppingFinalRef.current = false;
+    liveFinalRef.current = "";
+    setLivePreview("");
 
-    mr.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+    // Use on-site clip mode? It bypasses the phrase chunker: record one whole
+    // blob, transcribe at stop, add as a single clip. We branch here for clarity.
+    const isClipMode = recordTargetRef.current === "clip";
+
+    // ---------- Audio silence analyser (used for phrase cutting in speak mode) ----------
+    const setupAnalyser = (s: MediaStream) => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const AC: any = (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (!AC) return false;
+        const ctx = new AC();
+        const source = ctx.createMediaStreamSource(s);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = 0.4;
+        source.connect(analyser);
+        audioCtxRef.current = ctx;
+        audioSourceRef.current = source;
+        analyserRef.current = analyser;
+        return true;
+      } catch (e) {
+        console.warn("[analyser] init failed", e);
+        return false;
+      }
     };
 
-    mr.onstop = async () => {
+    const teardownAnalyser = () => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
+      try { void audioCtxRef.current?.close(); } catch { /* noop */ }
+      audioSourceRef.current = null;
+      analyserRef.current = null;
+      audioCtxRef.current = null;
+    };
+
+    // ---------- Per-phrase MediaRecorder ----------
+    const startNewPhraseRecorder = (): MediaRecorder | null => {
+      const s = sharedStreamRef.current;
+      if (!s) return null;
+      let pmr: MediaRecorder;
+      try {
+        pmr = mimeType ? new MediaRecorder(s, { mimeType }) : new MediaRecorder(s);
+      } catch (e) {
+        console.error("[phrase] recorder failed", e);
+        return null;
+      }
+      phraseChunksRef.current = [];
+      phraseHasSpeechRef.current = false;
+      silenceStartRef.current = null;
+      phraseStartedAtRef.current = Date.now();
+      pmr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) phraseChunksRef.current.push(e.data);
+      };
+      pmr.onstop = () => {
+        const blobType = pmr.mimeType || mimeType || "audio/webm";
+        const blob = new Blob(phraseChunksRef.current, { type: blobType });
+        phraseChunksRef.current = [];
+        const hadSpeech = phraseHasSpeechRef.current;
+        const isFinal = stoppingFinalRef.current;
+        if (hadSpeech && blob.size > 1200) {
+          enqueuePhraseBlob(blob, blobType);
+          chunkProcessedCountRef.current += 1;
+        }
+        if (!isFinal && sharedStreamRef.current) {
+          // Immediately start the next phrase recorder so we don't lose audio.
+          const next = startNewPhraseRecorder();
+          if (next) {
+            mediaRecorderRef.current = next;
+            try { next.start(); } catch (e) { console.error(e); }
+          }
+        } else if (isFinal) {
+          // Finalisation: wait for queue, tear down, surface errors.
+          finalizeRef.current();
+        }
+      };
+      return pmr;
+    };
+
+    const finalize = async () => {
       if (tickRef.current) {
         clearInterval(tickRef.current);
         tickRef.current = null;
       }
-      // Give the live SpeechRecognition a brief moment to settle so any
-      // trailing isFinal result is captured before we flush the last chunk.
-      await new Promise((r) => setTimeout(r, 300));
-      try {
-        recognitionRef.current?.stop?.();
-      } catch {
-        // ignore
-      }
+      teardownAnalyser();
+      try { recognitionRef.current?.stop?.(); } catch { /* noop */ }
       recognitionRef.current = null;
-
-      // Flush any pause-detected text that wasn't processed yet, then wait
-      // for the per-chunk processing queue to drain.
-      await flushPendingChunk();
       await chunkQueueRef.current;
-
       setRecording(false);
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
+      sharedStreamRef.current = null;
       streamRef.current = null;
-
-      const blobType = mr.mimeType || mimeType || "audio/webm";
-      const blob = new Blob(chunksRef.current, { type: blobType });
-      chunksRef.current = [];
-
-      // If the phrase-by-phrase path produced any line items, we're done —
-      // do NOT re-transcribe the full recording (that would duplicate items).
-      if (chunkProcessedCountRef.current > 0) {
-        setDesc((d) => (d.trim() ? d : liveFinalRef.current.trim()));
-        if (liveFinalRef.current.trim()) setLastTranscript(liveFinalRef.current.trim());
-        lastBlobRef.current = null;
-        setLivePreview("");
-        liveFinalRef.current = "";
-        return;
-      }
-
-      // Fallback: no chunks processed (no SpeechRecognition support, or it
-      // didn't detect speech). Use the existing whisper + auto-generate path.
-      if (blob.size < 1000) {
+      setLivePreview("");
+      if (chunkProcessedCountRef.current === 0 && !isClipMode) {
         setVoiceError(
-          "Recording was too short. Hold the button and speak for at least 2 seconds.",
+          "We didn't catch any speech. Tap the mic and describe the job out loud.",
         );
+      } else if (liveFinalRef.current.trim()) {
+        setLastTranscript(liveFinalRef.current.trim());
+      }
+      liveFinalRef.current = "";
+    };
+    finalizeRef.current = () => { void finalize(); };
+
+    // ---------- ON-SITE CLIP MODE: single blob, no phrase chunking ----------
+    if (isClipMode) {
+      let mr: MediaRecorder;
+      try {
+        mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      } catch (err) {
+        console.error(err);
+        stream.getTracks().forEach((t) => t.stop());
+        setVoiceError("Could not start recorder on this browser.");
         return;
       }
+      mediaRecorderRef.current = mr;
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      mr.onstop = async () => {
+        if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+        setRecording(false);
+        sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
+        sharedStreamRef.current = null;
+        streamRef.current = null;
+        const blobType = mr.mimeType || mimeType || "audio/webm";
+        const blob = new Blob(chunksRef.current, { type: blobType });
+        chunksRef.current = [];
+        if (blob.size < 1000) {
+          setVoiceError("Recording was too short. Hold and speak for at least 2 seconds.");
+          return;
+        }
+        lastBlobRef.current = { blob, mimeType: blobType };
+        await runTranscribe(blob, blobType);
+      };
+      recordStartRef.current = Date.now();
+      mr.start(1000);
+      setRecording(true);
+      setRecordSeconds(0);
+      tickRef.current = setInterval(() => {
+        setRecordSeconds((s) => {
+          const next = s + 1;
+          if (next >= MAX_RECORD_SECONDS) {
+            stopRecording();
+            return MAX_RECORD_SECONDS;
+          }
+          return next;
+        });
+      }, 1000);
+      return;
+    }
 
-      lastBlobRef.current = { blob, mimeType: blobType };
-      await runTranscribe(blob, blobType);
+    // ---------- SPEAK MODE: phrase-by-phrase via audio silence detection ----------
+    const analyserOk = setupAnalyser(stream);
 
-    };
-
-
-    // Live preview via Web Speech API — visual feedback only, discarded on stop.
+    // Live preview text via Web Speech API (visual only; pause detection comes
+    // from real audio analysis, not from SR).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR: any =
       typeof window !== "undefined"
-        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
         : null;
     if (SR) {
       setLiveSupported(true);
@@ -446,39 +543,21 @@ function NewQuotePage() {
         rec.continuous = true;
         rec.interimResults = true;
         rec.lang = "en-GB";
-        liveFinalRef.current = "";
-        processedFinalLenRef.current = 0;
-        chunkProcessedCountRef.current = 0;
-        chunkQueueRef.current = Promise.resolve();
-        if (pauseTimerRef.current) {
-          clearTimeout(pauseTimerRef.current);
-          pauseTimerRef.current = null;
-        }
-        setLivePreview("");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         rec.onresult = (event: any) => {
           let interim = "";
-          let gotFinal = false;
           for (let i = event.resultIndex; i < event.results.length; i++) {
             const res = event.results[i];
             const txt = res[0]?.transcript ?? "";
             if (res.isFinal) {
               liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
-              gotFinal = true;
             } else {
               interim += txt;
             }
           }
           setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
-          // Reset/extend pause timer on every result; a quiet gap == phrase end.
-          // gotFinal isn't required — also debounce on interim updates so we
-          // don't fire mid-sentence.
-          void gotFinal;
-          scheduleChunkFlush();
         };
-        rec.onerror = () => {
-          // Silent: this is preview only.
-        };
+        rec.onerror = () => { /* silent: preview only */ };
         recognitionRef.current = rec;
         rec.start();
       } catch {
@@ -488,10 +567,16 @@ function NewQuotePage() {
       setLiveSupported(false);
     }
 
-
-    // Timeslice of 1s ensures a chunk is flushed every second even on iOS Safari.
+    // Start the first phrase recorder.
+    const firstPmr = startNewPhraseRecorder();
+    if (!firstPmr) {
+      setVoiceError("Could not start recorder on this browser.");
+      stream.getTracks().forEach((t) => t.stop());
+      return;
+    }
+    mediaRecorderRef.current = firstPmr;
     recordStartRef.current = Date.now();
-    mr.start(1000);
+    firstPmr.start();
 
     setRecording(true);
     setRecordSeconds(0);
@@ -505,7 +590,53 @@ function NewQuotePage() {
         return next;
       });
     }, 1000);
+
+    // RMS silence-detection loop. When we've heard speech then go quiet for
+    // SILENCE_MS, cut the current phrase: stop the MR (its onstop will
+    // enqueue the blob for transcribe + append and immediately start the
+    // next phrase recorder).
+    if (analyserOk && analyserRef.current) {
+      const analyser = analyserRef.current;
+      const buf = new Float32Array(analyser.fftSize);
+      const loop = () => {
+        if (!analyserRef.current || stoppingFinalRef.current) {
+          rafRef.current = null;
+          return;
+        }
+        try {
+          analyser.getFloatTimeDomainData(buf);
+        } catch {
+          rafRef.current = requestAnimationFrame(loop);
+          return;
+        }
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+        const rms = Math.sqrt(sum / buf.length);
+        const now = performance.now();
+        if (rms > SILENCE_RMS) {
+          phraseHasSpeechRef.current = true;
+          silenceStartRef.current = null;
+        } else if (phraseHasSpeechRef.current) {
+          if (silenceStartRef.current == null) {
+            silenceStartRef.current = now;
+          } else if (
+            now - silenceStartRef.current >= SILENCE_MS &&
+            Date.now() - phraseStartedAtRef.current >= MIN_PHRASE_MS
+          ) {
+            const pmr = mediaRecorderRef.current;
+            silenceStartRef.current = null;
+            if (pmr && pmr.state === "recording") {
+              try { pmr.stop(); } catch (e) { console.error(e); }
+            }
+          }
+        }
+        rafRef.current = requestAnimationFrame(loop);
+      };
+      rafRef.current = requestAnimationFrame(loop);
+    }
   };
+
+
 
   const startRecordingForClip = () => {
     if (transcribing || recording) return;
