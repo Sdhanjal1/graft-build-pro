@@ -151,8 +151,6 @@ function SettingsPage() {
 
   const removeLogo = () => saveProfile({ logo_url: "" });
 
-  const [showMore, setShowMore] = useState(false);
-
   return (
     <AppShell>
       <PageHeader title="Settings" subtitle="Configuration" />
@@ -170,8 +168,8 @@ function SettingsPage() {
         }}
       />
 
-      {/* BUSINESS PROFILE — always open */}
-      <Section title="Business profile" defaultOpen>
+      {/* 1. YOUR BUSINESS — identity + branding, open */}
+      <Section title="Your business" defaultOpen>
         <div className="card-surface p-5 space-y-3.5">
           <EditField label="Business name" value={profile.business_name} onChange={(v) => saveProfile({ business_name: v })} />
           <EditField label="Your name"     value={profile.full_name}     onChange={(v) => saveProfile({ full_name: v })} />
@@ -181,213 +179,186 @@ function SettingsPage() {
           <EditField label="Address line 2" value={profile.address_line_2} onChange={(v) => saveProfile({ address_line_2: v })} placeholder="Optional" />
           <EditField label="Town / City"   value={profile.town}          onChange={(v) => saveProfile({ town: v })} />
           <EditField label="Postcode"      value={profile.postcode}      onChange={(v) => saveProfile({ postcode: v })} />
+
+          <div className="pt-3 border-t border-border/60">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-3">Business logo</p>
+            {profile.logo_url ? (
+              <div className="flex flex-col items-center gap-3">
+                <BusinessLogo logoUrl={profile.logo_url} businessName={profile.business_name} size="xl" />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    {uploading ? "Uploading…" : "Change logo"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={removeLogo}
+                    className="text-xs font-bold bg-secondary text-ink px-4 py-2 rounded-full flex items-center gap-1.5"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full rounded-2xl border-2 border-dashed border-lime/60 bg-ink text-paper px-5 py-6 flex flex-col items-center gap-2 hover:bg-ink/90 transition disabled:opacity-50"
+              >
+                <div className="h-12 w-12 rounded-full bg-lime text-ink flex items-center justify-center">
+                  <Camera className="h-5 w-5" />
+                </div>
+                <p className="font-bold text-sm">{uploading ? "Uploading…" : "Add your logo"}</p>
+                <p className="text-xs text-paper/60 text-center max-w-[260px]">
+                  Appears on all quotes, invoices and PDFs.
+                </p>
+              </button>
+            )}
+          </div>
         </div>
       </Section>
 
-      {/* BILLING — always open */}
-      <Section title="Billing" defaultOpen>
-        <BillingSection />
+      {/* 2. YOUR PRICING — labour rates, open (used on every quote) */}
+      <Section title="Your pricing" defaultOpen>
+        <div className="card-surface p-5 space-y-3">
+          <div className="grid grid-cols-2 gap-2.5">
+            <MoneyField label="Hourly rate" value={labourHourly} onChange={setLabourHourly} placeholder="45" />
+            <MoneyField label="Day rate"    value={labourDay}    onChange={setLabourDay}    placeholder="280" />
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Used to price labour on your quotes — so you never have to correct it.
+          </p>
+        </div>
       </Section>
 
-      {/* ACCOUNTING EXPORT */}
-      <Section title="Accounting export" defaultOpen>
-        <AccountingSetup />
-      </Section>
-
-
-      {/* SIGN OUT */}
-      <section className="px-5 mt-5">
-        <button
-          onClick={handleSignOut}
-          className="w-full py-3 flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-status-overdue transition"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign out
-        </button>
-      </section>
-
-      {/* MORE SETTINGS */}
-      <section className="px-5 mt-5">
-        <button
-          type="button"
-          onClick={() => { feedback("tap"); setShowMore((s) => !s); }}
-          className="w-full card-surface px-5 py-4 flex items-center justify-between text-left"
-          aria-expanded={showMore}
-        >
-          <span className="text-sm font-bold text-ink">More settings</span>
-          <span
-            className="text-muted-foreground text-xl leading-none transition-transform"
-            style={{ transform: showMore ? "rotate(90deg)" : "rotate(0deg)" }}
-          >
-            ›
-          </span>
-        </button>
-      </section>
-
-      {showMore && (
-        <>
-          <Section title="Branding">
-            <div className="card-surface p-5 space-y-4">
-              {profile.logo_url ? (
-                <div className="flex flex-col items-center gap-3">
-                  <BusinessLogo logoUrl={profile.logo_url} businessName={profile.business_name} size="xl" />
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      {uploading ? "Uploading…" : "Change logo"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={removeLogo}
-                      className="text-xs font-bold bg-secondary text-ink px-4 py-2 rounded-full flex items-center gap-1.5"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Remove logo
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="w-full rounded-2xl border-2 border-dashed border-lime/60 bg-ink text-paper px-5 py-8 flex flex-col items-center gap-2 hover:bg-ink/90 transition disabled:opacity-50"
-                >
-                  <div className="h-14 w-14 rounded-full bg-lime text-ink flex items-center justify-center">
-                    <Camera className="h-6 w-6" />
-                  </div>
-                  <p className="font-bold text-sm">{uploading ? "Uploading…" : "Your business logo"}</p>
-                  <p className="text-xs text-paper/60 text-center max-w-[260px]">
-                    Appears on all quotes, invoices and PDFs. Tap to upload or take a photo.
-                  </p>
-                </button>
-              )}
+      {/* 3. GETTING PAID — bank, terms, deposit, VAT, Gas Safe, card payments, open */}
+      <Section title="Getting paid" defaultOpen>
+        <div className="space-y-3">
+          <div className="card-surface p-5 space-y-3">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Bank details</p>
+            <Input label="Bank account name" value={bank.account_name} onChange={(v) => saveBank({ account_name: v })} />
+            <Input label="Bank name" value={bank.bank_name} onChange={(v) => saveBank({ bank_name: v })} />
+            <div className="grid grid-cols-2 gap-2.5">
+              <Input label="Sort code" value={bank.sort_code} onChange={(v) => saveBank({ sort_code: v })} />
+              <Input label="Account number" value={bank.account_number} onChange={(v) => saveBank({ account_number: v })} />
             </div>
-          </Section>
+            <Input label="Payment reference instructions" value={bank.payment_reference_note} onChange={(v) => saveBank({ payment_reference_note: v })} multiline rows={2} />
+          </div>
 
-          <Section title="Quote appearance">
-            <div className="card-surface p-5 space-y-4">
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-                  Opening message on quotes
-                </span>
-                <textarea
-                  value={profile.quote_intro}
-                  onChange={(e) => saveProfile({ quote_intro: e.target.value })}
-                  rows={3}
-                  className="mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30 resize-y leading-snug"
-                />
+          <div className="card-surface p-5 space-y-3">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Terms & deposit</p>
+            <Input label="Payment terms" value={terms} onChange={setTerms} multiline rows={3} />
+            <div>
+              <label className="block text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">
+                Default deposit % (jobs over £500)
               </label>
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-                  Footer message
-                </span>
-                <textarea
-                  value={profile.quote_footer}
-                  onChange={(e) => saveProfile({ quote_footer: e.target.value })}
-                  rows={3}
-                  className="mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30 resize-y leading-snug"
-                />
-              </label>
-              <EditField label="Your name on quotes" value={profile.signature_name} onChange={(v) => saveProfile({ signature_name: v })} placeholder="e.g. John Smith" />
-              <ToggleRow icon={PenLine} label="Show signature on quotes" hint="Adds a signature line at the bottom" checked={profile.show_signature} onChange={(v) => saveProfile({ show_signature: v })} flush />
-            </div>
-          </Section>
-
-          <Section title="VAT & registration">
-            <div className="card-surface p-5 space-y-3.5">
-              <EditField label="Gas Safe registration number" value={profile.registration_number} onChange={(v) => saveProfile({ registration_number: v })} />
-              <EditField label="VAT number" value={profile.vat_number} onChange={(v) => saveProfile({ vat_number: v })} />
-              <ToggleRow icon={Receipt} label="VAT registered" hint="Adds 20% VAT to every quote" checked={vatRegistered} onChange={setVatRegistered} flush />
-            </div>
-          </Section>
-
-          <Section title="Bank details">
-            <div className="card-surface p-5 space-y-3">
-              <Input label="Bank account name" value={bank.account_name} onChange={(v) => saveBank({ account_name: v })} />
-              <Input label="Bank name" value={bank.bank_name} onChange={(v) => saveBank({ bank_name: v })} />
-              <div className="grid grid-cols-2 gap-2.5">
-                <Input label="Sort code" value={bank.sort_code} onChange={(v) => saveBank({ sort_code: v })} />
-                <Input label="Account number" value={bank.account_number} onChange={(v) => saveBank({ account_number: v })} />
-              </div>
-              <Input label="Payment reference instructions" value={bank.payment_reference_note} onChange={(v) => saveBank({ payment_reference_note: v })} multiline rows={2} />
-              <Input label="Payment terms" value={terms} onChange={setTerms} multiline rows={3} />
-              <div>
-                <label className="block text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">
-                  Default deposit % (jobs over £500)
-                </label>
-                <input
-                  type="number" min={0} max={100} step={1}
-                  value={defaultDepositPct}
-                  onChange={(e) => {
-                    const n = Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)));
-                    setDefaultDepositPct(n);
-                  }}
-                  className="w-full h-11 bg-card border border-border rounded-2xl px-4 text-sm font-semibold num outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
-                />
-                <p className="text-[11px] text-muted-foreground mt-1.5">
-                  Applied to new AI-generated quotes that fall in the deposit-then-balance band.
-                </p>
-              </div>
-            </div>
-          </Section>
-
-          <Section title="Labour rates">
-            <div className="card-surface p-5 space-y-3">
-              <div className="grid grid-cols-2 gap-2.5">
-                <MoneyField
-                  label="Hourly rate"
-                  value={labourHourly}
-                  onChange={setLabourHourly}
-                  placeholder="45"
-                />
-                <MoneyField
-                  label="Day rate"
-                  value={labourDay}
-                  onChange={setLabourDay}
-                  placeholder="280"
-                />
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                Used to price labour on your quotes — so you never have to correct it.
+              <input
+                type="number" min={0} max={100} step={1}
+                value={defaultDepositPct}
+                onChange={(e) => {
+                  const n = Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)));
+                  setDefaultDepositPct(n);
+                }}
+                className="w-full h-11 bg-card border border-border rounded-2xl px-4 text-sm font-semibold num outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                Applied to new AI-generated quotes that fall in the deposit-then-balance band.
               </p>
             </div>
-          </Section>
+          </div>
 
+          <div className="card-surface p-5 space-y-3.5">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">VAT & registration</p>
+            <EditField label="Gas Safe registration number" value={profile.registration_number} onChange={(v) => saveProfile({ registration_number: v })} />
+            <EditField label="VAT number" value={profile.vat_number} onChange={(v) => saveProfile({ vat_number: v })} />
+            <ToggleRow icon={Receipt} label="VAT registered" hint="Adds 20% VAT to every quote" checked={vatRegistered} onChange={setVatRegistered} flush />
+          </div>
 
+          <BillingSection show="connect" />
+        </div>
+      </Section>
 
+      {/* 4. HOW QUOTES LOOK — collapsed */}
+      <Section title="How quotes look">
+        <div className="card-surface p-5 space-y-4">
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+              Opening message on quotes
+            </span>
+            <textarea
+              value={profile.quote_intro}
+              onChange={(e) => saveProfile({ quote_intro: e.target.value })}
+              rows={3}
+              className="mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30 resize-y leading-snug"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+              Footer message
+            </span>
+            <textarea
+              value={profile.quote_footer}
+              onChange={(e) => saveProfile({ quote_footer: e.target.value })}
+              rows={3}
+              className="mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30 resize-y leading-snug"
+            />
+          </label>
+          <EditField label="Your name on quotes" value={profile.signature_name} onChange={(v) => saveProfile({ signature_name: v })} placeholder="e.g. John Smith" />
+          <ToggleRow icon={PenLine} label="Show signature on quotes" hint="Adds a signature line at the bottom" checked={profile.show_signature} onChange={(v) => saveProfile({ show_signature: v })} flush />
+        </div>
+      </Section>
 
-          <Section title="Notifications">
-            <div className="space-y-3">
-              <PushPermissionCard />
-              <NotificationToggles />
-            </div>
-          </Section>
+      {/* 5. NOTIFICATIONS — collapsed */}
+      <Section title="Notifications">
+        <div className="space-y-3">
+          <PushPermissionCard />
+          <NotificationToggles />
+        </div>
+      </Section>
 
-          <Section title="Danger zone">
-            <div className="card-surface">
-              <button
-                onClick={handleDeleteAccount}
-                disabled={deleting}
-                className="px-5 py-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left disabled:opacity-60"
-              >
-                <Trash2 className="h-5 w-5" />
-                {deleting ? "Deleting…" : "Delete account"}
-              </button>
-            </div>
-          </Section>
-        </>
-      )}
+      {/* 6. ACCOUNT & BILLING — collapsed */}
+      <Section title="Account & billing">
+        <div className="space-y-3">
+          <BillingSection show="subscription" />
+          <AccountingSetup />
+          <div className="card-surface">
+            <button
+              onClick={handleSignOut}
+              className="w-full px-5 py-4 flex items-center gap-3 text-sm font-semibold text-muted-foreground hover:text-status-overdue transition text-left"
+            >
+              <LogOut className="h-5 w-5" />
+              Sign out
+            </button>
+          </div>
+        </div>
+      </Section>
+
+      {/* 7. DANGER ZONE — collapsed */}
+      <Section title="Danger zone">
+        <div className="card-surface">
+          <button
+            onClick={handleDeleteAccount}
+            disabled={deleting}
+            className="px-5 py-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left disabled:opacity-60"
+          >
+            <Trash2 className="h-5 w-5" />
+            {deleting ? "Deleting…" : "Delete account"}
+          </button>
+        </div>
+      </Section>
 
       <div className="h-6" />
     </AppShell>
   );
 }
+
 
 function Section({
   title,
