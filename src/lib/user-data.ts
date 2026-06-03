@@ -243,6 +243,7 @@ type DbQuote = {
   completed_at: string | null;
   updated_at?: string | null;
   materials_purchased?: boolean[] | null;
+  materials_list?: MaterialItem[] | null;
 };
 
 
