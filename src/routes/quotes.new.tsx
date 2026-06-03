@@ -124,6 +124,17 @@ function NewQuotePage() {
   const recognitionRef = useRef<any>(null);
   const liveFinalRef = useRef<string>("");
 
+  // Phrase-by-phrase chunk processing (speak mode only).
+  // We use SpeechRecognition pauses as the trigger to flush the latest spoken
+  // chunk to the AI and append the resulting line items to the draft, so the
+  // tradesperson sees the quote build live without tapping between items.
+  const PAUSE_MS = 1700;
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const processedFinalLenRef = useRef<number>(0);
+  const chunkProcessedCountRef = useRef<number>(0);
+  const chunkQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+
 
   useEffect(() => {
     return () => {
@@ -214,6 +225,67 @@ function NewQuotePage() {
     return { combinedDesc: combined, target: "desc" };
   };
 
+  // Process a single spoken chunk into line items and APPEND to the draft.
+  // First chunk also seeds title, clean description and extracted customer.
+  const processChunkNow = async (text: string) => {
+    const clean = text.trim();
+    if (!clean) return;
+    try {
+      const g = await generateFn({ data: { description: clean, trade, vatRegistered: vat } });
+      const isFirst = chunkProcessedCountRef.current === 0;
+      setDraft((prev) => {
+        if (!prev) return { title: g.title, line_items: g.line_items };
+        return { ...prev, line_items: [...prev.line_items, ...g.line_items] };
+      });
+      chunkProcessedCountRef.current += 1;
+      if (isFirst) {
+        setDesc((d) => (d.trim() ? d : (g.clean_description?.trim() || clean)));
+        const ec = g.extracted_customer;
+        if (ec?.name) setClientName((n) => (n.trim() ? n : ec.name!));
+        if (ec?.phone) setClientPhone((p) => (p.trim() ? p : ec.phone!));
+        feedback("success");
+        playSample("ding");
+      } else {
+        feedback("tap");
+      }
+    } catch (e) {
+      // Swallow per-chunk failures: the stop-time fallback will run a full
+      // whisper+generate if NO chunks ever succeeded. If some chunks succeeded
+      // and one fails, we just drop that phrase (better than corrupting the draft).
+      console.error("[chunk] generate failed", e);
+    }
+  };
+
+  // Serialize chunk processing so phrases are appended in spoken order.
+  const enqueueChunkProcessing = (text: string) => {
+    chunkQueueRef.current = chunkQueueRef.current.then(() => processChunkNow(text)).catch(() => {});
+    return chunkQueueRef.current;
+  };
+
+  // Take any newly-spoken text since last flush and queue it for processing.
+  const flushPendingChunk = () => {
+    if (pauseTimerRef.current) {
+      clearTimeout(pauseTimerRef.current);
+      pauseTimerRef.current = null;
+    }
+    const fullFinal = liveFinalRef.current;
+    const newText = fullFinal.slice(processedFinalLenRef.current).trim();
+    if (!newText) return Promise.resolve();
+    processedFinalLenRef.current = fullFinal.length;
+    return enqueueChunkProcessing(newText);
+  };
+
+  // Debounce: a quiet gap of PAUSE_MS in continuous speech == phrase boundary.
+  // Only active in speak-mode targeting the description (not on-site clips).
+  const scheduleChunkFlush = () => {
+    if (mode !== "speak" || recordTargetRef.current !== "desc") return;
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    pauseTimerRef.current = setTimeout(() => {
+      pauseTimerRef.current = null;
+      void flushPendingChunk();
+    }, PAUSE_MS);
+  };
+
   const runTranscribe = async (blob: Blob, mimeType: string) => {
     setTranscribing(true);
     setVoiceError(null);
@@ -246,6 +318,7 @@ function NewQuotePage() {
     if (!cached) return;
     void runTranscribe(cached.blob, cached.mimeType);
   };
+
 
 
   const startRecording = async () => {
@@ -292,13 +365,21 @@ function NewQuotePage() {
         clearInterval(tickRef.current);
         tickRef.current = null;
       }
-      // Tear down live preview recognizer (display only — never used as result).
+      // Give the live SpeechRecognition a brief moment to settle so any
+      // trailing isFinal result is captured before we flush the last chunk.
+      await new Promise((r) => setTimeout(r, 300));
       try {
         recognitionRef.current?.stop?.();
       } catch {
         // ignore
       }
       recognitionRef.current = null;
+
+      // Flush any pause-detected text that wasn't processed yet, then wait
+      // for the per-chunk processing queue to drain.
+      await flushPendingChunk();
+      await chunkQueueRef.current;
+
       setRecording(false);
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -307,6 +388,19 @@ function NewQuotePage() {
       const blob = new Blob(chunksRef.current, { type: blobType });
       chunksRef.current = [];
 
+      // If the phrase-by-phrase path produced any line items, we're done —
+      // do NOT re-transcribe the full recording (that would duplicate items).
+      if (chunkProcessedCountRef.current > 0) {
+        setDesc((d) => (d.trim() ? d : liveFinalRef.current.trim()));
+        if (liveFinalRef.current.trim()) setLastTranscript(liveFinalRef.current.trim());
+        lastBlobRef.current = null;
+        setLivePreview("");
+        liveFinalRef.current = "";
+        return;
+      }
+
+      // Fallback: no chunks processed (no SpeechRecognition support, or it
+      // didn't detect speech). Use the existing whisper + auto-generate path.
       if (blob.size < 1000) {
         setVoiceError(
           "Recording was too short. Hold the button and speak for at least 2 seconds.",
@@ -318,6 +412,7 @@ function NewQuotePage() {
       await runTranscribe(blob, blobType);
 
     };
+
 
     // Live preview via Web Speech API — visual feedback only, discarded on stop.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -334,20 +429,34 @@ function NewQuotePage() {
         rec.interimResults = true;
         rec.lang = "en-GB";
         liveFinalRef.current = "";
+        processedFinalLenRef.current = 0;
+        chunkProcessedCountRef.current = 0;
+        chunkQueueRef.current = Promise.resolve();
+        if (pauseTimerRef.current) {
+          clearTimeout(pauseTimerRef.current);
+          pauseTimerRef.current = null;
+        }
         setLivePreview("");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         rec.onresult = (event: any) => {
           let interim = "";
+          let gotFinal = false;
           for (let i = event.resultIndex; i < event.results.length; i++) {
             const res = event.results[i];
             const txt = res[0]?.transcript ?? "";
             if (res.isFinal) {
               liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
+              gotFinal = true;
             } else {
               interim += txt;
             }
           }
           setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
+          // Reset/extend pause timer on every result; a quiet gap == phrase end.
+          // gotFinal isn't required — also debounce on interim updates so we
+          // don't fire mid-sentence.
+          void gotFinal;
+          scheduleChunkFlush();
         };
         rec.onerror = () => {
           // Silent: this is preview only.
@@ -360,6 +469,7 @@ function NewQuotePage() {
     } else {
       setLiveSupported(false);
     }
+
 
     // Timeslice of 1s ensures a chunk is flushed every second even on iOS Safari.
     recordStartRef.current = Date.now();
