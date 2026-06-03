@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, Share2, Loader2, X, ShoppingCart } from "lucide-react";
+import { Check, Share2, Loader2, X, ShoppingCart, Plus, Trash2 } from "lucide-react";
 import {
   buildMaterialsShareText,
   materialsForQuote,
-  setQuoteMaterialsPurchased,
-  userProfile,
+  addMaterialItem,
+  setMaterialPurchased,
+  removeMaterialItem,
   type Quote,
 } from "@/lib/user-data";
-import { resolveTrade } from "@/lib/trades";
 import { feedback } from "@/lib/feedback";
 
 type Props = {
@@ -19,41 +19,56 @@ type Props = {
 };
 
 export function MaterialListSheet({ open, onClose, quote, customerName }: Props) {
-  const initial = materialsForQuote(quote);
-  const [checks, setChecks] = useState<Record<number, boolean>>(() =>
-    Object.fromEntries(initial.map((m) => [m.index, m.purchased])),
-  );
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [desc, setDesc] = useState("");
+  const [qty, setQty] = useState("1");
 
   if (!open) return null;
 
-  const mats = materialsForQuote(quote).map((m) => ({
-    ...m,
-    purchased: checks[m.index] ?? m.purchased,
-  }));
+  const mats = materialsForQuote(quote);
 
-  const toggle = (index: number) => {
+  const toggle = async (itemId: string, current: boolean) => {
     feedback("tap");
-    const next = { ...checks, [index]: !(checks[index] ?? false) };
-    // optimistic local state — also for initial values from the quote
-    if (checks[index] === undefined) {
-      const existing = mats.find((m) => m.index === index)?.purchased ?? false;
-      next[index] = !existing;
-    }
-    setChecks(next);
-    void persist(next);
-  };
-
-  const persist = async (state: Record<number, boolean>) => {
     setSaving(true);
     try {
-      const arr = quote.line_items.map((_, i) => state[i] ?? !!quote.materials_purchased?.[i]);
-      await setQuoteMaterialsPurchased(quote.id, arr);
+      await setMaterialPurchased(quote.id, itemId, !current);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const remove = async (itemId: string) => {
+    feedback("tap");
+    setSaving(true);
+    try {
+      await removeMaterialItem(quote.id, itemId);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not remove");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const description = desc.trim();
+    if (!description) return;
+    const quantity = Math.max(1, Math.floor(Number(qty) || 1));
+    setAdding(true);
+    try {
+      await addMaterialItem(quote.id, { description, qty: quantity });
+      setDesc("");
+      setQty("1");
+      feedback("success");
+    } catch (err) {
+      feedback("error");
+      toast.error(err instanceof Error ? err.message : "Could not add item");
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -125,15 +140,15 @@ export function MaterialListSheet({ open, onClose, quote, customerName }: Props)
         <div className="flex-1 overflow-y-auto -mx-1 px-1">
           {mats.length === 0 ? (
             <div className="card-surface p-6 text-center text-sm text-muted-foreground">
-              No {resolveTrade(userProfile.trade_type).materialPhrase} on this quote yet.
+              No materials yet. Add what you need to buy for this job below.
             </div>
           ) : (
             <ul className="space-y-1.5">
               {mats.map((m) => (
-                <li key={m.index}>
+                <li key={m.id} className="flex items-stretch gap-1.5">
                   <button
-                    onClick={() => toggle(m.index)}
-                    className={`w-full text-left rounded-2xl border p-3.5 flex items-start gap-3 transition ${
+                    onClick={() => toggle(m.id, m.purchased)}
+                    className={`flex-1 text-left rounded-2xl border p-3.5 flex items-start gap-3 transition ${
                       m.purchased
                         ? "bg-lime/15 border-lime/40"
                         : "bg-card border-border hover:bg-secondary/60"
@@ -156,12 +171,14 @@ export function MaterialListSheet({ open, onClose, quote, customerName }: Props)
                       >
                         {m.qty}x {m.description}
                       </p>
-                      {m.supplier_code && (
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Code: <span className="num">{m.supplier_code}</span>
-                        </p>
-                      )}
                     </div>
+                  </button>
+                  <button
+                    onClick={() => remove(m.id)}
+                    aria-label="Remove"
+                    className="w-10 rounded-2xl bg-secondary/60 hover:bg-secondary inline-flex items-center justify-center text-muted-foreground"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </li>
               ))}
@@ -169,10 +186,34 @@ export function MaterialListSheet({ open, onClose, quote, customerName }: Props)
           )}
         </div>
 
+        <form onSubmit={handleAdd} className="mt-4 flex items-center gap-1.5">
+          <input
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            placeholder="Add material…"
+            className="flex-1 h-11 rounded-full border border-border bg-card px-4 text-sm focus:outline-none focus:ring-2 focus:ring-ink/20"
+          />
+          <input
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
+            inputMode="numeric"
+            aria-label="Quantity"
+            className="w-14 h-11 rounded-full border border-border bg-card px-3 text-sm text-center focus:outline-none focus:ring-2 focus:ring-ink/20"
+          />
+          <button
+            type="submit"
+            disabled={adding || !desc.trim()}
+            aria-label="Add"
+            className="h-11 w-11 rounded-full bg-ink text-paper inline-flex items-center justify-center disabled:opacity-50"
+          >
+            {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          </button>
+        </form>
+
         <button
           onClick={handleShare}
           disabled={sharing || mats.length === 0}
-          className="mt-4 w-full bg-ink text-paper rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+          className="mt-3 w-full bg-ink text-paper rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50"
         >
           {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
           Share list
