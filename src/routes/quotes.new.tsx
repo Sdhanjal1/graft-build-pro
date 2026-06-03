@@ -452,6 +452,10 @@ function NewQuotePage() {
       const blob = new Blob(chunksRef.current, { type: blobType });
       chunksRef.current = [];
 
+      if (closeRequestedRef.current || sessionId !== voiceSessionRef.current) {
+        return;
+      }
+
       if (isClipMode) {
         // Clip mode uses single-pass Whisper for on-site capture.
         if (blob.size < 1000) {
@@ -534,7 +538,9 @@ function NewQuotePage() {
                 lastFinalIdxRef.current = i;
                 liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
                 const phrase = txt.trim();
-                if (isMeaningfulPhrase(phrase)) {
+                const key = phrase.toLowerCase();
+                if (isMeaningfulPhrase(phrase) && !processedPhraseKeysRef.current.has(key)) {
+                  processedPhraseKeysRef.current.add(key);
                   void processPhrase(phrase, sessionId);
                 }
               }
