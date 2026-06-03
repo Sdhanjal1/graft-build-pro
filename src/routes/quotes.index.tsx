@@ -278,12 +278,8 @@ function QuoteCard({
           ) : null;
         })()}
       </div>
-      <div className="flex flex-col items-end gap-1.5 shrink-0">
-        <span
-          className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT[quote.status]}`}
-          aria-label={STATUS_LABEL[quote.status]}
-        />
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+      <div className="shrink-0">
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider font-bold ${STATUS_PILL[quote.status]}`}>
           {STATUS_LABEL[quote.status]}
         </span>
       </div>
