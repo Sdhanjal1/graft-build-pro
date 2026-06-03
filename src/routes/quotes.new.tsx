@@ -125,14 +125,31 @@ function NewQuotePage() {
   const liveFinalRef = useRef<string>("");
 
   // Phrase-by-phrase chunk processing (speak mode only).
-  // We use SpeechRecognition pauses as the trigger to flush the latest spoken
-  // chunk to the AI and append the resulting line items to the draft, so the
-  // tradesperson sees the quote build live without tapping between items.
-  const PAUSE_MS = 1700;
-  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const processedFinalLenRef = useRef<number>(0);
+  // We use real audio silence detection (AudioContext + AnalyserNode) to cut
+  // the MediaRecorder at each natural pause. Each phrase becomes its own audio
+  // blob → transcribed → line items appended. This works reliably on iOS where
+  // SpeechRecognition is not available / not continuous.
+  const SILENCE_RMS = 0.012;
+  const SILENCE_MS = 1500;
+  const MIN_PHRASE_MS = 600;
   const chunkProcessedCountRef = useRef<number>(0);
   const chunkQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  // Audio analysis refs
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  // Per-phrase recorder
+  const phraseChunksRef = useRef<BlobPart[]>([]);
+  const phraseHasSpeechRef = useRef<boolean>(false);
+  const phraseStartedAtRef = useRef<number>(0);
+  const silenceStartRef = useRef<number | null>(null);
+  const stoppingFinalRef = useRef<boolean>(false);
+  const phraseMimeRef = useRef<string>("");
+  const sharedStreamRef = useRef<MediaStream | null>(null);
+  const finalizeRef = useRef<() => void>(() => {});
 
 
 
@@ -192,6 +209,7 @@ function NewQuotePage() {
     if (!mr || mr.state === "inactive") return;
     const elapsed = Date.now() - recordStartRef.current;
     const remaining = MIN_RECORD_MS - elapsed;
+    stoppingFinalRef.current = true;
     if (remaining > 0) {
       setTimeout(() => {
         const cur = mediaRecorderRef.current;
@@ -256,35 +274,31 @@ function NewQuotePage() {
     }
   };
 
-  // Serialize chunk processing so phrases are appended in spoken order.
-  const enqueueChunkProcessing = (text: string) => {
-    chunkQueueRef.current = chunkQueueRef.current.then(() => processChunkNow(text)).catch(() => {});
+
+
+  // Transcribe a single phrase blob then run it through generate; append the
+  // resulting line items to the draft. Serialised via chunkQueueRef so phrases
+  // are appended in the order they were spoken.
+  const enqueuePhraseBlob = (blob: Blob, mimeType: string) => {
+    chunkQueueRef.current = chunkQueueRef.current
+      .then(async () => {
+        try {
+          if (blob.size < 1200) return; // too short, likely no real speech
+          const audioBase64 = await blobToBase64(blob);
+          const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
+          const clean = (text || "").trim();
+          if (!clean) return;
+          // Append the phrase to the desc transcript for the saved record.
+          setDesc((d) => (d.trim() ? `${d.trim()} ${clean}` : clean));
+          await processChunkNow(clean);
+        } catch (e) {
+          console.error("[phrase] failed", e);
+        }
+      })
+      .catch(() => {});
     return chunkQueueRef.current;
   };
 
-  // Take any newly-spoken text since last flush and queue it for processing.
-  const flushPendingChunk = () => {
-    if (pauseTimerRef.current) {
-      clearTimeout(pauseTimerRef.current);
-      pauseTimerRef.current = null;
-    }
-    const fullFinal = liveFinalRef.current;
-    const newText = fullFinal.slice(processedFinalLenRef.current).trim();
-    if (!newText) return Promise.resolve();
-    processedFinalLenRef.current = fullFinal.length;
-    return enqueueChunkProcessing(newText);
-  };
-
-  // Debounce: a quiet gap of PAUSE_MS in continuous speech == phrase boundary.
-  // Only active in speak-mode targeting the description (not on-site clips).
-  const scheduleChunkFlush = () => {
-    if (mode !== "speak" || recordTargetRef.current !== "desc") return;
-    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
-    pauseTimerRef.current = setTimeout(() => {
-      pauseTimerRef.current = null;
-      void flushPendingChunk();
-    }, PAUSE_MS);
-  };
 
   const runTranscribe = async (blob: Blob, mimeType: string) => {
     setTranscribing(true);
@@ -342,84 +356,181 @@ function NewQuotePage() {
       return;
     }
     streamRef.current = stream;
+    sharedStreamRef.current = stream;
 
     const mimeType = pickMimeType();
-    let mr: MediaRecorder;
-    try {
-      mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-    } catch (err) {
-      console.error(err);
-      stream.getTracks().forEach((t) => t.stop());
-      setVoiceError("Could not start recorder on this browser.");
-      return;
-    }
-    mediaRecorderRef.current = mr;
-    chunksRef.current = [];
+    phraseMimeRef.current = mimeType;
+    chunkProcessedCountRef.current = 0;
+    chunkQueueRef.current = Promise.resolve();
+    stoppingFinalRef.current = false;
+    liveFinalRef.current = "";
+    setLivePreview("");
 
-    mr.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+    // Use on-site clip mode? It bypasses the phrase chunker: record one whole
+    // blob, transcribe at stop, add as a single clip. We branch here for clarity.
+    const isClipMode = recordTargetRef.current === "clip";
+
+    // ---------- Audio silence analyser (used for phrase cutting in speak mode) ----------
+    const setupAnalyser = (s: MediaStream) => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const AC: any = (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (!AC) return false;
+        const ctx = new AC();
+        const source = ctx.createMediaStreamSource(s);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = 0.4;
+        source.connect(analyser);
+        audioCtxRef.current = ctx;
+        audioSourceRef.current = source;
+        analyserRef.current = analyser;
+        return true;
+      } catch (e) {
+        console.warn("[analyser] init failed", e);
+        return false;
+      }
     };
 
-    mr.onstop = async () => {
+    const teardownAnalyser = () => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
+      try { void audioCtxRef.current?.close(); } catch { /* noop */ }
+      audioSourceRef.current = null;
+      analyserRef.current = null;
+      audioCtxRef.current = null;
+    };
+
+    // ---------- Per-phrase MediaRecorder ----------
+    const startNewPhraseRecorder = (): MediaRecorder | null => {
+      const s = sharedStreamRef.current;
+      if (!s) return null;
+      let pmr: MediaRecorder;
+      try {
+        pmr = mimeType ? new MediaRecorder(s, { mimeType }) : new MediaRecorder(s);
+      } catch (e) {
+        console.error("[phrase] recorder failed", e);
+        return null;
+      }
+      phraseChunksRef.current = [];
+      phraseHasSpeechRef.current = false;
+      silenceStartRef.current = null;
+      phraseStartedAtRef.current = Date.now();
+      pmr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) phraseChunksRef.current.push(e.data);
+      };
+      pmr.onstop = () => {
+        const blobType = pmr.mimeType || mimeType || "audio/webm";
+        const blob = new Blob(phraseChunksRef.current, { type: blobType });
+        phraseChunksRef.current = [];
+        const hadSpeech = phraseHasSpeechRef.current;
+        const isFinal = stoppingFinalRef.current;
+        if (hadSpeech && blob.size > 1200) {
+          enqueuePhraseBlob(blob, blobType);
+          chunkProcessedCountRef.current += 1;
+        }
+        if (!isFinal && sharedStreamRef.current) {
+          // Immediately start the next phrase recorder so we don't lose audio.
+          const next = startNewPhraseRecorder();
+          if (next) {
+            mediaRecorderRef.current = next;
+            try { next.start(); } catch (e) { console.error(e); }
+          }
+        } else if (isFinal) {
+          // Finalisation: wait for queue, tear down, surface errors.
+          finalizeRef.current();
+        }
+      };
+      return pmr;
+    };
+
+    const finalize = async () => {
       if (tickRef.current) {
         clearInterval(tickRef.current);
         tickRef.current = null;
       }
-      // Give the live SpeechRecognition a brief moment to settle so any
-      // trailing isFinal result is captured before we flush the last chunk.
-      await new Promise((r) => setTimeout(r, 300));
-      try {
-        recognitionRef.current?.stop?.();
-      } catch {
-        // ignore
-      }
+      teardownAnalyser();
+      try { recognitionRef.current?.stop?.(); } catch { /* noop */ }
       recognitionRef.current = null;
-
-      // Flush any pause-detected text that wasn't processed yet, then wait
-      // for the per-chunk processing queue to drain.
-      await flushPendingChunk();
       await chunkQueueRef.current;
-
       setRecording(false);
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
+      sharedStreamRef.current = null;
       streamRef.current = null;
-
-      const blobType = mr.mimeType || mimeType || "audio/webm";
-      const blob = new Blob(chunksRef.current, { type: blobType });
-      chunksRef.current = [];
-
-      // If the phrase-by-phrase path produced any line items, we're done —
-      // do NOT re-transcribe the full recording (that would duplicate items).
-      if (chunkProcessedCountRef.current > 0) {
-        setDesc((d) => (d.trim() ? d : liveFinalRef.current.trim()));
-        if (liveFinalRef.current.trim()) setLastTranscript(liveFinalRef.current.trim());
-        lastBlobRef.current = null;
-        setLivePreview("");
-        liveFinalRef.current = "";
-        return;
-      }
-
-      // Fallback: no chunks processed (no SpeechRecognition support, or it
-      // didn't detect speech). Use the existing whisper + auto-generate path.
-      if (blob.size < 1000) {
+      setLivePreview("");
+      if (chunkProcessedCountRef.current === 0 && !isClipMode) {
         setVoiceError(
-          "Recording was too short. Hold the button and speak for at least 2 seconds.",
+          "We didn't catch any speech. Tap the mic and describe the job out loud.",
         );
+      } else if (liveFinalRef.current.trim()) {
+        setLastTranscript(liveFinalRef.current.trim());
+      }
+      liveFinalRef.current = "";
+    };
+    finalizeRef.current = () => { void finalize(); };
+
+    // ---------- ON-SITE CLIP MODE: single blob, no phrase chunking ----------
+    if (isClipMode) {
+      let mr: MediaRecorder;
+      try {
+        mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      } catch (err) {
+        console.error(err);
+        stream.getTracks().forEach((t) => t.stop());
+        setVoiceError("Could not start recorder on this browser.");
         return;
       }
+      mediaRecorderRef.current = mr;
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      mr.onstop = async () => {
+        if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+        setRecording(false);
+        sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
+        sharedStreamRef.current = null;
+        streamRef.current = null;
+        const blobType = mr.mimeType || mimeType || "audio/webm";
+        const blob = new Blob(chunksRef.current, { type: blobType });
+        chunksRef.current = [];
+        if (blob.size < 1000) {
+          setVoiceError("Recording was too short. Hold and speak for at least 2 seconds.");
+          return;
+        }
+        lastBlobRef.current = { blob, mimeType: blobType };
+        await runTranscribe(blob, blobType);
+      };
+      recordStartRef.current = Date.now();
+      mr.start(1000);
+      setRecording(true);
+      setRecordSeconds(0);
+      tickRef.current = setInterval(() => {
+        setRecordSeconds((s) => {
+          const next = s + 1;
+          if (next >= MAX_RECORD_SECONDS) {
+            stopRecording();
+            return MAX_RECORD_SECONDS;
+          }
+          return next;
+        });
+      }, 1000);
+      return;
+    }
 
-      lastBlobRef.current = { blob, mimeType: blobType };
-      await runTranscribe(blob, blobType);
+    // ---------- SPEAK MODE: phrase-by-phrase via audio silence detection ----------
+    const analyserOk = setupAnalyser(stream);
 
-    };
-
-
-    // Live preview via Web Speech API — visual feedback only, discarded on stop.
+    // Live preview text via Web Speech API (visual only; pause detection comes
+    // from real audio analysis, not from SR).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR: any =
       typeof window !== "undefined"
-        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
         : null;
     if (SR) {
       setLiveSupported(true);
@@ -428,39 +539,21 @@ function NewQuotePage() {
         rec.continuous = true;
         rec.interimResults = true;
         rec.lang = "en-GB";
-        liveFinalRef.current = "";
-        processedFinalLenRef.current = 0;
-        chunkProcessedCountRef.current = 0;
-        chunkQueueRef.current = Promise.resolve();
-        if (pauseTimerRef.current) {
-          clearTimeout(pauseTimerRef.current);
-          pauseTimerRef.current = null;
-        }
-        setLivePreview("");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         rec.onresult = (event: any) => {
           let interim = "";
-          let gotFinal = false;
           for (let i = event.resultIndex; i < event.results.length; i++) {
             const res = event.results[i];
             const txt = res[0]?.transcript ?? "";
             if (res.isFinal) {
               liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
-              gotFinal = true;
             } else {
               interim += txt;
             }
           }
           setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
-          // Reset/extend pause timer on every result; a quiet gap == phrase end.
-          // gotFinal isn't required — also debounce on interim updates so we
-          // don't fire mid-sentence.
-          void gotFinal;
-          scheduleChunkFlush();
         };
-        rec.onerror = () => {
-          // Silent: this is preview only.
-        };
+        rec.onerror = () => { /* silent: preview only */ };
         recognitionRef.current = rec;
         rec.start();
       } catch {
@@ -470,10 +563,16 @@ function NewQuotePage() {
       setLiveSupported(false);
     }
 
-
-    // Timeslice of 1s ensures a chunk is flushed every second even on iOS Safari.
+    // Start the first phrase recorder.
+    const firstPmr = startNewPhraseRecorder();
+    if (!firstPmr) {
+      setVoiceError("Could not start recorder on this browser.");
+      stream.getTracks().forEach((t) => t.stop());
+      return;
+    }
+    mediaRecorderRef.current = firstPmr;
     recordStartRef.current = Date.now();
-    mr.start(1000);
+    firstPmr.start();
 
     setRecording(true);
     setRecordSeconds(0);
@@ -487,7 +586,53 @@ function NewQuotePage() {
         return next;
       });
     }, 1000);
+
+    // RMS silence-detection loop. When we've heard speech then go quiet for
+    // SILENCE_MS, cut the current phrase: stop the MR (its onstop will
+    // enqueue the blob for transcribe + append and immediately start the
+    // next phrase recorder).
+    if (analyserOk && analyserRef.current) {
+      const analyser = analyserRef.current;
+      const buf = new Float32Array(analyser.fftSize);
+      const loop = () => {
+        if (!analyserRef.current || stoppingFinalRef.current) {
+          rafRef.current = null;
+          return;
+        }
+        try {
+          analyser.getFloatTimeDomainData(buf);
+        } catch {
+          rafRef.current = requestAnimationFrame(loop);
+          return;
+        }
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+        const rms = Math.sqrt(sum / buf.length);
+        const now = performance.now();
+        if (rms > SILENCE_RMS) {
+          phraseHasSpeechRef.current = true;
+          silenceStartRef.current = null;
+        } else if (phraseHasSpeechRef.current) {
+          if (silenceStartRef.current == null) {
+            silenceStartRef.current = now;
+          } else if (
+            now - silenceStartRef.current >= SILENCE_MS &&
+            Date.now() - phraseStartedAtRef.current >= MIN_PHRASE_MS
+          ) {
+            const pmr = mediaRecorderRef.current;
+            silenceStartRef.current = null;
+            if (pmr && pmr.state === "recording") {
+              try { pmr.stop(); } catch (e) { console.error(e); }
+            }
+          }
+        }
+        rafRef.current = requestAnimationFrame(loop);
+      };
+      rafRef.current = requestAnimationFrame(loop);
+    }
   };
+
+
 
   const startRecordingForClip = () => {
     if (transcribing || recording) return;
@@ -611,6 +756,7 @@ function NewQuotePage() {
           lastTranscript={lastTranscript}
           livePreview={livePreview}
           liveSupported={liveSupported}
+          liveItems={draft?.line_items ?? []}
           onStart={handleVoiceStart}
           onStop={stopRecording}
           onClose={handleVoiceClose}
@@ -1240,6 +1386,7 @@ function VoiceOverlay({
   lastTranscript,
   livePreview,
   liveSupported,
+  liveItems,
   onStart,
   onStop,
   onClose,
@@ -1252,6 +1399,7 @@ function VoiceOverlay({
   lastTranscript: string | null;
   livePreview: string;
   liveSupported: boolean;
+  liveItems: LineItem[];
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
@@ -1260,24 +1408,59 @@ function VoiceOverlay({
 
   if (typeof document === "undefined") return null;
   const idle = !recording && !transcribing;
+  const showItems = (recording || transcribing) && liveItems.length > 0;
   return createPortal(
-    <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col items-center justify-between px-6 pt-16 pb-10 safe-top safe-bottom">
+    <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col items-center justify-between px-6 pt-12 pb-8 safe-top safe-bottom">
 
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center w-full max-w-md">
         <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
           {transcribing ? "Transcribing" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
         </p>
-        <p className="num text-2xl mt-1 text-lime">{formatMMSS(seconds)}</p>
+        <p className="num text-2xl mt-1 text-paper">
+          <span className="text-lime">●</span> <span className="text-paper">{formatMMSS(seconds)}</span>
+        </p>
         {recording && (
-          <div className="mt-3 w-full max-w-md min-h-[1.25rem] px-4 text-center">
+          <div className="mt-2 w-full min-h-[1rem] px-2 text-center">
             {livePreview ? (
-              <p className="text-xs italic text-paper/50 leading-snug line-clamp-3">
+              <p className="text-xs italic text-paper/60 leading-snug line-clamp-2">
                 {livePreview}
               </p>
             ) : !liveSupported ? (
               <p className="text-xs italic text-paper/40">Listening…</p>
             ) : null}
           </div>
+        )}
+
+        {/* LIVE LINE ITEMS — built phrase-by-phrase as the tradesperson speaks.
+            High-contrast paper text on the dark overlay, with a lime left
+            border as the only accent. The lime is NEVER used for body text. */}
+        {showItems && (
+          <ul className="mt-4 w-full space-y-1.5 max-h-[40vh] overflow-y-auto">
+            {liveItems.map((li, i) => {
+              const isLabour = li.category === "labour" || li.category === "cis_labour";
+              const unit = li.unit ?? (isLabour ? "hours" : "qty");
+              const suffix = unit === "hours" ? "/hr" : unit === "days" ? "/day" : "";
+              return (
+                <li
+                  key={i}
+                  className="rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-2 flex items-start gap-3 animate-scale-in"
+                >
+                  <span className="num text-[11px] font-bold text-paper/40 mt-0.5 shrink-0 w-5 text-right">
+                    {i + 1}
+                  </span>
+                  <p className="flex-1 text-sm leading-snug text-paper font-medium">
+                    {li.description}
+                  </p>
+                  <p className="num text-sm font-semibold text-paper shrink-0 whitespace-nowrap">
+                    {li.qty}
+                    {unit !== "qty" ? `${unit === "hours" ? "h" : "d"}` : ""} ·{" "}
+                    {formatGBP(li.qty * li.unit_price)}
+                    {suffix && <span className="text-paper/50 text-[10px]"> {suffix}</span>}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
 
@@ -1286,30 +1469,30 @@ function VoiceOverlay({
         onClick={idle ? onStart : onStop}
         disabled={transcribing}
         aria-label={transcribing ? "Transcribing" : recording ? "Stop recording" : "Start recording"}
-        className="relative flex items-center justify-center my-8 disabled:opacity-60"
+        className="relative flex items-center justify-center my-6 disabled:opacity-60"
       >
         {recording && (
           <>
-            <span className="absolute h-64 w-64 rounded-full bg-lime/10 animate-ping" />
-            <span className="absolute h-52 w-52 rounded-full bg-lime/20 animate-pulse" />
+            <span className="absolute h-56 w-56 rounded-full bg-lime/10 animate-ping" />
+            <span className="absolute h-44 w-44 rounded-full bg-lime/20 animate-pulse" />
           </>
         )}
         <div
-          className={`relative h-40 w-40 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_60px_-12px_rgba(200,224,74,0.7)] ${
+          className={`relative ${showItems ? "h-28 w-28" : "h-36 w-36"} rounded-full bg-lime flex items-center justify-center shadow-[0_20px_60px_-12px_rgba(200,224,74,0.7)] transition-all ${
             recording ? "animate-[pulse_1.4s_ease-in-out_infinite]" : ""
           }`}
         >
           {transcribing ? (
-            <Loader2 className="h-16 w-16 text-ink animate-spin" />
+            <Loader2 className={`${showItems ? "h-12 w-12" : "h-14 w-14"} text-ink animate-spin`} />
           ) : recording ? (
-            <Square className="h-16 w-16 text-ink fill-ink" strokeWidth={2.25} />
+            <Square className={`${showItems ? "h-12 w-12" : "h-14 w-14"} text-ink fill-ink`} strokeWidth={2.25} />
           ) : (
-            <Mic className="h-16 w-16 text-ink" strokeWidth={2.25} />
+            <Mic className={`${showItems ? "h-12 w-12" : "h-14 w-14"} text-ink`} strokeWidth={2.25} />
           )}
         </div>
       </button>
 
-      <div className="w-full max-w-md min-h-[6rem] text-center space-y-2">
+      <div className="w-full max-w-md min-h-[4rem] text-center space-y-2">
         {error ? (
           <>
             <p className="text-sm text-status-overdue font-medium">{error}</p>
@@ -1325,17 +1508,18 @@ function VoiceOverlay({
             )}
           </>
         ) : transcribing ? (
-          <p className="text-sm text-paper/60">Turning your voice into text…</p>
-
+          <p className="text-sm text-paper/70">Turning your voice into text…</p>
         ) : recording ? (
-          <p className="text-sm text-paper/60">Describe the job, boiler, bathroom, materials, time…</p>
+          <p className="text-sm text-paper/70">
+            {showItems ? "Keep going — pause between items to add a new line." : "Describe the job, boiler, bathroom, materials, time…"}
+          </p>
         ) : lastTranscript ? (
           <>
             <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">Captured</p>
             <p className="text-sm text-paper italic">“{lastTranscript}”</p>
           </>
         ) : (
-          <p className="text-sm text-paper/50">Describe the job, boiler, bathroom, materials, time…</p>
+          <p className="text-sm text-paper/60">Describe the job, boiler, bathroom, materials, time…</p>
         )}
       </div>
 
@@ -1343,14 +1527,15 @@ function VoiceOverlay({
         <button
           type="button"
           onClick={onClose}
-          className="text-xs uppercase tracking-widest text-paper/50 font-semibold py-3"
+          className="text-xs uppercase tracking-widest text-paper/60 font-semibold py-3"
         >
           {error || lastTranscript ? "Done" : "Cancel"}
         </button>
       )}
-      {!idle && <div className="h-16" />}
+      {!idle && <div className="h-12" />}
     </div>,
     document.body,
   );
 }
+
 
