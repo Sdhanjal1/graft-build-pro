@@ -118,6 +118,13 @@
   .animate-scale-in {
     animation: scale-in 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
+  .animate-line-glow {
+    animation: line-glow 600ms ease-out both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-line-glow { animation: none; }
+  }
+
 
   /* Mic ring animations */
   .mic-ring-inner {
@@ -148,6 +155,19 @@
   60% { transform: scale(1.15); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
+
+@keyframes line-glow {
+  0% {
+    background-color: color-mix(in oklab, var(--lime) 28%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--lime) 35%, transparent),
+                0 6px 20px -8px color-mix(in oklab, var(--lime) 60%, transparent);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 transparent, 0 0 0 0 transparent;
+  }
+}
+
 
 /* Prevent iOS Safari from auto-zooming when focusing form controls.
    Any field under 16px triggers the zoom; enforce a 16px minimum on mobile. */

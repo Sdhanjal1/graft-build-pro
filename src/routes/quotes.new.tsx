@@ -1346,6 +1346,43 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+function prefersReducedMotion() {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function CountUpGBP({ value, className }: { value: number; className?: string }) {
+  const [display, setDisplay] = useState(value);
+  const fromRef = useRef(value);
+  const rafRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (prefersReducedMotion()) {
+      setDisplay(value);
+      fromRef.current = value;
+      return;
+    }
+    const from = fromRef.current;
+    const to = value;
+    if (from === to) return;
+    const duration = 280;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const cur = from + (to - from) * eased;
+      setDisplay(cur);
+      if (t < 1) rafRef.current = requestAnimationFrame(tick);
+      else fromRef.current = to;
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [value]);
+  return <span className={className}>{formatGBP(display)}</span>;
+}
+
+
 function VoiceOverlay({
   recording,
   transcribing,
@@ -1382,6 +1419,13 @@ function VoiceOverlay({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editDesc, setEditDesc] = useState("");
   const [editPrice, setEditPrice] = useState("");
+  const prevCountRef = useRef(0);
+  const justLandedFrom = prevCountRef.current;
+  useEffect(() => {
+    prevCountRef.current = liveItems.length;
+  }, [liveItems.length]);
+  const liveTotal = liveItems.reduce((s, li) => s + li.qty * li.unit_price, 0);
+
 
   function beginEdit(i: number, li: LineItem) {
     setEditingIndex(i);
@@ -1424,6 +1468,15 @@ function VoiceOverlay({
             <span className="text-[10px] uppercase tracking-widest">Listening</span>
           </div>
         )}
+
+        {showList && hasItems && (
+          <div className="mt-4 flex flex-col items-center">
+            <p className="text-[10px] uppercase tracking-widest text-paper/50 font-semibold">Running total</p>
+            <CountUpGBP value={liveTotal} className="num text-4xl text-lime mt-0.5" />
+          </div>
+        )}
+
+
 
 
         {showList && hasItems && (
@@ -1489,12 +1542,14 @@ function VoiceOverlay({
                   </li>
                 );
               }
+              const justLanded = i >= justLandedFrom;
               return (
                 <li
                   key={i}
                   onClick={() => beginEdit(i, li)}
-                  className="rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-2 flex items-start gap-3 animate-scale-in cursor-pointer active:bg-paper/[0.1]"
+                  className={`rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-2 flex items-start gap-3 animate-scale-in cursor-pointer active:bg-paper/[0.1] ${justLanded ? "animate-line-glow" : ""}`}
                 >
+
                   <span className="num text-[11px] font-bold text-paper/40 mt-0.5 shrink-0 w-5 text-right">
                     {i + 1}
                   </span>
