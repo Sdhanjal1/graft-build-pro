@@ -1651,7 +1651,7 @@ function VoiceOverlay({
 
 
       {/* EMPTY STATE: large central mic — hero of an empty screen */}
-      {!hasItems && (
+      {!hasItems && !hasPending && (
         <button
           type="button"
           onClick={idle ? onStart : onStop}
@@ -1682,7 +1682,7 @@ function VoiceOverlay({
       )}
 
       {/* ACTIVE / BUILDING STATE: smaller FAB docked at bottom-centre */}
-      {hasItems && (
+      {(hasItems || hasPending) && (
         <button
           type="button"
           onClick={idle ? onStart : onStop}
@@ -1713,7 +1713,7 @@ function VoiceOverlay({
       )}
 
       {/* Bottom text area — pushes up when mic is large, stays above FAB when mic is small */}
-      <div className={`w-full max-w-md min-h-[4rem] text-center space-y-2 ${hasItems ? "pb-16" : ""}`}>
+      <div className={`w-full max-w-md min-h-[4rem] text-center space-y-2 ${(hasItems || hasPending) ? "pb-16" : ""}`}>
         {error ? (
           <>
             <p className="text-sm text-status-overdue font-medium">{error}</p>
@@ -1753,7 +1753,7 @@ function VoiceOverlay({
           {error || lastTranscript ? "Done" : "Cancel"}
         </button>
       )}
-      {!idle && <div className={`h-12 ${hasItems ? "pb-8" : ""}`} />}
+      {!idle && <div className={`h-12 ${(hasItems || hasPending) ? "pb-8" : ""}`} />}
     </div>,
     document.body,
   );
