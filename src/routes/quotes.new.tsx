@@ -1386,6 +1386,7 @@ function VoiceOverlay({
   lastTranscript,
   livePreview,
   liveSupported,
+  liveItems,
   onStart,
   onStop,
   onClose,
@@ -1398,6 +1399,7 @@ function VoiceOverlay({
   lastTranscript: string | null;
   livePreview: string;
   liveSupported: boolean;
+  liveItems: LineItem[];
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
@@ -1406,24 +1408,59 @@ function VoiceOverlay({
 
   if (typeof document === "undefined") return null;
   const idle = !recording && !transcribing;
+  const showItems = (recording || transcribing) && liveItems.length > 0;
   return createPortal(
-    <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col items-center justify-between px-6 pt-16 pb-10 safe-top safe-bottom">
+    <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col items-center justify-between px-6 pt-12 pb-8 safe-top safe-bottom">
 
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center w-full max-w-md">
         <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
           {transcribing ? "Transcribing" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
         </p>
-        <p className="num text-2xl mt-1 text-lime">{formatMMSS(seconds)}</p>
+        <p className="num text-2xl mt-1 text-paper">
+          <span className="text-lime">●</span> <span className="text-paper">{formatMMSS(seconds)}</span>
+        </p>
         {recording && (
-          <div className="mt-3 w-full max-w-md min-h-[1.25rem] px-4 text-center">
+          <div className="mt-2 w-full min-h-[1rem] px-2 text-center">
             {livePreview ? (
-              <p className="text-xs italic text-paper/50 leading-snug line-clamp-3">
+              <p className="text-xs italic text-paper/60 leading-snug line-clamp-2">
                 {livePreview}
               </p>
             ) : !liveSupported ? (
               <p className="text-xs italic text-paper/40">Listening…</p>
             ) : null}
           </div>
+        )}
+
+        {/* LIVE LINE ITEMS — built phrase-by-phrase as the tradesperson speaks.
+            High-contrast paper text on the dark overlay, with a lime left
+            border as the only accent. The lime is NEVER used for body text. */}
+        {showItems && (
+          <ul className="mt-4 w-full space-y-1.5 max-h-[40vh] overflow-y-auto">
+            {liveItems.map((li, i) => {
+              const isLabour = li.category === "labour" || li.category === "cis_labour";
+              const unit = li.unit ?? (isLabour ? "hours" : "qty");
+              const suffix = unit === "hours" ? "/hr" : unit === "days" ? "/day" : "";
+              return (
+                <li
+                  key={i}
+                  className="rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-2 flex items-start gap-3 animate-scale-in"
+                >
+                  <span className="num text-[11px] font-bold text-paper/40 mt-0.5 shrink-0 w-5 text-right">
+                    {i + 1}
+                  </span>
+                  <p className="flex-1 text-sm leading-snug text-paper font-medium">
+                    {li.description}
+                  </p>
+                  <p className="num text-sm font-semibold text-paper shrink-0 whitespace-nowrap">
+                    {li.qty}
+                    {unit !== "qty" ? `${unit === "hours" ? "h" : "d"}` : ""} ·{" "}
+                    {formatGBP(li.qty * li.unit_price)}
+                    {suffix && <span className="text-paper/50 text-[10px]"> {suffix}</span>}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
 
@@ -1432,30 +1469,30 @@ function VoiceOverlay({
         onClick={idle ? onStart : onStop}
         disabled={transcribing}
         aria-label={transcribing ? "Transcribing" : recording ? "Stop recording" : "Start recording"}
-        className="relative flex items-center justify-center my-8 disabled:opacity-60"
+        className="relative flex items-center justify-center my-6 disabled:opacity-60"
       >
         {recording && (
           <>
-            <span className="absolute h-64 w-64 rounded-full bg-lime/10 animate-ping" />
-            <span className="absolute h-52 w-52 rounded-full bg-lime/20 animate-pulse" />
+            <span className="absolute h-56 w-56 rounded-full bg-lime/10 animate-ping" />
+            <span className="absolute h-44 w-44 rounded-full bg-lime/20 animate-pulse" />
           </>
         )}
         <div
-          className={`relative h-40 w-40 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_60px_-12px_rgba(200,224,74,0.7)] ${
+          className={`relative ${showItems ? "h-28 w-28" : "h-36 w-36"} rounded-full bg-lime flex items-center justify-center shadow-[0_20px_60px_-12px_rgba(200,224,74,0.7)] transition-all ${
             recording ? "animate-[pulse_1.4s_ease-in-out_infinite]" : ""
           }`}
         >
           {transcribing ? (
-            <Loader2 className="h-16 w-16 text-ink animate-spin" />
+            <Loader2 className={`${showItems ? "h-12 w-12" : "h-14 w-14"} text-ink animate-spin`} />
           ) : recording ? (
-            <Square className="h-16 w-16 text-ink fill-ink" strokeWidth={2.25} />
+            <Square className={`${showItems ? "h-12 w-12" : "h-14 w-14"} text-ink fill-ink`} strokeWidth={2.25} />
           ) : (
-            <Mic className="h-16 w-16 text-ink" strokeWidth={2.25} />
+            <Mic className={`${showItems ? "h-12 w-12" : "h-14 w-14"} text-ink`} strokeWidth={2.25} />
           )}
         </div>
       </button>
 
-      <div className="w-full max-w-md min-h-[6rem] text-center space-y-2">
+      <div className="w-full max-w-md min-h-[4rem] text-center space-y-2">
         {error ? (
           <>
             <p className="text-sm text-status-overdue font-medium">{error}</p>
@@ -1471,17 +1508,18 @@ function VoiceOverlay({
             )}
           </>
         ) : transcribing ? (
-          <p className="text-sm text-paper/60">Turning your voice into text…</p>
-
+          <p className="text-sm text-paper/70">Turning your voice into text…</p>
         ) : recording ? (
-          <p className="text-sm text-paper/60">Describe the job, boiler, bathroom, materials, time…</p>
+          <p className="text-sm text-paper/70">
+            {showItems ? "Keep going — pause between items to add a new line." : "Describe the job, boiler, bathroom, materials, time…"}
+          </p>
         ) : lastTranscript ? (
           <>
             <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">Captured</p>
             <p className="text-sm text-paper italic">“{lastTranscript}”</p>
           </>
         ) : (
-          <p className="text-sm text-paper/50">Describe the job, boiler, bathroom, materials, time…</p>
+          <p className="text-sm text-paper/60">Describe the job, boiler, bathroom, materials, time…</p>
         )}
       </div>
 
@@ -1489,14 +1527,15 @@ function VoiceOverlay({
         <button
           type="button"
           onClick={onClose}
-          className="text-xs uppercase tracking-widest text-paper/50 font-semibold py-3"
+          className="text-xs uppercase tracking-widest text-paper/60 font-semibold py-3"
         >
           {error || lastTranscript ? "Done" : "Cancel"}
         </button>
       )}
-      {!idle && <div className="h-16" />}
+      {!idle && <div className="h-12" />}
     </div>,
     document.body,
   );
 }
+
 
