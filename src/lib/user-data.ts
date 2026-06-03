@@ -271,7 +271,20 @@ const rowToQuote = (r: DbQuote): Quote => ({
   completed_at: r.completed_at ?? undefined,
   updated_at: r.updated_at ?? undefined,
   materials_purchased: Array.isArray(r.materials_purchased) ? r.materials_purchased : [],
+  materials_list: Array.isArray(r.materials_list)
+    ? (r.materials_list as MaterialItem[]).map((m) => ({
+        id: String(m?.id ?? cryptoRandomId()),
+        description: String(m?.description ?? ""),
+        qty: Number(m?.qty ?? 1) || 1,
+        purchased: !!m?.purchased,
+      }))
+    : [],
 });
+
+function cryptoRandomId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
 
 
 export async function hydrateUserData() {
