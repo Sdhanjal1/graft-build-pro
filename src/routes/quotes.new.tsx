@@ -1542,15 +1542,9 @@ function VoiceOverlay({
         <p className="num text-2xl mt-1 text-paper">
           <span className="text-lime">●</span> <span className="text-paper">{formatMMSS(seconds)}</span>
         </p>
-        {recording && (
+        {recording && !hasItems && (
           <div className="mt-2 w-full min-h-[1rem] px-2 text-center">
-            {livePreview ? (
-              <p className="text-xs italic text-paper/60 leading-snug line-clamp-2">
-                {livePreview}
-              </p>
-            ) : !liveSupported ? (
-              <p className="text-xs italic text-paper/40">Listening…</p>
-            ) : null}
+            <p className="text-xs italic text-paper/40">Listening…</p>
           </div>
         )}
 
