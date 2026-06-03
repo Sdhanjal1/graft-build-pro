@@ -664,25 +664,11 @@ function QuoteDetail() {
                 </div>
               )}
 
-              {/* Material list */}
-              {showMaterialsCta && (
-                <button
-                  onClick={() => setMaterialsOpen(true)}
-                  className="w-full bg-ink text-paper rounded-full py-2.5 px-4 inline-flex items-center justify-center gap-2 text-xs font-bold"
-                >
-                  <ShoppingCart className="h-3.5 w-3.5" />
-                  Material list ({materialsCount})
-                </button>
-              )}
-
               {/* Action shortcuts */}
               <div className="space-y-2 pt-1">
                 {/* Sharing & communication */}
                 <ul className="space-y-0.5">
                   <MoreItem icon={Eye} label="View as customer" onClick={viewAsCustomer} />
-                  {materialsCount > 0 && (
-                    <MoreItem icon={ShoppingCart} label={`Material list (${materialsCount})`} onClick={() => setMaterialsOpen(true)} />
-                  )}
                   <MoreItem icon={Share2} label="Download PDF" onClick={sharePdf} />
                   <MoreItem icon={Mail} label="Email customer" onClick={() => { window.location.href = mailHref; }} />
                   <MoreItem icon={Phone} label="Call customer" onClick={() => { window.location.href = `tel:${client?.phone}`; }} />
