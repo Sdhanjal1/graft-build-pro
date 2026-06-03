@@ -693,12 +693,22 @@ function NewQuotePage() {
           ) {
             const pmr = mediaRecorderRef.current;
             silenceStartRef.current = null;
+            // Speech-content gate: if the Web Speech recogniser is wired up
+            // and hasn't picked up any new recognised words since the last
+            // cut, treat this burst as non-speech (breath, cough, background
+            // noise) and ignore it — do NOT cut the phrase, do NOT show a
+            // "Got it…" placeholder, just keep listening calmly.
+            const fullLive = liveFinalRef.current;
+            const newText = fullLive.slice(liveMarkRef.current.length).trim();
+            const srActive = !!recognitionRef.current;
+            if (srActive && !newText) {
+              phraseHasSpeechRef.current = false;
+              return;
+            }
             if (pmr && pmr.state === "recording") {
               // Instant feedback: show the spoken text as a pending line right
               // now, before we even transcribe/price. It'll be replaced by the
               // real line item in place once the chunk resolves.
-              const fullLive = liveFinalRef.current;
-              const newText = fullLive.slice(liveMarkRef.current.length).trim();
               liveMarkRef.current = fullLive;
               const id = `p-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
               pendingIdQueueRef.current.push(id);
