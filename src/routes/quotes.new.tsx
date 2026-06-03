@@ -1531,7 +1531,8 @@ function VoiceOverlay({
   if (typeof document === "undefined") return null;
   const idle = !recording && !transcribing;
   const hasItems = liveItems.length > 0;
-  const showItems = (recording || transcribing) && hasItems;
+  const hasPending = pendingItems.length > 0;
+  const showList = (recording || transcribing) && (hasItems || hasPending);
   return createPortal(
     <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col items-center justify-between px-6 pt-12 pb-8 safe-top safe-bottom">
 
@@ -1542,13 +1543,13 @@ function VoiceOverlay({
         <p className="num text-2xl mt-1 text-paper">
           <span className="text-lime">●</span> <span className="text-paper">{formatMMSS(seconds)}</span>
         </p>
-        {recording && !hasItems && (
+        {recording && !hasItems && !hasPending && (
           <div className="mt-2 w-full min-h-[1rem] px-2 text-center">
             <p className="text-xs italic text-paper/40">Listening…</p>
           </div>
         )}
 
-        {showItems && (
+        {showList && (
           <ul className="mt-4 w-full space-y-1.5 max-h-[46vh] overflow-y-auto pb-24">
             {liveItems.map((li, i) => {
               const isLabour = li.category === "labour" || li.category === "cis_labour";
