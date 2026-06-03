@@ -402,8 +402,10 @@ function NewQuotePage() {
       .filter((s) => s.trim().length > 0)
       .join("\n");
 
-  const generate = async () => {
-    const text = mode === "onsite" ? combinedClipsText() : desc.trim();
+  const generate = async (overrideText?: string) => {
+    const text = overrideText !== undefined
+      ? overrideText.trim()
+      : mode === "onsite" ? combinedClipsText() : desc.trim();
     if (!text) {
       setError(
         mode === "onsite"
