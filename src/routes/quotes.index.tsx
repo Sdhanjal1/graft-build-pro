@@ -117,9 +117,11 @@ function QuotesPage() {
                   {t.count}
                 </span>
               </div>
-              <p className={`mt-1.5 text-xl font-bold leading-none tabular-nums ${active ? "text-paper" : "text-ink"}`}>
-                {formatGBP(t.total)}
-              </p>
+              <CountUpGBP
+                value={t.total}
+                className={`mt-1.5 block text-xl font-bold leading-none tabular-nums ${active ? "text-paper" : "text-ink"}`}
+              />
+
             </button>
           );
         })}
