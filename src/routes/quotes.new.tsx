@@ -209,6 +209,7 @@ function NewQuotePage() {
     if (!mr || mr.state === "inactive") return;
     const elapsed = Date.now() - recordStartRef.current;
     const remaining = MIN_RECORD_MS - elapsed;
+    stoppingFinalRef.current = true;
     if (remaining > 0) {
       setTimeout(() => {
         const cur = mediaRecorderRef.current;
