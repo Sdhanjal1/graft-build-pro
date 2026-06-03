@@ -710,6 +710,7 @@ function NewQuotePage() {
           liveSupported={liveSupported}
           liveItems={liveItems}
           pendingItems={pendingItems}
+          streamRef={sharedStreamRef}
           onStart={handleVoiceStart}
           onStop={stopRecording}
           onClose={handleVoiceClose}
