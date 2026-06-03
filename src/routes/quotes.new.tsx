@@ -1428,6 +1428,7 @@ function VoiceOverlay({
   livePreview,
   liveSupported,
   liveItems,
+  pendingItems,
   onStart,
   onStop,
   onClose,
@@ -1441,6 +1442,7 @@ function VoiceOverlay({
   livePreview: string;
   liveSupported: boolean;
   liveItems: LineItem[];
+  pendingItems: { id: string; text: string }[];
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
@@ -1449,7 +1451,7 @@ function VoiceOverlay({
 
   if (typeof document === "undefined") return null;
   const idle = !recording && !transcribing;
-  const showItems = (recording || transcribing) && liveItems.length > 0;
+  const showItems = (recording || transcribing) && (liveItems.length > 0 || pendingItems.length > 0);
   return createPortal(
     <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col items-center justify-between px-6 pt-12 pb-8 safe-top safe-bottom">
 
