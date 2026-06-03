@@ -151,7 +151,6 @@ function NewQuotePage() {
   // with the structured/priced line items once the chunk finishes processing.
   const [pendingItems, setPendingItems] = useState<{ id: string; text: string }[]>([]);
   const pendingIdQueueRef = useRef<string[]>([]);
-  const liveMarkRef = useRef<string>("");
 
   // Audio analysis refs
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -216,7 +215,6 @@ function NewQuotePage() {
     setLastTranscript(null);
     setLivePreview("");
     liveFinalRef.current = "";
-    liveMarkRef.current = "";
     pendingIdQueueRef.current = [];
     setPendingItems([]);
     stopRecording();
@@ -433,7 +431,6 @@ function NewQuotePage() {
     prevItemDescriptionRef.current = "";
     stoppingFinalRef.current = false;
     liveFinalRef.current = "";
-    liveMarkRef.current = "";
     pendingIdQueueRef.current = [];
     setPendingItems([]);
     setLivePreview("");
@@ -693,28 +690,15 @@ function NewQuotePage() {
           ) {
             const pmr = mediaRecorderRef.current;
             silenceStartRef.current = null;
-            // Speech-content gate: if the Web Speech recogniser is wired up
-            // and hasn't picked up any new recognised words since the last
-            // cut, treat this burst as non-speech (breath, cough, background
-            // noise) and ignore it — do NOT cut the phrase, do NOT show a
-            // "Got it…" placeholder, just keep listening calmly.
-            const fullLive = liveFinalRef.current;
-            const newText = fullLive.slice(liveMarkRef.current.length).trim();
-            const srActive = !!recognitionRef.current;
-            if (srActive && !newText) {
-              phraseHasSpeechRef.current = false;
-              return;
-            }
             if (pmr && pmr.state === "recording") {
-              // Instant feedback: show the spoken text as a pending line right
-              // now, before we even transcribe/price. It'll be replaced by the
-              // real line item in place once the chunk resolves.
-              liveMarkRef.current = fullLive;
+              // Instant feedback: show a calm pending line as soon as the
+              // phrase pause is detected. The audio blob is then transcribed
+              // and priced, replacing this placeholder in place.
               const id = `p-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
               pendingIdQueueRef.current.push(id);
               setPendingItems((prev) => [
                 ...prev,
-                { id, text: newText || "Capturing line…" },
+                { id, text: "Capturing line…" },
               ]);
               try { pmr.stop(); } catch (e) { console.error(e); }
             }
