@@ -71,14 +71,19 @@ const STATUS_PILL: Record<QuoteStatus, string> = {
 function QuotesPage() {
   useDataVersion();
   const { loading } = useSession();
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [tile, setTile] = useState<TileKey | null>(null);
   const [q, setQ] = useState("");
   const [actionsFor, setActionsFor] = useState<Quote | null>(null);
 
   if (loading) return <QuotesListSkeleton />;
 
+  const tiles: { key: TileKey; total: number; count: number }[] = (["pending", "accepted", "awaiting", "overdue"] as TileKey[]).map((k) => {
+    const items = mockQuotes.filter((x) => tileMatches(k, x));
+    return { key: k, total: items.reduce((s, x) => s + (x.total || 0), 0), count: items.length };
+  });
+
   const filtered = mockQuotes.filter((x) => {
-    if (!filterMatches(filter, x)) return false;
+    if (tile && !tileMatches(tile, x)) return false;
     if (q && !`${x.title} ${x.ref}`.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
@@ -86,6 +91,39 @@ function QuotesPage() {
   return (
     <AppShell>
       <PageHeader title="Quotes" subtitle="All work" />
+
+      {/* Pipeline tiles */}
+      <div className="px-5 mt-4 grid grid-cols-2 gap-2.5">
+        {tiles.map((t) => {
+          const active = tile === t.key;
+          const isOverdue = t.key === "overdue";
+          const pulse = isOverdue && t.count > 0;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTile(active ? null : t.key)}
+              className={`relative text-left rounded-2xl px-4 py-3.5 border transition ${
+                active
+                  ? "bg-ink text-paper border-ink"
+                  : "bg-card text-ink border-border hover:border-ink/30"
+              } ${pulse ? "motion-safe:animate-pulse-soft" : ""}`}
+              aria-pressed={active}
+            >
+              <div className="flex items-center justify-between">
+                <span className={`text-[10px] uppercase tracking-widest font-semibold ${active ? "text-paper/70" : "text-muted-foreground"}`}>
+                  {TILE_LABEL[t.key]}
+                </span>
+                <span className={`text-[10px] font-bold tabular-nums ${active ? "text-paper" : isOverdue && t.count > 0 ? "text-status-overdue" : "text-ink/60"}`}>
+                  {t.count}
+                </span>
+              </div>
+              <p className={`mt-1.5 text-xl font-bold leading-none tabular-nums ${active ? "text-paper" : "text-ink"}`}>
+                {formatGBP(t.total)}
+              </p>
+            </button>
+          );
+        })}
+      </div>
 
       <div className="px-5 mt-4">
         <div className="card-surface flex items-center gap-2 px-4 py-3">
@@ -99,20 +137,18 @@ function QuotesPage() {
         </div>
       </div>
 
-      {/* Filter chips */}
-      <div className="px-5 mt-5 flex gap-2 overflow-x-auto no-scrollbar">
-        {FILTERS.map((f) => (
+      {tile && (
+        <div className="px-5 mt-3">
           <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider whitespace-nowrap transition ${
-              filter === f ? "bg-ink text-paper" : "bg-card text-muted-foreground border border-border"
-            }`}
+            onClick={() => setTile(null)}
+            className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground hover:text-ink"
           >
-            {FILTER_LABEL[f]}
+            Showing {TILE_LABEL[tile]} · Clear filter
           </button>
-        ))}
-      </div>
+        </div>
+      )}
+
+
 
       <div className="px-5 mt-5 space-y-2.5">
         {filtered.length === 0 && (
