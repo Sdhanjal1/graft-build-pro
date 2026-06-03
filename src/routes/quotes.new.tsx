@@ -1346,6 +1346,43 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+function prefersReducedMotion() {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function CountUpGBP({ value, className }: { value: number; className?: string }) {
+  const [display, setDisplay] = useState(value);
+  const fromRef = useRef(value);
+  const rafRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (prefersReducedMotion()) {
+      setDisplay(value);
+      fromRef.current = value;
+      return;
+    }
+    const from = fromRef.current;
+    const to = value;
+    if (from === to) return;
+    const duration = 280;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const cur = from + (to - from) * eased;
+      setDisplay(cur);
+      if (t < 1) rafRef.current = requestAnimationFrame(tick);
+      else fromRef.current = to;
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [value]);
+  return <span className={className}>{formatGBP(display)}</span>;
+}
+
+
 function VoiceOverlay({
   recording,
   transcribing,
