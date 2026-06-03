@@ -1469,6 +1469,15 @@ function VoiceOverlay({
           </div>
         )}
 
+        {showList && hasItems && (
+          <div className="mt-4 flex flex-col items-center">
+            <p className="text-[10px] uppercase tracking-widest text-paper/50 font-semibold">Running total</p>
+            <CountUpGBP value={liveTotal} className="num text-4xl text-lime mt-0.5" />
+          </div>
+        )}
+
+
+
 
         {showList && hasItems && (
           <p className="mt-4 mb-1 text-[10px] uppercase tracking-widest text-paper/40 text-center">
