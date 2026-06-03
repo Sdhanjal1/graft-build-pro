@@ -124,49 +124,17 @@ function NewQuotePage() {
   const recognitionRef = useRef<any>(null);
   const liveFinalRef = useRef<string>("");
 
-  // Phrase-by-phrase chunk processing (speak mode only).
-  // We use real audio silence detection (AudioContext + AnalyserNode) to cut
-  // the MediaRecorder at each natural pause. Each phrase becomes its own audio
-  // blob → transcribed → line items appended. This works reliably on iOS where
-  // SpeechRecognition is not available / not continuous.
-  const SILENCE_RMS = 0.012;
-  // Snappy: ~0.9s of silence cuts the phrase. Item boundaries are decided
-  // by the AI from CONTENT (not by this timer) — if a slow speaker pauses
-  // mid-item, the next chunk is merged into the previous in-progress line
-  // via continues_previous; if a fast speaker keeps going, the AI splits
-  // the single chunk into multiple line_items. So this threshold only
-  // controls responsiveness, not correctness of item separation.
-  const SILENCE_MS = 900;
-  const MIN_PHRASE_MS = 600;
-  const chunkProcessedCountRef = useRef<number>(0);
-  const chunkQueueRef = useRef<Promise<void>>(Promise.resolve());
-  // Language-driven boundary detection state: the raw transcript of the
-  // last chunk and the description of the last line item it produced. Sent
-  // to the AI with the next chunk so it can decide continuation vs new item.
-  const prevChunkTextRef = useRef<string>("");
-  const prevItemDescriptionRef = useRef<string>("");
-
-  // Pending (un-priced) line previews: shown instantly on pause-detection so
-  // the user sees the spoken words appear right away, then replaced in place
-  // with the structured/priced line items once the chunk finishes processing.
+  // Pending preview slots are no longer used (we no longer cut phrases on
+  // silence). Kept as empty state so the VoiceOverlay prop contract stays
+  // intact. Always cleared in stopRecording/finalize so nothing stale ever
+  // lingers into the draft editor.
   const [pendingItems, setPendingItems] = useState<{ id: string; text: string }[]>([]);
-  const pendingIdQueueRef = useRef<string[]>([]);
 
-  // Audio analysis refs
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const rafRef = useRef<number | null>(null);
-
-  // Per-phrase recorder
-  const phraseChunksRef = useRef<BlobPart[]>([]);
-  const phraseHasSpeechRef = useRef<boolean>(false);
-  const phraseStartedAtRef = useRef<number>(0);
-  const silenceStartRef = useRef<number | null>(null);
-  const stoppingFinalRef = useRef<boolean>(false);
-  const phraseMimeRef = useRef<string>("");
+  // Per-phrase plumbing kept as inert refs so any stragglers from older code
+  // paths cannot leak. Not driven by the new flow.
   const sharedStreamRef = useRef<MediaStream | null>(null);
-  const finalizeRef = useRef<() => void>(() => {});
+  
+
 
 
 
@@ -215,20 +183,20 @@ function NewQuotePage() {
     setLastTranscript(null);
     setLivePreview("");
     liveFinalRef.current = "";
-    pendingIdQueueRef.current = [];
     setPendingItems([]);
     stopRecording();
   };
 
   const recordStartRef = useRef<number>(0);
   const MIN_RECORD_MS = 1000;
+  const stopRequestedRef = useRef<boolean>(false);
 
   const stopRecording = () => {
     const mr = mediaRecorderRef.current;
     if (!mr || mr.state === "inactive") return;
+    stopRequestedRef.current = true;
     const elapsed = Date.now() - recordStartRef.current;
     const remaining = MIN_RECORD_MS - elapsed;
-    stoppingFinalRef.current = true;
     if (remaining > 0) {
       setTimeout(() => {
         const cur = mediaRecorderRef.current;
@@ -262,121 +230,17 @@ function NewQuotePage() {
     return { combinedDesc: combined, target: "desc" };
   };
 
-  // Process a single spoken chunk into line items and APPEND (or MERGE) on
-  // the draft. The AI decides — from the MEANING of this chunk vs the
-  // previous in-progress item — whether this chunk continues the same item
-  // (merge into the last line) or starts new items (append).
-  const processChunkNow = async (text: string) => {
-    const clean = text.trim();
-    if (!clean) return;
-    try {
-      const prevText = prevChunkTextRef.current;
-      const prevDesc = prevItemDescriptionRef.current;
-      const g = await generateFn({
-        data: {
-          description: clean,
-          trade,
-          vatRegistered: vat,
-          ...(prevText && prevDesc
-            ? { previousChunkText: prevText, previousItemDescription: prevDesc }
-            : {}),
-        },
-      });
-      const isFirst = chunkProcessedCountRef.current === 0;
-      const canMerge = !isFirst && g.continues_previous && g.line_items.length >= 1;
-
-      setDraft((prev) => {
-        if (!prev) return { title: g.title, line_items: g.line_items };
-        if (canMerge && prev.line_items.length > 0) {
-          // Replace the last (in-progress) line with the merged item.
-          const merged = [...prev.line_items];
-          merged[merged.length - 1] = g.line_items[0];
-          return { ...prev, line_items: merged };
-        }
-        return { ...prev, line_items: [...prev.line_items, ...g.line_items] };
-      });
-
-      // Update boundary context for the NEXT chunk.
-      if (canMerge) {
-        // Same item continues — keep accumulating the raw text so later
-        // chunks see the full in-progress utterance.
-        prevChunkTextRef.current = `${prevText} ${clean}`.trim().slice(-2000);
-        prevItemDescriptionRef.current = g.line_items[0].description;
-      } else {
-        // New item(s) committed — the LAST returned line is the one that's
-        // still "in-progress" and eligible for continuation next time.
-        prevChunkTextRef.current = clean.slice(-2000);
-        prevItemDescriptionRef.current =
-          g.line_items[g.line_items.length - 1]?.description ?? "";
-      }
-
-      chunkProcessedCountRef.current += 1;
-      if (isFirst) {
-        setDesc((d) => (d.trim() ? d : (g.clean_description?.trim() || clean)));
-        const ec = g.extracted_customer;
-        if (ec?.name) setClientName((n) => (n.trim() ? n : ec.name!));
-        if (ec?.phone) setClientPhone((p) => (p.trim() ? p : ec.phone!));
-        feedback("success");
-        playSample("ding");
-      } else {
-        feedback("tap");
-      }
-    } catch (e) {
-      console.error("[chunk] generate failed", e);
-    }
-  };
-
-
-
-  // Transcribe a single phrase blob then run it through generate; append the
-  // resulting line items to the draft. Serialised via chunkQueueRef so phrases
-  // are appended in the order they were spoken.
-  const enqueuePhraseBlob = (blob: Blob, mimeType: string) => {
-    const pendingId = pendingIdQueueRef.current.shift() ?? null;
-    const clearPending = () => {
-      if (!pendingId) return;
-      setPendingItems((prev) => prev.filter((p) => p.id !== pendingId));
-    };
-    chunkQueueRef.current = chunkQueueRef.current
-      .then(async () => {
-        try {
-          if (blob.size < 1200) return;
-          const audioBase64 = await blobToBase64(blob);
-          const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
-          const clean = (text || "").trim();
-          if (!clean) return;
-          // Update the pending preview in place with the cleaned transcription
-          // so the line shown matches what we actually heard while pricing runs.
-          if (pendingId) {
-            setPendingItems((prev) =>
-              prev.map((p) => (p.id === pendingId ? { ...p, text: clean } : p)),
-            );
-          }
-          setDesc((d) => (d.trim() ? `${d.trim()} ${clean}` : clean));
-          await processChunkNow(clean);
-        } catch (e) {
-          console.error("[phrase] failed", e);
-        } finally {
-          clearPending();
-        }
-      })
-      .catch(() => { clearPending(); });
-    return chunkQueueRef.current;
-  };
-
-
   const runTranscribe = async (blob: Blob, mimeType: string) => {
     setTranscribing(true);
     setVoiceError(null);
+    setPendingItems([]);
     try {
       const audioBase64 = await blobToBase64(blob);
       const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
       const { combinedDesc, target } = appendTranscript(text);
       lastBlobRef.current = null;
-      // Auto-process the quote as soon as transcription returns for the main
-      // speak-mode flow. No separate "Generate" tap required.
       if (target === "desc" && mode === "speak" && combinedDesc.trim() && !draft) {
-        void generate(combinedDesc);
+        await generate(combinedDesc);
       }
     } catch (err) {
       console.error(err);
@@ -389,6 +253,7 @@ function NewQuotePage() {
       setTranscribing(false);
       setLivePreview("");
       liveFinalRef.current = "";
+      setPendingItems([]);
     }
   };
 
@@ -398,10 +263,12 @@ function NewQuotePage() {
     void runTranscribe(cached.blob, cached.mimeType);
   };
 
-
-
+  // NEW FLOW (speak mode): one continuous MediaRecorder + Web Speech API for
+  // live preview only. No per-phrase server calls, no silence detection, no
+  // chunk queue. On stop: one Whisper transcription, then one generate call.
   const startRecording = async () => {
     setVoiceError(null);
+    setPendingItems([]);
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
       return;
@@ -424,184 +291,60 @@ function NewQuotePage() {
     sharedStreamRef.current = stream;
 
     const mimeType = pickMimeType();
-    phraseMimeRef.current = mimeType;
-    chunkProcessedCountRef.current = 0;
-    chunkQueueRef.current = Promise.resolve();
-    prevChunkTextRef.current = "";
-    prevItemDescriptionRef.current = "";
-    stoppingFinalRef.current = false;
     liveFinalRef.current = "";
-    pendingIdQueueRef.current = [];
-    setPendingItems([]);
     setLivePreview("");
+    stopRequestedRef.current = false;
 
-    // Use on-site clip mode? It bypasses the phrase chunker: record one whole
-    // blob, transcribe at stop, add as a single clip. We branch here for clarity.
     const isClipMode = recordTargetRef.current === "clip";
 
-    // ---------- Audio silence analyser (used for phrase cutting in speak mode) ----------
-    const setupAnalyser = (s: MediaStream) => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const AC: any = (window as any).AudioContext || (window as any).webkitAudioContext;
-        if (!AC) return false;
-        const ctx = new AC();
-        const source = ctx.createMediaStreamSource(s);
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 2048;
-        analyser.smoothingTimeConstant = 0.4;
-        source.connect(analyser);
-        audioCtxRef.current = ctx;
-        audioSourceRef.current = source;
-        analyserRef.current = analyser;
-        return true;
-      } catch (e) {
-        console.warn("[analyser] init failed", e);
-        return false;
-      }
+    let mr: MediaRecorder;
+    try {
+      mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    } catch (err) {
+      console.error(err);
+      stream.getTracks().forEach((t) => t.stop());
+      setVoiceError("Could not start recorder on this browser.");
+      return;
+    }
+    mediaRecorderRef.current = mr;
+    chunksRef.current = [];
+    mr.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
     };
-
-    const teardownAnalyser = () => {
-      if (rafRef.current != null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
-      try { void audioCtxRef.current?.close(); } catch { /* noop */ }
-      audioSourceRef.current = null;
-      analyserRef.current = null;
-      audioCtxRef.current = null;
-    };
-
-    // ---------- Per-phrase MediaRecorder ----------
-    const startNewPhraseRecorder = (): MediaRecorder | null => {
-      const s = sharedStreamRef.current;
-      if (!s) return null;
-      let pmr: MediaRecorder;
-      try {
-        pmr = mimeType ? new MediaRecorder(s, { mimeType }) : new MediaRecorder(s);
-      } catch (e) {
-        console.error("[phrase] recorder failed", e);
-        return null;
-      }
-      phraseChunksRef.current = [];
-      phraseHasSpeechRef.current = false;
-      silenceStartRef.current = null;
-      phraseStartedAtRef.current = Date.now();
-      pmr.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) phraseChunksRef.current.push(e.data);
-      };
-      pmr.onstop = () => {
-        const blobType = pmr.mimeType || mimeType || "audio/webm";
-        const blob = new Blob(phraseChunksRef.current, { type: blobType });
-        phraseChunksRef.current = [];
-        const hadSpeech = phraseHasSpeechRef.current;
-        const isFinal = stoppingFinalRef.current;
-        if (hadSpeech && blob.size > 1200) {
-          enqueuePhraseBlob(blob, blobType);
-          chunkProcessedCountRef.current += 1;
-        }
-        if (!isFinal && sharedStreamRef.current) {
-          // Immediately start the next phrase recorder so we don't lose audio.
-          const next = startNewPhraseRecorder();
-          if (next) {
-            mediaRecorderRef.current = next;
-            try { next.start(); } catch (e) { console.error(e); }
-          }
-        } else if (isFinal) {
-          // Finalisation: wait for queue, tear down, surface errors.
-          finalizeRef.current();
-        }
-      };
-      return pmr;
-    };
-
-    const finalize = async () => {
-      if (tickRef.current) {
-        clearInterval(tickRef.current);
-        tickRef.current = null;
-      }
-      teardownAnalyser();
+    mr.onstop = async () => {
+      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
       try { recognitionRef.current?.stop?.(); } catch { /* noop */ }
       recognitionRef.current = null;
-      await chunkQueueRef.current;
       setRecording(false);
       sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
       sharedStreamRef.current = null;
       streamRef.current = null;
-      setLivePreview("");
-      if (chunkProcessedCountRef.current === 0 && !isClipMode) {
+      const blobType = mr.mimeType || mimeType || "audio/webm";
+      const blob = new Blob(chunksRef.current, { type: blobType });
+      chunksRef.current = [];
+      setPendingItems([]);
+      if (blob.size < 1000) {
+        setLivePreview("");
+        liveFinalRef.current = "";
         setVoiceError(
-          "We didn't catch any speech. Tap the mic and describe the job out loud.",
+          isClipMode
+            ? "Recording was too short. Hold and speak for at least 2 seconds."
+            : "We didn't catch any speech. Tap the mic and describe the job out loud.",
         );
-      } else if (liveFinalRef.current.trim()) {
-        setLastTranscript(liveFinalRef.current.trim());
-      }
-      liveFinalRef.current = "";
-    };
-    finalizeRef.current = () => { void finalize(); };
-
-    // ---------- ON-SITE CLIP MODE: single blob, no phrase chunking ----------
-    if (isClipMode) {
-      let mr: MediaRecorder;
-      try {
-        mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-      } catch (err) {
-        console.error(err);
-        stream.getTracks().forEach((t) => t.stop());
-        setVoiceError("Could not start recorder on this browser.");
         return;
       }
-      mediaRecorderRef.current = mr;
-      chunksRef.current = [];
-      mr.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
-      };
-      mr.onstop = async () => {
-        if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
-        setRecording(false);
-        sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
-        sharedStreamRef.current = null;
-        streamRef.current = null;
-        const blobType = mr.mimeType || mimeType || "audio/webm";
-        const blob = new Blob(chunksRef.current, { type: blobType });
-        chunksRef.current = [];
-        if (blob.size < 1000) {
-          setVoiceError("Recording was too short. Hold and speak for at least 2 seconds.");
-          return;
-        }
-        lastBlobRef.current = { blob, mimeType: blobType };
-        await runTranscribe(blob, blobType);
-      };
-      recordStartRef.current = Date.now();
-      mr.start(1000);
-      setRecording(true);
-      setRecordSeconds(0);
-      tickRef.current = setInterval(() => {
-        setRecordSeconds((s) => {
-          const next = s + 1;
-          if (next >= MAX_RECORD_SECONDS) {
-            stopRecording();
-            return MAX_RECORD_SECONDS;
-          }
-          return next;
-        });
-      }, 1000);
-      return;
-    }
+      lastBlobRef.current = { blob, mimeType: blobType };
+      await runTranscribe(blob, blobType);
+    };
 
-    // ---------- SPEAK MODE: phrase-by-phrase via audio silence detection ----------
-    const analyserOk = setupAnalyser(stream);
-
-    // Live preview text via Web Speech API (visual only; pause detection comes
-    // from real audio analysis, not from SR).
+    // Live preview via Web Speech API (visual only — no server calls).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR: any =
       typeof window !== "undefined"
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
         : null;
-    if (SR) {
+    if (SR && !isClipMode) {
       setLiveSupported(true);
       try {
         const rec = new SR();
@@ -623,26 +366,24 @@ function NewQuotePage() {
           setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
         };
         rec.onerror = () => { /* silent: preview only */ };
+        rec.onend = () => {
+          // If recording is still active (browsers auto-stop SR after silence),
+          // restart so the live preview keeps updating.
+          if (!stopRequestedRef.current && mediaRecorderRef.current?.state === "recording") {
+            try { rec.start(); } catch { /* noop */ }
+          }
+        };
         recognitionRef.current = rec;
-        rec.start();
+        try { rec.start(); } catch { /* noop */ }
       } catch {
         recognitionRef.current = null;
       }
-    } else {
+    } else if (!SR) {
       setLiveSupported(false);
     }
 
-    // Start the first phrase recorder.
-    const firstPmr = startNewPhraseRecorder();
-    if (!firstPmr) {
-      setVoiceError("Could not start recorder on this browser.");
-      stream.getTracks().forEach((t) => t.stop());
-      return;
-    }
-    mediaRecorderRef.current = firstPmr;
     recordStartRef.current = Date.now();
-    firstPmr.start();
-
+    mr.start(1000);
     setRecording(true);
     setRecordSeconds(0);
     tickRef.current = setInterval(() => {
@@ -655,60 +396,8 @@ function NewQuotePage() {
         return next;
       });
     }, 1000);
-
-    // RMS silence-detection loop. When we've heard speech then go quiet for
-    // SILENCE_MS, cut the current phrase: stop the MR (its onstop will
-    // enqueue the blob for transcribe + append and immediately start the
-    // next phrase recorder).
-    if (analyserOk && analyserRef.current) {
-      const analyser = analyserRef.current;
-      const buf = new Float32Array(analyser.fftSize);
-      const loop = () => {
-        if (!analyserRef.current || stoppingFinalRef.current) {
-          rafRef.current = null;
-          return;
-        }
-        try {
-          analyser.getFloatTimeDomainData(buf);
-        } catch {
-          rafRef.current = requestAnimationFrame(loop);
-          return;
-        }
-        let sum = 0;
-        for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
-        const rms = Math.sqrt(sum / buf.length);
-        const now = performance.now();
-        if (rms > SILENCE_RMS) {
-          phraseHasSpeechRef.current = true;
-          silenceStartRef.current = null;
-        } else if (phraseHasSpeechRef.current) {
-          if (silenceStartRef.current == null) {
-            silenceStartRef.current = now;
-          } else if (
-            now - silenceStartRef.current >= SILENCE_MS &&
-            Date.now() - phraseStartedAtRef.current >= MIN_PHRASE_MS
-          ) {
-            const pmr = mediaRecorderRef.current;
-            silenceStartRef.current = null;
-            if (pmr && pmr.state === "recording") {
-              // Instant feedback: show a calm pending line as soon as the
-              // phrase pause is detected. The audio blob is then transcribed
-              // and priced, replacing this placeholder in place.
-              const id = `p-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-              pendingIdQueueRef.current.push(id);
-              setPendingItems((prev) => [
-                ...prev,
-                { id, text: "Capturing line…" },
-              ]);
-              try { pmr.stop(); } catch (e) { console.error(e); }
-            }
-          }
-        }
-        rafRef.current = requestAnimationFrame(loop);
-      };
-      rafRef.current = requestAnimationFrame(loop);
-    }
   };
+
 
 
 
@@ -1532,16 +1221,21 @@ function VoiceOverlay({
 
       <div className="flex flex-col items-center w-full max-w-md">
         <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-          {transcribing ? "Transcribing" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
+          {transcribing ? "Building your quote" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
         </p>
         <p className="num text-2xl mt-1 text-paper">
           <span className="text-lime">●</span> <span className="text-paper">{formatMMSS(seconds)}</span>
         </p>
-        {recording && !hasItems && !hasPending && (
-          <div className="mt-2 w-full min-h-[1rem] px-2 text-center">
-            <p className="text-xs italic text-paper/40">Listening…</p>
+        {recording && (
+          <div className="mt-3 w-full min-h-[2.5rem] px-2 text-center">
+            {livePreview ? (
+              <p className="text-sm text-paper/80 leading-snug">{livePreview}</p>
+            ) : (
+              <p className="text-xs italic text-paper/40">Listening…</p>
+            )}
           </div>
         )}
+
 
         {showList && (
           <ul className="mt-4 w-full space-y-1.5 max-h-[46vh] overflow-y-auto pb-24">
@@ -1723,11 +1417,12 @@ function VoiceOverlay({
             )}
           </>
         ) : transcribing ? (
-          <p className="text-sm text-paper/70">Turning your voice into text…</p>
+          <p className="text-sm text-paper/70">Building your quote…</p>
         ) : recording ? (
           <p className="text-sm text-paper/70">
-            {hasItems ? "Keep going — pause between items to add a new line." : "Describe the job, boiler, bathroom, materials, time…"}
+            Keep talking — describe the job, materials, time. Tap stop when done.
           </p>
+
         ) : lastTranscript ? (
           <>
             <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">Captured</p>
