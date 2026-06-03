@@ -1628,7 +1628,23 @@ function VoiceOverlay({
                 </li>
               );
             })}
-            {/* Pending raw-transcript previews intentionally hidden — only resolved line items appear, for a calmer feel. */}
+            {pendingItems.map((p) => (
+              <li
+                key={p.id}
+                className="rounded-lg bg-paper/[0.04] border-l-2 border-paper/20 pl-3 pr-3 py-2 flex items-center gap-3 animate-scale-in"
+                aria-live="polite"
+              >
+                <span className="num text-[11px] font-bold text-paper/30 mt-0.5 shrink-0 w-5 text-right">
+                  {liveItems.length + 1}
+                </span>
+                <div className="flex-1 flex items-center gap-2">
+                  <span className="text-sm text-paper/50 italic">Got it…</span>
+                  <span className="relative flex-1 h-2 overflow-hidden rounded-full bg-paper/[0.06]">
+                    <span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-paper/30 to-transparent bg-[length:200%_100%]" />
+                  </span>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </div>
