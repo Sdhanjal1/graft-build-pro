@@ -33,14 +33,12 @@ const STATUS_LABEL: Record<QuoteStatus, string> = {
   overdue: "Overdue",
 };
 
-const FILTER_LABEL: Record<FilterKey, string> = {
-  all: "All",
+type TileKey = "pending" | "accepted" | "awaiting" | "overdue";
+
+const TILE_LABEL: Record<TileKey, string> = {
   pending: "Pending",
-  sent: "Sent",
-  booked: "Accepted",
-  completed: "Completed",
-  invoiced: "Invoiced",
-  paid: "Paid",
+  accepted: "Accepted",
+  awaiting: "Awaiting payment",
   overdue: "Overdue",
 };
 
@@ -51,16 +49,24 @@ export const Route = createFileRoute("/quotes/")({
   component: QuotesPage,
 });
 
-type FilterKey = "all" | "pending" | "sent" | "booked" | "completed" | "invoiced" | "paid" | "overdue";
-const FILTERS: FilterKey[] = ["all", "pending", "sent", "booked", "completed", "invoiced", "paid", "overdue"];
-
-// Map UI filter chip → underlying QuoteStatus value(s).
-const filterMatches = (filter: FilterKey, quote: Quote) => {
-  if (filter === "all") return true;
-  if (filter === "booked") return quote.status === "accepted";
-  if (filter === "invoiced") return quote.invoiced_at != null && quote.status !== "paid";
-  return quote.status === filter;
+const tileMatches = (tile: TileKey, q: Quote): boolean => {
+  if (tile === "pending") return q.status === "pending" || q.status === "sent";
+  if (tile === "accepted") return (q.status === "accepted" || q.status === "completed") && q.invoiced_at == null;
+  if (tile === "awaiting") return q.invoiced_at != null && q.status !== "paid" && q.status !== "overdue";
+  if (tile === "overdue") return q.status === "overdue";
+  return false;
 };
+
+const STATUS_PILL: Record<QuoteStatus, string> = {
+  pending: "bg-status-pending/15 text-status-pending",
+  sent: "bg-status-sent/15 text-status-sent",
+  accepted: "bg-status-booked/15 text-status-booked",
+  declined: "bg-status-overdue/15 text-status-overdue",
+  completed: "bg-status-completed/15 text-status-completed",
+  paid: "bg-status-paid/15 text-status-paid",
+  overdue: "bg-status-overdue/15 text-status-overdue",
+};
+
 
 function QuotesPage() {
   useDataVersion();
