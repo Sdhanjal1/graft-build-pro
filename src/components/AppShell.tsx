@@ -32,7 +32,7 @@ export function PageHeader({
   back?: string | boolean;
   right?: React.ReactNode;
 }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  
   const showBack = back !== undefined && back !== false;
   const backTo = typeof back === "string" ? back : "/";
 
