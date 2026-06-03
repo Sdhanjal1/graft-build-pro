@@ -1451,7 +1451,8 @@ function VoiceOverlay({
 
   if (typeof document === "undefined") return null;
   const idle = !recording && !transcribing;
-  const showItems = (recording || transcribing) && (liveItems.length > 0 || pendingItems.length > 0);
+  const hasItems = liveItems.length > 0 || pendingItems.length > 0;
+  const showItems = (recording || transcribing) && hasItems;
   return createPortal(
     <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col items-center justify-between px-6 pt-12 pb-8 safe-top safe-bottom">
 
@@ -1478,7 +1479,7 @@ function VoiceOverlay({
             High-contrast paper text on the dark overlay, with a lime left
             border as the only accent. The lime is NEVER used for body text. */}
         {showItems && (
-          <ul className="mt-4 w-full space-y-1.5 max-h-[40vh] overflow-y-auto">
+          <ul className="mt-4 w-full space-y-1.5 max-h-[46vh] overflow-y-auto pb-24">
             {liveItems.map((li, i) => {
               const isLabour = li.category === "labour" || li.category === "cis_labour";
               const unit = li.unit ?? (isLabour ? "hours" : "qty");
@@ -1521,35 +1522,70 @@ function VoiceOverlay({
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={idle ? onStart : onStop}
-        disabled={transcribing}
-        aria-label={transcribing ? "Transcribing" : recording ? "Stop recording" : "Start recording"}
-        className="relative flex items-center justify-center my-6 disabled:opacity-60"
-      >
-        {recording && (
-          <>
-            <span className="absolute h-56 w-56 rounded-full bg-lime/10 animate-ping" />
-            <span className="absolute h-44 w-44 rounded-full bg-lime/20 animate-pulse" />
-          </>
-        )}
-        <div
-          className={`relative ${showItems ? "h-28 w-28" : "h-36 w-36"} rounded-full bg-lime flex items-center justify-center shadow-[0_20px_60px_-12px_rgba(200,224,74,0.7)] transition-all ${
-            recording ? "animate-[pulse_1.4s_ease-in-out_infinite]" : ""
-          }`}
+      {/* EMPTY STATE: large central mic — hero of an empty screen */}
+      {!hasItems && (
+        <button
+          type="button"
+          onClick={idle ? onStart : onStop}
+          disabled={transcribing}
+          aria-label={transcribing ? "Transcribing" : recording ? "Stop recording" : "Start recording"}
+          className="relative flex items-center justify-center my-6 disabled:opacity-60"
         >
-          {transcribing ? (
-            <Loader2 className={`${showItems ? "h-12 w-12" : "h-14 w-14"} text-ink animate-spin`} />
-          ) : recording ? (
-            <Square className={`${showItems ? "h-12 w-12" : "h-14 w-14"} text-ink fill-ink`} strokeWidth={2.25} />
-          ) : (
-            <Mic className={`${showItems ? "h-12 w-12" : "h-14 w-14"} text-ink`} strokeWidth={2.25} />
+          {recording && (
+            <>
+              <span className="absolute h-56 w-56 rounded-full bg-lime/10 animate-ping" />
+              <span className="absolute h-44 w-44 rounded-full bg-lime/20 animate-pulse" />
+            </>
           )}
-        </div>
-      </button>
+          <div
+            className={`relative h-36 w-36 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_60px_-12px_rgba(200,224,74,0.7)] transition-all ${
+              recording ? "animate-[pulse_1.4s_ease-in-out_infinite]" : ""
+            }`}
+          >
+            {transcribing ? (
+              <Loader2 className="h-14 w-14 text-ink animate-spin" />
+            ) : recording ? (
+              <Square className="h-14 w-14 text-ink fill-ink" strokeWidth={2.25} />
+            ) : (
+              <Mic className="h-14 w-14 text-ink" strokeWidth={2.25} />
+            )}
+          </div>
+        </button>
+      )}
 
-      <div className="w-full max-w-md min-h-[4rem] text-center space-y-2">
+      {/* ACTIVE / BUILDING STATE: smaller FAB docked at bottom-centre */}
+      {hasItems && (
+        <button
+          type="button"
+          onClick={idle ? onStart : onStop}
+          disabled={transcribing}
+          aria-label={transcribing ? "Transcribing" : recording ? "Stop recording" : "Start recording"}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[70] flex items-center justify-center disabled:opacity-60"
+        >
+          {recording && (
+            <>
+              <span className="absolute h-20 w-20 rounded-full bg-lime/20 animate-ping" />
+              <span className="absolute h-16 w-16 rounded-full bg-lime/30 animate-pulse" />
+            </>
+          )}
+          <div
+            className={`relative h-14 w-14 rounded-full bg-lime flex items-center justify-center shadow-[0_8px_24px_-6px_rgba(200,224,74,0.6)] transition-all ${
+              recording ? "animate-[pulse_1.4s_ease-in-out_infinite]" : ""
+            }`}
+          >
+            {transcribing ? (
+              <Loader2 className="h-7 w-7 text-ink animate-spin" />
+            ) : recording ? (
+              <Square className="h-7 w-7 text-ink fill-ink" strokeWidth={2.25} />
+            ) : (
+              <Mic className="h-7 w-7 text-ink" strokeWidth={2.25} />
+            )}
+          </div>
+        </button>
+      )}
+
+      {/* Bottom text area — pushes up when mic is large, stays above FAB when mic is small */}
+      <div className={`w-full max-w-md min-h-[4rem] text-center space-y-2 ${hasItems ? "pb-16" : ""}`}>
         {error ? (
           <>
             <p className="text-sm text-status-overdue font-medium">{error}</p>
@@ -1568,7 +1604,7 @@ function VoiceOverlay({
           <p className="text-sm text-paper/70">Turning your voice into text…</p>
         ) : recording ? (
           <p className="text-sm text-paper/70">
-            {showItems ? "Keep going — pause between items to add a new line." : "Describe the job, boiler, bathroom, materials, time…"}
+            {hasItems ? "Keep going — pause between items to add a new line." : "Describe the job, boiler, bathroom, materials, time…"}
           </p>
         ) : lastTranscript ? (
           <>
@@ -1589,7 +1625,7 @@ function VoiceOverlay({
           {error || lastTranscript ? "Done" : "Cancel"}
         </button>
       )}
-      {!idle && <div className="h-12" />}
+      {!idle && <div className={`h-12 ${hasItems ? "pb-8" : ""}`} />}
     </div>,
     document.body,
   );
