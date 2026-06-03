@@ -37,9 +37,9 @@ export function PageHeader({
   const backTo = typeof back === "string" ? back : "/";
 
   return (
-    <header className="bg-ink text-paper rounded-b-3xl px-5 pt-5 pb-5">
-      <div className="flex items-center justify-between mb-4">
-        <QuottrWordmark className="text-2xl" />
+    <header className="bg-ink text-paper rounded-b-3xl px-5 pt-6 pb-6">
+      <div className="mb-5">
+        <QuottrWordmark className="text-[2.25rem] leading-none" />
       </div>
       <div className="flex items-start gap-3">
         {showBack && (
@@ -51,13 +51,14 @@ export function PageHeader({
           </Link>
         )}
         <div className="flex-1 min-w-0">
+          <h1 className="text-3xl leading-tight break-words text-paper">{title}</h1>
           {subtitle && (
-            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">{subtitle}</p>
+            <p className="text-xs text-paper/55 mt-1">{subtitle}</p>
           )}
-          <h1 className="text-3xl leading-tight mt-1 break-words text-paper">{title}</h1>
         </div>
         {right}
       </div>
     </header>
   );
 }
+
