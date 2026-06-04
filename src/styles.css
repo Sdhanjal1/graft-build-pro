@@ -46,7 +46,8 @@
 }
 
 :root {
-  --radius: 0.6875rem;
+  /* Tighter base radius — rounded-lg=8, rounded-xl=12, rounded-2xl=16 — more intentional, less template-y */
+  --radius: 0.5rem;
 
 
   /* Brand */
