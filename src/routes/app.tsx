@@ -295,55 +295,22 @@ function AppHomePage() {
       )}
 
 
-      {/* Action queue cards */}
-      {hasActions ? (
-        <section className="px-5 mt-4 space-y-2">
-          {pendingQuotes.length > 0 && (
-            <ActionCard
-              to="/quotes"
-              icon={Send}
-              tone="pending"
-              title="Quotes to send"
-              count={pendingQuotes.length}
-              amount={pendingTotal}
-              cta="Send now"
-            />
-          )}
-          {acceptedQuotes.length > 0 && (
-            <ActionCard
-              to="/quotes"
-              icon={CheckCircle2}
-              tone="accepted"
-              title="Booked jobs"
-              count={acceptedQuotes.length}
-              amount={acceptedTotal}
-              cta="Mark complete"
-            />
-          )}
-          {sentQuotes.length > 0 && (
-            <ActionCard
-              to="/chaser"
-              icon={Bell}
-              tone="neutral"
-              title="Awaiting reply"
-              count={sentQuotes.length}
-              amount={awaitingReplyTotal}
-              cta="Chase up"
-            />
-          )}
-          {overdueQuotes.length > 0 && (
-            <ActionCard
-              to="/chaser"
-              icon={AlertTriangle}
-              tone="overdue"
-              title="Overdue"
-              count={overdueQuotes.length}
-              amount={overdueTotal}
-              cta="Send reminder"
-            />
-          )}
-        </section>
-      ) : null}
+      {/* Action queue — first card is the hero, the rest are compact rows */}
+      {hasActions ? (() => {
+        const cards: Array<{ to: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; tone: "pending" | "neutral" | "overdue" | "accepted"; title: string; count: number; amount: number; cta: string }> = [];
+        if (overdueQuotes.length > 0) cards.push({ to: "/chaser", icon: AlertTriangle, tone: "overdue", title: "Overdue", count: overdueQuotes.length, amount: overdueTotal, cta: "Send reminder" });
+        if (pendingQuotes.length > 0) cards.push({ to: "/quotes", icon: Send, tone: "pending", title: "Quotes to send", count: pendingQuotes.length, amount: pendingTotal, cta: "Send now" });
+        if (acceptedQuotes.length > 0) cards.push({ to: "/quotes", icon: CheckCircle2, tone: "accepted", title: "Booked jobs", count: acceptedQuotes.length, amount: acceptedTotal, cta: "Mark complete" });
+        if (sentQuotes.length > 0) cards.push({ to: "/chaser", icon: Bell, tone: "neutral", title: "Awaiting reply", count: sentQuotes.length, amount: awaitingReplyTotal, cta: "Chase up" });
+        return (
+          <section className="px-5 mt-5 space-y-2.5">
+            {cards.map((c, i) => (
+              <ActionCard key={c.title} {...c} hero={i === 0} />
+            ))}
+          </section>
+        );
+      })() : null}
+
 
 
       {/* Today's jobs */}
