@@ -46,7 +46,8 @@
 }
 
 :root {
-  --radius: 0.875rem;
+  --radius: 0.6875rem;
+
 
   /* Brand */
   --ink: oklch(0.18 0.005 80);          /* #1a1a18 */
