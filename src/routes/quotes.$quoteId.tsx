@@ -1345,9 +1345,10 @@ function LineItemsEditor({
       <ul>
         {items.map((li, i) => {
           const effectiveSource = normalizeSource(li.source, paidQuoteCount);
-          const isPleaseConfirm = /please confirm|estimate/i.test(li.description);
-          // Only show the "Quottr suggested" tag on uncertain AI lines that ask to be confirmed.
-          const label = effectiveSource === "ai" && isPleaseConfirm ? badgeText(effectiveSource) : null;
+          const isEstimate = lineIsEstimate(li);
+          const cleanDesc = cleanItemDescription(li.description);
+          // Only show the "Quottr suggested" tag on AI-priced lines (the Estimate tag is separate).
+          const label = effectiveSource === "ai" && isEstimate ? badgeText(effectiveSource) : null;
           const isEditing = editingIdx === i;
           if (isEditing && draft) {
             return renderEditPanel(li, `edit-${i}`);
@@ -1359,7 +1360,12 @@ function LineItemsEditor({
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-2 flex-wrap">
-                  <span className="text-[15px] leading-snug font-medium text-ink">{li.description}</span>
+                  <span className="text-[15px] leading-snug font-medium text-ink">{cleanDesc}</span>
+                  {isEstimate && (
+                    <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-status-pending/15 text-status-pending">
+                      Estimate
+                    </span>
+                  )}
                   {label && (
                     <span
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeClass(effectiveSource)}`}
