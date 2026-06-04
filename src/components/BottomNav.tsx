@@ -19,7 +19,7 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 safe-bottom">
       <div className="mx-auto max-w-md px-3 pb-3 pt-2">
-        <div className="bg-ink rounded-full shadow-[0_8px_24px_-8px_rgba(0,0,0,0.4)] flex items-center justify-around h-16 px-1.5">
+        <div className="bg-ink rounded-full shadow-[0_10px_28px_-10px_rgba(0,0,0,0.55)] ring-1 ring-paper/5 flex items-center justify-around h-16 px-2">
           {items.map((it) => (
             <NavItem key={it.to} {...it} active={isActive(it.to)} />
           ))}
@@ -47,11 +47,28 @@ function NavItem({
         feedback("tap");
         if (!active) playSample("tick");
       }}
-      className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full min-w-0 relative"
+      aria-current={active ? "page" : undefined}
+      className="flex-1 h-full min-w-0 flex items-center justify-center relative"
     >
-      {active && <span className="absolute top-1.5 h-1 w-1 rounded-full bg-lime animate-pulse" />}
-      <Icon className={`h-5 w-5 ${active ? "text-lime" : "text-paper/60"}`} strokeWidth={active ? 2.5 : 2} />
-      <span className={`text-[11px] font-semibold ${active ? "text-lime" : "text-paper/60"}`}>{label}</span>
+      <span
+        className={[
+          "flex items-center gap-1.5 rounded-full transition-all duration-200 ease-out",
+          active
+            ? "bg-lime text-ink px-3.5 py-2 shadow-[0_6px_16px_-6px_rgba(200,224,74,0.7)] scale-100"
+            : "text-paper/60 px-2 py-2 scale-95",
+        ].join(" ")}
+      >
+        <Icon
+          className={active ? "h-[18px] w-[18px]" : "h-5 w-5"}
+          strokeWidth={active ? 2.75 : 2}
+        />
+        {active && (
+          <span className="text-[12px] font-bold tracking-tight leading-none whitespace-nowrap">
+            {label}
+          </span>
+        )}
+      </span>
+      <span className="sr-only">{label}</span>
     </Link>
   );
 }
