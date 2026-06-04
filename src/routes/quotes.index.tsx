@@ -101,7 +101,7 @@ function QuotesPage() {
 
       {/* HERO PIPELINE STRIP — confident lime block */}
       <div className="px-5 mt-5">
-        <div className="rounded-3xl bg-lime text-ink p-5 relative overflow-hidden">
+        <div className="rounded-2xl bg-lime text-ink p-5 relative overflow-hidden">
           <div className="flex items-center justify-between">
             <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-ink/70">Pipeline</p>
             <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-ink/70 tabular-nums">

@@ -130,7 +130,7 @@ function AppHomePage() {
       <div className="flex flex-col min-h-[calc(100dvh-7rem)]">
       {/* Ink header: greeting + £ outstanding */}
 
-      <header className="bg-ink text-paper rounded-b-[2rem] px-5 pt-6 pb-7 relative overflow-hidden">
+      <header className="bg-ink text-paper rounded-b-[1.5rem] px-5 pt-6 pb-7 relative overflow-hidden">
         <span aria-hidden className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-lime/15 blur-2xl pointer-events-none" />
         <div className="relative flex items-center justify-between">
           <QuottrWordmark className="text-[2.5rem] leading-none" />
@@ -384,7 +384,7 @@ function AppHomePage() {
             <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-3 w-3 rotate-45 bg-lime ring-1 ring-ink/10" />
           </div>
         )}
-        <div className="flex flex-col w-full rounded-3xl bg-ink text-paper p-5 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center flex-1">
+        <div className="flex flex-col w-full rounded-2xl bg-ink text-paper p-5 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center flex-1">
           <Link
             to="/quotes/new"
             search={{ voice: 1 }}
@@ -491,7 +491,7 @@ function ActionCard({
     return (
       <Link
         to={to}
-        className={`block rounded-3xl ${heroBg} p-5 active:scale-[0.99] transition shadow-[0_12px_28px_-14px_rgba(0,0,0,0.45)]`}
+        className={`block rounded-2xl ${heroBg} p-5 active:scale-[0.99] transition shadow-[0_12px_28px_-14px_rgba(0,0,0,0.45)]`}
       >
         <div className="flex items-center justify-between">
           <p className={`text-[10px] uppercase tracking-[0.2em] font-bold ${eyebrowColor}`}>{title}</p>

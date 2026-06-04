@@ -37,7 +37,7 @@ export function PageHeader({
   const backTo = typeof back === "string" ? back : "/";
 
   return (
-    <header className="bg-ink text-paper rounded-b-[2rem] px-5 pt-7 pb-6 relative overflow-hidden">
+    <header className="bg-ink text-paper rounded-b-[1.5rem] px-5 pt-7 pb-6 relative overflow-hidden">
       <span aria-hidden className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-lime/15 blur-3xl pointer-events-none" />
       <span aria-hidden className="absolute left-0 top-0 h-full w-1.5 bg-lime" />
 
