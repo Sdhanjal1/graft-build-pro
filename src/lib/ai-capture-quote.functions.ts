@@ -225,5 +225,18 @@ Omit extracted_customer entirely if no customer details were mentioned. Unit pri
     } catch {
       throw new Error("Claude returned malformed JSON");
     }
-    return QuoteSchema.parse(parsed);
+    const result = QuoteSchema.parse(parsed);
+    // Safety: strip any "— estimate, please confirm" suffix into the structured flag.
+    const ESTIMATE_SUFFIX_RE = /\s*[—\-–]\s*estimate,?\s*please confirm\.?\s*$/i;
+    result.line_items = result.line_items.map((li) => {
+      const hadSuffix = ESTIMATE_SUFFIX_RE.test(li.description);
+      const cleaned = li.description.replace(ESTIMATE_SUFFIX_RE, "").trim();
+      return {
+        ...li,
+        description: cleaned || li.description,
+        is_estimate: !!li.is_estimate || hadSuffix,
+      };
+    });
+    result.title = result.title.replace(/\s*[—\-–]\s*estimate.*$/i, "").trim();
+    return result;
   });
