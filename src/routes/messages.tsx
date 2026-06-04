@@ -5,7 +5,8 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { getInbox } from "@/lib/messages.functions";
 import { getMyIncomingRequests, markRequestRead } from "@/lib/quote-requests.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, Inbox, Mic, FileText, Sparkles } from "lucide-react";
+import { MessageSquare, Inbox, FileText, Sparkles } from "lucide-react";
+import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { EmptyState } from "@/components/EmptyState";
 
 export const Route = createFileRoute("/messages")({
@@ -101,7 +102,7 @@ function MessagesInbox() {
                   className={`w-full text-left card-surface p-4 flex items-start gap-3 ${!r.read_at ? "ring-1 ring-lime" : ""}`}
                 >
                   <div className="h-10 w-10 rounded-full bg-lime/40 flex items-center justify-center shrink-0">
-                    {r.source === "voice" ? <Mic className="h-4 w-4 text-ink" /> : <FileText className="h-4 w-4 text-ink" />}
+                    {r.source === "voice" ? <VoiceWaveform size={16} className="text-ink" /> : <FileText className="h-4 w-4 text-ink" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">

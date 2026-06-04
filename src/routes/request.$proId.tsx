@@ -5,7 +5,8 @@ import { getProPublicInfo, createQuoteRequest } from "@/lib/quote-requests.funct
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { useSession, signInWithPassword, signUpWithPassword } from "@/lib/auth";
 import { QuottrLogo } from "@/components/QuottrLogo";
-import { Loader2, Mic, Square, Send, CheckCircle2, Hammer } from "lucide-react";
+import { Loader2, Square, Send, CheckCircle2, Hammer } from "lucide-react";
+import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordingNotice";
 
 export const Route = createFileRoute("/request/$proId")({
@@ -197,7 +198,7 @@ function ModeBtn({ active, onClick, label, icon }: { active: boolean; onClick: (
       onClick={onClick}
       className={`rounded-full py-3 text-sm font-semibold inline-flex items-center justify-center gap-2 ${active ? "bg-ink text-paper" : "bg-white border border-border text-ink"}`}
     >
-      {icon && <Mic className="h-4 w-4" />} {label}
+      {icon && <VoiceWaveform size={16} />} {label}
     </button>
   );
 }
@@ -257,7 +258,7 @@ function VoiceRecorder({ onTranscript }: { onTranscript: (t: string) => void }) 
         disabled={processing}
         className={`h-20 w-20 rounded-full inline-flex items-center justify-center text-paper ${recording ? "bg-status-overdue animate-pulse" : "bg-ink"} disabled:opacity-50`}
       >
-        {processing ? <Loader2 className="h-7 w-7 animate-spin" /> : recording ? <Square className="h-7 w-7" /> : <Mic className="h-7 w-7" />}
+        {processing ? <Loader2 className="h-7 w-7 animate-spin" /> : recording ? <Square className="h-7 w-7" /> : <VoiceWaveform size={28} />}
       </button>
       <p className="text-xs text-muted-foreground mt-3">
         {processing ? "Transcribing…" : recording ? "Tap to stop" : "Tap to record"}

@@ -21,7 +21,8 @@ import { resolveTrade } from "@/lib/trades";
 import { generateAIQuote, prefetchQuoteContext } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
-import { Mic, Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, MapPin, X, Search } from "lucide-react";
+import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, MapPin, X, Search } from "lucide-react";
+import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { RotatingStatus, QUOTE_GEN_MESSAGES } from "@/components/RotatingStatus";
 import { feedback, playSample } from "@/lib/feedback";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
@@ -754,7 +755,7 @@ function NewQuotePage() {
                 : "bg-transparent text-ink border-ink/25"
             }`}
           >
-            <Mic className="h-3.5 w-3.5" /> Speak it
+            <VoiceWaveform size={14} /> Speak it
           </button>
           <button
             type="button"
@@ -850,7 +851,7 @@ function NewQuotePage() {
                 </>
               ) : (
                 <>
-                  <Mic className="h-4 w-4" />
+                  <VoiceWaveform size={16} />
                   Voice to text
                 </>
               )}
@@ -1717,7 +1718,7 @@ function VoiceOverlay({
             ) : recording ? (
               <Square className="h-14 w-14 text-ink fill-ink" strokeWidth={2.25} />
             ) : (
-              <Mic className="h-14 w-14 text-ink" strokeWidth={2.25} />
+              <VoiceWaveform size={56} className="text-ink" />
             )}
           </div>
         </button>
@@ -1745,7 +1746,7 @@ function VoiceOverlay({
             ) : recording ? (
               <Square className="h-7 w-7 text-ink fill-ink" strokeWidth={2.25} />
             ) : (
-              <Mic className="h-7 w-7 text-ink" strokeWidth={2.25} />
+              <VoiceWaveform size={28} className="text-ink" />
             )}
           </div>
         </button>
