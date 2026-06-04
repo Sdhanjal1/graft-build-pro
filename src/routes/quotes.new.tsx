@@ -755,7 +755,7 @@ function NewQuotePage() {
                 : "bg-transparent text-ink border-ink/25"
             }`}
           >
-            <Mic className="h-3.5 w-3.5" /> Speak it
+            <VoiceWaveform size={14} /> Speak it
           </button>
           <button
             type="button"
