@@ -39,7 +39,20 @@ export type LineItem = {
   unit?: LineItemUnit;
   /** Optional supplier/merchant SKU shown on the material shopping list. */
   supplier_code?: string;
+  /** When true, the price is an AI estimate the tradesperson should confirm. UI shows a separate "Estimate" tag; the description stays clean. */
+  is_estimate?: boolean;
 };
+
+/** Legacy AI output sometimes appended " — estimate, please confirm" to the description.
+ *  Strip that suffix for any customer-facing render and use is_estimate (or the suffix presence) as the flag. */
+const ESTIMATE_SUFFIX_RE = /\s*[—\-–]\s*estimate,?\s*please confirm\.?\s*$/i;
+export function cleanItemDescription(desc: string): string {
+  return (desc || "").replace(ESTIMATE_SUFFIX_RE, "").trim();
+}
+export function lineIsEstimate(li: Pick<LineItem, "description" | "is_estimate">): boolean {
+  return !!li.is_estimate || ESTIMATE_SUFFIX_RE.test(li.description || "");
+}
+
 
 
 /** True for line categories that should default to time-based units. */
