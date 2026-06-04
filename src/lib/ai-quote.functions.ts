@@ -247,16 +247,16 @@ ${data.description}
 
 Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
 {
-  "title": "Concise quote title",
+  "title": "Concise, professional summary of the whole job (e.g. 'Boiler service, radiator install & kitchen tap fit')",
   "clean_description": "Professional scope-of-work summary, no customer names/contacts/filler",
   "extracted_customer": { "name": "optional", "phone": "optional", "email": "optional" },
   "continues_previous": false,
   "line_items": [
-    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other", "unit": "qty" | "hours" | "days" }
+    { "description": "Clean professional item name only (NO 'estimate' / 'please confirm' text)", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other", "unit": "qty" | "hours" | "days", "is_estimate": false }
   ]
 }
 
-Omit extracted_customer entirely if no customer details were mentioned. Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 hours). Every line item MUST include source, category and unit. Labour lines should use "hours" or "days" with the price as the hourly/daily rate.`;
+Omit extracted_customer entirely if no customer details were mentioned. Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 hours). Every line item MUST include source, category, unit and is_estimate. Labour lines should use "hours" or "days" with the price as the hourly/daily rate. Title must be a clean job summary, NOT the raw transcript. Descriptions must be clean item names — never contain "estimate" or "please confirm" text.`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
