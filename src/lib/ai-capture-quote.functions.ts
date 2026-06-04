@@ -21,6 +21,7 @@ const LineItemSchema = z.object({
   source: z.enum(["voice", "learned", "ai"]).optional().default("ai"),
   category: z.enum(["labour", "materials", "certificate", "cis_labour", "other"]).optional().default("other"),
   unit: z.enum(["qty", "hours", "days"]).optional().default("qty"),
+  is_estimate: z.boolean().optional().default(false),
 });
 
 
