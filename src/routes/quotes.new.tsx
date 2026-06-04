@@ -851,7 +851,7 @@ function NewQuotePage() {
                 </>
               ) : (
                 <>
-                  <Mic className="h-4 w-4" />
+                  <VoiceWaveform size={16} />
                   Voice to text
                 </>
               )}
@@ -1718,7 +1718,7 @@ function VoiceOverlay({
             ) : recording ? (
               <Square className="h-14 w-14 text-ink fill-ink" strokeWidth={2.25} />
             ) : (
-              <Mic className="h-14 w-14 text-ink" strokeWidth={2.25} />
+              <VoiceWaveform size={56} className="text-ink" />
             )}
           </div>
         </button>
@@ -1746,7 +1746,7 @@ function VoiceOverlay({
             ) : recording ? (
               <Square className="h-7 w-7 text-ink fill-ink" strokeWidth={2.25} />
             ) : (
-              <Mic className="h-7 w-7 text-ink" strokeWidth={2.25} />
+              <VoiceWaveform size={28} className="text-ink" />
             )}
           </div>
         </button>
