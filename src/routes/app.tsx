@@ -465,6 +465,7 @@ function ActionCard({
   count,
   amount,
   cta,
+  hero = false,
 }: {
   to: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
@@ -473,7 +474,47 @@ function ActionCard({
   count: number;
   amount: number;
   cta: string;
+  hero?: boolean;
 }) {
+  if (hero) {
+    const heroBg =
+      tone === "overdue"
+        ? "bg-ink text-paper"
+        : tone === "accepted"
+        ? "bg-lime text-ink"
+        : tone === "pending"
+        ? "bg-ink text-paper"
+        : "bg-ink text-paper";
+    const amountColor = tone === "accepted" ? "text-ink" : "text-lime";
+    const subColor = tone === "accepted" ? "text-ink/70" : "text-paper/65";
+    const eyebrowColor = tone === "accepted" ? "text-ink/60" : "text-lime";
+    return (
+      <Link
+        to={to}
+        className={`block rounded-3xl ${heroBg} p-5 active:scale-[0.99] transition shadow-[0_12px_28px_-14px_rgba(0,0,0,0.45)]`}
+      >
+        <div className="flex items-center justify-between">
+          <p className={`text-[10px] uppercase tracking-[0.2em] font-bold ${eyebrowColor}`}>{title}</p>
+          <Icon className={`h-4 w-4 ${tone === "accepted" ? "text-ink/70" : "text-paper/70"}`} />
+        </div>
+        <p
+          className={`mt-2 leading-[0.85] tabular-nums ${amountColor}`}
+          style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3rem, 13vw, 4.5rem)" }}
+        >
+          {formatGBP(amount)}
+        </p>
+        <div className="mt-3 flex items-center justify-between">
+          <p className={`text-xs font-medium ${subColor}`}>
+            {count} quote{count !== 1 ? "s" : ""}
+          </p>
+          <span className={`inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider ${tone === "accepted" ? "text-ink" : "text-lime"}`}>
+            {cta} <ArrowRight className="h-3.5 w-3.5" />
+          </span>
+        </div>
+      </Link>
+    );
+  }
+
   const borderCls =
     tone === "pending"
       ? "border-l-4 border-status-pending"
@@ -510,7 +551,7 @@ function ActionCard({
       <div className="flex-1 min-w-0">
         <p className="text-base font-semibold text-ink leading-tight">{title}</p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          {count} quote{count !== 1 ? "s" : ""} · {formatGBP(amount)}
+          {count} quote{count !== 1 ? "s" : ""} · <span className="tabular-nums font-semibold text-ink">{formatGBP(amount)}</span>
         </p>
       </div>
       <span className="inline-flex items-center gap-1 text-xs font-semibold text-ink shrink-0">
