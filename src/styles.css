@@ -46,7 +46,8 @@
 }
 
 :root {
-  --radius: 0.6875rem;
+  /* Tighter base radius — rounded-lg=8, rounded-xl=12, rounded-2xl=16 — more intentional, less template-y */
+  --radius: 0.5rem;
 
 
   /* Brand */
@@ -107,16 +108,16 @@
 }
 
 @layer utilities {
-  /* Default card — flat, defined by a hairline border. Use for secondary content. */
+  /* Default card — flat, hairline border. Secondary content. */
   .card-surface {
     background-color: var(--card);
-    border-radius: var(--radius-lg);
+    border-radius: 1rem;
     border: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
   }
   /* Focal card — reserved for the single most important element on a screen. */
   .card-focal {
     background-color: var(--card);
-    border-radius: var(--radius-lg);
+    border-radius: 1rem;
     border: 1px solid color-mix(in oklab, var(--ink) 10%, transparent);
     box-shadow: 0 2px 4px rgb(0 0 0 / 0.05), 0 16px 36px -18px rgb(0 0 0 / 0.22);
   }
