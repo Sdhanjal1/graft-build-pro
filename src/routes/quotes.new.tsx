@@ -1542,6 +1542,23 @@ function VoiceOverlay({
   }, [liveItems.length]);
   const liveTotal = liveItems.reduce((s, li) => s + li.qty * li.unit_price, 0);
 
+  // Independent list scroll with sticky auto-pin to bottom.
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const pinnedRef = useRef(true);
+  const onListScroll = () => {
+    const el = listRef.current;
+    if (!el) return;
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    pinnedRef.current = distance < 80;
+  };
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    if (pinnedRef.current) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }
+  }, [liveItems.length, pendingItems.length]);
+
 
   function beginEdit(i: number, li: LineItem) {
     setEditingIndex(i);
@@ -1566,9 +1583,10 @@ function VoiceOverlay({
   const hasPending = pendingItems.length > 0;
   const showList = (recording || transcribing) && (hasItems || hasPending);
   return createPortal(
-    <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col items-center justify-between px-6 pt-12 pb-8 safe-top safe-bottom">
+    <div className={`fixed inset-0 z-[60] bg-ink text-paper flex flex-col px-6 pt-12 pb-8 safe-top safe-bottom ${showList ? "" : "items-center justify-between"}`}>
 
-      <div className="flex flex-col items-center w-full max-w-md">
+      {/* PINNED TOP: meta + running total */}
+      <div className={`flex flex-col items-center w-full max-w-md mx-auto ${showList ? "shrink-0" : ""}`}>
         <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
           {transcribing ? "Building your quote" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
         </p>
@@ -1583,16 +1601,24 @@ function VoiceOverlay({
           </div>
         )}
 
-
-
-
         {showList && hasItems && (
-          <p className="mt-4 mb-1 text-[10px] uppercase tracking-widest text-paper/40 text-center">
+          <p className="mt-3 text-[10px] uppercase tracking-widest text-paper/40 text-center">
             Tap a line to edit
           </p>
         )}
-        {showList && (
-          <ul className="mt-2 w-full space-y-1.5 max-h-[46vh] overflow-y-auto pb-24">
+      </div>
+
+      {/* SCROLLABLE MIDDLE: line items list — fills available space between total and stop button */}
+      {showList && (
+        <div className="relative flex-1 min-h-0 w-full max-w-md mx-auto mt-2">
+          {/* top fade */}
+          <span aria-hidden className="pointer-events-none absolute top-0 inset-x-0 h-4 bg-gradient-to-b from-ink to-transparent z-10" />
+          <ul
+            ref={listRef}
+            onScroll={onListScroll}
+            className="absolute inset-0 w-full overflow-y-auto space-y-1.5 pt-2 pb-28 pr-1 -mr-1"
+            style={{ scrollbarWidth: "thin" }}
+          >
             {liveItems.map((li, i) => {
               const isLabour = li.category === "labour" || li.category === "cis_labour";
               const unit = li.unit ?? (isLabour ? "hours" : "qty");
@@ -1656,7 +1682,6 @@ function VoiceOverlay({
                   onClick={() => beginEdit(i, li)}
                   className={`rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-2 flex items-start gap-3 animate-scale-in cursor-pointer active:bg-paper/[0.1] ${justLanded ? "animate-line-glow" : ""}`}
                 >
-
                   <span className="num text-[11px] font-bold text-paper/40 mt-0.5 shrink-0 w-5 text-right">
                     {i + 1}
                   </span>
@@ -1692,8 +1717,11 @@ function VoiceOverlay({
               </li>
             ))}
           </ul>
-        )}
-      </div>
+          {/* bottom fade hint that list continues under the stop button */}
+          <span aria-hidden className="pointer-events-none absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-ink via-ink/85 to-transparent z-10" />
+        </div>
+      )}
+
 
 
       {/* EMPTY STATE: large central mic — hero of an empty screen */}
