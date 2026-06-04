@@ -130,33 +130,37 @@ function AppHomePage() {
       <div className="flex flex-col min-h-[calc(100dvh-7rem)]">
       {/* Ink header: greeting + £ outstanding */}
 
-      <header className="bg-ink text-paper rounded-b-3xl px-5 pt-5 pb-5">
-        <div className="flex items-center justify-between">
-          <QuottrWordmark className="text-3xl" />
+      <header className="bg-ink text-paper rounded-b-[2rem] px-5 pt-6 pb-7 relative overflow-hidden">
+        <span aria-hidden className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-lime/15 blur-2xl pointer-events-none" />
+        <div className="relative flex items-center justify-between">
+          <QuottrWordmark className="text-[2.5rem] leading-none" />
           <Link
             to="/settings"
-            className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-semibold text-paper/60 hover:text-lime transition max-w-[55%]"
+            className="flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] font-bold text-paper/60 hover:text-lime transition max-w-[55%]"
           >
             <span className="truncate">{userProfile.business_name || "Set up"}</span>
             <Settings className="h-3.5 w-3.5 shrink-0" />
           </Link>
         </div>
 
-        <p className="mt-5 text-sm text-paper/70 font-medium">
+        <p className="relative mt-6 text-sm text-paper/70 font-medium">
           {greeting}, {firstName}
         </p>
 
         {s.paidTodayCount > 0 ? (
-          <div className="mt-1">
-            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+          <div className="relative mt-2">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-lime font-bold">
               Paid today
             </p>
-            <p className="num text-6xl leading-none text-lime mt-1">
+            <p
+              className="text-lime mt-1 leading-[0.82] tabular-nums"
+              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4.5rem, 22vw, 7rem)" }}
+            >
               <ClientOnly fallback={<>{formatGBP(s.paidToday)}</>}>
                 <CountUp start={0} end={s.paidToday} duration={0.6} formattingFn={formatGBP} />
               </ClientOnly>
             </p>
-            <p className="text-[11px] text-paper/60 font-medium mt-1">
+            <p className="text-[11px] text-paper/60 font-medium mt-2">
               {s.paidTodayCount} payment{s.paidTodayCount !== 1 ? "s" : ""}
               {s.outstanding > 0 && (
                 <>
@@ -169,17 +173,20 @@ function AppHomePage() {
             </p>
           </div>
         ) : s.outstanding > 0 ? (
-          <div className="mt-1">
+          <div className="relative mt-2">
             {s.acceptedTodayCount > 0 && (
               <p className="text-sm text-lime font-semibold mb-1">
                 Won today: {formatGBP(s.acceptedTodayAmount)}
               </p>
             )}
-            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-lime font-bold">
               You are owed
             </p>
             <Link to="/chaser" className="block mt-1 active:opacity-80 transition">
-              <p className="num text-6xl leading-none text-lime">
+              <p
+                className="text-lime leading-[0.82] tabular-nums"
+                style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4.5rem, 22vw, 7rem)" }}
+              >
                 <ClientOnly fallback={<>{formatGBP(s.outstanding)}</>}>
                   <CountUp start={0} end={s.outstanding} duration={0.6} formattingFn={formatGBP} />
                 </ClientOnly>
@@ -187,11 +194,14 @@ function AppHomePage() {
             </Link>
           </div>
         ) : s.acceptedTodayCount > 0 ? (
-          <div className="mt-1">
-            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+          <div className="relative mt-2">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-lime font-bold">
               Won today
             </p>
-            <p className="num text-6xl leading-none text-lime mt-1">
+            <p
+              className="text-lime mt-1 leading-[0.82] tabular-nums"
+              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4.5rem, 22vw, 7rem)" }}
+            >
               <ClientOnly fallback={<>{formatGBP(s.acceptedTodayAmount)}</>}>
                 <CountUp start={0} end={s.acceptedTodayAmount} duration={0.6} formattingFn={formatGBP} />
               </ClientOnly>
@@ -201,7 +211,7 @@ function AppHomePage() {
 
         {/* Stat pills */}
         {hasActions && (
-          <div className="mt-4 flex gap-2 flex-wrap">
+          <div className="relative mt-5 flex gap-2 flex-wrap">
             {pendingQuotes.length > 0 && (
               <StatPill icon={FileText} count={pendingQuotes.length} label="to send" tone="pending" to="/quotes" />
             )}
@@ -217,6 +227,7 @@ function AppHomePage() {
           </div>
         )}
       </header>
+
 
       {/* Materials needed across all booked jobs */}
       {(() => {
