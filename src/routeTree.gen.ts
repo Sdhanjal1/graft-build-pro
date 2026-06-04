@@ -19,7 +19,6 @@ import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as LogoPreviewRouteImport } from './routes/logo-preview'
-import { Route as IconOptionsRouteImport } from './routes/icon-options'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as FaqsRouteImport } from './routes/faqs'
@@ -94,11 +93,6 @@ const MessagesRoute = MessagesRouteImport.update({
 const LogoPreviewRoute = LogoPreviewRouteImport.update({
   id: '/logo-preview',
   path: '/logo-preview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IconOptionsRoute = IconOptionsRouteImport.update({
-  id: '/icon-options',
-  path: '/icon-options',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -240,7 +234,6 @@ export interface FileRoutesByFullPath {
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/icon-options': typeof IconOptionsRoute
   '/logo-preview': typeof LogoPreviewRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
@@ -278,7 +271,6 @@ export interface FileRoutesByTo {
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/icon-options': typeof IconOptionsRoute
   '/logo-preview': typeof LogoPreviewRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
@@ -317,7 +309,6 @@ export interface FileRoutesById {
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/icon-options': typeof IconOptionsRoute
   '/logo-preview': typeof LogoPreviewRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
@@ -357,7 +348,6 @@ export interface FileRouteTypes {
     | '/faqs'
     | '/features'
     | '/forgot-password'
-    | '/icon-options'
     | '/logo-preview'
     | '/messages'
     | '/onboarding'
@@ -395,7 +385,6 @@ export interface FileRouteTypes {
     | '/faqs'
     | '/features'
     | '/forgot-password'
-    | '/icon-options'
     | '/logo-preview'
     | '/messages'
     | '/onboarding'
@@ -433,7 +422,6 @@ export interface FileRouteTypes {
     | '/faqs'
     | '/features'
     | '/forgot-password'
-    | '/icon-options'
     | '/logo-preview'
     | '/messages'
     | '/onboarding'
@@ -472,7 +460,6 @@ export interface RootRouteChildren {
   FaqsRoute: typeof FaqsRoute
   FeaturesRoute: typeof FeaturesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
-  IconOptionsRoute: typeof IconOptionsRoute
   LogoPreviewRoute: typeof LogoPreviewRoute
   MessagesRoute: typeof MessagesRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -570,13 +557,6 @@ declare module '@tanstack/react-router' {
       path: '/logo-preview'
       fullPath: '/logo-preview'
       preLoaderRoute: typeof LogoPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/icon-options': {
-      id: '/icon-options'
-      path: '/icon-options'
-      fullPath: '/icon-options'
-      preLoaderRoute: typeof IconOptionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -778,7 +758,6 @@ const rootRouteChildren: RootRouteChildren = {
   FaqsRoute: FaqsRoute,
   FeaturesRoute: FeaturesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
-  IconOptionsRoute: IconOptionsRoute,
   LogoPreviewRoute: LogoPreviewRoute,
   MessagesRoute: MessagesRoute,
   OnboardingRoute: OnboardingRoute,
@@ -808,3 +787,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
