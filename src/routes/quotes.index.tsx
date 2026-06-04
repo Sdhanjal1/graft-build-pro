@@ -303,7 +303,15 @@ function QuoteCard({
     <Link
       to="/quotes/$quoteId"
       params={{ quoteId: quote.id }}
-      className="card-surface py-5 px-4 flex items-center gap-4 bg-card"
+      className={`rounded-2xl py-5 px-4 flex items-center gap-4 transition active:scale-[0.99] ${
+        quote.status === "overdue"
+          ? "bg-ink text-paper border-l-4 border-status-overdue"
+          : quote.status === "paid"
+          ? "bg-card border-l-4 border-lime shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
+          : quote.status === "pending"
+          ? "bg-card border-l-4 border-status-pending shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
+          : "card-surface bg-card"
+      }`}
       {...handlers}
       onClickCapture={(e) => {
         if (didLongPress()) {
@@ -316,13 +324,18 @@ function QuoteCard({
       style={{ WebkitTouchCallout: "none", userSelect: "none" }}
     >
       <div className="flex-1 min-w-0">
-        <p className="text-[32px] font-bold leading-none text-ink">{formatGBP(quote.total)}</p>
-        <p className="text-sm mt-2 truncate text-ink">
+        <p
+          className={`leading-none tabular-nums ${quote.status === "overdue" ? "text-lime" : "text-ink"}`}
+          style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "2.5rem", letterSpacing: "0.01em" }}
+        >
+          {formatGBP(quote.total)}
+        </p>
+        <p className={`text-sm mt-2 truncate font-medium ${quote.status === "overdue" ? "text-paper" : "text-ink"}`}>
           {clientName && clientName.toLowerCase() !== "new client"
             ? clientName
             : <span className="text-status-pending">Tap to assign client</span>}
         </p>
-        <p className="text-[11px] text-muted-foreground truncate mt-0.5">{quote.title}</p>
+        <p className={`text-[11px] truncate mt-0.5 ${quote.status === "overdue" ? "text-paper/60" : "text-muted-foreground"}`}>{quote.title}</p>
         {quote.status === "accepted" && (() => {
           const n = materialsForQuote(quote).length;
           return n > 0 ? (
