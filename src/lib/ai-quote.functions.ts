@@ -44,6 +44,7 @@ const LineItemSchema = z.object({
   source: z.enum(["voice", "learned", "ai"]).optional().default("ai"),
   category: z.enum(["labour", "materials", "certificate", "cis_labour", "other"]).optional().default("other"),
   unit: z.enum(["qty", "hours", "days"]).optional().default("qty"),
+  is_estimate: z.boolean().optional().default(false),
 });
 
 const QuoteSchema = z.object({
@@ -81,9 +82,31 @@ ${d ? `- Day rate: £${d}/day (use for "days" labour lines)` : "- Day rate: not 
 - The ONLY time you may use a different labour figure is when the tradesperson explicitly speaks a price for that labour line in this voice note (then use it and mark source: "voice"). Never invent or "estimate" a labour rate from market knowledge when these settings are configured.`;
 }
 
-const SYSTEM_PROMPT = `You are an expert UK tradesperson estimator generating itemised quotes for small trade businesses in 2026. Use realistic current UK market prices (GBP, ex-VAT) for parts and materials. Be specific about brands/models where appropriate (Worcester Bosch, Vaillant, Drayton, Geberit, etc). Keep titles concise (under 80 chars).
+const SYSTEM_PROMPT = `You are an expert UK tradesperson estimator generating itemised quotes for small trade businesses in 2026. Use realistic current UK market prices (GBP, ex-VAT) for parts and materials. Be specific about brands/models where appropriate (Worcester Bosch, Vaillant, Drayton, Geberit, etc).
 
 Input may come from voice transcripts recorded on a noisy job site, in a van, or while driving. Expect filler words, false starts, traffic noise, radio chatter, power tools, and unrelated background conversation. Ignore anything that isn't clearly part of the job description and focus only on trade-relevant materials, labour and scope.
+
+CUSTOMER-FACING OUTPUT — CRITICAL:
+Everything you return appears verbatim on the customer's quote and invoice. It must read like a clean, professional document — not a transcript.
+
+LINE ITEM DESCRIPTIONS — STRICT RULES:
+- Each description is a concise, professional item name a customer would expect to see on a formal quote. Sentence case, no trailing punctuation, no first-person ("I'll", "we're gonna"), no filler, no asides.
+- Translate spoken phrasing into proper trade terminology. Examples:
+  - "do a service on the boiler" → "Boiler service"
+  - "rip out and chuck the old bathroom suite" → "Strip out existing bathroom suite"
+  - "fit one of them big double rads in the front room" → "Supply and fit double-panel radiator (living room)"
+  - "magnetic filter on the return" → "Magnetic system filter"
+- Keep descriptions SHORT and CLEAR (typically 2–8 words; up to ~12 when a meaningful location/spec helps the customer).
+- NEVER include words like "estimate", "please confirm", "TBC", "subject to", "rough", "approx", "guess", or any internal note inside the description text. The description is what the customer reads.
+- If the price is your AI estimate (not spoken, not from learned patterns), set is_estimate: true on the line. Do NOT put "— estimate, please confirm" or any similar phrase into the description. The UI shows a separate "Estimate" tag.
+
+QUOTE TITLE — STRICT RULES:
+- Title is a single short, professional summary of the WHOLE job — what a customer would expect to see at the top of a quote/invoice. Sentence case, no trailing punctuation, under 80 chars.
+- Summarise the main pieces of work, joined with commas and a final "&". Examples:
+  - "Boiler service, radiator install & kitchen tap fit"
+  - "Full bathroom refurb & en-suite first fix"
+  - "Replace consumer unit & install EV charger"
+- NEVER copy the raw transcript, customer names, addresses, fillers, or chit-chat. NEVER end with "— estimate" or similar qualifiers.
 
 ONLY-WHAT-WAS-SAID RULE — STRICTEST RULE, OVERRIDES EVERYTHING ELSE:
 
@@ -93,7 +116,7 @@ Create line items ONLY for things the tradesperson actually mentioned in the voi
 - Do NOT add typical/standard materials that "usually go with" the spoken work. If they didn't say it, it's not in the quote.
 - Do NOT add a labour line if no labour was mentioned, and do NOT add a materials line if no materials were mentioned.
 - Number of line items is driven entirely by what was said. A quote with a single line item is fine. There is no minimum.
-- If a MATERIAL was mentioned but NO price was given for it, include it as a line item, set source: "ai", and append " — estimate, please confirm" to the description so the tradesperson can review. Do NOT silently fabricate a confident price.
+- If a MATERIAL was mentioned but NO price was given for it, include it as a line item with source: "ai" AND is_estimate: true. The description stays clean (just the item name). Do NOT silently fabricate a confident price.
 - Never include an item just to make the quote look more thorough.
 
 PRICING RULES — VERY IMPORTANT:
@@ -107,19 +130,19 @@ Examples of price patterns to detect:
 - "Charging £450 for the power flush"
 - "Three radiators at £150 each"
 
-If the tradesperson speaks a price, use it. If they describe a material without a price, estimate using current UK trade pricing and flag it as " — estimate, please confirm".
+If the tradesperson speaks a price, use it (source: "voice", is_estimate: false). If they describe a material without a price, estimate using current UK trade pricing and set is_estimate: true.
 
 SOURCE FIELD — STRICT RULES (READ CAREFULLY):
 
 Each line item MUST have a source field. Use these rules in this exact order — do not deviate:
 
-Rule 1: If the tradesperson explicitly stated a price for this specific item in their voice note (using phrases like '£X', 'X pounds', 'at X an hour', 'charging X'), set source = 'voice'.
+Rule 1: If the tradesperson explicitly stated a price for this specific item in their voice note (using phrases like '£X', 'X pounds', 'at X an hour', 'charging X'), set source = 'voice' and is_estimate = false.
 
-Rule 2: If a LEARNED PATTERNS section was provided below AND that section contains a clear match for this item, set source = 'learned'. If no LEARNED PATTERNS section exists or it's empty, you must NOT use 'learned' for any item.
+Rule 2: If a LEARNED PATTERNS section was provided below AND that section contains a clear match for this item, set source = 'learned' and is_estimate = false. If no LEARNED PATTERNS section exists or it's empty, you must NOT use 'learned' for any item.
 
-Rule 3: For all other items where you estimated the price using general UK trade knowledge, set source = 'ai'. This is the most common case for new users.
+Rule 3: For all other items where you estimated the price using general UK trade knowledge, set source = 'ai' and is_estimate = true.
 
-Labour lines priced from the tradesperson's configured rates (see LABOUR RATES block) use source = 'learned' (the rate came from their own settings, not from voice or from market guessing).
+Labour lines priced from the tradesperson's configured rates (see LABOUR RATES block) use source = 'learned' and is_estimate = false (the rate came from their own settings, not from voice or from market guessing).
 
 CATEGORY FIELD — REQUIRED ON EVERY LINE ITEM:
 
@@ -137,9 +160,9 @@ Each line item MUST have a unit field. Use these rules:
 - For all other categories: use 'qty'. qty is the count of items supplied.
 
 Examples:
-- "Two days labour on site" → { qty: 2, unit_price: <day rate from settings>, unit: "days", category: "labour", source: "learned" }
-- "Three hours work" → { qty: 3, unit_price: <hourly rate from settings>, unit: "hours", category: "labour", source: "learned" }
-- "Three radiators" (no price spoken) → { qty: 3, unit_price: <estimate>, unit: "qty", category: "materials", source: "ai", description: "Radiator — estimate, please confirm" }
+- "Two days labour on site" → { description: "On-site labour", qty: 2, unit_price: <day rate>, unit: "days", category: "labour", source: "learned", is_estimate: false }
+- "Three hours work" → { description: "Labour", qty: 3, unit_price: <hourly rate>, unit: "hours", category: "labour", source: "learned", is_estimate: false }
+- "Three radiators" (no price spoken) → { description: "Radiator", qty: 3, unit_price: <estimate>, unit: "qty", category: "materials", source: "ai", is_estimate: true }
 
 JOB DESCRIPTION — write a clean, concise, professional summary of the work for the customer-facing quote. Extract only the scope of work from what the tradesperson said. Do NOT include:
 - Customer names, phone numbers, or email addresses
@@ -224,16 +247,16 @@ ${data.description}
 
 Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
 {
-  "title": "Concise quote title",
+  "title": "Concise, professional summary of the whole job (e.g. 'Boiler service, radiator install & kitchen tap fit')",
   "clean_description": "Professional scope-of-work summary, no customer names/contacts/filler",
   "extracted_customer": { "name": "optional", "phone": "optional", "email": "optional" },
   "continues_previous": false,
   "line_items": [
-    { "description": "Item or labour description", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other", "unit": "qty" | "hours" | "days" }
+    { "description": "Clean professional item name only (NO 'estimate' / 'please confirm' text)", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other", "unit": "qty" | "hours" | "days", "is_estimate": false }
   ]
 }
 
-Omit extracted_customer entirely if no customer details were mentioned. Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 hours). Every line item MUST include source, category and unit. Labour lines should use "hours" or "days" with the price as the hourly/daily rate.`;
+Omit extracted_customer entirely if no customer details were mentioned. Unit prices must be ex-VAT in GBP. Quantities can be decimal (e.g. 1.5 for 1.5 hours). Every line item MUST include source, category, unit and is_estimate. Labour lines should use "hours" or "days" with the price as the hourly/daily rate. Title must be a clean job summary, NOT the raw transcript. Descriptions must be clean item names — never contain "estimate" or "please confirm" text.`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -271,7 +294,23 @@ Omit extracted_customer entirely if no customer details were mentioned. Unit pri
     } catch {
       throw new Error("Claude returned malformed JSON");
     }
-    return QuoteSchema.parse(parsed);
+    const result = QuoteSchema.parse(parsed);
+    // Safety net: strip any "— estimate, please confirm" suffix the model may have
+    // emitted into a description and convert it into the structured is_estimate flag,
+    // so the customer-facing description text is always clean.
+    const ESTIMATE_SUFFIX_RE = /\s*[—\-–]\s*estimate,?\s*please confirm\.?\s*$/i;
+    result.line_items = result.line_items.map((li) => {
+      const hadSuffix = ESTIMATE_SUFFIX_RE.test(li.description);
+      const cleanedDesc = li.description.replace(ESTIMATE_SUFFIX_RE, "").trim();
+      return {
+        ...li,
+        description: cleanedDesc || li.description,
+        is_estimate: !!li.is_estimate || hadSuffix,
+      };
+    });
+    // Title safety: strip stray trailing " — estimate" and trim.
+    result.title = result.title.replace(/\s*[—\-–]\s*estimate.*$/i, "").trim();
+    return result;
   });
 
 /**
