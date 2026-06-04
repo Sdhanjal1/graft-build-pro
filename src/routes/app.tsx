@@ -401,7 +401,7 @@ function AppHomePage() {
               <span className="relative h-32 w-32 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_48px_-14px_rgba(200,224,74,0.8)]">
                 <span className="absolute inset-0 rounded-full bg-lime mic-ring-inner origin-center" />
                 <span className="absolute inset-0 rounded-full bg-lime mic-ring-outer origin-center" />
-                <Mic className="relative h-16 w-16 text-ink" strokeWidth={2.5} />
+                <VoiceWaveform size={64} className="relative text-ink" />
               </span>
             </div>
           </Link>
