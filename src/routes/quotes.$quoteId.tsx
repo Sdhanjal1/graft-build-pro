@@ -7,7 +7,7 @@ import {
   getQuote, getClient, userProfile, formatGBP, waLink,
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
-  setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming,
+  setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming, markQuotePaid,
   deleteQuote,
   materialsForQuote, cleanItemDescription, lineIsEstimate,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
@@ -268,13 +268,18 @@ function QuoteDetail() {
     }
   };
   // (confirmSchedule removed)
-  const markPaid = (m: PaymentMethod) => {
-    quote.paid_via = m; quote.status = "paid";
-    setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
-    setAskInvoice(true);
-    feedback("success");
-    celebratePaid(quote.total);
-    invalidatePaidQuoteCount();
+  const markPaid = async (m: PaymentMethod) => {
+    try {
+      await markQuotePaid(quote.id, m);
+      setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
+      setAskInvoice(true);
+      feedback("success");
+      celebratePaid(quote.total);
+      invalidatePaidQuoteCount();
+    } catch (e) {
+      feedback("error");
+      toast.error(e instanceof Error ? e.message : "Could not mark as paid");
+    }
   };
   const duplicate = async () => {
     try {
