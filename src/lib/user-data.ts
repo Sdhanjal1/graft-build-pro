@@ -53,11 +53,8 @@ export function lineIsEstimate(li: Pick<LineItem, "description" | "is_estimate">
   return !!li.is_estimate || ESTIMATE_SUFFIX_RE.test(li.description || "");
 }
 
-
-
 /** True for line categories that should default to time-based units. */
-export const isLabourCategory = (c?: LineItemCategory) =>
-  c === "labour" || c === "cis_labour";
+export const isLabourCategory = (c?: LineItemCategory) => c === "labour" || c === "cis_labour";
 
 /** Format the qty for display, honouring the line's unit. */
 export function formatLineQty(qty: number, unit?: LineItemUnit): string {
@@ -84,7 +81,6 @@ export type Client = {
   /** ISO timestamp when a Google review request was last sent */
   review_requested_at?: string;
 };
-
 
 export type PaymentRequest = {
   id: string;
@@ -141,9 +137,7 @@ export type MaterialItem = {
   purchased: boolean;
 };
 
-
 export type ChaseStatus = "scheduled" | "sent" | "skipped";
-
 
 export type ScheduledChase = {
   id: string;
@@ -155,7 +149,6 @@ export type ScheduledChase = {
   /** ISO timestamp when it will auto-send if Nav doesn't act first */
   auto_send_at?: string;
 };
-
 
 export const DEFAULT_CHASE_TEMPLATES = {
   first:
@@ -219,37 +212,58 @@ export const EMPTY_PROFILE = {
 
 export const userProfile = { ...EMPTY_PROFILE };
 
-
 export const userClients: Client[] = [];
 
 // ---------- Reactive version (bumps re-render of consumers after async writes) ----------
 let _dataVersion = 0;
 const _versionListeners = new Set<() => void>();
-const bumpVersion = () => { _dataVersion++; _versionListeners.forEach((cb) => cb()); };
+const bumpVersion = () => {
+  _dataVersion++;
+  _versionListeners.forEach((cb) => cb());
+};
 
 export function useDataVersion() {
   const [v, setV] = useState(_dataVersion);
   useEffect(() => {
     const cb = () => setV(_dataVersion);
     _versionListeners.add(cb);
-    return () => { _versionListeners.delete(cb); };
+    return () => {
+      _versionListeners.delete(cb);
+    };
   }, []);
   return v;
 }
 
 // ---------- Hydration from Lovable Cloud ----------
 type DbClient = {
-  id: string; name: string; phone: string | null; email: string | null;
-  address: string | null; property_type: string | null; notes: string | null;
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  property_type: string | null;
+  notes: string | null;
   created_at: string;
 };
 type DbQuote = {
-  id: string; ref: string | null; client_id: string | null; title: string;
-  job_description: string | null; line_items: LineItem[]; subtotal: number;
-  vat_amount: number; total: number; status: QuoteStatus; due_date: string | null;
-  notes: string | null; created_at: string; payment_method: PaymentMethod | null;
-  paid_via: PaymentMethod | null; payment_request: PaymentRequest | null;
-  invoiced_at: string | null; invoice_due_date: string | null;
+  id: string;
+  ref: string | null;
+  client_id: string | null;
+  title: string;
+  job_description: string | null;
+  line_items: LineItem[];
+  subtotal: number;
+  vat_amount: number;
+  total: number;
+  status: QuoteStatus;
+  due_date: string | null;
+  notes: string | null;
+  created_at: string;
+  payment_method: PaymentMethod | null;
+  paid_via: PaymentMethod | null;
+  payment_request: PaymentRequest | null;
+  invoiced_at: string | null;
+  invoice_due_date: string | null;
   payment_timing: PaymentTiming | null;
   deposit_amount: number | null;
   deposit_percent: number | null;
@@ -259,19 +273,30 @@ type DbQuote = {
   materials_list?: MaterialItem[] | null;
 };
 
-
 const rowToClient = (r: DbClient): Client => ({
-  id: r.id, name: r.name, phone: r.phone ?? "", email: r.email ?? "",
-  address: r.address ?? "", property_type: r.property_type ?? "Homeowner",
-  notes: r.notes ?? undefined, created_at: r.created_at.slice(0, 10),
+  id: r.id,
+  name: r.name,
+  phone: r.phone ?? "",
+  email: r.email ?? "",
+  address: r.address ?? "",
+  property_type: r.property_type ?? "Homeowner",
+  notes: r.notes ?? undefined,
+  created_at: r.created_at.slice(0, 10),
 });
 
 const rowToQuote = (r: DbQuote): Quote => ({
-  id: r.id, ref: r.ref ?? "", client_id: r.client_id ?? "",
-  title: r.title, job_description: r.job_description ?? "",
+  id: r.id,
+  ref: r.ref ?? "",
+  client_id: r.client_id ?? "",
+  title: r.title,
+  job_description: r.job_description ?? "",
   line_items: Array.isArray(r.line_items) ? r.line_items : [],
-  subtotal: Number(r.subtotal), vat_amount: Number(r.vat_amount), total: Number(r.total),
-  status: r.status, due_date: r.due_date ?? undefined, notes: r.notes ?? undefined,
+  subtotal: Number(r.subtotal),
+  vat_amount: Number(r.vat_amount),
+  total: Number(r.total),
+  status: r.status,
+  due_date: r.due_date ?? undefined,
+  notes: r.notes ?? undefined,
   created_at: r.created_at.slice(0, 10),
   payment_method: r.payment_method ?? undefined,
   paid_via: r.paid_via ?? undefined,
@@ -298,7 +323,6 @@ function cryptoRandomId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
-
 
 export async function hydrateUserData() {
   const { data: userData } = await supabase.auth.getUser();
@@ -339,7 +363,7 @@ export async function hydrateUserData() {
     userProfile.account_number = asString(p.account_number);
     userProfile.payment_reference_note = asString(p.payment_reference_note);
     if (asString(p.payment_terms)) userProfile.payment_terms = asString(p.payment_terms);
-    userProfile.stripe_connected = !!(p.stripe_connect_charges_enabled);
+    userProfile.stripe_connected = !!p.stripe_connect_charges_enabled;
     userProfile.logo_url = asString(p.logo_url);
     userProfile.quote_intro = asString(p.quote_intro);
     userProfile.quote_footer = asString(p.quote_footer);
@@ -390,10 +414,7 @@ export async function markOverdueQuotes(): Promise<number> {
   });
   if (stale.length === 0) return 0;
   for (const q of stale) {
-    const { error } = await supabase
-      .from("quotes")
-      .update({ status: "overdue" })
-      .eq("id", q.id);
+    const { error } = await supabase.from("quotes").update({ status: "overdue" }).eq("id", q.id);
     if (!error) q.status = "overdue";
   }
   bumpVersion();
@@ -451,10 +472,8 @@ export function clearUserData() {
 }
 
 // --- Quote builder helper (keeps VAT maths consistent) ----------------------
-const VAT_RATE = 0.20;
-const makeQuote = (
-  q: Omit<Quote, "subtotal" | "vat_amount" | "total"> & { vat?: boolean },
-): Quote => {
+const VAT_RATE = 0.2;
+const makeQuote = (q: Omit<Quote, "subtotal" | "vat_amount" | "total"> & { vat?: boolean }): Quote => {
   const subtotal = +q.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
   const vat = q.vat === false ? 0 : +(subtotal * VAT_RATE).toFixed(2);
   const total = +(subtotal + vat).toFixed(2);
@@ -468,12 +487,14 @@ export const mockQuotes: Quote[] = [];
 // Trade registry is the source of truth — these exports are derived for back-compat.
 import { allTrades } from "./trades";
 
-export const TRADE_TYPES = allTrades().filter((t) => t.id !== "Other").map((t) => t.label);
+export const TRADE_TYPES = allTrades()
+  .filter((t) => t.id !== "Other")
+  .map((t) => t.label);
 
 /** Quick-fill job description templates, keyed by trade label. */
-export const QUOTE_TEMPLATES: Record<string, { label: string; prompt: string }[]> =
-  Object.fromEntries(allTrades().map((t) => [t.label, t.quoteTemplates]));
-
+export const QUOTE_TEMPLATES: Record<string, { label: string; prompt: string }[]> = Object.fromEntries(
+  allTrades().map((t) => [t.label, t.quoteTemplates]),
+);
 
 export const getClient = (id: string) => userClients.find((c) => c.id === id);
 
@@ -519,10 +540,7 @@ export const materialsForQuote = (q: Quote): MaterialItem[] => {
 };
 
 /** Add a manual material item to a job. */
-export const addMaterialItem = async (
-  quoteId: string,
-  input: { description: string; qty: number },
-): Promise<void> => {
+export const addMaterialItem = async (quoteId: string, input: { description: string; qty: number }): Promise<void> => {
   const q = getQuote(quoteId);
   if (!q) return;
   const desc = input.description.trim();
@@ -536,24 +554,15 @@ export const addMaterialItem = async (
 };
 
 /** Toggle / set the purchased flag for a single material item by id. */
-export const setMaterialPurchased = async (
-  quoteId: string,
-  itemId: string,
-  purchased: boolean,
-): Promise<void> => {
+export const setMaterialPurchased = async (quoteId: string, itemId: string, purchased: boolean): Promise<void> => {
   const q = getQuote(quoteId);
   if (!q) return;
-  const next = (q.materials_list ?? []).map((m) =>
-    m.id === itemId ? { ...m, purchased } : m,
-  );
+  const next = (q.materials_list ?? []).map((m) => (m.id === itemId ? { ...m, purchased } : m));
   await persistMaterialsList(quoteId, next);
 };
 
 /** Remove a material item by id. */
-export const removeMaterialItem = async (
-  quoteId: string,
-  itemId: string,
-): Promise<void> => {
+export const removeMaterialItem = async (quoteId: string, itemId: string): Promise<void> => {
   const q = getQuote(quoteId);
   if (!q) return;
   const next = (q.materials_list ?? []).filter((m) => m.id !== itemId);
@@ -564,10 +573,7 @@ export const removeMaterialItem = async (
  * Legacy bulk-set: kept for backwards compatibility. Accepts an array of
  * purchased flags aligned with the current materials_list order.
  */
-export const setQuoteMaterialsPurchased = async (
-  quoteId: string,
-  purchased: boolean[],
-): Promise<void> => {
+export const setQuoteMaterialsPurchased = async (quoteId: string, purchased: boolean[]): Promise<void> => {
   const q = getQuote(quoteId);
   if (!q) return;
   const list = q.materials_list ?? [];
@@ -583,8 +589,6 @@ export const buildMaterialsShareText = (q: Quote, customerName?: string): string
   const lines = mats.map((m) => `- ${m.qty}x ${m.description}`);
   return [header, ...lines].join("\n");
 };
-
-
 
 export const getQuote = (id: string) => mockQuotes.find((q) => q.id === id);
 export const quotesForClient = (id: string) => mockQuotes.filter((q) => q.client_id === id);
@@ -609,11 +613,7 @@ export type Transaction = {
 export const mockTransactions: Transaction[] = [];
 
 /** Build a payment request (deposit / full / custom). */
-export const buildPaymentRequest = (
-  quote: Quote,
-  type: PaymentRequestType,
-  customAmount?: number,
-): PaymentRequest => {
+export const buildPaymentRequest = (quote: Quote, type: PaymentRequestType, customAmount?: number): PaymentRequest => {
   const configuredDeposit = (() => {
     const total = Number(quote.total) || 0;
     const explicit = Number(quote.deposit_amount) || 0;
@@ -623,9 +623,11 @@ export const buildPaymentRequest = (
     return 0;
   })();
   const amount =
-    type === "deposit" ? configuredDeposit
-    : type === "full" ? quote.total
-    : Math.max(0, +(customAmount ?? 0).toFixed(2));
+    type === "deposit"
+      ? configuredDeposit
+      : type === "full"
+        ? quote.total
+        : Math.max(0, +(customAmount ?? 0).toFixed(2));
   const label = type === "deposit" ? "deposit" : type === "full" ? "balance" : "amount";
   return {
     id: `pr_${Date.now()}`,
@@ -639,11 +641,7 @@ export const buildPaymentRequest = (
   };
 };
 
-export const buildPaymentRequestMessage = (
-  quote: Quote,
-  pr: PaymentRequest,
-  clientFirstName: string,
-) => {
+export const buildPaymentRequestMessage = (quote: Quote, pr: PaymentRequest, clientFirstName: string) => {
   return [
     `Hi ${clientFirstName}, please find your invoice ${quote.ref} from ${userProfile.business_name}.`,
     "",
@@ -705,33 +703,37 @@ export const buildChaserMessage = (quote: Quote, clientFirstName: string) => {
 
   if (quote.status === "overdue") {
     const due = quote.invoice_due_date ?? quote.due_date;
-    const daysOverdue = due
-      ? Math.max(1, Math.floor((Date.now() - new Date(due).getTime()) / 86400000))
-      : null;
+    const daysOverdue = due ? Math.max(1, Math.floor((Date.now() - new Date(due).getTime()) / 86400000)) : null;
     const overdueLine = daysOverdue
       ? `this invoice is now ${daysOverdue} day${daysOverdue === 1 ? "" : "s"} overdue.`
       : `this invoice is now overdue.`;
-    return [
-      `Hi ${first}, ${overdueLine}`,
-      `Invoice ${quote.ref} from ${userProfile.business_name} for ${amount} is still outstanding — could you settle it as soon as possible?`,
-      signOff,
-    ].join("\n") + footer;
+    return (
+      [
+        `Hi ${first}, ${overdueLine}`,
+        `Invoice ${quote.ref} from ${userProfile.business_name} for ${amount} is still outstanding — could you settle it as soon as possible?`,
+        signOff,
+      ].join("\n") + footer
+    );
   }
 
   if (quote.status === "completed") {
-    return [
-      `Hi ${first}, hope the job went well.`,
-      `Quick reminder your invoice ${quote.ref} from ${userProfile.business_name} for ${amount} is now due. Could you let me know when payment will be made?`,
-      signOff,
-    ].join("\n") + footer;
+    return (
+      [
+        `Hi ${first}, hope the job went well.`,
+        `Quick reminder your invoice ${quote.ref} from ${userProfile.business_name} for ${amount} is now due. Could you let me know when payment will be made?`,
+        signOff,
+      ].join("\n") + footer
+    );
   }
 
   // Defensive fallback — shouldn't normally fire; chaser only runs on completed/overdue.
-  return [
-    `Hi ${first}, just following up on invoice ${quote.ref} from ${userProfile.business_name} for ${amount}.`,
-    "Could you let me know when payment will be made?",
-    signOff,
-  ].join("\n") + footer;
+  return (
+    [
+      `Hi ${first}, just following up on invoice ${quote.ref} from ${userProfile.business_name} for ${amount}.`,
+      "Could you let me know when payment will be made?",
+      signOff,
+    ].join("\n") + footer
+  );
 };
 
 export const stats = () => {
@@ -754,12 +756,13 @@ export const stats = () => {
     mockTransactions.filter((t) => t.method === m).reduce((s, t) => s + t.amount, 0);
   const collectedAll = mockTransactions.reduce((s, t) => s + t.amount, 0);
   const now = new Date();
-  const collectedThisMonth = mockTransactions
-    .filter((t) => {
-      const d = new Date(t.date);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    })
-    .reduce((s, t) => s + t.amount, 0) || collectedAll;
+  const collectedThisMonth =
+    mockTransactions
+      .filter((t) => {
+        const d = new Date(t.date);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      })
+      .reduce((s, t) => s + t.amount, 0) || collectedAll;
   // Top 5 jobs by total value (excluding voided/draft etc)
   const topJobs = [...mockQuotes].sort((a, b) => b.total - a.total).slice(0, 5);
   const bestJob = topJobs[0];
@@ -790,7 +793,11 @@ export const stats = () => {
     quoteCount: mockQuotes.length,
     overdueCount: overdue.length,
     overdueAmount,
-    paid, pending, accepted, completed, outstanding,
+    paid,
+    pending,
+    accepted,
+    completed,
+    outstanding,
     paidByCard: txByMethod("card"),
     paidByBank: txByMethod("bank"),
     paidByCash: txByMethod("cash"),
@@ -824,7 +831,8 @@ export const formatGBP = (n: number) => {
 const _today = new Date();
 // Find Monday of the current week (so the seeded jobs always land on this week's Mon-Fri)
 const _monday = (() => {
-  const d = new Date(_today); d.setHours(0, 0, 0, 0);
+  const d = new Date(_today);
+  d.setHours(0, 0, 0, 0);
   const offset = (d.getDay() + 6) % 7; // Sun=6, Mon=0
   d.setDate(d.getDate() - offset);
   return d;
@@ -839,13 +847,10 @@ const _weekday = (dayOffset: number, hour: number, minute = 0) => {
 export const mockJobs: ScheduledJob[] = [];
 
 export const getJob = (id: string) => mockJobs.find((j) => j.id === id);
-export const getJobByQuote = (quoteId: string) =>
-  mockJobs.find((j) => j.quote_id === quoteId);
+export const getJobByQuote = (quoteId: string) => mockJobs.find((j) => j.quote_id === quoteId);
 
 const sameDay = (a: Date, b: Date) =>
-  a.getFullYear() === b.getFullYear() &&
-  a.getMonth() === b.getMonth() &&
-  a.getDate() === b.getDate();
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
 export const jobsForDay = (day: Date) =>
   mockJobs
@@ -860,11 +865,7 @@ export const jobsForRange = (from: Date, to: Date) =>
     })
     .sort((a, b) => +new Date(a.starts_at) - +new Date(b.starts_at));
 
-export const scheduleJob = (
-  quoteId: string,
-  startsAt: string,
-  durationMinutes = 240,
-): ScheduledJob => {
+export const scheduleJob = (quoteId: string, startsAt: string, durationMinutes = 240): ScheduledJob => {
   const existing = getJobByQuote(quoteId);
   if (existing) {
     existing.starts_at = startsAt;
@@ -937,10 +938,7 @@ async function requireUserId(): Promise<string> {
 }
 
 /** Find existing client by name (case-insensitive) or create a new one (persisted). */
-export const findOrCreateClient = async (
-  name: string,
-  opts?: Partial<Client>,
-): Promise<Client> => {
+export const findOrCreateClient = async (name: string, opts?: Partial<Client>): Promise<Client> => {
   const trimmed = name.trim() || "New client";
   const existing = userClients.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
   if (existing) return existing;
@@ -954,11 +952,7 @@ export const findOrCreateClient = async (
     property_type: opts?.property_type || "Homeowner",
     notes: opts?.notes || null,
   };
-  const { data, error } = await supabase
-    .from("clients")
-    .insert(insertPayload)
-    .select("*")
-    .single();
+  const { data, error } = await supabase.from("clients").insert(insertPayload).select("*").single();
   if (error) {
     console.error("[findOrCreateClient] insert failed", error);
     throw new Error(error.message || "Could not save customer");
@@ -997,15 +991,12 @@ export const saveGeneratedQuote = async (input: {
   const subtotal = +input.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
   const vat_amount = input.vatRegistered ? +(subtotal * VAT_RATE).toFixed(2) : 0;
   const total = +(subtotal + vat_amount).toFixed(2);
-  const due = new Date(); due.setDate(due.getDate() + 14);
+  const due = new Date();
+  due.setDate(due.getDate() + 14);
   const user_id = await requireUserId();
   const timing = deriveTimingFromTotal(total);
-  const depositPct = timing === "deposit_then_balance"
-    ? defaultDepositPercent(userProfile.default_deposit_percent)
-    : 0;
-  const depositAmt = timing === "deposit_then_balance"
-    ? computeDepositAmount(subtotal, depositPct)
-    : 0;
+  const depositPct = timing === "deposit_then_balance" ? defaultDepositPercent(userProfile.default_deposit_percent) : 0;
+  const depositAmt = timing === "deposit_then_balance" ? computeDepositAmount(subtotal, depositPct) : 0;
   const insertPayload = {
     user_id,
     ref: nextQuoteRef(),
@@ -1064,7 +1055,8 @@ export const calcCardFee = (amount: number) => {
 export const duplicateQuote = async (quoteId: string): Promise<Quote | null> => {
   const src = getQuote(quoteId);
   if (!src) return null;
-  const due = new Date(); due.setDate(due.getDate() + 14);
+  const due = new Date();
+  due.setDate(due.getDate() + 14);
   const user_id = await requireUserId();
   const insertPayload = {
     user_id,
@@ -1111,7 +1103,7 @@ export const ensureChasesFor = (quote: Quote) => {
   if (!quote.due_date) return;
   const enabled = quote.auto_chase_enabled ?? userProfile.auto_chase_enabled;
   if (!enabled) return;
-  const offsets = (userProfile.chase_offsets?.length ? userProfile.chase_offsets : [7, 14, 21]);
+  const offsets = userProfile.chase_offsets?.length ? userProfile.chase_offsets : [7, 14, 21];
   const dueMs = new Date(quote.due_date).getTime();
   offsets.forEach((d) => {
     const exists = mockChases.find((c) => c.quote_id === quote.id && c.day_offset === d);
@@ -1152,17 +1144,13 @@ export const isQuoteChaseableNow = (quote: Quote): boolean => {
 
 /** Seed chases for every quote that's currently chaseable. */
 export const seedChases = () => {
-  mockQuotes
-    .filter((q) => q.status === "overdue" || isQuoteChaseableNow(q))
-    .forEach((q) => ensureChasesFor(q));
+  mockQuotes.filter((q) => q.status === "overdue" || isQuoteChaseableNow(q)).forEach((q) => ensureChasesFor(q));
 };
 
 seedChases();
 
 export const chasesForQuote = (quoteId: string) =>
-  mockChases
-    .filter((c) => c.quote_id === quoteId)
-    .sort((a, b) => a.day_offset - b.day_offset);
+  mockChases.filter((c) => c.quote_id === quoteId).sort((a, b) => a.day_offset - b.day_offset);
 
 /** Chases due now (scheduled and past due_at). Auto-stamps auto_send_at on first sight. */
 export const chasesDueNow = () => {
@@ -1195,17 +1183,10 @@ export const markChaseSent = (chaseId: string) => {
 };
 
 /** Build chase message for a specific day offset using the profile templates. */
-export const buildChaseMessageForOffset = (
-  quote: Quote,
-  clientFirstName: string,
-  offset: number,
-) => {
+export const buildChaseMessageForOffset = (quote: Quote, clientFirstName: string, offset: number) => {
   const offsets = userProfile.chase_offsets ?? [7, 14, 21];
   const t = userProfile.chase_templates ?? DEFAULT_CHASE_TEMPLATES;
-  const tpl =
-    offset === offsets[0] ? t.first
-    : offset === offsets[1] ? t.second
-    : t.final;
+  const tpl = offset === offsets[0] ? t.first : offset === offsets[1] ? t.second : t.final;
   const link = quote.payment_request?.link ?? stripePaymentLink(quote);
   const bank = `${userProfile.bank_account_name} · sort ${userProfile.sort_code} · ${userProfile.account_number}`;
   return tpl
@@ -1216,8 +1197,6 @@ export const buildChaseMessageForOffset = (
     .replaceAll("{bank}", bank)
     .replaceAll("{business}", userProfile.business_name);
 };
-
-
 
 export const skipChase = (chaseId: string) => {
   const c = mockChases.find((x) => x.id === chaseId);
@@ -1291,8 +1270,6 @@ export const markReviewRequested = (clientId: string) => {
   bumpVersion();
 };
 
-
-
 // ---------- Quote → invoice split ----------
 
 /** Mark a quote as invoiced (issues a formal invoice), persisted to Lovable Cloud. */
@@ -1301,13 +1278,11 @@ export const markInvoiced = async (quoteId: string): Promise<Quote | null> => {
   if (!q) return null;
   if (q.invoiced_at) return q;
   const today = new Date();
-  const due = new Date(); due.setDate(due.getDate() + 14);
+  const due = new Date();
+  due.setDate(due.getDate() + 14);
   const invoiced_at = today.toISOString();
   const invoice_due_date = due.toISOString().slice(0, 10);
-  const { error } = await supabase
-    .from("quotes")
-    .update({ invoiced_at, invoice_due_date })
-    .eq("id", quoteId);
+  const { error } = await supabase.from("quotes").update({ invoiced_at, invoice_due_date }).eq("id", quoteId);
   if (error) throw error;
   q.invoiced_at = invoiced_at;
   q.invoice_due_date = invoice_due_date;
@@ -1321,10 +1296,7 @@ export const markJobComplete = async (quoteId: string): Promise<Quote | null> =>
   const q = getQuote(quoteId);
   if (!q) return null;
   const completed_at = new Date().toISOString();
-  const { error } = await supabase
-    .from("quotes")
-    .update({ status: "completed", completed_at })
-    .eq("id", quoteId);
+  const { error } = await supabase.from("quotes").update({ status: "completed", completed_at }).eq("id", quoteId);
   if (error) throw error;
   q.status = "completed";
   q.completed_at = completed_at;
@@ -1333,16 +1305,10 @@ export const markJobComplete = async (quoteId: string): Promise<Quote | null> =>
 };
 
 /** Mark a quote as paid via the given method. */
-export const markQuotePaid = async (
-  quoteId: string,
-  paidVia: PaymentMethod,
-): Promise<Quote | null> => {
+export const markQuotePaid = async (quoteId: string, paidVia: PaymentMethod): Promise<Quote | null> => {
   const q = getQuote(quoteId);
   if (!q) return null;
-  const { error } = await supabase
-    .from("quotes")
-    .update({ status: "paid", paid_via: paidVia })
-    .eq("id", quoteId);
+  const { error } = await supabase.from("quotes").update({ status: "paid", paid_via: paidVia }).eq("id", quoteId);
   if (error) throw error;
   q.status = "paid";
   q.paid_via = paidVia;
@@ -1370,16 +1336,10 @@ export const updateQuotePaymentTiming = async (
 };
 
 /** Persist a quote status change to Lovable Cloud. */
-export const setQuoteStatus = async (
-  quoteId: string,
-  status: QuoteStatus,
-): Promise<Quote | null> => {
+export const setQuoteStatus = async (quoteId: string, status: QuoteStatus): Promise<Quote | null> => {
   const q = getQuote(quoteId);
   if (!q) return null;
-  const { error } = await supabase
-    .from("quotes")
-    .update({ status })
-    .eq("id", quoteId);
+  const { error } = await supabase.from("quotes").update({ status }).eq("id", quoteId);
   if (error) throw error;
   q.status = status;
   bumpVersion();
@@ -1432,16 +1392,10 @@ export const updateQuoteLineItems = async (
   return q;
 };
 
-export const assignClientToQuote = async (
-  quoteId: string,
-  clientId: string,
-): Promise<Quote | null> => {
+export const assignClientToQuote = async (quoteId: string, clientId: string): Promise<Quote | null> => {
   const q = getQuote(quoteId);
   if (!q) return null;
-  const { error } = await supabase
-    .from("quotes")
-    .update({ client_id: clientId })
-    .eq("id", quoteId);
+  const { error } = await supabase.from("quotes").update({ client_id: clientId }).eq("id", quoteId);
   if (error) throw error;
   q.client_id = clientId;
   bumpVersion();
@@ -1458,7 +1412,9 @@ export const buildFinalInvoiceMessage = (quote: Quote, clientFirstName: string) 
     "",
     `Job: ${quote.title}`,
     `Amount due: ${formatGBP(quote.total)}`,
-    due ? `Payment due by: ${new Date(due).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}` : "",
+    due
+      ? `Payment due by: ${new Date(due).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+      : "",
     "",
   ];
   if (quote.payment_method === "card" && quote.payment_request) {
@@ -1488,10 +1444,7 @@ export const buildDepositOnAcceptMessage = (quote: Quote, clientFirstName: strin
   const total = Number(quote.total) || 0;
   const explicit = Number(quote.deposit_amount) || 0;
   const pct = Number(quote.deposit_percent) || 0;
-  const amount =
-    explicit > 0 ? +explicit.toFixed(2)
-    : pct > 0 ? +(total * (pct / 100)).toFixed(2)
-    : 0;
+  const amount = explicit > 0 ? +explicit.toFixed(2) : pct > 0 ? +(total * (pct / 100)).toFixed(2) : 0;
   const link = stripePaymentLink(quote, amount);
   const method = quote.payment_method ?? "card";
   const lines = [
@@ -1535,7 +1488,12 @@ export const annualRemindersDue = (withinDays = 30) => {
     .filter((j) => j.annual_reminder_at)
     .map((j) => ({ job: j, quote: getQuote(j.quote_id) }))
     .filter((x): x is { job: ScheduledJob; quote: Quote } => !!x.quote)
-    .map(({ job, quote }) => ({ job, quote, client: getClient(quote.client_id), due: new Date(job.annual_reminder_at!).getTime() }))
+    .map(({ job, quote }) => ({
+      job,
+      quote,
+      client: getClient(quote.client_id),
+      due: new Date(job.annual_reminder_at!).getTime(),
+    }))
     .filter(({ due }) => due >= now && due <= cutoff)
     .sort((a, b) => a.due - b.due);
 };
@@ -1570,7 +1528,12 @@ export const globalSearch = (query: string): SearchResult[] => {
     const blob = `${qq.ref} ${qq.title} ${qq.job_description} ${qq.total}`.toLowerCase();
     if (blob.includes(q)) {
       const cl = getClient(qq.client_id);
-      results.push({ kind: "quote", id: qq.id, title: `${qq.ref} · ${qq.title}`, subtitle: `${cl?.name ?? ""} · ${formatGBP(qq.total)}` });
+      results.push({
+        kind: "quote",
+        id: qq.id,
+        title: `${qq.ref} · ${qq.title}`,
+        subtitle: `${cl?.name ?? ""} · ${formatGBP(qq.total)}`,
+      });
     }
   });
   mockJobs.forEach((j) => {
@@ -1580,7 +1543,9 @@ export const globalSearch = (query: string): SearchResult[] => {
     const blob = `${qq.title} ${cl?.name ?? ""} ${cl?.address ?? ""}`.toLowerCase();
     if (blob.includes(q)) {
       results.push({
-        kind: "job", id: j.id, quoteId: qq.id,
+        kind: "job",
+        id: j.id,
+        quoteId: qq.id,
         title: `${qq.title}`,
         subtitle: `${cl?.name ?? ""} · ${new Date(j.starts_at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} ${formatTime(j.starts_at)}`,
       });
@@ -1594,13 +1559,15 @@ export const globalSearch = (query: string): SearchResult[] => {
 (() => {
   const jamesService = mockJobs.find((j) => j.quote_id === "q1");
   if (jamesService && !jamesService.annual_reminder_at) {
-    const d = new Date(); d.setDate(d.getDate() + 25);
+    const d = new Date();
+    d.setDate(d.getDate() + 25);
     jamesService.annual_reminder_at = d.toISOString();
   } else {
     // No q1 job seeded, synthesise one so the reminder shows.
     const q = getQuote("q1");
     if (q) {
-      const d = new Date(); d.setDate(d.getDate() + 25);
+      const d = new Date();
+      d.setDate(d.getDate() + 25);
       mockJobs.push({
         id: "j_seed_james",
         quote_id: "q1",
@@ -1616,7 +1583,8 @@ export const globalSearch = (query: string): SearchResult[] => {
   // Add a second reminder ~12 days out for the second seeded client (q2)
   const sarah = mockJobs.find((j) => j.quote_id === "q2");
   if (!sarah) {
-    const d = new Date(); d.setDate(d.getDate() + 12);
+    const d = new Date();
+    d.setDate(d.getDate() + 12);
     const past = new Date(Date.now() - 86400000 * 100).toISOString();
     mockJobs.push({
       id: "j_seed_sarah",
