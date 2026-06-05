@@ -1332,6 +1332,24 @@ export const markJobComplete = async (quoteId: string): Promise<Quote | null> =>
   return q;
 };
 
+/** Mark a quote as paid via the given method. */
+export const markQuotePaid = async (
+  quoteId: string,
+  paidVia: PaymentMethod,
+): Promise<Quote | null> => {
+  const q = getQuote(quoteId);
+  if (!q) return null;
+  const { error } = await supabase
+    .from("quotes")
+    .update({ status: "paid", paid_via: paidVia })
+    .eq("id", quoteId);
+  if (error) throw error;
+  q.status = "paid";
+  q.paid_via = paidVia;
+  bumpVersion();
+  return q;
+};
+
 /** Update payment timing + deposit fields on a quote. */
 export const updateQuotePaymentTiming = async (
   quoteId: string,
