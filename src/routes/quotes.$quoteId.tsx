@@ -7,7 +7,7 @@ import {
   getQuote, getClient, userProfile, formatGBP, waLink,
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
-  setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming,
+  setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming, markQuotePaid,
   deleteQuote,
   materialsForQuote, cleanItemDescription, lineIsEstimate,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
