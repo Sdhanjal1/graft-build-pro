@@ -495,20 +495,8 @@ function QuoteDetail() {
 
   return (
     <AppShell>
-      <div className="bg-ink text-paper px-5 pt-6 pb-5 flex items-center gap-3">
-        <BusinessLogo logoUrl={userProfile.logo_url} businessName={userProfile.business_name} size="md" />
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-paper truncate">{userProfile.business_name}</p>
-          <p className="text-[10px] text-paper/60 truncate">
-            {[
-              userProfile.registration_number,
-              userProfile.vat_registered && userProfile.vat_number ? `VAT ${userProfile.vat_number}` : null,
-            ].filter(Boolean).join(" · ")}
-          </p>
-        </div>
-        <QuottrLogo className="h-5 w-auto opacity-60" />
-      </div>
-      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
+      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" compact right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
+
 
       {status === "declined" && (
         <section className="px-5 mt-5">
