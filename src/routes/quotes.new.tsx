@@ -143,6 +143,8 @@ function NewQuotePage() {
   const closeRequestedRef = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const prefetchedContextRef = useRef<any>(null);
+  const liveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const LIVE_PAUSE_MS = 2000;
 
   // Kept as inert ref so nothing from older code paths leaks.
   const sharedStreamRef = useRef<MediaStream | null>(null);
@@ -376,6 +378,35 @@ function NewQuotePage() {
     }
   };
 
+  // Pause-debounced full regeneration. When the speaker pauses for
+  // LIVE_PAUSE_MS we send the ENTIRE accumulated transcript to the AI and
+  // REPLACE the live items with the returned list. This avoids the duplicate
+  // and invented-filler items produced by per-phrase generation, since each
+  // call now sees the full context.
+  const regenerateLiveQuote = async (sessionId: number) => {
+    if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
+    const transcript = liveFinalRef.current.trim();
+    if (!transcript || !isMeaningfulPhrase(transcript)) return;
+    const genId = ++phraseSeqRef.current;
+    pendingCountRef.current++;
+    try {
+      const ctx = prefetchedContextRef.current;
+      const g = await generateFn({
+        data: { description: transcript, trade, vatRegistered: vat, ...(ctx ? { prefetchedContext: ctx } : {}) },
+      });
+      if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
+      if (genId !== phraseSeqRef.current) return;
+      if (g.line_items?.length) {
+        setLiveItems(g.line_items);
+        liveItemsRef.current = g.line_items;
+      }
+    } catch (err) {
+      console.warn("[voice] live regenerate failed", err);
+    } finally {
+      pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
+    }
+  };
+
   // LIVE FLOW: continuous MediaRecorder (only used as a stop-time fallback if
   // Web Speech produced no items) + Web Speech API per-phrase pipeline.
   const startRecording = async () => {
@@ -469,13 +500,11 @@ function NewQuotePage() {
       }
 
       const finalInterim = liveInterimRef.current.trim();
-      if (isMeaningfulPhrase(finalInterim)) {
-        const key = finalInterim.toLowerCase();
-        if (!processedPhraseKeysRef.current.has(key)) {
-          processedPhraseKeysRef.current.add(key);
-          void processPhrase(finalInterim, sessionId);
-        }
+      if (finalInterim) {
+        liveFinalRef.current = `${liveFinalRef.current} ${finalInterim}`.trim();
       }
+      if (liveDebounceRef.current) { clearTimeout(liveDebounceRef.current); liveDebounceRef.current = null; }
+      void regenerateLiveQuote(sessionId);
 
       // Wait for all in-flight phrase generates to settle before snapshotting
       // liveItemsRef so the final spoken phrase cannot be orphaned or dropped.
@@ -538,12 +567,9 @@ function NewQuotePage() {
               if (i > lastFinalIdxRef.current) {
                 lastFinalIdxRef.current = i;
                 liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
-                const phrase = txt.trim();
-                const key = phrase.toLowerCase();
-                if (isMeaningfulPhrase(phrase) && !processedPhraseKeysRef.current.has(key)) {
-                  processedPhraseKeysRef.current.add(key);
-                  void processPhrase(phrase, sessionId);
-                }
+                if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current);
+                const sid = sessionId;
+                liveDebounceRef.current = setTimeout(() => { void regenerateLiveQuote(sid); }, LIVE_PAUSE_MS);
               }
             } else {
               interim += txt;
