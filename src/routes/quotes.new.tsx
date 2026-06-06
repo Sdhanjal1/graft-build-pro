@@ -1793,7 +1793,10 @@ function VoiceOverlay({
               </li>
             ))}
             {building && (
-              <li className="flex items-center gap-3 px-1 py-3 animate-pulse">
+              <li
+                className="flex items-center gap-3 px-1 py-3 animate-pulse transition-opacity duration-300"
+                style={{ opacity: 1 }}
+              >
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-lime opacity-75 animate-ping" />
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-lime" />
