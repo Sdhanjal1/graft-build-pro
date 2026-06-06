@@ -497,6 +497,18 @@ function QuoteDetail() {
     <AppShell>
       <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" compact right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
 
+      <section className="px-5 mt-3">
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/quotes/new", search: { edit: quote.id } as never })}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-lime text-ink font-bold text-sm active:scale-[0.98] transition"
+        >
+          <Mic className="h-4 w-4" />
+          Edit via voice
+        </button>
+      </section>
+
+
 
       {status === "declined" && (
         <section className="px-5 mt-5">
