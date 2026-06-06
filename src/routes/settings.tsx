@@ -23,6 +23,8 @@ import { BillingSection } from "@/components/BillingSection";
 import { ExportInvoicesButton } from "@/components/ExportInvoicesButton";
 import { AccountingExportButton } from "@/components/AccountingExportButton";
 import { deleteMyAccount } from "@/lib/account.functions";
+import { useAutoSave } from "@/hooks/use-auto-save";
+import { SaveIndicator } from "@/components/SaveIndicator";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
