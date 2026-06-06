@@ -123,14 +123,13 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate>
-        <AnimatePresence initial={false}>
+        <AnimatePresence initial={false} mode="wait">
           <motion.div
             key={path}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            style={{ position: "relative" }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
           >
             <Outlet />
           </motion.div>
