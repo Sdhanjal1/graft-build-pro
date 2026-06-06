@@ -520,6 +520,32 @@ function QuoteDetail() {
   const waHref = waLink(client?.phone, messageBody);
   const mailHref = `mailto:${client?.email}?subject=${encodeURIComponent(`Invoice ${quote.ref}, ${quote.title}`)}&body=${encodeURIComponent(messageBody)}`;
 
+  // Plan 1: bar hides on downscroll, returns on upscroll / near bottom.
+  // Always-visible when waiting on a missing client (the "Add client to send"
+  // CTA is the entire purpose of the page in that state).
+  const scrollWantsVisible = useScrollVisible();
+  const needsClient = status === "pending" && !client;
+  const barVisible = needsClient || scrollWantsVisible;
+
+  // Secondary "chase" action: shown on the LEFT of the primary when the quote
+  // has been SENT but sitting idle > 3 days.
+  const sentMs = quote.created_at ? new Date(quote.created_at).getTime() : 0;
+  const showChaseSecondary = status === "sent" && client?.phone && sentMs && (Date.now() - sentMs) > 3 * 86_400_000;
+
+  // Wrap primary.onClick with the loading/disabled gate. Async handlers
+  // (accept/complete/reopen) are awaited; sync ones (open sheets) just toggle
+  // briefly so a double-tap can't fire twice.
+  const handlePrimary = async () => {
+    if (actioning) return;
+    setActioning(true);
+    try {
+      await primary.onClick();
+    } finally {
+      setActioning(false);
+    }
+  };
+
+
   return (
     <AppShell>
       <PageHeader title={titleDraft || quote.title} subtitle={quote.ref} back="/quotes" compact right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
