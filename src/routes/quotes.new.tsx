@@ -1325,12 +1325,38 @@ function NewQuotePage() {
               className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save quote
+              {saving ? (editId ? "Saving changes…" : "Saving…") : (editId ? "Save changes" : "Save quote")}
             </button>
             {!clientName.trim() && (
               <p className="text-[12px] text-center text-muted-foreground">
                 Add a customer to save this quote.
               </p>
+            )}
+            {error && (
+              <div className="rounded-2xl border border-status-overdue/40 bg-status-overdue/10 p-3 space-y-2">
+                <p className="text-sm font-semibold text-status-overdue">Couldn't save quote</p>
+                <p className="text-xs text-status-overdue/90 break-words">{error}</p>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={save}
+                    disabled={saving}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-status-overdue text-white py-2 text-xs font-bold disabled:opacity-60"
+                  >
+                    {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                    {saving ? "Retrying…" : "Retry"}
+                  </button>
+                  {editId && (
+                    <button
+                      type="button"
+                      onClick={() => navigate({ to: "/quotes/$quoteId", params: { quoteId: editId } })}
+                      className="flex-1 inline-flex items-center justify-center rounded-full border border-status-overdue/40 text-status-overdue py-2 text-xs font-bold"
+                    >
+                      Back to quote
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         )}
