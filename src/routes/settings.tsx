@@ -172,6 +172,14 @@ function SettingsPage() {
     <AppShell>
       <PageHeader title="Settings" subtitle="Configuration" />
 
+      <div className="px-5 mt-2 h-5">
+        <SaveIndicator
+          isSaving={profileSaving}
+          isSaved={profileSaved}
+          error={profileError}
+        />
+      </div>
+
       <input
         ref={fileInputRef}
         type="file"
