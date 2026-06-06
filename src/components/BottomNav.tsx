@@ -19,7 +19,7 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 safe-bottom">
       <div className="mx-auto max-w-md px-3 pb-3 pt-2">
-        <div className="bg-ink rounded-full shadow-[0_10px_28px_-10px_rgba(0,0,0,0.55)] ring-1 ring-paper/5 flex items-center justify-around h-16 px-2">
+        <div className="bg-ink/70 backdrop-blur-xl rounded-full shadow-[0_10px_28px_-10px_rgba(0,0,0,0.55)] ring-1 ring-paper/10 flex items-center justify-around h-16 px-2">
           {items.map((it) => (
             <NavItem key={it.to} {...it} active={isActive(it.to)} />
           ))}
