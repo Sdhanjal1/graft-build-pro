@@ -100,6 +100,14 @@ LINE ITEM DESCRIPTIONS — STRICT RULES:
 - NEVER include words like "estimate", "please confirm", "TBC", "subject to", "rough", "approx", "guess", or any internal note inside the description text. The description is what the customer reads.
 - If the price is your AI estimate (not spoken, not from learned patterns), set is_estimate: true on the line. Do NOT put "— estimate, please confirm" or any similar phrase into the description. The UI shows a separate "Estimate" tag.
 
+LABOUR — SINGLE COMBINED LINE:
+- Output exactly ONE labour line for the entire quote, covering all the work the tradesperson described. Do NOT create a separate labour line per task.
+- Sum all the labour time across every task into that single line. E.g. fitting 2 radiators (2hr) + 2 taps (2hr) + a toilet (1hr) = ONE line "Labour" with qty 5, unit "hours", priced at the hourly rate.
+- Write the description as a clear summary of the labour performed, e.g. "Labour — fit radiators, taps & toilet" or simply "Labour" if there are many tasks. Keep it clean and customer-facing.
+- If the tradesperson spoke specific labour prices for different tasks, sum them into the one line's total (use unit "qty", qty 1, unit_price = the combined labour cost).
+- Use the configured hourly/day rate for the combined time exactly as per the LABOUR RATES rules — never invent a rate.
+- This applies ONLY to labour. Materials stay itemised: combine identical materials into one line with summed quantity (e.g. "Radiator (double-panel)" qty 3), but keep genuinely different materials as separate lines.
+
 QUOTE TITLE — STRICT RULES:
 - Title is a single short, professional summary of the WHOLE job — what a customer would expect to see at the top of a quote/invoice. Sentence case, no trailing punctuation, under 80 chars.
 - Summarise the main pieces of work, joined with commas and a final "&". Examples:
