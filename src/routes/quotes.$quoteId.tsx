@@ -490,16 +490,27 @@ function QuoteDetail() {
   };
 
   let primary: { label: string; icon: React.ComponentType<{ className?: string }>; onClick: () => void };
-  if (status === "pending" || status === "declined") {
+  if (status === "pending") {
     primary = client
       ? { label: `Send to ${client.name.split(" ")[0]}`, icon: Send, onClick: () => setSendOpen(true) }
       : { label: "Add client to send", icon: Send, onClick: () => setAssignOpen(true) };
+  } else if (status === "declined") {
+    primary = {
+      label: "Reopen quote",
+      icon: RotateCcw,
+      onClick: async () => {
+        try { await setQuoteStatus(quote.id, "pending"); setStatusState("pending"); }
+        catch (e) { feedback("error"); toast.error(e instanceof Error ? e.message : "Could not reopen"); }
+      },
+    };
   } else if (status === "sent") {
-    primary = { label: "Mark as accepted", icon: ThumbsUp, onClick: acceptQuote };
+    primary = { label: "Customer accepted", icon: ThumbsUp, onClick: acceptQuote };
   } else if (status === "accepted") {
     primary = { label: "Mark job complete", icon: Check, onClick: completeJob };
   } else if (status === "completed") {
     primary = { label: "Mark as paid", icon: CheckCircle2, onClick: () => setAskingPaid(true) };
+  } else if (status === "paid") {
+    primary = { label: invoicedAt ? "Share invoice" : "Share receipt", icon: Share2, onClick: sharePdf };
   } else {
     primary = { label: "Share PDF", icon: Share2, onClick: sharePdf };
   }
