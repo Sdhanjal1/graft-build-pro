@@ -1042,6 +1042,77 @@ export const saveGeneratedQuote = async (input: {
   return quote;
 };
 
+/** Update an existing quote with a new title, description and line items. Used by the voice-edit flow. */
+export const updateGeneratedQuote = async (input: {
+  id: string;
+  clientName?: string;
+  clientPhone?: string;
+  description: string;
+  title: string;
+  line_items: LineItem[];
+  vatRegistered: boolean;
+}): Promise<Quote> => {
+  const trimmedName = input.clientName?.trim() ?? "";
+  const existing = getQuote(input.id);
+  let client_id = existing?.client_id ?? null;
+  if (trimmedName) {
+    const c = await findOrCreateClient(trimmedName, {
+      phone: input.clientPhone?.trim() || undefined,
+    });
+    client_id = c.id;
+  }
+  const subtotal = +input.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
+  const vat_amount = input.vatRegistered ? +(subtotal * VAT_RATE).toFixed(2) : 0;
+  const total = +(subtotal + vat_amount).toFixed(2);
+  const timing = existing?.payment_timing ?? deriveTimingFromTotal(total);
+  const depositPct = timing === "deposit_then_balance"
+    ? (existing?.deposit_percent ?? defaultDepositPercent(userProfile.default_deposit_percent))
+    : 0;
+  const depositAmt = timing === "deposit_then_balance"
+    ? (existing?.deposit_amount ?? computeDepositAmount(subtotal, depositPct))
+    : 0;
+  const updatePayload = {
+    title: input.title,
+    job_description: input.description,
+    line_items: input.line_items as unknown as Record<string, unknown>,
+    subtotal,
+    vat_amount,
+    total,
+    vat_registered: input.vatRegistered,
+    payment_timing: timing,
+    deposit_amount: depositAmt,
+    deposit_percent: depositPct,
+    ...(client_id ? { client_id } : {}),
+  };
+  const { data, error } = await supabase
+    .from("quotes")
+    .update(updatePayload as never)
+    .eq("id", input.id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  const updated = rowToQuote(data as unknown as DbQuote);
+  const idx = mockQuotes.findIndex((q) => q.id === updated.id);
+  if (idx >= 0) mockQuotes[idx] = updated;
+  else mockQuotes.unshift(updated);
+  bumpVersion();
+  try {
+    const { upsertPatternsFromQuote } = await import("@/lib/pricing-patterns.functions");
+    void upsertPatternsFromQuote({
+      data: {
+        items: input.line_items.map((li) => ({
+          description: li.description,
+          qty: li.qty,
+          unit_price: li.unit_price,
+        })),
+      },
+    }).catch((e) => console.warn("[pricing-patterns] upsert failed", e));
+  } catch (e) {
+    console.warn("[pricing-patterns] import failed", e);
+  }
+  return updated;
+};
+
 /** Card processing fee helper, used in the payment summary. */
 export const calcCardFee = (amount: number) => {
   const pct = userProfile.card_fee_pct;

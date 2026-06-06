@@ -7,12 +7,15 @@ import {
   userProfile,
   userClients,
   getClient,
+  getQuote,
   saveGeneratedQuote,
+  updateGeneratedQuote,
   updateClientPhone,
   formatGBP,
   QUOTE_TEMPLATES,
   mockQuotes,
   type LineItem,
+  type Quote,
 } from "@/lib/user-data";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveTrade } from "@/lib/trades";
@@ -71,6 +74,7 @@ export const Route = createFileRoute("/quotes/new")({
   validateSearch: (s: Record<string, unknown>) => ({
     ...(s.voice === 1 || s.voice === "1" ? { voice: 1 } : {}),
     ...(typeof s.clientId === "string" ? { clientId: s.clientId } : {}),
+    ...(typeof s.edit === "string" ? { edit: s.edit } : {}),
   }),
 });
 
@@ -82,7 +86,9 @@ type PendingItem = { id: string; text: string };
 
 function NewQuotePage() {
   const navigate = useNavigate();
-  const { voice: voiceParam, clientId } = Route.useSearch();
+  const { voice: voiceParam, clientId, edit: editId } = Route.useSearch();
+  const [editLoading, setEditLoading] = useState<boolean>(!!editId);
+  const [editError, setEditError] = useState<string | null>(null);
   const [mode] = useState<"speak" | "onsite">("speak");
   const [desc, setDesc] = useState("");
   const [clips, setClips] = useState<Clip[]>([]);
@@ -203,6 +209,70 @@ function NewQuotePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
+
+  // Edit mode: pre-load the existing quote into the draft so the user can
+  // re-record (replaces line items) or tweak before saving.
+  useEffect(() => {
+    if (!editId) return;
+    let cancelled = false;
+    const apply = (q: Quote) => {
+      if (cancelled) return;
+      setDraft({ title: q.title, line_items: q.line_items });
+      originalDraftRef.current = JSON.stringify(q.line_items);
+      setDesc(q.job_description ?? "");
+      if (q.client_id) {
+        const c = getClient(q.client_id);
+        if (c) {
+          setClientName(c.name);
+          setClientPhone(c.phone ?? "");
+          setCustomerMode("existing");
+        }
+      }
+      setEditLoading(false);
+      setEditError(null);
+    };
+    const cached = getQuote(editId);
+    if (cached) {
+      apply(cached);
+      return () => { cancelled = true; };
+    }
+    setEditLoading(true);
+    setEditError(null);
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("quotes")
+          .select("*")
+          .eq("id", editId)
+          .single();
+        if (error) throw error;
+        if (cancelled) return;
+        const row = data as unknown as {
+          id: string;
+          ref: string;
+          client_id: string | null;
+          title: string;
+          job_description: string | null;
+          line_items: unknown;
+        };
+        const q = {
+          id: row.id,
+          ref: row.ref,
+          client_id: row.client_id ?? "",
+          title: row.title,
+          job_description: row.job_description ?? "",
+          line_items: (Array.isArray(row.line_items) ? row.line_items : []) as LineItem[],
+        } as Quote;
+        apply(q);
+      } catch (e) {
+        if (cancelled) return;
+        setEditError(e instanceof Error ? e.message : "Could not load quote");
+        setEditLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editId]);
 
   const handleVoiceStart = async () => {
     closeRequestedRef.current = false;
@@ -689,14 +759,24 @@ function NewQuotePage() {
     setSaving(true);
     setError(null);
     try {
-      const q = await saveGeneratedQuote({
-        clientName: clientName.trim(),
-        clientPhone: clientPhone.trim() || undefined,
-        description: desc.trim(),
-        title: draft.title,
-        line_items: draft.line_items,
-        vatRegistered: vat,
-      });
+      const q = editId
+        ? await updateGeneratedQuote({
+            id: editId,
+            clientName: clientName.trim(),
+            clientPhone: clientPhone.trim() || undefined,
+            description: desc.trim(),
+            title: draft.title,
+            line_items: draft.line_items,
+            vatRegistered: vat,
+          })
+        : await saveGeneratedQuote({
+            clientName: clientName.trim(),
+            clientPhone: clientPhone.trim() || undefined,
+            description: desc.trim(),
+            title: draft.title,
+            line_items: draft.line_items,
+            vatRegistered: vat,
+          });
       // If an existing customer was picked, persist any phone edits to that record.
       if (customerMode === "existing" && q.client_id) {
         try {
@@ -766,7 +846,29 @@ function NewQuotePage() {
         />
       )}
 
-      <PageHeader title="New quote" subtitle="" back="/quotes" />
+      <PageHeader title={editId ? "Edit quote" : "New quote"} subtitle="" back="/quotes" />
+
+      {editId && editLoading && (
+        <div className="px-5 mt-4">
+          <div className="card-surface p-4 inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading quote…
+          </div>
+        </div>
+      )}
+      {editId && editError && (
+        <div className="px-5 mt-4">
+          <div className="card-surface p-4 text-sm text-status-overdue font-medium">
+            Couldn't load that quote: {editError}.{" "}
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/quotes/$quoteId", params: { quoteId: editId } })}
+              className="underline font-semibold text-ink ml-1"
+            >
+              Go back
+            </button>
+          </div>
+        </div>
+      )}
 
         <form
         id="new-quote-form"
