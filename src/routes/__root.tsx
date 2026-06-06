@@ -177,6 +177,23 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [session, loading, isPublic, router, hydratedForUserId]);
 
+  // Re-hydrate when the window regains focus, so external changes
+  // (portal acceptance, payments) appear without a manual reload.
+  React.useEffect(() => {
+    if (!session) return;
+    const onFocus = () => {
+      if (document.visibilityState === "visible") {
+        void hydrateUserData().catch((error) => console.error(error));
+      }
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [session]);
+
   if (loading) return null;
   if (!session && !isPublic) return null;
   if (session && !isPublic && hydratedForUserId !== session.user.id) return null;
