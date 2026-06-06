@@ -142,6 +142,7 @@ function NewQuotePage() {
   const [liveItems, setLiveItems] = useState<LineItem[]>([]);
   const liveItemsRef = useRef<LineItem[]>([]);
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
+  const [building, setBuilding] = useState(false);
   const pendingItemsRef = useRef<PendingItem[]>([]);
   const pendingCountRef = useRef(0);
   const phraseSeqRef = useRef(0);
@@ -390,6 +391,7 @@ function NewQuotePage() {
     if (!transcript || !isMeaningfulPhrase(transcript)) return;
     const genId = ++phraseSeqRef.current;
     pendingCountRef.current++;
+    setBuilding(true);
     try {
       const ctx = prefetchedContextRef.current;
       const g = await generateFn({
@@ -405,6 +407,7 @@ function NewQuotePage() {
       console.warn("[voice] live regenerate failed", err);
     } finally {
       pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
+      setBuilding(false);
     }
   };
 
