@@ -225,7 +225,7 @@ function QuotesPage() {
             />
           )
         )}
-        {filtered.map((quote) => {
+        {filtered.map((quote, i) => {
           const c = getClient(quote.client_id);
           const isUnpaid = UNPAID.includes(quote.status);
           const chaseHandler = isUnpaid && c?.phone
@@ -237,28 +237,34 @@ function QuotesPage() {
               }
             : undefined;
           return (
-            <SwipeRow
+            <div
               key={quote.id}
-              onDelete={async () => {
-                try {
-                  await deleteQuote(quote.id);
-                  toast.success("Quote deleted");
-                } catch (e) {
-                  toast.error("Couldn't delete quote");
-                  throw e;
-                }
-              }}
-              onChase={chaseHandler}
-              chaseLabel="Chase"
+              className="row-rise"
+              style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
             >
-              <QuoteCard
-                quote={quote}
-                clientName={c?.name}
-                onOpenQuickActions={() => setActionsFor(quote)}
-              />
-            </SwipeRow>
+              <SwipeRow
+                onDelete={async () => {
+                  try {
+                    await deleteQuote(quote.id);
+                    toast.success("Quote deleted");
+                  } catch (e) {
+                    toast.error("Couldn't delete quote");
+                    throw e;
+                  }
+                }}
+                onChase={chaseHandler}
+                chaseLabel="Chase"
+              >
+                <QuoteCard
+                  quote={quote}
+                  clientName={c?.name}
+                  onOpenQuickActions={() => setActionsFor(quote)}
+                />
+              </SwipeRow>
+            </div>
           );
         })}
+
       </div>
 
       <QuoteQuickActionsSheet
