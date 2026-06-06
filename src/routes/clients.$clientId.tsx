@@ -251,3 +251,51 @@ function Row({
   );
   return href ? <a href={href}>{content}</a> : content;
 }
+
+function EditableRow({
+  icon: Icon,
+  label,
+  initial,
+  placeholder,
+  type = "text",
+  onSave,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  initial: string;
+  placeholder?: string;
+  type?: "text" | "tel" | "email";
+  onSave: (value: string) => Promise<void>;
+}) {
+  const [value, setValue] = useState(initial ?? "");
+  const { isSaving, isSaved, error, handleChange } = useAutoSave<string>({
+    onSave: (v) => onSave(v),
+    errorTitle: `Couldn't save ${label.toLowerCase()}`,
+  });
+
+  return (
+    <div className="flex items-start gap-3">
+      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+            {label}
+          </p>
+          <SaveIndicator isSaving={isSaving} isSaved={isSaved} error={error} />
+        </div>
+        <input
+          type={type}
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => {
+            setValue(e.target.value);
+            handleChange(e.target.value);
+          }}
+          className="mt-0.5 w-full bg-transparent border-0 border-b border-transparent focus:border-ink/30 px-0 py-1 text-sm font-medium outline-none transition-colors placeholder:text-muted-foreground/60"
+        />
+      </div>
+    </div>
+  );
+}
