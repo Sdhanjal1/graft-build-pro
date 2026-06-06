@@ -385,7 +385,7 @@ function AppHomePage() {
             <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-3 w-3 rotate-45 bg-lime ring-1 ring-ink/10" />
           </div>
         )}
-        <div className="flex flex-col w-full rounded-2xl bg-ink text-paper p-5 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center flex-1">
+        <div className="flex flex-col w-full rounded-2xl bg-surface text-paper p-5 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center flex-1">
           <Link
             to="/quotes/new"
             search={{ voice: 1 }}
