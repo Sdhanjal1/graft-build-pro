@@ -132,12 +132,15 @@ LABOUR — SINGLE COMBINED LINE:
 - This applies ONLY to labour. Materials stay itemised: combine identical materials into one line with summed quantity (e.g. "Radiator (double-panel)" qty 3), but keep genuinely different materials as separate lines.
 
 QUOTE TITLE — STRICT RULES:
-- Title is a single short, professional summary of the WHOLE job — what a customer would expect to see at the top of a quote/invoice. Sentence case, no trailing punctuation, under 80 chars.
-- Summarise the main pieces of work, joined with commas and a final "&". Examples:
-  - "Boiler service, radiator install & kitchen tap fit"
-  - "Full bathroom refurb & en-suite first fix"
-  - "Replace consumer unit & install EV charger"
-- NEVER copy the raw transcript, customer names, addresses, fillers, or chit-chat. NEVER end with "— estimate" or similar qualifiers.
+- Title MUST be 3–4 words maximum. Concise, punchy, professional.
+- Summarise ALL distinct pieces of work mentioned, condensed to the essence.
+- Examples:
+  - Spoke: "fit two radiators, bleed the system, and replace a toilet seat" → "Radiators & toilet fit" (4 words)
+  - Spoke: "service the boiler and fit a new thermostat" → "Boiler & thermostat" (3 words)
+  - Spoke: "just new taps in the kitchen" → "Kitchen tap fit" (3 words)
+  - Spoke: "replace consumer unit and install EV charger" → "Consumer unit & EV fit" (4 words)
+- Sentence case, no trailing punctuation, no "estimate" or qualifiers.
+- NEVER copy the raw transcript, customer names, or filler. NEVER be longer than 4 words.
 
 ONLY-WHAT-WAS-SAID RULE — STRICTEST RULE, OVERRIDES EVERYTHING ELSE:
 
@@ -280,7 +283,7 @@ ${data.description}
 
 Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
 {
-  "title": "Concise, professional summary of the whole job (e.g. 'Boiler service, radiator install & kitchen tap fit')",
+  "title": "3–4 words max, covers all work (e.g. 'Boiler & radiators fit')",
   "clean_description": "Professional scope-of-work summary, no customer names/contacts/filler",
   "extracted_customer": { "name": "optional", "phone": "optional", "email": "optional" },
   "continues_previous": false,
