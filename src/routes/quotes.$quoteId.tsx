@@ -223,7 +223,12 @@ function QuoteDetail() {
     try {
       await setQuoteStatus(quote.id, "accepted");
       setStatusState("accepted");
-      setAskDeposit(true);
+      if (timing === "deposit_then_balance" && configuredDeposit > 0) {
+        setAskDeposit(true);
+      } else {
+        feedback("success");
+        toast.success("Quote accepted");
+      }
     } catch (e) {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
     }
