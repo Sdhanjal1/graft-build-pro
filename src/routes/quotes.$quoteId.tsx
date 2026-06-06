@@ -14,7 +14,7 @@ import {
 } from "@/lib/user-data";
 import { createInvoiceCheckout, recordManualDeposit, removeManualDeposit, getQuotePaymentStatus } from "@/lib/payments.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus, ShoppingCart, ChevronDown, RotateCcw, Undo2 } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus, ShoppingCart, ChevronDown, RotateCcw, Undo2, Mic } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { MaterialListSheet } from "@/components/MaterialListSheet";
@@ -496,6 +496,18 @@ function QuoteDetail() {
   return (
     <AppShell>
       <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" compact right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
+
+      <section className="px-5 mt-3">
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/quotes/new", search: { edit: quote.id } as never })}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-lime text-ink font-bold text-sm active:scale-[0.98] transition"
+        >
+          <Mic className="h-4 w-4" />
+          Edit via voice
+        </button>
+      </section>
+
 
 
       {status === "declined" && (
