@@ -19,7 +19,14 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 safe-bottom">
       <div className="mx-auto max-w-md px-3 pb-3 pt-2">
-        <div className="bg-ink/70 backdrop-blur-xl rounded-full shadow-[0_10px_28px_-10px_rgba(0,0,0,0.55)] ring-1 ring-paper/10 flex items-center justify-around h-16 px-2">
+        <div
+          className="relative rounded-full flex items-center justify-around h-16 px-2 overflow-hidden ring-1 ring-white/15 shadow-[0_10px_28px_-10px_rgba(0,0,0,0.55)] backdrop-blur-2xl backdrop-saturate-150 [-webkit-backdrop-filter:blur(24px)_saturate(1.5)]"
+          style={{
+            background: "linear-gradient(180deg, rgba(30,31,25,0.72) 0%, rgba(22,23,15,0.82) 100%)",
+          }}
+        >
+          {/* top edge highlight — sells the glass */}
+          <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
           {items.map((it) => (
             <NavItem key={it.to} {...it} active={isActive(it.to)} />
           ))}
