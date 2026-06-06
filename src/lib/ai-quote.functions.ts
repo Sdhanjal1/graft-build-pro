@@ -268,7 +268,9 @@ export const generateAIQuote = createServerFn({ method: "POST" })
         ? `\n\nPREVIOUS IN-PROGRESS ITEM (currently the last line on the live quote — decide if the new chunk continues this item or starts new ones):\n- Previous spoken text: "${data.previousChunkText}"\n- Previous line description: "${data.previousItemDescription}"\n`
         : "";
 
-    const userPrompt = `Generate an itemised quote for this job.
+    const userPrompt = `CRITICAL: Create line items ONLY for work explicitly mentioned in the job description below. Do NOT add suggested items, related services, or items from the learned patterns unless the tradesperson specifically mentioned them. The job description is the source of truth.
+
+Generate an itemised quote for this job.
 
 Trade: ${data.trade}
 VAT registered: ${data.vatRegistered ? "Yes (20% VAT will be added)" : "No"}
