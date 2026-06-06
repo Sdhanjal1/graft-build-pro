@@ -7,12 +7,15 @@ import {
   userProfile,
   userClients,
   getClient,
+  getQuote,
   saveGeneratedQuote,
+  updateGeneratedQuote,
   updateClientPhone,
   formatGBP,
   QUOTE_TEMPLATES,
   mockQuotes,
   type LineItem,
+  type Quote,
 } from "@/lib/user-data";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveTrade } from "@/lib/trades";
@@ -71,6 +74,7 @@ export const Route = createFileRoute("/quotes/new")({
   validateSearch: (s: Record<string, unknown>) => ({
     ...(s.voice === 1 || s.voice === "1" ? { voice: 1 } : {}),
     ...(typeof s.clientId === "string" ? { clientId: s.clientId } : {}),
+    ...(typeof s.edit === "string" ? { edit: s.edit } : {}),
   }),
 });
 
@@ -82,7 +86,9 @@ type PendingItem = { id: string; text: string };
 
 function NewQuotePage() {
   const navigate = useNavigate();
-  const { voice: voiceParam, clientId } = Route.useSearch();
+  const { voice: voiceParam, clientId, edit: editId } = Route.useSearch();
+  const [editLoading, setEditLoading] = useState<boolean>(!!editId);
+  const [editError, setEditError] = useState<string | null>(null);
   const [mode] = useState<"speak" | "onsite">("speak");
   const [desc, setDesc] = useState("");
   const [clips, setClips] = useState<Clip[]>([]);
