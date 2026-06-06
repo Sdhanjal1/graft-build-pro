@@ -1501,6 +1501,20 @@ export const updateQuoteLineItems = async (
   return q;
 };
 
+export const updateQuoteTitle = async (quoteId: string, title: string): Promise<Quote | null> => {
+  const q = getQuote(quoteId);
+  if (!q) return null;
+  const next = title.trim();
+  if (!next) throw new Error("Title cannot be empty");
+  const clipped = next.slice(0, 80);
+  const { error } = await supabase.from("quotes").update({ title: clipped }).eq("id", quoteId);
+  if (error) throw error;
+  q.title = clipped;
+  bumpVersion();
+  return q;
+};
+
+
 export const assignClientToQuote = async (quoteId: string, clientId: string): Promise<Quote | null> => {
   const q = getQuote(quoteId);
   if (!q) return null;

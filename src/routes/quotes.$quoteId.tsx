@@ -8,6 +8,7 @@ import {
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming, markQuotePaid,
+  updateQuoteTitle,
   deleteQuote,
   materialsForQuote, cleanItemDescription, lineIsEstimate, parseMoney,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
@@ -33,6 +34,8 @@ import { listQuoteMessages, sendProMessage } from "@/lib/messages.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef } from "react";
 import { usePaidQuoteCount, useInvalidatePaidQuoteCount, normalizeSource } from "@/hooks/usePaidQuoteCount";
+import { useAutoSave } from "@/hooks/use-auto-save";
+import { SaveIndicator } from "@/components/SaveIndicator";
 
 function celebratePaid(amount: number) {
   if (typeof window === "undefined") return;
@@ -68,6 +71,17 @@ function QuoteDetail() {
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | undefined>(quote.payment_request);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(quote.title);
+  const {
+    isSaving: savingTitle,
+    isSaved: savedTitle,
+    error: titleError,
+    handleChange: saveTitleChange,
+  } = useAutoSave<string>({
+    onSave: async (value) => { await updateQuoteTitle(quote.id, value); },
+    errorTitle: "Couldn't save title",
+  });
   const [askDeposit, setAskDeposit] = useState(false);
   const [askInvoice, setAskInvoice] = useState(false);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
@@ -495,7 +509,40 @@ function QuoteDetail() {
 
   return (
     <AppShell>
-      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" compact right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
+      <PageHeader title={titleDraft || quote.title} subtitle={quote.ref} back="/quotes" compact right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
+
+      <section className="px-5 mt-2 flex items-center justify-end gap-2 min-h-[28px]">
+        {editingTitle ? (
+          <div className="flex-1 flex items-center gap-2">
+            <input
+              value={titleDraft}
+              onChange={(e) => {
+                setTitleDraft(e.target.value);
+                saveTitleChange(e.target.value);
+              }}
+              onBlur={() => setEditingTitle(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); }
+                if (e.key === "Escape") { setTitleDraft(quote.title); setEditingTitle(false); }
+              }}
+              autoFocus
+              maxLength={80}
+              placeholder="Quote title"
+              className="flex-1 px-3 py-1.5 rounded-lg bg-paper text-ink font-semibold text-sm border border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/60"
+            />
+            <SaveIndicator isSaving={savingTitle} isSaved={savedTitle} error={titleError} showLabel={false} />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => { setTitleDraft(quote.title); setEditingTitle(true); }}
+            className="inline-flex items-center gap-1 text-[11px] uppercase tracking-widest font-semibold text-muted-foreground hover:text-ink transition"
+          >
+            <Pencil className="h-3 w-3" />
+            Edit title
+          </button>
+        )}
+      </section>
 
       <section className="px-5 mt-3">
         <button
@@ -514,6 +561,7 @@ function QuoteDetail() {
           </span>
         </button>
       </section>
+
 
 
 
