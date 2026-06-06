@@ -846,7 +846,29 @@ function NewQuotePage() {
         />
       )}
 
-      <PageHeader title="New quote" subtitle="" back="/quotes" />
+      <PageHeader title={editId ? "Edit quote" : "New quote"} subtitle="" back="/quotes" />
+
+      {editId && editLoading && (
+        <div className="px-5 mt-4">
+          <div className="card-surface p-4 inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading quote…
+          </div>
+        </div>
+      )}
+      {editId && editError && (
+        <div className="px-5 mt-4">
+          <div className="card-surface p-4 text-sm text-status-overdue font-medium">
+            Couldn't load that quote: {editError}.{" "}
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/quotes/$quoteId", params: { quoteId: editId } })}
+              className="underline font-semibold text-ink ml-1"
+            >
+              Go back
+            </button>
+          </div>
+        </div>
+      )}
 
         <form
         id="new-quote-form"
