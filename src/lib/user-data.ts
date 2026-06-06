@@ -1598,3 +1598,16 @@ export const globalSearch = (query: string): SearchResult[] => {
     });
   }
 })();
+
+/** Forgiving money parser: accepts "£1,500", "1.5k", "1500", "1,500.50" → number. Returns NaN if unparseable. */
+export function parseMoney(raw: string): number {
+  if (raw == null) return NaN;
+  let s = String(raw).trim().toLowerCase();
+  if (!s) return NaN;
+  s = s.replace(/[£$€\s,]/g, "");
+  let mult = 1;
+  if (s.endsWith("k")) { mult = 1000; s = s.slice(0, -1); }
+  const n = Number(s);
+  if (!Number.isFinite(n)) return NaN;
+  return +(n * mult).toFixed(2);
+}
