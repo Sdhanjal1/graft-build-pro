@@ -759,14 +759,24 @@ function NewQuotePage() {
     setSaving(true);
     setError(null);
     try {
-      const q = await saveGeneratedQuote({
-        clientName: clientName.trim(),
-        clientPhone: clientPhone.trim() || undefined,
-        description: desc.trim(),
-        title: draft.title,
-        line_items: draft.line_items,
-        vatRegistered: vat,
-      });
+      const q = editId
+        ? await updateGeneratedQuote({
+            id: editId,
+            clientName: clientName.trim(),
+            clientPhone: clientPhone.trim() || undefined,
+            description: desc.trim(),
+            title: draft.title,
+            line_items: draft.line_items,
+            vatRegistered: vat,
+          })
+        : await saveGeneratedQuote({
+            clientName: clientName.trim(),
+            clientPhone: clientPhone.trim() || undefined,
+            description: desc.trim(),
+            title: draft.title,
+            line_items: draft.line_items,
+            vatRegistered: vat,
+          });
       // If an existing customer was picked, persist any phone edits to that record.
       if (customerMode === "existing" && q.client_id) {
         try {
