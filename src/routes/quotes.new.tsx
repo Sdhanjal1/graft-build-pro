@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter, Link } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useServerFn } from "@tanstack/react-start";
@@ -86,6 +86,7 @@ type PendingItem = { id: string; text: string };
 
 function NewQuotePage() {
   const navigate = useNavigate();
+  const router = useRouter();
   const { voice: voiceParam, clientId, edit: editId } = Route.useSearch();
   const [editLoading, setEditLoading] = useState<boolean>(!!editId);
   const [editError, setEditError] = useState<string | null>(null);
@@ -800,7 +801,14 @@ function NewQuotePage() {
           }
         } catch { /* noop */ }
       }
-      navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id } });
+      if (editId) {
+        // Make sure any cached loader data for the detail route is re-run
+        // so the page reflects the new title / line items immediately.
+        try { await router.invalidate(); } catch { /* noop */ }
+        navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id }, replace: true });
+      } else {
+        navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id } });
+      }
 
     } catch (e) {
       feedback("error");
