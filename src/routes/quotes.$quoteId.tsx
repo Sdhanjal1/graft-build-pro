@@ -1199,7 +1199,7 @@ function LineItemsEditor({
     const nextDesc = draft.description.trim() || current.description;
     const qtyParsed = Number(draft.qty);
     const nextQty = Number.isFinite(qtyParsed) && qtyParsed > 0 ? +qtyParsed : current.qty;
-    const priceParsed = Number(draft.price);
+    const priceParsed = parseMoney(draft.price);
     const nextPrice = Number.isFinite(priceParsed) && priceParsed >= 0
       ? +priceParsed.toFixed(2)
       : current.unit_price;
