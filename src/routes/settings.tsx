@@ -23,6 +23,8 @@ import { BillingSection } from "@/components/BillingSection";
 import { ExportInvoicesButton } from "@/components/ExportInvoicesButton";
 import { AccountingExportButton } from "@/components/AccountingExportButton";
 import { deleteMyAccount } from "@/lib/account.functions";
+import { useAutoSave } from "@/hooks/use-auto-save";
+import { SaveIndicator } from "@/components/SaveIndicator";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -89,12 +91,17 @@ function SettingsPage() {
   const [labourHourly, setLabourHourly] = useState<number>(userProfile.labour_hourly_rate ?? 0);
   const [labourDay, setLabourDay] = useState<number>(userProfile.labour_day_rate ?? 0);
 
-  // Debounced cloud-save
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      void saveProfileToCloud({
+  // Debounced cloud-save, driven by useAutoSave so we share the same
+  // saving / saved / error states with the inline indicator below.
+  const {
+    isSaving: profileSaving,
+    isSaved: profileSaved,
+    error: profileError,
+    handleChange: queueProfileSave,
+  } = useAutoSave<void>({
+    debounceMs: 600,
+    onSave: async () => {
+      await saveProfileToCloud({
         ...profile,
         vat_registered: vatRegistered,
         bank_account_name: bank.account_name,
@@ -107,8 +114,18 @@ function SettingsPage() {
         labour_hourly_rate: labourHourly,
         labour_day_rate: labourDay,
       });
-    }, 600);
-    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+    },
+    errorTitle: "Couldn't save settings",
+  });
+
+  // Skip the first render so we don't fire a save on mount.
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    queueProfileSave();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, vatRegistered, bank, terms, defaultDepositPct, labourHourly, labourDay]);
 
@@ -154,6 +171,14 @@ function SettingsPage() {
   return (
     <AppShell>
       <PageHeader title="Settings" subtitle="Configuration" />
+
+      <div className="px-5 mt-2 h-5">
+        <SaveIndicator
+          isSaving={profileSaving}
+          isSaved={profileSaved}
+          error={profileError}
+        />
+      </div>
 
       <input
         ref={fileInputRef}

@@ -1,13 +1,16 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getClient, quotesForClient, formatGBP, userProfile, useDataVersion } from "@/lib/user-data";
+import { getClient, quotesForClient, formatGBP, userProfile, useDataVersion, updateClientFields } from "@/lib/user-data";
 import { resolveTrade, detectCertifications, type Certification } from "@/lib/trades";
-import { Phone, Mail, MapPin, Home, FileText, Plus, CheckCircle2, Calendar, ShieldCheck, BellRing } from "lucide-react";
+import { Phone, Mail, MapPin, Home, FileText, Plus, CheckCircle2, Calendar, ShieldCheck, BellRing, User } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { CustomerPortalPanel } from "@/components/CustomerPortalPanel";
 import { ClientDetailSkeleton } from "@/components/Skeletons";
 import { useSession } from "@/lib/auth";
+import { useAutoSave } from "@/hooks/use-auto-save";
+import { SaveIndicator } from "@/components/SaveIndicator";
 
 
 export const Route = createFileRoute("/clients/$clientId")({
@@ -122,8 +125,29 @@ function ClientDetail() {
 
       <section className="px-5 mt-4">
         <div className="card-surface p-5 space-y-3">
-          <Row icon={Phone} label="Phone" value={client.phone} href={`tel:${client.phone}`} />
-          <Row icon={Mail} label="Email" value={client.email} href={`mailto:${client.email}`} />
+          <EditableRow
+            icon={User}
+            label="Name"
+            initial={client.name}
+            placeholder="Customer name"
+            onSave={(v) => updateClientFields(clientId, { name: v })}
+          />
+          <EditableRow
+            icon={Phone}
+            label="Phone"
+            type="tel"
+            initial={client.phone}
+            placeholder="07…"
+            onSave={(v) => updateClientFields(clientId, { phone: v })}
+          />
+          <EditableRow
+            icon={Mail}
+            label="Email"
+            type="email"
+            initial={client.email}
+            placeholder="name@example.com"
+            onSave={(v) => updateClientFields(clientId, { email: v })}
+          />
           <Row icon={MapPin} label="Address" value={client.address} />
           <Row icon={Home} label="Property" value={client.property_type} />
           {client.notes && (
@@ -226,4 +250,52 @@ function Row({
     </div>
   );
   return href ? <a href={href}>{content}</a> : content;
+}
+
+function EditableRow({
+  icon: Icon,
+  label,
+  initial,
+  placeholder,
+  type = "text",
+  onSave,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  initial: string;
+  placeholder?: string;
+  type?: "text" | "tel" | "email";
+  onSave: (value: string) => Promise<void>;
+}) {
+  const [value, setValue] = useState(initial ?? "");
+  const { isSaving, isSaved, error, handleChange } = useAutoSave<string>({
+    onSave: (v) => onSave(v),
+    errorTitle: `Couldn't save ${label.toLowerCase()}`,
+  });
+
+  return (
+    <div className="flex items-start gap-3">
+      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+            {label}
+          </p>
+          <SaveIndicator isSaving={isSaving} isSaved={isSaved} error={error} />
+        </div>
+        <input
+          type={type}
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => {
+            setValue(e.target.value);
+            handleChange(e.target.value);
+          }}
+          className="mt-0.5 w-full bg-transparent border-0 border-b border-transparent focus:border-ink/30 px-0 py-1 text-sm font-medium outline-none transition-colors placeholder:text-muted-foreground/60"
+        />
+      </div>
+    </div>
+  );
 }

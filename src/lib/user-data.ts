@@ -500,21 +500,59 @@ export const getClient = (id: string) => userClients.find((c) => c.id === id);
 
 /** Update a client's phone number (persisted). No-op if unchanged. */
 export const updateClientPhone = async (clientId: string, phone: string): Promise<void> => {
+  await updateClientFields(clientId, { phone });
+};
+
+/**
+ * Patch one or more editable fields on a client (name / phone / email).
+ * Trims input, treats empty strings as null for phone/email, and no-ops
+ * if nothing actually changed.
+ */
+export const updateClientFields = async (
+  clientId: string,
+  patch: { name?: string; phone?: string; email?: string },
+): Promise<void> => {
   const existing = userClients.find((c) => c.id === clientId);
-  const next = phone.trim();
   if (!existing) return;
-  if ((existing.phone ?? "").trim() === next) return;
-  const { error } = await supabase
-    .from("clients")
-    .update({ phone: next || null })
-    .eq("id", clientId);
-  if (error) {
-    console.error("[updateClientPhone] update failed", error);
-    throw new Error(error.message || "Could not update customer phone");
+
+  type ClientPatch = { name?: string; phone?: string | null; email?: string | null };
+  const next: ClientPatch = {};
+  const localPatch: Partial<{ name: string; phone: string; email: string }> = {};
+
+  if (patch.name !== undefined) {
+    const v = patch.name.trim();
+    if (!v) throw new Error("Name can't be empty");
+    if (v !== (existing.name ?? "")) {
+      next.name = v;
+      localPatch.name = v;
+    }
   }
-  existing.phone = next;
+  if (patch.phone !== undefined) {
+    const v = patch.phone.trim();
+    if (v !== (existing.phone ?? "")) {
+      next.phone = v || null;
+      localPatch.phone = v;
+    }
+  }
+  if (patch.email !== undefined) {
+    const v = patch.email.trim();
+    if (v !== (existing.email ?? "")) {
+      next.email = v || null;
+      localPatch.email = v;
+    }
+  }
+
+  if (Object.keys(next).length === 0) return;
+
+  const { error } = await supabase.from("clients").update(next).eq("id", clientId);
+  if (error) {
+    console.error("[updateClientFields] update failed", error);
+    throw new Error(error.message || "Could not update customer");
+  }
+  Object.assign(existing, localPatch);
   bumpVersion();
 };
+
 
 // ---------- Materials shopping list (separate from quote line items) ----------
 
