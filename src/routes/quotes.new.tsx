@@ -19,6 +19,7 @@ import {
 } from "@/lib/user-data";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveTrade } from "@/lib/trades";
+import { toast } from "sonner";
 
 
 import { generateAIQuote, prefetchQuoteContext } from "@/lib/ai-quote.functions";
@@ -276,6 +277,7 @@ function NewQuotePage() {
   }, [editId]);
 
   const handleVoiceStart = async () => {
+    if (saving) return;
     closeRequestedRef.current = false;
     setVoiceError(null);
     setLastTranscript(null);
@@ -805,14 +807,18 @@ function NewQuotePage() {
         // Make sure any cached loader data for the detail route is re-run
         // so the page reflects the new title / line items immediately.
         try { await router.invalidate(); } catch { /* noop */ }
+        toast.success("Quote updated", { description: "Your changes have been saved." });
         navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id }, replace: true });
       } else {
+        toast.success("Quote saved", { description: "Your quote is ready." });
         navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id } });
       }
 
     } catch (e) {
       feedback("error");
-      setError(e instanceof Error ? e.message : "Could not save quote");
+      const message = e instanceof Error ? e.message : "Could not save quote";
+      setError(message);
+      toast.error(editId ? "Could not save changes" : "Could not save quote", { description: message });
       setSaving(false);
     }
   };
