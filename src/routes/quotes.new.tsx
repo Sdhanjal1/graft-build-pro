@@ -777,44 +777,8 @@ function NewQuotePage() {
           else generate();
         }}
       >
-        <div className="grid grid-cols-2 gap-2 text-sm font-semibold">
-          <button
-            type="button"
-            onClick={() => setMode("speak")}
-            className={`rounded-full py-2.5 inline-flex items-center justify-center gap-1.5 border transition ${
-              mode === "speak"
-                ? "bg-ink text-paper border-ink"
-                : "bg-transparent text-ink border-ink/25"
-            }`}
-          >
-            <VoiceWaveform size={14} /> Speak it
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("onsite")}
-            className={`rounded-full py-2.5 inline-flex items-center justify-center gap-1.5 border transition ${
-              mode === "onsite"
-                ? "bg-ink text-paper border-ink"
-                : "bg-transparent text-ink border-ink/25"
-            }`}
-          >
-            <MapPin className="h-3.5 w-3.5" /> On site
-          </button>
-        </div>
 
-        {mode === "speak" && (
         <div className="card-surface p-4">
-          <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-            Describe the job
-          </label>
-          <textarea
-            ref={textareaRef}
-            value={desc}
-            onChange={(e) => setDesc(e.target.value)}
-            placeholder="e.g. Replace 28kw combi boiler with new Worcester Greenstar, fit magnetic filter, power flush system…"
-            rows={5}
-            className="mt-2 w-full bg-transparent outline-none text-sm resize-none placeholder:text-muted-foreground"
-          />
           {(QUOTE_TEMPLATES[trade]?.length ?? 0) > 0 && (
             <div className="mt-2 -mx-4 px-4 overflow-x-auto">
               <div className="flex items-center gap-1.5 pb-1">
@@ -902,66 +866,7 @@ function NewQuotePage() {
             <RotatingPrompts className="mt-2.5" />
           )}
         </div>
-        )}
 
-        {mode === "onsite" && (
-        <div className="card-surface p-4 space-y-3">
-          <div>
-            <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-              Walk the job
-            </label>
-            <p className="text-xs text-muted-foreground mt-1">
-              Tap + and record a short clip for each task or room. We'll combine them into one quote.
-            </p>
-          </div>
-
-          {clips.length > 0 && (
-            <ul className="space-y-2">
-              {clips.map((c, i) => (
-                <li key={c.id} className="rounded-2xl bg-secondary px-3 py-2.5 flex items-start gap-2">
-                  <span className="num text-[11px] font-bold text-muted-foreground mt-0.5 shrink-0 w-5">
-                    {i + 1}.
-                  </span>
-                  <p className="flex-1 text-sm leading-snug">{c.transcript}</p>
-                  <button
-                    type="button"
-                    onClick={() => setClips((prev) => prev.filter((x) => x.id !== c.id))}
-                    className="text-muted-foreground hover:text-status-overdue p-1 -mr-1 shrink-0"
-                    aria-label="Remove clip"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <button
-            type="button"
-            onClick={startRecordingForClip}
-            disabled={recording || transcribing}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-ink text-paper py-3 text-sm font-bold active:scale-[0.98] transition disabled:opacity-60"
-          >
-            {transcribing ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Transcribing…
-              </>
-            ) : (
-              <>
-                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-lime text-ink">
-                  <Plus className="h-4 w-4" strokeWidth={3} />
-                </span>
-                {clips.length === 0 ? "Add first clip" : "Add another clip"}
-              </>
-            )}
-          </button>
-
-          <IOSStandaloneRecordingNotice active={recording} />
-          {voiceError && (
-            <p className="text-[12px] text-status-overdue font-medium">{voiceError}</p>
-          )}
-        </div>
-        )}
 
 
 
@@ -1019,9 +924,11 @@ function NewQuotePage() {
             <div className="bg-ink text-paper p-4">
               <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
               <p className="font-bold mt-0.5">{userProfile.business_name}</p>
-              <p className="text-[10px] text-paper/60">
-                {userProfile.registration_number} · VAT {userProfile.vat_number}
-              </p>
+              {userProfile.registration_number && (
+                <p className="text-[10px] text-paper/60">
+                  {userProfile.registration_number}
+                </p>
+              )}
               <input
                 value={draft.title}
                 onChange={(e) => setDraft({ ...draft, title: e.target.value })}
