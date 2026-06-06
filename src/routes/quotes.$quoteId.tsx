@@ -9,7 +9,7 @@ import {
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming, markQuotePaid,
   deleteQuote,
-  materialsForQuote, cleanItemDescription, lineIsEstimate,
+  materialsForQuote, cleanItemDescription, lineIsEstimate, parseMoney,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
 import { createInvoiceCheckout, recordManualDeposit, removeManualDeposit, getQuotePaymentStatus } from "@/lib/payments.functions";
