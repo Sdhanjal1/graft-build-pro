@@ -1769,6 +1769,15 @@ function VoiceOverlay({
                 </div>
               </li>
             ))}
+            {hasPending && (
+              <li className="flex items-center gap-3 px-1 py-3 animate-pulse">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-lime opacity-75 animate-ping" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-lime" />
+                </span>
+                <span className="text-sm text-paper/70 font-medium">Quottr is building your quote…</span>
+              </li>
+            )}
           </ul>
           {/* bottom fade hint that list continues under the stop button */}
           <span aria-hidden className="pointer-events-none absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-ink via-ink/85 to-transparent z-10" />
