@@ -5,6 +5,24 @@ import { Search, Phone, ArrowRight, UserPlus, Users, Inbox } from "lucide-react"
 import { EmptyState } from "@/components/EmptyState";
 import { useState } from "react";
 
+function findDuplicateIds(clients: typeof userClients): Set<string> {
+  const dupes = new Set<string>();
+  const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+  for (let i = 0; i < clients.length; i++) {
+    for (let j = i + 1; j < clients.length; j++) {
+      const a = norm(clients[i].name);
+      const b = norm(clients[j].name);
+      if (!a || !b) continue;
+      const similar = a === b || a.startsWith(b + " ") || b.startsWith(a + " ");
+      if (similar) {
+        dupes.add(clients[i].id);
+        dupes.add(clients[j].id);
+      }
+    }
+  }
+  return dupes;
+}
+
 export const Route = createFileRoute("/clients/")({
   component: ClientsPage,
 });
@@ -16,6 +34,7 @@ function ClientsPage() {
       c.name.toLowerCase().includes(q.toLowerCase()) ||
       c.address.toLowerCase().includes(q.toLowerCase()),
   );
+  const duplicateIds = findDuplicateIds(userClients);
 
   return (
     <AppShell>
