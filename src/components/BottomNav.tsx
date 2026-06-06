@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, FileText, Settings, Bell } from "lucide-react";
+import { Home, FileText, Settings, Clock } from "lucide-react";
 import { feedback, playSample } from "@/lib/feedback";
 
 const items = [
