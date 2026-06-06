@@ -363,40 +363,7 @@ function QuoteCard({
   );
 }
 
-function prefersReducedMotion() {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+function CountUpGBP({ value, className }: { value: number; className?: string }) {
+  return <span className={`num-appear inline-block ${className ?? ""}`}>{formatGBP(value)}</span>;
 }
 
-function CountUpGBP({ value, className }: { value: number; className?: string }) {
-  const [display, setDisplay] = useState(0);
-  const fromRef = useRef(0);
-  const rafRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (prefersReducedMotion()) {
-      setDisplay(value);
-      fromRef.current = value;
-      return;
-    }
-    const from = fromRef.current;
-    const to = value;
-    if (from === to) {
-      setDisplay(to);
-      return;
-    }
-    const duration = 420;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setDisplay(from + (to - from) * eased);
-      if (t < 1) rafRef.current = requestAnimationFrame(tick);
-      else fromRef.current = to;
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-    };
-  }, [value]);
-  return <span className={className}>{formatGBP(display)}</span>;
-}
