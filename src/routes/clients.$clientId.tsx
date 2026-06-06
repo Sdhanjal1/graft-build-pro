@@ -1,13 +1,16 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getClient, quotesForClient, formatGBP, userProfile, useDataVersion } from "@/lib/user-data";
+import { getClient, quotesForClient, formatGBP, userProfile, useDataVersion, updateClientFields } from "@/lib/user-data";
 import { resolveTrade, detectCertifications, type Certification } from "@/lib/trades";
-import { Phone, Mail, MapPin, Home, FileText, Plus, CheckCircle2, Calendar, ShieldCheck, BellRing } from "lucide-react";
+import { Phone, Mail, MapPin, Home, FileText, Plus, CheckCircle2, Calendar, ShieldCheck, BellRing, User } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { CustomerPortalPanel } from "@/components/CustomerPortalPanel";
 import { ClientDetailSkeleton } from "@/components/Skeletons";
 import { useSession } from "@/lib/auth";
+import { useAutoSave } from "@/hooks/use-auto-save";
+import { SaveIndicator } from "@/components/SaveIndicator";
 
 
 export const Route = createFileRoute("/clients/$clientId")({
