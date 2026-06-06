@@ -4,15 +4,16 @@ import type { QuoteStatus } from "@/lib/user-data";
 type Variant = QuoteStatus | "invoiced";
 
 const styles: Record<Variant, string> = {
-  pending: "bg-status-pending/15 text-status-pending",
-  sent: "bg-status-pending/15 text-status-pending",
-  accepted: "bg-status-booked/15 text-status-booked",
-  declined: "bg-muted text-muted-foreground line-through",
+  pending: "bg-ink/10 text-ink",
+  sent: "bg-ink/10 text-ink",
+  accepted: "bg-lime/25 text-ink border border-lime",
+  declined: "bg-ink/10 text-muted-foreground line-through",
   invoiced: "bg-ink text-paper",
-  completed: "bg-status-completed/15 text-status-completed",
-  paid: "bg-lime/30 text-ink",
-  overdue: "bg-status-overdue/15 text-status-overdue",
+  completed: "bg-ink/10 text-ink",
+  paid: "bg-lime text-ink",
+  overdue: "bg-status-overdue text-white",
 };
+
 
 const labels: Record<Variant, string> = {
   pending: "pending",
@@ -36,11 +37,12 @@ function StatusDot({ status }: { status: Variant }) {
     );
   }
   if (status === "accepted") {
-    return <span className="inline-flex h-2 w-2 rounded-full bg-status-booked" />;
+    return <span className="inline-flex h-2 w-2 rounded-full bg-lime" />;
   }
   if (status === "completed") {
-    return <span className="inline-flex h-2 w-2 rounded-full bg-status-completed" />;
+    return <span className="inline-flex h-2 w-2 rounded-full bg-ink/40" />;
   }
+
   if (status === "overdue") {
     return <span className="inline-flex h-2 w-2 rounded-full bg-status-overdue" />;
   }

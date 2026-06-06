@@ -58,13 +58,14 @@ const tileMatches = (tile: TileKey, q: Quote): boolean => {
 };
 
 const STATUS_PILL: Record<QuoteStatus, string> = {
-  pending: "bg-status-pending/15 text-status-pending",
-  sent: "bg-status-sent/15 text-status-sent",
-  accepted: "bg-status-booked/15 text-status-booked",
-  declined: "bg-status-overdue/15 text-status-overdue",
-  completed: "bg-status-completed/15 text-status-completed",
-  paid: "bg-status-paid/15 text-status-paid",
-  overdue: "bg-status-overdue/15 text-status-overdue",
+  pending: "bg-ink/10 text-ink",
+  sent: "bg-ink/10 text-ink",
+  accepted: "bg-lime/25 text-ink border border-lime",
+  declined: "bg-ink/10 text-muted-foreground line-through",
+  completed: "bg-ink/10 text-ink",
+  paid: "bg-lime text-ink",
+  overdue: "bg-status-overdue text-white",
+
 };
 
 
@@ -309,7 +310,8 @@ function QuoteCard({
           : quote.status === "paid"
           ? "bg-card border-l-4 border-lime shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
           : quote.status === "pending"
-          ? "bg-card border-l-4 border-status-pending shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
+          ? "bg-card border-l-4 border-ink/15 shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
+
           : "card-surface bg-card"
       }`}
       {...handlers}
