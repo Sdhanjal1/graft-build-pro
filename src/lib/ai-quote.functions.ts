@@ -255,7 +255,7 @@ export const generateAIQuote = createServerFn({ method: "POST" })
       hourly = profileRow?.labour_hourly_rate != null ? Number(profileRow.labour_hourly_rate) : null;
       day = profileRow?.labour_day_rate != null ? Number(profileRow.labour_day_rate) : null;
     }
-    const patterns = rankPatternsForJob(allPatterns, `${data.trade} ${data.description}`, 30);
+    const patterns = rankPatternsForJob(allPatterns, `${data.trade} ${data.description}`, 10);
     const systemPrompt =
       SYSTEM_PROMPT +
       labourRatesBlock(hourly, day) +
