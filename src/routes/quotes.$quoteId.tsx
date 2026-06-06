@@ -501,10 +501,17 @@ function QuoteDetail() {
         <button
           type="button"
           onClick={() => navigate({ to: "/quotes/new", search: { edit: quote.id } as never })}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-lime text-ink font-bold text-sm active:scale-[0.98] transition"
+          className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-lime text-ink font-bold text-sm shadow-[0_6px_16px_-8px_rgba(200,224,74,0.7)] ring-1 ring-ink/5 active:scale-[0.99] transition"
         >
-          <Mic className="h-4 w-4" />
-          Edit via voice
+          <span className="flex items-center gap-2">
+            <span className="h-8 w-8 rounded-full bg-ink/10 flex items-center justify-center">
+              <Mic className="h-4 w-4" />
+            </span>
+            Edit via voice
+          </span>
+          <span className="text-[10px] uppercase tracking-widest font-bold text-ink/60">
+            Re-record
+          </span>
         </button>
       </section>
 
