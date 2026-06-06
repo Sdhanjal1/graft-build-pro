@@ -19,6 +19,7 @@ import {
 } from "@/lib/user-data";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveTrade } from "@/lib/trades";
+import { toast } from "sonner";
 
 
 import { generateAIQuote, prefetchQuoteContext } from "@/lib/ai-quote.functions";
