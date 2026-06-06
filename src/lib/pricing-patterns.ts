@@ -70,16 +70,25 @@ export function rankPatternsForJob(
   if (!patterns.length) return patterns;
   const jobTokens = new Set(tokenize(jobText));
   if (!jobTokens.size) return patterns.slice(0, limit);
+
+  // Only treat patterns as authoritative when quoted at least twice.
+  // One-off prices stay advisory — they may be typos, discounts, or test data.
   const scored = patterns.map((p) => {
     const tokens = tokenize(p.item_description);
     let score = 0;
     for (const t of tokens) if (jobTokens.has(t)) score += 1;
-    return { p, score };
+    const isAdvisory = (p.price_count || 0) < 2;
+    return { p, score, isAdvisory };
   });
+
   scored.sort((a, b) => {
+    // Authoritative tier always ranks above advisory tier.
+    if (a.isAdvisory !== b.isAdvisory) return a.isAdvisory ? 1 : -1;
     if (b.score !== a.score) return b.score - a.score;
     return (b.p.price_count || 0) - (a.p.price_count || 0);
   });
+
   return scored.slice(0, limit).map((s) => s.p);
 }
+
 

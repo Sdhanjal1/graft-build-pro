@@ -1512,7 +1512,9 @@ function LineItemsEditor({
           const isEstimate = lineIsEstimate(li);
           const cleanDesc = cleanItemDescription(li.description);
           // Only show the "Quottr suggested" tag on AI-priced lines (the Estimate tag is separate).
-          const label = effectiveSource === "ai" && isEstimate ? badgeText(effectiveSource) : null;
+          const label = (effectiveSource === "ai" && isEstimate) || effectiveSource === "learned"
+            ? badgeText(effectiveSource)
+            : null;
           const isEditing = editingIdx === i;
           if (isEditing && draft) {
             return renderEditPanel(li, `edit-${i}`);
