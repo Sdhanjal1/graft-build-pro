@@ -895,49 +895,6 @@ function NewQuotePage() {
       >
 
         <div className="card-surface p-4">
-          {(QUOTE_TEMPLATES[trade]?.length ?? 0) > 0 && (
-            <div className="mt-2 -mx-4 px-4 overflow-x-auto">
-              <div className="flex items-center gap-1.5 pb-1">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold shrink-0 mr-1">
-                  Templates
-                </span>
-                {QUOTE_TEMPLATES[trade].map((t) => (
-                  <button
-                    key={t.label}
-                    type="button"
-                    onClick={() => { setDesc(t.prompt); setDraft(null); textareaRef.current?.focus(); }}
-                    className="shrink-0 rounded-full bg-secondary text-ink text-[11px] font-semibold px-3 py-1.5 hover:bg-ink hover:text-paper transition"
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {resolveTrade(trade).certifications.length > 0 && (
-            <div className="mt-1.5 -mx-4 px-4 overflow-x-auto">
-              <div className="flex items-center gap-1.5 pb-1">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold shrink-0 mr-1">
-                  Add cert
-                </span>
-                {resolveTrade(trade).certifications.map((c) => (
-                  <button
-                    key={c.label}
-                    type="button"
-                    onClick={() => {
-                      const addition = `Include ${c.label}.`;
-                      setDesc((d) => (d.trim() ? `${d.trim()} ${addition}` : addition));
-                      setDraft(null);
-                      textareaRef.current?.focus();
-                    }}
-                    className="shrink-0 rounded-full bg-lime/20 text-ink text-[11px] font-semibold px-3 py-1.5 hover:bg-lime hover:text-ink transition"
-                  >
-                    + {c.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
           <div className="mt-2 flex items-center gap-3 flex-wrap">
             <button
               type="button"
