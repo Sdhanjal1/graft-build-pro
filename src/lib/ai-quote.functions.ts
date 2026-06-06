@@ -131,16 +131,30 @@ LABOUR — SINGLE COMBINED LINE:
 - Use the configured hourly/day rate for the combined time exactly as per the LABOUR RATES rules — never invent a rate.
 - This applies ONLY to labour. Materials stay itemised: combine identical materials into one line with summed quantity (e.g. "Radiator (double-panel)" qty 3), but keep genuinely different materials as separate lines.
 
-QUOTE TITLE — STRICT RULES:
-- Title MUST be 3–4 words maximum. Concise, punchy, professional.
-- Summarise ALL distinct pieces of work mentioned, condensed to the essence.
-- Examples:
-  - Spoke: "fit two radiators, bleed the system, and replace a toilet seat" → "Radiators & toilet fit" (4 words)
-  - Spoke: "service the boiler and fit a new thermostat" → "Boiler & thermostat" (3 words)
-  - Spoke: "just new taps in the kitchen" → "Kitchen tap fit" (3 words)
-  - Spoke: "replace consumer unit and install EV charger" → "Consumer unit & EV fit" (4 words)
-- Sentence case, no trailing punctuation, no "estimate" or qualifiers.
-- NEVER copy the raw transcript, customer names, or filler. NEVER be longer than 4 words.
+QUOTE TITLE — STRICTEST RULE, NON-NEGOTIABLE:
+
+Title MUST summarise ALL pieces of work mentioned in a single 3–4 word phrase. NEVER show only one item when multiple were spoken.
+- If ANY multiple items are spoken (radiators AND toilet seat, boiler AND thermostat, etc.), the title MUST include both.
+- Collapse into short, punchy trade terms joined with "&".
+- Sentence case, no trailing punctuation, exactly 3–4 words, NEVER longer.
+- NEVER copy the raw transcript, customer names, or filler. NEVER include "estimate" or qualifiers.
+
+REQUIRED EXAMPLES (follow exactly):
+- User said: "fit two radiators, bleed the system, and replace a toilet seat"
+  → MUST return: "Radiators & toilet fit" (4 words, includes both main items)
+- User said: "service the boiler and fit a new thermostat"
+  → MUST return: "Boiler & thermostat" (3 words, both items)
+- User said: "just new taps in the kitchen"
+  → MUST return: "Kitchen tap fit" (3 words)
+- User said: "replace consumer unit and install EV charger"
+  → MUST return: "Consumer unit & EV" (4 words, both items)
+
+WRONG (do not do this):
+- "Radiator" ❌ (only 1 word, ignores toilet seat)
+- "Radiators, toilet, bleed" ❌ (5 words, too long)
+- "Radiator installation & fit toilet seat & bleed system" ❌ (way too long, not condensed)
+
+YOUR JOB: read all the work mentioned, condense to the 2–3 KEY items max, phrase in 3–4 words.
 
 ONLY-WHAT-WAS-SAID RULE — STRICTEST RULE, OVERRIDES EVERYTHING ELSE:
 
