@@ -34,6 +34,7 @@ import { listQuoteMessages, sendProMessage } from "@/lib/messages.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef } from "react";
 import { usePaidQuoteCount, useInvalidatePaidQuoteCount, normalizeSource } from "@/hooks/usePaidQuoteCount";
+import { useScrollVisible } from "@/hooks/use-scroll-direction";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { SaveIndicator } from "@/components/SaveIndicator";
 
@@ -87,6 +88,7 @@ function QuoteDetail() {
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
   const [sendOpen, setSendOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [actioning, setActioning] = useState(false);
   
   const [timingOpen, setTimingOpen] = useState(false);
   const [materialsOpen, setMaterialsOpen] = useState(false);
@@ -489,16 +491,27 @@ function QuoteDetail() {
   };
 
   let primary: { label: string; icon: React.ComponentType<{ className?: string }>; onClick: () => void };
-  if (status === "pending" || status === "declined") {
+  if (status === "pending") {
     primary = client
       ? { label: `Send to ${client.name.split(" ")[0]}`, icon: Send, onClick: () => setSendOpen(true) }
       : { label: "Add client to send", icon: Send, onClick: () => setAssignOpen(true) };
+  } else if (status === "declined") {
+    primary = {
+      label: "Reopen quote",
+      icon: RotateCcw,
+      onClick: async () => {
+        try { await setQuoteStatus(quote.id, "pending"); setStatusState("pending"); }
+        catch (e) { feedback("error"); toast.error(e instanceof Error ? e.message : "Could not reopen"); }
+      },
+    };
   } else if (status === "sent") {
-    primary = { label: "Mark as accepted", icon: ThumbsUp, onClick: acceptQuote };
+    primary = { label: "Customer accepted", icon: ThumbsUp, onClick: acceptQuote };
   } else if (status === "accepted") {
     primary = { label: "Mark job complete", icon: Check, onClick: completeJob };
   } else if (status === "completed") {
     primary = { label: "Mark as paid", icon: CheckCircle2, onClick: () => setAskingPaid(true) };
+  } else if (status === "paid") {
+    primary = { label: invoicedAt ? "Share invoice" : "Share receipt", icon: Share2, onClick: sharePdf };
   } else {
     primary = { label: "Share PDF", icon: Share2, onClick: sharePdf };
   }
@@ -506,6 +519,32 @@ function QuoteDetail() {
   const messageBody = buildInvoiceMessage(liveQuote, client?.name.split(" ")[0] ?? "there");
   const waHref = waLink(client?.phone, messageBody);
   const mailHref = `mailto:${client?.email}?subject=${encodeURIComponent(`Invoice ${quote.ref}, ${quote.title}`)}&body=${encodeURIComponent(messageBody)}`;
+
+  // Plan 1: bar hides on downscroll, returns on upscroll / near bottom.
+  // Always-visible when waiting on a missing client (the "Add client to send"
+  // CTA is the entire purpose of the page in that state).
+  const scrollWantsVisible = useScrollVisible();
+  const needsClient = status === "pending" && !client;
+  const barVisible = needsClient || scrollWantsVisible;
+
+  // Secondary "chase" action: shown on the LEFT of the primary when the quote
+  // has been SENT but sitting idle > 3 days.
+  const sentMs = quote.created_at ? new Date(quote.created_at).getTime() : 0;
+  const showChaseSecondary = status === "sent" && client?.phone && sentMs && (Date.now() - sentMs) > 3 * 86_400_000;
+
+  // Wrap primary.onClick with the loading/disabled gate. Async handlers
+  // (accept/complete/reopen) are awaited; sync ones (open sheets) just toggle
+  // briefly so a double-tap can't fire twice.
+  const handlePrimary = async () => {
+    if (actioning) return;
+    setActioning(true);
+    try {
+      await primary.onClick();
+    } finally {
+      setActioning(false);
+    }
+  };
+
 
   return (
     <AppShell>
@@ -798,19 +837,44 @@ function QuoteDetail() {
       {/* Spacer so content isn't hidden behind sticky bar + bottom nav */}
       <div className="h-32" aria-hidden />
 
-      {/* Sticky bottom action bar — single primary action */}
-      <div className="fixed bottom-20 inset-x-0 z-40 pointer-events-none">
+      {/* Sticky bottom action bar — single primary action.
+          Hides on downscroll, returns on upscroll / near bottom (Plan 1). */}
+      <div
+        className={`fixed bottom-20 inset-x-0 z-40 pointer-events-none transition-transform duration-200 ${barVisible ? "translate-y-0" : "translate-y-[140%]"}`}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
         <div className="mx-auto max-w-md px-4 pt-3 pointer-events-auto bg-gradient-to-t from-paper via-paper to-paper/0">
-          <button
-            onClick={primary.onClick}
-            onPointerDown={() => feedback("tap")}
-            className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)]"
-          >
-            <PrimaryIcon className="h-4 w-4" />
-            {primary.label}
-          </button>
+          <div className="flex items-center gap-2">
+            {showChaseSecondary && waHref && (
+              <a
+                href={waHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                onPointerDown={() => feedback("tap")}
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-ink/5 ring-1 ring-ink/10 text-ink px-4 py-3.5 text-xs font-bold active:scale-[0.98]"
+                aria-label="Send chaser on WhatsApp"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Chase
+              </a>
+            )}
+            <button
+              onClick={handlePrimary}
+              onPointerDown={() => feedback("tap")}
+              disabled={actioning}
+              className="flex-1 bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)] disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {actioning ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <PrimaryIcon className="h-4 w-4" />
+              )}
+              {primary.label}
+            </button>
+          </div>
         </div>
       </div>
+
 
 
 

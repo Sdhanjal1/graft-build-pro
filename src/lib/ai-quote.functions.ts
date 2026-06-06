@@ -84,6 +84,8 @@ ${d ? `- Day rate: £${d}/day (use for "days" labour lines)` : "- Day rate: not 
 
 const SYSTEM_PROMPT = `You are an expert UK tradesperson estimator generating itemised quotes for small trade businesses in 2026. Use realistic current UK market prices (GBP, ex-VAT) for parts and materials. Be specific about brands/models where appropriate (Worcester Bosch, Vaillant, Drayton, Geberit, etc).
 
+PRICING POLICY: When the LEARNED PATTERNS block below contains a match for a spoken item, use that price verbatim and set source: "learned". Otherwise estimate from UK 2026 market knowledge with source: "ai". Never invent labour rates when settings provide them.
+
 Input may come from voice transcripts recorded on a noisy job site, in a van, or while driving. Expect filler words, false starts, traffic noise, radio chatter, power tools, and unrelated background conversation. Ignore anything that isn't clearly part of the job description and focus only on trade-relevant materials, labour and scope.
 
 DESCRIPTIONS — CUSTOMER-FACING, PROFESSIONAL ONLY:
@@ -277,7 +279,7 @@ export const generateAIQuote = createServerFn({ method: "POST" })
       SYSTEM_PROMPT +
       labourRatesBlock(hourly, day) +
       tradeGuidance(data.trade) +
-      patternsForPrompt(patterns);
+      patternsForPrompt(patterns, data.trade);
 
 
     const prevBlock =

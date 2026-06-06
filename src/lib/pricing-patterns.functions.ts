@@ -16,25 +16,48 @@ export async function fetchTopPatterns(
   userId: string,
   limit = 50,
 ): Promise<PricingPattern[]> {
-  const { data, error } = await supabase
-    .from("user_pricing_patterns")
-    .select(
-      "id, item_description, item_category, typical_price, price_count, price_min, price_max, last_quoted_at",
-    )
-    .eq("user_id", userId)
-    .order("price_count", { ascending: false })
-    .limit(limit);
-  if (error) {
-    console.error("[fetchTopPatterns] failed", error);
-    return [];
+  // Fetch two passes and merge-dedupe by id: "go-to items" (most-quoted) +
+  // "recent items" (what they quoted lately). Keeps long-tail go-tos visible
+  // while always surfacing recently-priced work for the AI prompt.
+  const perPass = Math.max(20, Math.ceil(limit * 0.75));
+  const [byCount, byRecency] = await Promise.all([
+    supabase
+      .from("user_pricing_patterns")
+      .select(
+        "id, item_description, item_category, typical_price, price_count, price_min, price_max, last_quoted_at",
+      )
+      .eq("user_id", userId)
+      .order("price_count", { ascending: false })
+      .limit(perPass),
+    supabase
+      .from("user_pricing_patterns")
+      .select(
+        "id, item_description, item_category, typical_price, price_count, price_min, price_max, last_quoted_at",
+      )
+      .eq("user_id", userId)
+      .order("last_quoted_at", { ascending: false })
+      .limit(perPass),
+  ]);
+  if (byCount.error) console.error("[fetchTopPatterns] count pass failed", byCount.error);
+  if (byRecency.error) console.error("[fetchTopPatterns] recency pass failed", byRecency.error);
+
+  const seen = new Set<string>();
+  const merged: PricingPattern[] = [];
+  for (const row of [...(byCount.data ?? []), ...(byRecency.data ?? [])] as PricingPattern[]) {
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
+    merged.push(row);
+    if (merged.length >= limit) break;
   }
-  return (data ?? []) as PricingPattern[];
+  return merged;
 }
 
 /** Format patterns as a compact, category-grouped block for Claude's system prompt. */
-export function patternsForPrompt(patterns: PricingPattern[]): string {
+export function patternsForPrompt(patterns: PricingPattern[], trade?: string): string {
   if (!patterns.length) return "";
-  const capped = patterns.slice(0, 10);
+  // Plan 3: bumped from 10 → 20. Haiku 4.5 handles the extra tokens comfortably
+  // and rankPatternsForJob already filtered by relevance upstream.
+  const capped = patterns.slice(0, 20);
   const groups: Record<string, PricingPattern[]> = {};
   for (const p of capped) {
     const cat = p.item_category || "other";
@@ -57,8 +80,12 @@ export function patternsForPrompt(patterns: PricingPattern[]): string {
     sections.push(`${cat.toUpperCase()}:\n${lines}`);
   }
   const body = sections.join("\n\n");
-  return `\n\nLEARNED PATTERNS — this tradesperson's typical pricing from previous quotes. RULES:\n1. ONLY use a learned pattern if the tradesperson explicitly mentioned that exact item (or an extremely obvious variant) in THIS JOB DESCRIPTION.\n2. Do NOT suggest or add items from this list just because they are related, common, or would typically go with the spoken work.\n3. If the current job mentions an item that matches one of these exactly (even with slightly different wording — e.g. "magnetic filter" vs "MagnaClean filter", "boiler install" vs "fit new combi"), USE THE LEARNED PRICE and set source: "learned". Do not substitute a generic UK estimate when a learned match exists.\n4. Keep their typical price even if it differs from your general UK trade knowledge — this is their pricing, not the market average.\n5. Categories below match the line item's category field. When you use a learned price, set the line item's category to match the section it came from.\n\n${body}`;
+  const tradeLine = trade
+    ? `\nTradesperson: ${trade}. The patterns below are their actual historical prices for ${trade} work.\n`
+    : "";
+  return `\n\nLEARNED PATTERNS — this tradesperson's typical pricing from previous quotes.${tradeLine} RULES:\n1. ONLY use a learned pattern if the tradesperson explicitly mentioned that exact item (or an extremely obvious variant) in THIS JOB DESCRIPTION.\n2. Do NOT suggest or add items from this list just because they are related, common, or would typically go with the spoken work.\n3. If the current job mentions an item that matches one of these exactly (even with slightly different wording — e.g. "magnetic filter" vs "MagnaClean filter", "boiler install" vs "fit new combi"), USE THE LEARNED PRICE and set source: "learned". Do not substitute a generic UK estimate when a learned match exists.\n4. Keep their typical price even if it differs from your general UK trade knowledge — this is their pricing, not the market average.\n5. Categories below match the line item's category field. When you use a learned price, set the line item's category to match the section it came from.\n\n${body}`;
 }
+
 
 
 const LineItemInput = z.object({
