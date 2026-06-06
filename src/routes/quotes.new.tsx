@@ -927,7 +927,7 @@ function NewQuotePage() {
         className="px-5 mt-4 space-y-4 pb-64"
         onSubmit={(e) => {
           e.preventDefault();
-          if (draft) save();
+          if (draft) save("send");
           else generate();
         }}
       >
@@ -1317,17 +1317,30 @@ function NewQuotePage() {
 
         {draft && (
           <div className="space-y-2">
-            <button
-              type="button"
-              onClick={save}
-              onPointerDown={() => feedback("tap")}
-              disabled={!clientName.trim() || saving}
-              title={!clientName.trim() ? "Add a customer to save this quote." : undefined}
-              className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {saving ? (editId ? "Saving changes…" : "Saving…") : (editId ? "Save changes" : "Save quote")}
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { void save("draft"); }}
+                onPointerDown={() => feedback("tap")}
+                disabled={!clientName.trim() || saving}
+                title={!clientName.trim() ? "Add a customer to save this quote." : undefined}
+                className="flex-1 bg-card border border-border text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {editId ? "Save changes" : "Save as draft"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { void save("send"); }}
+                onPointerDown={() => feedback("tap")}
+                disabled={!clientName.trim() || saving}
+                title={!clientName.trim() ? "Add a customer to save this quote." : undefined}
+                className="flex-1 bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Save & send
+              </button>
+            </div>
             {!clientName.trim() && (
               <p className="text-[12px] text-center text-muted-foreground">
                 Add a customer to save this quote.
@@ -1340,7 +1353,7 @@ function NewQuotePage() {
                 <div className="flex gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={save}
+                    onClick={() => { void save("draft"); }}
                     disabled={saving}
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-status-overdue text-white py-2 text-xs font-bold disabled:opacity-60"
                   >
@@ -1350,10 +1363,10 @@ function NewQuotePage() {
                   {editId && (
                     <button
                       type="button"
-                      onClick={() => navigate({ to: "/quotes/$quoteId", params: { quoteId: editId } })}
+                      onClick={() => navigate({ to: "/quotes" })}
                       className="flex-1 inline-flex items-center justify-center rounded-full border border-status-overdue/40 text-status-overdue py-2 text-xs font-bold"
                     >
-                      Back to quote
+                      Back to list
                     </button>
                   )}
                 </div>
@@ -1362,6 +1375,25 @@ function NewQuotePage() {
           </div>
         )}
       </form>
+
+      {savedQuote && (
+        <SendQuoteDialog
+          open={sendSheetOpen}
+          onClose={() => {
+            setSendSheetOpen(false);
+            // After the user finishes (or cancels) sending, drop them on the
+            // detail page so they can track status and payment.
+            const id = savedQuote.id;
+            setSavedQuote(null);
+            navigate({ to: "/quotes/$quoteId", params: { quoteId: id }, search: { sent: 1 } as never });
+          }}
+          quoteId={savedQuote.id}
+          quoteRef={savedQuote.ref ?? ""}
+          quoteTitle={savedQuote.title}
+          customerName={getClient(savedQuote.client_id)?.name}
+          customerPhone={getClient(savedQuote.client_id)?.phone}
+        />
+      )}
     </AppShell>
   );
 }
