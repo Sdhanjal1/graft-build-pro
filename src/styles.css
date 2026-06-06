@@ -53,6 +53,7 @@
 
   /* Brand */
   --ink: oklch(0.18 0.005 80);          /* #1a1a18 */
+  --surface: oklch(0.24 0.006 80);       /* softer dark for panels/cards — lifted from ink */
   --lime: oklch(0.88 0.18 118);          /* #c8e04a */
   --paper: oklch(0.957 0.012 80);        /* #f5f2ec */
 
