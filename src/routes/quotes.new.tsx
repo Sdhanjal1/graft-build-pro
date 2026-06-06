@@ -1752,7 +1752,11 @@ function VoiceOverlay({
                 <li
                   key={i}
                   onClick={() => beginEdit(i, li)}
-                  className={`rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-2 flex items-start gap-3 animate-scale-in cursor-pointer active:bg-paper/[0.1] ${justLanded ? "animate-line-glow" : ""}`}
+                  style={{
+                    animation: `scale-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both`,
+                    animationDelay: `${Math.min(i, 5) * 30}ms`,
+                  }}
+                  className={`rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-2 flex items-start gap-3 cursor-pointer active:bg-paper/[0.1] ${justLanded ? "animate-line-glow" : ""}`}
                 >
                   <span className="num text-[11px] font-bold text-paper/40 mt-0.5 shrink-0 w-5 text-right">
                     {i + 1}
