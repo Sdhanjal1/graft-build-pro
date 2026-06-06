@@ -185,7 +185,7 @@ function AppHomePage() {
             </p>
             <Link to="/chaser" className="block mt-1 active:opacity-80 transition">
               <p
-                className="text-lime leading-[0.82] tabular-nums"
+                className="money-hero text-lime leading-[0.82] tabular-nums"
                 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4.5rem, 22vw, 7rem)" }}
               >
                 <ClientOnly fallback={<>{formatGBP(s.outstanding)}</>}>
