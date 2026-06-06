@@ -53,10 +53,17 @@ function celebratePaid(amount: number) {
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
   notFoundComponent: () => <div className="p-8 text-center">Quote not found</div>,
+  validateSearch: (s: Record<string, unknown>) => ({
+    ...(s.sent === 1 || s.sent === "1" ? { sent: 1 as const } : {}),
+    ...(s.paid === 1 || s.paid === "1" ? { paid: 1 as const } : {}),
+    ...(s.cancelled === 1 || s.cancelled === "1" ? { cancelled: 1 as const } : {}),
+  }),
 });
 
 function QuoteDetail() {
   const { quoteId } = Route.useParams();
+  const search = Route.useSearch() as { sent?: 1 };
+  const wasJustSent = search.sent === 1;
   const quote = getQuote(quoteId);
   if (!quote) throw notFound();
   const client = getClient(quote.client_id);
