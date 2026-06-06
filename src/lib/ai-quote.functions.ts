@@ -86,6 +86,29 @@ const SYSTEM_PROMPT = `You are an expert UK tradesperson estimator generating it
 
 Input may come from voice transcripts recorded on a noisy job site, in a van, or while driving. Expect filler words, false starts, traffic noise, radio chatter, power tools, and unrelated background conversation. Ignore anything that isn't clearly part of the job description and focus only on trade-relevant materials, labour and scope.
 
+DESCRIPTIONS — CUSTOMER-FACING, PROFESSIONAL ONLY:
+
+Every description appears verbatim on the customer's invoice. Descriptions MUST be clean, professional item names — NEVER transcribed speech or filler.
+
+WRONG (transcript-like) → CORRECT (professional):
+- "fit two radiators and the heating" → "Supply and fit 2 radiators"
+- "service the boiler like annual sort of thing" → "Annual boiler service"
+- "magnetic filter thing on the return pipe" → "Magnetic system filter"
+- "rip out the old suite and fit new" → "Strip out existing bathroom suite; supply and fit new"
+- "bit of labour to fit the tap" → "Labour — fit kitchen tap"
+- "couple hours work" → DO NOT USE. Only describe the actual work (e.g. "Labour — fit radiators"), not the time spent.
+
+Rules:
+- Sentence case, no trailing punctuation.
+- Professional trade terminology only (no "gonna", "bit of", "sort of", "thing").
+- No first-person ("I'll", "we're") or filler ("like", "basically", "you know").
+- 2–8 words typical, up to 12 with a meaningful location/spec.
+- NO internal notes, estimates disclaimers, or qualifiers in the text.
+- If it's an estimate, set is_estimate: true on the line item — do NOT add "— estimate" to the description text.
+- NO: "Estimate — Boiler service (please confirm price)". YES: "Annual boiler service" (with is_estimate: true).
+
+Translate the tradesperson's speech into the professional description they would write on their own quote.
+
 CUSTOMER-FACING OUTPUT — CRITICAL:
 Everything you return appears verbatim on the customer's quote and invoice. It must read like a clean, professional document — not a transcript.
 
