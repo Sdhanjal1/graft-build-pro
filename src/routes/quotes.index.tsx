@@ -306,17 +306,21 @@ function QuoteCard({
 }) {
   const { handlers, didLongPress, resetLongPress } = useLongPress(onOpenQuickActions, 500);
 
+  const isDraft = quote.status === "pending";
+  const linkProps = isDraft
+    ? { to: "/quotes/new" as const, search: { edit: quote.id } }
+    : { to: "/quotes/$quoteId" as const, params: { quoteId: quote.id } };
+
   return (
     <Link
-      to="/quotes/$quoteId"
-      params={{ quoteId: quote.id }}
+      {...linkProps}
       className={`rounded-2xl py-5 px-4 flex items-center gap-4 transition active:scale-[0.99] ${
         quote.status === "overdue"
           ? "bg-ink text-paper border-l-4 border-status-overdue"
           : quote.status === "paid"
           ? "bg-card border-l-4 border-lime shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
-          : quote.status === "pending"
-          ? "bg-card border-l-4 border-ink/15 shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
+          : isDraft
+          ? "bg-lime/10 border-l-4 border-lime shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
 
           : "card-surface bg-card"
       }`}
@@ -344,6 +348,11 @@ function QuoteCard({
             : <span className="text-status-pending">Tap to assign client</span>}
         </p>
         <p className={`text-[11px] truncate mt-0.5 ${quote.status === "overdue" ? "text-paper/60" : "text-muted-foreground"}`}>{quote.title}</p>
+        {isDraft && (
+          <p className="text-[10px] uppercase tracking-widest font-bold text-ink/60 mt-1.5">
+            Draft · tap to continue
+          </p>
+        )}
         {quote.status === "accepted" && (() => {
           const n = materialsForQuote(quote).length;
           return n > 0 ? (

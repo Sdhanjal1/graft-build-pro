@@ -53,10 +53,17 @@ function celebratePaid(amount: number) {
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
   notFoundComponent: () => <div className="p-8 text-center">Quote not found</div>,
+  validateSearch: (s: Record<string, unknown>) => ({
+    ...(s.sent === 1 || s.sent === "1" ? { sent: 1 as const } : {}),
+    ...(s.paid === 1 || s.paid === "1" ? { paid: 1 as const } : {}),
+    ...(s.cancelled === 1 || s.cancelled === "1" ? { cancelled: 1 as const } : {}),
+  }),
 });
 
 function QuoteDetail() {
   const { quoteId } = Route.useParams();
+  const search = Route.useSearch() as { sent?: 1 };
+  const wasJustSent = search.sent === 1;
   const quote = getQuote(quoteId);
   if (!quote) throw notFound();
   const client = getClient(quote.client_id);
@@ -583,56 +590,19 @@ function QuoteDetail() {
       </div>
 
 
-      <section className="px-5 mt-2 flex items-center justify-end gap-2 min-h-[28px]">
-        {editingTitle ? (
-          <div className="flex-1 flex items-center gap-2">
-            <input
-              value={titleDraft}
-              onChange={(e) => {
-                setTitleDraft(e.target.value);
-                saveTitleChange(e.target.value);
-              }}
-              onBlur={() => setEditingTitle(false)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); }
-                if (e.key === "Escape") { setTitleDraft(quote.title); setEditingTitle(false); }
-              }}
-              autoFocus
-              maxLength={80}
-              placeholder="Quote title"
-              className="flex-1 px-3 py-1.5 rounded-lg bg-paper text-ink font-semibold text-sm border border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/60"
-            />
-            <SaveIndicator isSaving={savingTitle} isSaved={savedTitle} error={titleError} showLabel={false} />
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => { setTitleDraft(quote.title); setEditingTitle(true); }}
-            className="inline-flex items-center gap-1 text-[11px] uppercase tracking-widest font-semibold text-muted-foreground hover:text-ink transition"
-          >
-            <Pencil className="h-3 w-3" />
-            Edit title
-          </button>
-        )}
-      </section>
-
-      <section className="px-5 mt-3">
-        <button
-          type="button"
-          onClick={() => navigate({ to: "/quotes/new", search: { edit: quote.id } as never })}
-          className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-lime text-ink font-bold text-sm shadow-[0_6px_16px_-8px_rgba(200,224,74,0.7)] ring-1 ring-ink/5 active:scale-[0.99] transition"
-        >
-          <span className="flex items-center gap-2">
-            <span className="h-8 w-8 rounded-full bg-ink/10 flex items-center justify-center">
-              <Mic className="h-4 w-4" />
+      {wasJustSent && (
+        <section className="px-5 mt-3">
+          <div className="rounded-2xl bg-lime/15 border border-lime/40 px-4 py-3 flex items-center gap-3">
+            <span className="h-8 w-8 rounded-full bg-lime/30 flex items-center justify-center shrink-0">
+              <Check className="h-4 w-4 text-ink" strokeWidth={3} />
             </span>
-            Edit via voice
-          </span>
-          <span className="text-[10px] uppercase tracking-widest font-bold text-ink/60">
-            Re-record
-          </span>
-        </button>
-      </section>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-ink">Quote sent</p>
+              <p className="text-[11px] text-muted-foreground">We'll let you know when they open it.</p>
+            </div>
+          </div>
+        </section>
+      )}
 
 
 

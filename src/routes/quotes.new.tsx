@@ -25,7 +25,8 @@ import { toast } from "sonner";
 import { generateAIQuote, prefetchQuoteContext } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
-import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search } from "lucide-react";
+import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search, Send } from "lucide-react";
+import { SendQuoteDialog } from "@/components/SendQuoteDialog";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { RotatingStatus, QUOTE_GEN_MESSAGES } from "@/components/RotatingStatus";
 import { feedback, playSample } from "@/lib/feedback";
@@ -783,8 +784,10 @@ function NewQuotePage() {
   const total = +(subtotal + vatAmt).toFixed(2);
 
   const [saving, setSaving] = useState(false);
-  const save = async () => {
-    if (!draft || saving) return;
+  const [sendSheetOpen, setSendSheetOpen] = useState(false);
+  const [savedQuote, setSavedQuote] = useState<Quote | null>(null);
+  const save = async (mode: "draft" | "send" = "draft") => {
+    if (!draft || saving) return null;
     setSaving(true);
     setError(null);
     try {
@@ -829,22 +832,30 @@ function NewQuotePage() {
           }
         } catch { /* noop */ }
       }
-      if (editId) {
-        // Make sure any cached loader data for the detail route is re-run
-        // so the page reflects the new title / line items immediately.
-        try { await router.invalidate(); } catch { /* noop */ }
-        toast.success("Quote updated", { description: "Your changes have been saved." });
-        navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id }, replace: true });
+      try { await router.invalidate(); } catch { /* noop */ }
+      if (mode === "send") {
+        // Stay on /quotes/new and open the send sheet over it.
+        setSavedQuote(q);
+        setSendSheetOpen(true);
+        toast.success(editId ? "Changes saved" : "Quote saved");
       } else {
-        toast.success("Quote saved", { description: "Your quote is ready." });
-        navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id } });
+        // Save as draft: stay on /quotes/new if creating new; return to list if editing.
+        if (editId) {
+          toast.success("Draft updated");
+          navigate({ to: "/quotes" });
+        } else {
+          toast.success("Saved as draft");
+          navigate({ to: "/quotes" });
+        }
       }
-
+      return q;
     } catch (e) {
       feedback("error");
       const message = e instanceof Error ? e.message : "Could not save quote";
       setError(message);
       toast.error(editId ? "Could not save changes" : "Could not save quote", { description: message });
+      return null;
+    } finally {
       setSaving(false);
     }
   };
@@ -916,7 +927,7 @@ function NewQuotePage() {
         className="px-5 mt-4 space-y-4 pb-64"
         onSubmit={(e) => {
           e.preventDefault();
-          if (draft) save();
+          if (draft) save("send");
           else generate();
         }}
       >
@@ -1306,17 +1317,30 @@ function NewQuotePage() {
 
         {draft && (
           <div className="space-y-2">
-            <button
-              type="button"
-              onClick={save}
-              onPointerDown={() => feedback("tap")}
-              disabled={!clientName.trim() || saving}
-              title={!clientName.trim() ? "Add a customer to save this quote." : undefined}
-              className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {saving ? (editId ? "Saving changes…" : "Saving…") : (editId ? "Save changes" : "Save quote")}
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { void save("draft"); }}
+                onPointerDown={() => feedback("tap")}
+                disabled={!clientName.trim() || saving}
+                title={!clientName.trim() ? "Add a customer to save this quote." : undefined}
+                className="flex-1 bg-card border border-border text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {editId ? "Save changes" : "Save as draft"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { void save("send"); }}
+                onPointerDown={() => feedback("tap")}
+                disabled={!clientName.trim() || saving}
+                title={!clientName.trim() ? "Add a customer to save this quote." : undefined}
+                className="flex-1 bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Save & send
+              </button>
+            </div>
             {!clientName.trim() && (
               <p className="text-[12px] text-center text-muted-foreground">
                 Add a customer to save this quote.
@@ -1329,7 +1353,7 @@ function NewQuotePage() {
                 <div className="flex gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={save}
+                    onClick={() => { void save("draft"); }}
                     disabled={saving}
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-status-overdue text-white py-2 text-xs font-bold disabled:opacity-60"
                   >
@@ -1339,10 +1363,10 @@ function NewQuotePage() {
                   {editId && (
                     <button
                       type="button"
-                      onClick={() => navigate({ to: "/quotes/$quoteId", params: { quoteId: editId } })}
+                      onClick={() => navigate({ to: "/quotes" })}
                       className="flex-1 inline-flex items-center justify-center rounded-full border border-status-overdue/40 text-status-overdue py-2 text-xs font-bold"
                     >
-                      Back to quote
+                      Back to list
                     </button>
                   )}
                 </div>
@@ -1351,6 +1375,25 @@ function NewQuotePage() {
           </div>
         )}
       </form>
+
+      {savedQuote && (
+        <SendQuoteDialog
+          open={sendSheetOpen}
+          onClose={() => {
+            setSendSheetOpen(false);
+            // After the user finishes (or cancels) sending, drop them on the
+            // detail page so they can track status and payment.
+            const id = savedQuote.id;
+            setSavedQuote(null);
+            navigate({ to: "/quotes/$quoteId", params: { quoteId: id }, search: { sent: 1 } as never });
+          }}
+          quoteId={savedQuote.id}
+          quoteRef={savedQuote.ref ?? ""}
+          quoteTitle={savedQuote.title}
+          customerName={getClient(savedQuote.client_id)?.name}
+          customerPhone={getClient(savedQuote.client_id)?.phone}
+        />
+      )}
     </AppShell>
   );
 }
