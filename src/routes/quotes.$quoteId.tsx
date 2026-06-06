@@ -9,7 +9,7 @@ import {
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming, markQuotePaid,
   deleteQuote,
-  materialsForQuote, cleanItemDescription, lineIsEstimate,
+  materialsForQuote, cleanItemDescription, lineIsEstimate, parseMoney,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
 import { createInvoiceCheckout, recordManualDeposit, removeManualDeposit, getQuotePaymentStatus } from "@/lib/payments.functions";
@@ -879,8 +879,8 @@ function QuoteDetail() {
                     />
                   </div>
                   <button
-                    disabled={!customAmt || Number(customAmt) <= 0 || creating}
-                    onClick={() => createPaymentRequest("custom", Number(customAmt))}
+                    disabled={!customAmt || !(parseMoney(customAmt) > 0) || creating}
+                    onClick={() => createPaymentRequest("custom", parseMoney(customAmt))}
                     className="bg-lime text-ink rounded-full px-5 font-bold text-sm disabled:opacity-40"
                   >
                     {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
@@ -1174,7 +1174,7 @@ function LineItemsEditor({
       // Adding new
       const desc = draft.description.trim();
       const qtyParsed = Number(draft.qty);
-      const priceParsed = Number(draft.price);
+      const priceParsed = parseMoney(draft.price);
       const qty = Number.isFinite(qtyParsed) && qtyParsed > 0 ? +qtyParsed : 1;
       const price = Number.isFinite(priceParsed) && priceParsed > 0 ? +priceParsed.toFixed(2) : 0;
       if (!desc || price <= 0) {
@@ -1199,7 +1199,7 @@ function LineItemsEditor({
     const nextDesc = draft.description.trim() || current.description;
     const qtyParsed = Number(draft.qty);
     const nextQty = Number.isFinite(qtyParsed) && qtyParsed > 0 ? +qtyParsed : current.qty;
-    const priceParsed = Number(draft.price);
+    const priceParsed = parseMoney(draft.price);
     const nextPrice = Number.isFinite(priceParsed) && priceParsed >= 0
       ? +priceParsed.toFixed(2)
       : current.unit_price;
@@ -1290,6 +1290,10 @@ function LineItemsEditor({
                   value={draft.price}
                   onChange={(e) => setDraft({ ...draft, price: e.target.value })}
                   onFocus={(e) => e.currentTarget.select()}
+                  onBlur={(e) => {
+                    const n = parseMoney(e.target.value);
+                    if (Number.isFinite(n) && n > 0) setDraft({ ...draft, price: String(n) });
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") commitAll();
                     if (e.key === "Escape") cancelEdit();
