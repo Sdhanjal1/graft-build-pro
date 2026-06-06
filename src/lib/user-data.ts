@@ -515,7 +515,8 @@ export const updateClientFields = async (
   const existing = userClients.find((c) => c.id === clientId);
   if (!existing) return;
 
-  const next: Record<string, string | null> = {};
+  type ClientPatch = { name?: string; phone?: string | null; email?: string | null };
+  const next: ClientPatch = {};
   const localPatch: Partial<{ name: string; phone: string; email: string }> = {};
 
   if (patch.name !== undefined) {
