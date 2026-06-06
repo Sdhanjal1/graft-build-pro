@@ -142,6 +142,7 @@ function NewQuotePage() {
   const [liveItems, setLiveItems] = useState<LineItem[]>([]);
   const liveItemsRef = useRef<LineItem[]>([]);
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
+  const [building, setBuilding] = useState(false);
   const pendingItemsRef = useRef<PendingItem[]>([]);
   const pendingCountRef = useRef(0);
   const phraseSeqRef = useRef(0);
@@ -390,6 +391,7 @@ function NewQuotePage() {
     if (!transcript || !isMeaningfulPhrase(transcript)) return;
     const genId = ++phraseSeqRef.current;
     pendingCountRef.current++;
+    setBuilding(true);
     try {
       const ctx = prefetchedContextRef.current;
       const g = await generateFn({
@@ -405,6 +407,7 @@ function NewQuotePage() {
       console.warn("[voice] live regenerate failed", err);
     } finally {
       pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
+      setBuilding(false);
     }
   };
 
@@ -738,6 +741,7 @@ function NewQuotePage() {
           liveSupported={liveSupported}
           liveItems={liveItems}
           pendingItems={pendingItems}
+          building={building}
           streamRef={sharedStreamRef}
           onStart={handleVoiceStart}
           onStop={stopRecording}
@@ -1554,6 +1558,7 @@ function VoiceOverlay({
   liveSupported,
   liveItems,
   pendingItems,
+  building,
   streamRef,
   onStart,
   onStop,
@@ -1571,6 +1576,7 @@ function VoiceOverlay({
   liveSupported: boolean;
   liveItems: LineItem[];
   pendingItems: { id: string; text: string }[];
+  building: boolean;
   streamRef?: React.RefObject<MediaStream | null>;
   onStart: () => void;
   onStop: () => void;
@@ -1655,7 +1661,7 @@ function VoiceOverlay({
         )}
       </div>
 
-      {transcribing && !hasItems && !hasPending && (
+      {(transcribing || building) && !hasItems && (
         <div className="flex flex-col items-center gap-3 mt-8">
           <span className="relative flex h-12 w-12">
             <span className="absolute inline-flex h-full w-full rounded-full bg-lime opacity-30 animate-ping" />
@@ -1775,7 +1781,7 @@ function VoiceOverlay({
                 </div>
               </li>
             ))}
-            {hasPending && (
+            {building && (
               <li className="flex items-center gap-3 px-1 py-3 animate-pulse">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-lime opacity-75 animate-ping" />
