@@ -24,8 +24,6 @@ import {
   paymentTimingLabel, defaultDepositPercent,
   type PaymentTiming,
 } from "@/lib/payment-timing";
-import { QuottrLogo } from "@/components/QuottrLogo";
-import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import { feedback, playSample } from "@/lib/feedback";
