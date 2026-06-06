@@ -306,7 +306,6 @@ function QuoteCard({
 }) {
   const { handlers, didLongPress, resetLongPress } = useLongPress(onOpenQuickActions, 500);
 
-  return (
   const isDraft = quote.status === "pending";
   const linkProps = isDraft
     ? { to: "/quotes/new" as const, search: { edit: quote.id } }
