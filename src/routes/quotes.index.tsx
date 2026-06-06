@@ -307,34 +307,27 @@ function QuoteCard({
   const { handlers, didLongPress, resetLongPress } = useLongPress(onOpenQuickActions, 500);
 
   const isDraft = quote.status === "pending";
-  const linkProps = isDraft
-    ? { to: "/quotes/new" as const, search: { edit: quote.id } }
-    : { to: "/quotes/$quoteId" as const, params: { quoteId: quote.id } };
 
-  return (
-    <Link
-      {...linkProps}
-      className={`rounded-2xl py-5 px-4 flex items-center gap-4 transition active:scale-[0.99] ${
-        quote.status === "overdue"
-          ? "bg-ink text-paper border-l-4 border-status-overdue"
-          : quote.status === "paid"
-          ? "bg-card border-l-4 border-lime shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
-          : isDraft
-          ? "bg-lime/10 border-l-4 border-lime shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
+  const className = `rounded-2xl py-5 px-4 flex items-center gap-4 transition active:scale-[0.99] ${
+    quote.status === "overdue"
+      ? "bg-ink text-paper border-l-4 border-status-overdue"
+      : quote.status === "paid"
+      ? "bg-card border-l-4 border-lime shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
+      : isDraft
+      ? "bg-lime/10 border-l-4 border-lime shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
+      : "card-surface bg-card"
+  }`;
 
-          : "card-surface bg-card"
-      }`}
-      {...handlers}
-      onClickCapture={(e) => {
-        if (didLongPress()) {
-          e.preventDefault();
-          e.stopPropagation();
-          resetLongPress();
-        }
-      }}
-      onContextMenu={(e) => e.preventDefault()}
-      style={{ WebkitTouchCallout: "none", userSelect: "none" }}
-    >
+  const onClickCapture = (e: React.MouseEvent) => {
+    if (didLongPress()) {
+      e.preventDefault();
+      e.stopPropagation();
+      resetLongPress();
+    }
+  };
+
+  const inner = (
+    <>
       <div className="flex-1 min-w-0">
         <p
           className={`leading-none tabular-nums ${quote.status === "overdue" ? "text-lime" : "text-ink"}`}
@@ -368,6 +361,28 @@ function QuoteCard({
           {STATUS_LABEL[quote.status]}
         </span>
       </div>
+    </>
+  );
+
+  const sharedProps = {
+    className,
+    onClickCapture,
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    style: { WebkitTouchCallout: "none", userSelect: "none" } as React.CSSProperties,
+    ...handlers,
+  };
+
+  if (isDraft) {
+    return (
+      <Link to="/quotes/new" search={{ edit: quote.id }} {...sharedProps}>
+        {inner}
+      </Link>
+    );
+  }
+
+  return (
+    <Link to="/quotes/$quoteId" params={{ quoteId: quote.id }} {...sharedProps}>
+      {inner}
     </Link>
   );
 }
