@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import CountUp from "react-countup";
 import { AppShell } from "@/components/AppShell";
 import {
-  userProfile, stats, formatGBP, getClient, mockQuotes,
+  userProfile, stats, formatGBP, getClient, mockQuotes, userClients,
   todaysJobs, formatTime, getQuote, materialsForQuote,
 } from "@/lib/user-data";
 import { resolveTrade } from "@/lib/trades";
