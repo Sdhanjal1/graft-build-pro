@@ -205,13 +205,13 @@ function NewQuotePage() {
 
   const handleVoiceStart = async () => {
     closeRequestedRef.current = false;
-    setVoicePending(false);
     setVoiceError(null);
     setLastTranscript(null);
     setLivePreview("");
     liveFinalRef.current = "";
     liveInterimRef.current = "";
     processedPhraseKeysRef.current.clear();
+    if (voiceParam === 1) navigate({ to: "/quotes/new", search: {}, replace: true });
     await startRecording();
   };
   const handleVoiceClose = () => {
