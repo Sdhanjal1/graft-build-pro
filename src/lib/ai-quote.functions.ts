@@ -346,6 +346,23 @@ Omit extracted_customer entirely if no customer details were mentioned. Unit pri
     });
     // Title safety: strip stray trailing " — estimate" and trim.
     result.title = result.title.replace(/\s*[—\-–]\s*estimate.*$/i, "").trim();
+    // Enforce 4-word max on the title. Strip trailing punctuation/conjunctions
+    // so we don't leave "Boiler &" or "Radiators," dangling after truncation.
+    {
+      const cleaned = result.title
+        .replace(/[.,;:!?]+$/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      const words = cleaned.split(" ").filter(Boolean);
+      if (words.length > 4) {
+        let truncated = words.slice(0, 4).join(" ");
+        truncated = truncated.replace(/\s*(?:&|and|\+|,|;|:|-|—|–)\s*$/i, "").trim();
+        result.title = truncated;
+      } else {
+        result.title = cleaned;
+      }
+    }
+
     return result;
   });
 
