@@ -128,6 +128,14 @@ function getSecretForEnv(env: string | null) {
   return process.env.PAYMENTS_SANDBOX_WEBHOOK_SECRET;
 }
 
+// If a webhook arrives for an env whose secret we never configured, drop it
+// cleanly with a 200 so the provider doesn't retry for days. Logged so we
+// notice if live events start arriving before we wire up live keys.
+function dropUnconfiguredEnv(env: string | null) {
+  console.warn("[payments/webhook] no secret configured for env, dropping", env);
+  return new Response("ok (env not configured)", { status: 200 });
+}
+
 // Parse Stripe-style "stripe-signature: t=...,v1=...,v1=..." header.
 function parseStripeSig(header: string) {
   const parts = header.split(",").map((p) => p.trim());
