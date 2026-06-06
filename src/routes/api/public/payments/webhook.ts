@@ -128,6 +128,14 @@ function getSecretForEnv(env: string | null) {
   return process.env.PAYMENTS_SANDBOX_WEBHOOK_SECRET;
 }
 
+// If a webhook arrives for an env whose secret we never configured, drop it
+// cleanly with a 200 so the provider doesn't retry for days. Logged so we
+// notice if live events start arriving before we wire up live keys.
+function dropUnconfiguredEnv(env: string | null) {
+  console.warn("[payments/webhook] no secret configured for env, dropping", env);
+  return new Response("ok (env not configured)", { status: 200 });
+}
+
 // Parse Stripe-style "stripe-signature: t=...,v1=...,v1=..." header.
 function parseStripeSig(header: string) {
   const parts = header.split(",").map((p) => p.trim());
@@ -175,8 +183,9 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
         const env = url.searchParams.get("env");
         const secret = getSecretForEnv(env);
         if (!secret) {
-          console.error("[payments/webhook] missing secret for env", env);
-          return new Response("Server not configured", { status: 500 });
+          // Sandbox-only deployment receiving a live event (or vice versa) —
+          // ack with 200 so Stripe doesn't retry for 3 days.
+          return dropUnconfiguredEnv(env);
         }
 
         const rawBody = await request.text();
@@ -228,24 +237,31 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             return new Response("ok", { status: 200 });
           }
 
+          // Upsert (not just update): the user's row is normally seeded by the
+          // handle_new_user_subscription trigger, but if that ever failed to
+          // run we'd otherwise silently drop real Stripe events. user_id has a
+          // unique constraint, so onConflict keeps a single row per user.
           await supabaseAdmin
             .from("subscriptions")
-            .update({
-              status,
-              stripe_subscription_id: subObj.id,
-              stripe_customer_id: subObj.customer,
-              price_id: item?.price?.lookup_key ?? item?.price?.id ?? null,
-              product_id: item?.price?.product ?? null,
-              current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
-              current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
-              trial_end: subObj.trial_end
-                ? new Date(subObj.trial_end * 1000).toISOString()
-                : undefined,
-              cancel_at_period_end: Boolean(subObj.cancel_at_period_end),
-              has_payment_method: hasPm,
-              environment: env === "live" ? "live" : "sandbox",
-            })
-            .eq("user_id", userId);
+            .upsert(
+              {
+                user_id: userId,
+                status,
+                stripe_subscription_id: subObj.id,
+                stripe_customer_id: subObj.customer,
+                price_id: item?.price?.lookup_key ?? item?.price?.id ?? null,
+                product_id: item?.price?.product ?? null,
+                current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
+                current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+                trial_end: subObj.trial_end
+                  ? new Date(subObj.trial_end * 1000).toISOString()
+                  : undefined,
+                cancel_at_period_end: Boolean(subObj.cancel_at_period_end),
+                has_payment_method: hasPm,
+                environment: env === "live" ? "live" : "sandbox",
+              },
+              { onConflict: "user_id" },
+            );
 
           return new Response("ok", { status: 200 });
         }
@@ -269,10 +285,19 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           return new Response("ok", { status: 200 });
         }
 
-        // ===== SETUP MODE CHECKOUT (card added during trial) =====
+        // ===== SUBSCRIPTION CHECKOUT COMPLETED (card added during trial) =====
+        // The user came back from Stripe Checkout (mode=subscription) after
+        // attaching a card. Flip has_payment_method immediately so the UI
+        // (TrialBanner, BillingSection) stops nagging them — we can't rely on
+        // subscription.default_payment_method because Stripe often leaves it
+        // null on trialing subs until the first invoice runs.
         if (type === "checkout.session.completed") {
           const session = evt.data?.object ?? {};
-          if (session.mode === "setup") {
+          const isSubscription =
+            session.mode === "subscription" ||
+            session.mode === "setup" ||
+            session.metadata?.kind === "quottr_subscription";
+          if (isSubscription) {
             const customerId: string | undefined = session.customer;
             const userIdMeta: string | undefined = session.metadata?.user_id;
             if (userIdMeta) {
@@ -290,6 +315,39 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           }
           // fall through, mode=payment is handled below
         }
+
+        // ===== FAILED / EXPIRED ONE-OFF INVOICE PAYMENTS =====
+        // Resolve pending invoice_payments rows so reporting stays clean and
+        // the customer-facing portal can re-prompt.
+        if (
+          type === "payment_intent.payment_failed" ||
+          type === "checkout.session.expired"
+        ) {
+          const obj = evt.data?.object ?? {};
+          const sessId: string | undefined = obj.id?.startsWith?.("cs_")
+            ? obj.id
+            : undefined;
+          const piId: string | undefined =
+            obj.payment_intent ?? (obj.id?.startsWith?.("pi_") ? obj.id : undefined);
+          const newStatus =
+            type === "checkout.session.expired" ? "expired" : "failed";
+          if (sessId) {
+            await supabaseAdmin
+              .from("invoice_payments")
+              .update({ status: newStatus })
+              .eq("stripe_session_id", sessId)
+              .eq("status", "pending");
+          } else if (piId) {
+            await supabaseAdmin
+              .from("invoice_payments")
+              .update({ status: newStatus })
+              .eq("stripe_payment_intent", piId)
+              .eq("status", "pending");
+          }
+          return new Response("ok", { status: 200 });
+        }
+
+
 
 
         // ===== ONE-OFF INVOICE PAYMENTS (existing behaviour) =====
