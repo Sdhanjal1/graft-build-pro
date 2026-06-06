@@ -784,8 +784,10 @@ function NewQuotePage() {
   const total = +(subtotal + vatAmt).toFixed(2);
 
   const [saving, setSaving] = useState(false);
-  const save = async () => {
-    if (!draft || saving) return;
+  const [sendSheetOpen, setSendSheetOpen] = useState(false);
+  const [savedQuote, setSavedQuote] = useState<Quote | null>(null);
+  const save = async (mode: "draft" | "send" = "draft") => {
+    if (!draft || saving) return null;
     setSaving(true);
     setError(null);
     try {
@@ -830,22 +832,30 @@ function NewQuotePage() {
           }
         } catch { /* noop */ }
       }
-      if (editId) {
-        // Make sure any cached loader data for the detail route is re-run
-        // so the page reflects the new title / line items immediately.
-        try { await router.invalidate(); } catch { /* noop */ }
-        toast.success("Quote updated", { description: "Your changes have been saved." });
-        navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id }, replace: true });
+      try { await router.invalidate(); } catch { /* noop */ }
+      if (mode === "send") {
+        // Stay on /quotes/new and open the send sheet over it.
+        setSavedQuote(q);
+        setSendSheetOpen(true);
+        toast.success(editId ? "Changes saved" : "Quote saved");
       } else {
-        toast.success("Quote saved", { description: "Your quote is ready." });
-        navigate({ to: "/quotes/$quoteId", params: { quoteId: q.id } });
+        // Save as draft: stay on /quotes/new if creating new; return to list if editing.
+        if (editId) {
+          toast.success("Draft updated");
+          navigate({ to: "/quotes" });
+        } else {
+          toast.success("Saved as draft");
+          navigate({ to: "/quotes" });
+        }
       }
-
+      return q;
     } catch (e) {
       feedback("error");
       const message = e instanceof Error ? e.message : "Could not save quote";
       setError(message);
       toast.error(editId ? "Could not save changes" : "Could not save quote", { description: message });
+      return null;
+    } finally {
       setSaving(false);
     }
   };
