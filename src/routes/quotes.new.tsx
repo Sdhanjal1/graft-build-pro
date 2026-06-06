@@ -253,7 +253,7 @@ function NewQuotePage() {
           client_id: (data as { client_id: string }).client_id,
           title: (data as { title: string }).title,
           job_description: (data as { job_description: string }).job_description ?? "",
-          line_items: ((data as { line_items: LineItem[] }).line_items ?? []) as LineItem[],
+          line_items: (((data as unknown as { line_items: unknown }).line_items as LineItem[]) ?? []) as LineItem[],
         } as Quote;
         apply(q);
       } catch (e) {
