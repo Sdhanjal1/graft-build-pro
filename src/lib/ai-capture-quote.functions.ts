@@ -166,7 +166,7 @@ export const generateCaptureQuote = createServerFn({ method: "POST" })
       SYSTEM_PROMPT +
       labourRatesBlock(hourly, day) +
       tradeGuidance(data.trade) +
-      patternsForPrompt(patterns);
+      patternsForPrompt(patterns, data.trade);
 
     const itemList = data.items.map((d, i) => `${i + 1}. ${d}`).join("\n");
 
