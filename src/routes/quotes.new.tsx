@@ -21,7 +21,7 @@ import { resolveTrade } from "@/lib/trades";
 import { generateAIQuote, prefetchQuoteContext } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
-import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, MapPin, X, Search } from "lucide-react";
+import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search } from "lucide-react";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { RotatingStatus, QUOTE_GEN_MESSAGES } from "@/components/RotatingStatus";
 import { feedback, playSample } from "@/lib/feedback";
@@ -83,7 +83,7 @@ type PendingItem = { id: string; text: string };
 function NewQuotePage() {
   const navigate = useNavigate();
   const { voice: voiceParam, clientId } = Route.useSearch();
-  const [mode, setMode] = useState<"speak" | "onsite">("speak");
+  const [mode] = useState<"speak" | "onsite">("speak");
   const [desc, setDesc] = useState("");
   const [clips, setClips] = useState<Clip[]>([]);
   const [trade, setTrade] = useState(userProfile.trade_type);
