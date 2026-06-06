@@ -3,11 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import CountUp from "react-countup";
 import { AppShell } from "@/components/AppShell";
 import {
-  userProfile, stats, formatGBP, getClient, mockQuotes,
+  userProfile, stats, formatGBP, getClient, mockQuotes, userClients,
   todaysJobs, formatTime, getQuote, materialsForQuote,
 } from "@/lib/user-data";
 import { resolveTrade } from "@/lib/trades";
-import { ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X, CheckCircle2, ShoppingCart } from "lucide-react";
+import { ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X, CheckCircle2, ShoppingCart, Users } from "lucide-react";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 
 
@@ -295,6 +295,22 @@ function AppHomePage() {
         </section>
       )}
 
+      {/* Customer book entry */}
+      <Link
+        to="/clients"
+        className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-ink/5 hover:bg-ink/10 active:bg-ink/15 transition-colors"
+      >
+        <div className="h-9 w-9 rounded-full bg-ink/10 flex items-center justify-center shrink-0">
+          <Users className="h-4 w-4 text-ink" strokeWidth={2.25} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-ink leading-tight">Customer book</div>
+          <div className="text-xs text-ink/60 leading-tight mt-0.5">
+            {userClients.length} {userClients.length === 1 ? "customer" : "customers"}
+          </div>
+        </div>
+        <ArrowRight className="h-4 w-4 text-ink/40 shrink-0" strokeWidth={2.25} />
+      </Link>
 
       {/* Action queue — first card is the hero, the rest are compact rows */}
       {hasActions ? (() => {
