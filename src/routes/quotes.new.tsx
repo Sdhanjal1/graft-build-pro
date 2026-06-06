@@ -228,7 +228,7 @@ function NewQuotePage() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     sharedStreamRef.current = null;
     streamRef.current = null;
-    setVoicePending(false);
+    if (voiceParam === 1) navigate({ to: "/quotes/new", search: {}, replace: true });
     setRecording(false);
     setTranscribing(false);
     setVoiceError(null);
