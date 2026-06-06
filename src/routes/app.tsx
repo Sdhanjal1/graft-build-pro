@@ -201,9 +201,8 @@ function AppHomePage() {
               className="money-hero text-lime mt-1 leading-[0.82] tabular-nums"
               style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4.5rem, 22vw, 7rem)" }}
             >
-              <ClientOnly fallback={<>{formatGBP(s.acceptedTodayAmount)}</>}>
-                <CountUp start={0} end={s.acceptedTodayAmount} duration={0.6} formattingFn={formatGBP} />
-              </ClientOnly>
+              <span className="num-appear inline-block">{formatGBP(s.acceptedTodayAmount)}</span>
+
             </p>
           </div>
         ) : null}
