@@ -125,8 +125,29 @@ function ClientDetail() {
 
       <section className="px-5 mt-4">
         <div className="card-surface p-5 space-y-3">
-          <Row icon={Phone} label="Phone" value={client.phone} href={`tel:${client.phone}`} />
-          <Row icon={Mail} label="Email" value={client.email} href={`mailto:${client.email}`} />
+          <EditableRow
+            icon={User}
+            label="Name"
+            initial={client.name}
+            placeholder="Customer name"
+            onSave={(v) => updateClientFields(clientId, { name: v })}
+          />
+          <EditableRow
+            icon={Phone}
+            label="Phone"
+            type="tel"
+            initial={client.phone}
+            placeholder="07…"
+            onSave={(v) => updateClientFields(clientId, { phone: v })}
+          />
+          <EditableRow
+            icon={Mail}
+            label="Email"
+            type="email"
+            initial={client.email}
+            placeholder="name@example.com"
+            onSave={(v) => updateClientFields(clientId, { email: v })}
+          />
           <Row icon={MapPin} label="Address" value={client.address} />
           <Row icon={Home} label="Property" value={client.property_type} />
           {client.notes && (
