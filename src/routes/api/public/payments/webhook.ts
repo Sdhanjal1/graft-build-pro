@@ -183,13 +183,6 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
         const env = url.searchParams.get("env");
         const secret = getSecretForEnv(env);
         if (!secret) {
-          console.error("[payments/webhook] missing secret for env", env);
-          return new Response("Server not configured", { status: 500 });
-        }
-
-        const rawBody = await request.text();
-        const secret = getSecretForEnv(env);
-        if (!secret) {
           // Sandbox-only deployment receiving a live event (or vice versa) —
           // ack with 200 so Stripe doesn't retry for 3 days.
           return dropUnconfiguredEnv(env);
