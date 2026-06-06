@@ -1290,6 +1290,10 @@ function LineItemsEditor({
                   value={draft.price}
                   onChange={(e) => setDraft({ ...draft, price: e.target.value })}
                   onFocus={(e) => e.currentTarget.select()}
+                  onBlur={(e) => {
+                    const n = parseMoney(e.target.value);
+                    if (Number.isFinite(n) && n > 0) setDraft({ ...draft, price: String(n) });
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") commitAll();
                     if (e.key === "Escape") cancelEdit();
