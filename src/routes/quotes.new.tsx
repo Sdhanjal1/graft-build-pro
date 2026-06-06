@@ -185,17 +185,11 @@ function NewQuotePage() {
     };
   }, []);
 
-  // When arriving with ?voice=1, show the voice overlay in idle state.
+  // ?voice=1 means "show the overlay in idle, waiting for the user gesture".
   // iOS Safari requires getUserMedia to be invoked from a real user gesture,
-  // so the user taps the lime mic in the overlay to start.
-  const [voicePending, setVoicePending] = useState(false);
-  useEffect(() => {
-    if (voiceParam === 1 && !recording && !transcribing && !draft) {
-      setVoicePending(true);
-      navigate({ to: "/quotes/new", search: {}, replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceParam]);
+  // so the user taps the lime mic in the overlay to start. Derived from the
+  // URL so it can't race a setState during navigation.
+  const voicePending = voiceParam === 1;
 
   // Pre-populate customer when arriving from "Quote again" on customer detail
   useEffect(() => {
