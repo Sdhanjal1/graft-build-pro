@@ -277,7 +277,7 @@ export const generateAIQuote = createServerFn({ method: "POST" })
       SYSTEM_PROMPT +
       labourRatesBlock(hourly, day) +
       tradeGuidance(data.trade) +
-      patternsForPrompt(patterns);
+      patternsForPrompt(patterns, data.trade);
 
 
     const prevBlock =
