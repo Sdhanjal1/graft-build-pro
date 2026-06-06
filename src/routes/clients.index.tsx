@@ -90,7 +90,14 @@ function ClientsPage() {
                 {c.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">{c.name}</p>
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="font-semibold text-sm truncate">{c.name}</p>
+                  {duplicateIds.has(c.id) && (
+                    <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      Possible duplicate
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground truncate">{c.address}</p>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
