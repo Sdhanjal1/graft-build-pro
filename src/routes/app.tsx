@@ -1,6 +1,6 @@
-import { createFileRoute, Link, useNavigate, ClientOnly } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import CountUp from "react-countup";
+
 import { AppShell } from "@/components/AppShell";
 import {
   userProfile, stats, formatGBP, getClient, mockQuotes, userClients,
@@ -157,9 +157,8 @@ function AppHomePage() {
               className="money-hero text-lime mt-1 leading-[0.82] tabular-nums"
               style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4.5rem, 22vw, 7rem)" }}
             >
-              <ClientOnly fallback={<>{formatGBP(s.paidToday)}</>}>
-                <CountUp start={0} end={s.paidToday} duration={0.6} formattingFn={formatGBP} />
-              </ClientOnly>
+              <span className="num-appear inline-block">{formatGBP(s.paidToday)}</span>
+
             </p>
             <p className="text-[11px] text-paper/60 font-medium mt-2">
               {s.paidTodayCount} payment{s.paidTodayCount !== 1 ? "s" : ""}
@@ -188,9 +187,8 @@ function AppHomePage() {
                 className="money-hero text-lime leading-[0.82] tabular-nums"
                 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4.5rem, 22vw, 7rem)" }}
               >
-                <ClientOnly fallback={<>{formatGBP(s.outstanding)}</>}>
-                  <CountUp start={0} end={s.outstanding} duration={0.6} formattingFn={formatGBP} />
-                </ClientOnly>
+                <span className="num-appear inline-block">{formatGBP(s.outstanding)}</span>
+
               </p>
             </Link>
           </div>
@@ -203,9 +201,8 @@ function AppHomePage() {
               className="money-hero text-lime mt-1 leading-[0.82] tabular-nums"
               style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4.5rem, 22vw, 7rem)" }}
             >
-              <ClientOnly fallback={<>{formatGBP(s.acceptedTodayAmount)}</>}>
-                <CountUp start={0} end={s.acceptedTodayAmount} duration={0.6} formattingFn={formatGBP} />
-              </ClientOnly>
+              <span className="num-appear inline-block">{formatGBP(s.acceptedTodayAmount)}</span>
+
             </p>
           </div>
         ) : null}
