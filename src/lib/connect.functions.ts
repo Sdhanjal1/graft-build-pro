@@ -10,7 +10,11 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
  * balance, Quottr never holds funds.
  */
 function platformKey() {
-  const key = process.env.STRIPE_BYOK_SECRET_KEY;
+  // Prefer the live BYOK platform key; fall back to the sandbox key so
+  // Connect onboarding keeps working in test mode (mirrors the
+  // subscription + invoice flows).
+  const key =
+    process.env.STRIPE_BYOK_SECRET_KEY ?? process.env.STRIPE_SANDBOX_API_KEY;
   if (!key) throw new Error("Stripe Connect platform key not configured");
   return key;
 }
