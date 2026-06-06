@@ -98,6 +98,13 @@ function NewQuotePage() {
     if (!q) return userClients;
     return userClients.filter((c) => `${c.name} ${c.address}`.toLowerCase().includes(q));
   })();
+  // Most recent quote's customer, for a one-tap "same as last" shortcut.
+  const lastCustomer = (() => {
+    const recent = mockQuotes.find((q) => q.client_id);
+    if (!recent) return null;
+    const c = getClient(recent.client_id);
+    return c ? { id: c.id, name: c.name, phone: c.phone } : null;
+  })();
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [transcribing, setTranscribing] = useState(false);
