@@ -240,7 +240,7 @@ function QuotesPage() {
             <div
               key={quote.id}
               className="row-rise"
-              style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
+              style={{ animationDelay: `${Math.min(i, 6) * 25}ms` }}
             >
               <SwipeRow
                 onDelete={async () => {
