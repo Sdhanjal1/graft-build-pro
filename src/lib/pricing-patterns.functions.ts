@@ -34,7 +34,7 @@ export async function fetchTopPatterns(
 /** Format patterns as a compact, category-grouped block for Claude's system prompt. */
 export function patternsForPrompt(patterns: PricingPattern[]): string {
   if (!patterns.length) return "";
-  const capped = patterns.slice(0, 40);
+  const capped = patterns.slice(0, 10);
   const groups: Record<string, PricingPattern[]> = {};
   for (const p of capped) {
     const cat = p.item_category || "other";
