@@ -5,6 +5,24 @@ import { Search, Phone, ArrowRight, UserPlus, Users, Inbox } from "lucide-react"
 import { EmptyState } from "@/components/EmptyState";
 import { useState } from "react";
 
+function findDuplicateIds(clients: typeof userClients): Set<string> {
+  const dupes = new Set<string>();
+  const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+  for (let i = 0; i < clients.length; i++) {
+    for (let j = i + 1; j < clients.length; j++) {
+      const a = norm(clients[i].name);
+      const b = norm(clients[j].name);
+      if (!a || !b) continue;
+      const similar = a === b || a.startsWith(b + " ") || b.startsWith(a + " ");
+      if (similar) {
+        dupes.add(clients[i].id);
+        dupes.add(clients[j].id);
+      }
+    }
+  }
+  return dupes;
+}
+
 export const Route = createFileRoute("/clients/")({
   component: ClientsPage,
 });
@@ -16,6 +34,7 @@ function ClientsPage() {
       c.name.toLowerCase().includes(q.toLowerCase()) ||
       c.address.toLowerCase().includes(q.toLowerCase()),
   );
+  const duplicateIds = findDuplicateIds(userClients);
 
   return (
     <AppShell>
@@ -71,7 +90,14 @@ function ClientsPage() {
                 {c.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">{c.name}</p>
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="font-semibold text-sm truncate">{c.name}</p>
+                  {duplicateIds.has(c.id) && (
+                    <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      Possible duplicate
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground truncate">{c.address}</p>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
