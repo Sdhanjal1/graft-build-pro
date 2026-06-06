@@ -1,84 +1,67 @@
-# Three Operational Polish Improvements
+# Two AI Quality Mitigations for Learned Pricing
 
-Implement the three changes as specified, with small corrections where the prompt's variable names don't match the actual codebase.
-
----
-
-## 1. Haptic + Sound at "Quote Ready"
-
-**File:** `src/routes/quotes.new.tsx` (~line 477, inside `regenerateLiveQuote` success branch, right after `setLiveItems(g.line_items)`).
-
-- Fire `navigator.vibrate(20)` if available.
-- Create a short 800Hz sine tick (~100ms) via `AudioContext`, wrapped in try/catch.
-- Guard with a `firstItemsLandedRef` (useRef boolean) so it only fires the **first time** items appear during a session, not on every regeneration / debounce cycle. Reset the ref when the user starts a new recording (`startRecording`) and after submit/reset.
-
-**Why the ref:** `regenerateLiveQuote` is debounced and re-runs as the user keeps speaking. Without a guard, we'd ping repeatedly and annoy the tradesperson.
+Both changes are small and safe. I found one important thing in the existing code that changes Mitigation 2's shape — flagging it up front.
 
 ---
 
-## 2. Collapsible Transcript Below Live Items
+## Mitigation 1 — `price_count >= 2` filter
 
-**File:** `src/routes/quotes.new.tsx`, inside `LiveBuildingPanel` (~line 1830, right after the `</ul>` that closes the live items list).
+**File:** `src/lib/pricing-patterns.ts`, function `rankPatternsForJob` (lines 65–84).
 
-`desc` lives in the parent component (line 95), not in `LiveBuildingPanel`. Two small wiring changes:
+Apply the prompt's change verbatim: split patterns into `authoritative` (`price_count >= 2`) and `advisory` (`< 2`), score both, and sort authoritative tier above advisory.
 
-- Add `transcript: string` to `LiveBuildingPanel`'s props interface (~line 1582).
-- Pass `transcript={desc}` from the parent call site (~line 835).
-- Render the `<details>` block exactly as the prompt specifies, gated on `liveItems.length > 0 && transcript.trim()`.
+**One small refinement worth your call:** the patterns array fed in is already capped at 20 by `fetchTopPatterns`. With the new ordering, a single noisy one-off pattern can no longer push a 5x-quoted pattern out of the prompt — good. But if a user is new and has *only* one-off patterns, the advisory tier still flows through to the prompt (Claude can still use them as soft signal). That matches your "advisory not authoritative" intent. No code change needed beyond the prompt's snippet.
 
-Tokens: use existing semantic classes already in this file (`text-paper/60`, `bg-paper/[0.04]`, `border-paper/10`) — no new colors.
+**Effort:** 5 min. **Risk:** zero.
 
 ---
 
-## 3. Money Summary Card at Top of Quote Detail
+## Mitigation 2 — "from your last job" chip on learned items
 
-**File:** `src/routes/quotes.$quoteId.tsx`, immediately after `<PageHeader ... />` at line 551.
+**Important finding before we touch this:** the chip infrastructure already exists and is *deliberately suppressed* for learned items.
 
-Corrections vs the prompt (the field names don't exist on `quote`):
+In `src/routes/quotes.$quoteId.tsx`:
 
+- `badgeText()` (line 1246) already returns `"Your usual price"` for `source === "learned"`.
+- `badgeClass()` (line 1241) already has a lime-tinted style for learned.
+- But line 1515 hard-codes: `const label = effectiveSource === "ai" && isEstimate ? badgeText(effectiveSource) : null;` — i.e. **only AI estimates currently render a badge**. Learned items render nothing.
 
-| Prompt said                      | Actual source                                                                               |
-| -------------------------------- | ------------------------------------------------------------------------------------------- |
-| `quote.vat_registered`           | `userProfile.vat_registered` (already used at line 656)                                     |
-| `quote.configured_deposit`       | the `configuredDeposit` variable already in component scope (used at lines 800, 1046, 1086) |
-| `quote.subtotal` / `quote.total` | correct as-is                                                                               |
-| VAT amount                       | recompute as `(quote.subtotal                                                               |
+So the actual fix is a one-line change at 1515, not a new JSX block. The prompt's proposed standalone `<div className="rounded-lg ...">` chunk doesn't match the existing layout (which uses inline pill badges next to the description, not stacked text under the price).
 
+**Proposed change at line 1515:**
 
-Render the bordered card exactly as designed:
+```ts
+const label = (effectiveSource === "ai" && isEstimate) || effectiveSource === "learned"
+  ? badgeText(effectiveSource)
+  : null;
+```
 
-- Subtotal + VAT (conditional) in a 2-col grid.
-- Total row with lime accent.
-- Deposit-due / Balance rows shown only when `quote.payment_timing === "deposit_then_balance" && configuredDeposit > 0`.
+That immediately renders the existing lime "Your usual price" pill next to learned items — same visual language as the Estimate pill, no new styles.
 
-**Duplication note:** the existing totals block at lines 1543–1560 stays — that one is the authoritative bottom-of-quote summary near the line items. The new card is a header glance card. Worth flagging because two totals on one page can read as noise; happy to remove the bottom one in a follow-up if you'd prefer a single source.
+**Wording question for you:**
+The prompt suggests **"from your last job"**. Existing copy is **"Your usual price"**. They mean slightly different things:
+
+- *"Your usual price"* — implies repeated/established (matches the new `price_count >= 2` gate from Mitigation 1).
+- *"from your last job"* — implies recency, which we don't actually track per-item on the detail render path.
+
+Recommendation: keep **"Your usual price"** — it's accurate, already in the codebase, and aligns with Mitigation 1's "must be quoted twice" rule. If you want the prompt's wording, we change `badgeText` line 1248. Tell me which.
+
+**One more thing to check before merging:** `normalizeSource(li.source, paidQuoteCount)` is called at line 1511 and may already downgrade `learned` → `ai` until the user has enough paid quotes. If it does, very new users will still see no chip even after this fix — that's probably correct behaviour (don't claim "your usual price" on quote #2), but worth knowing. I'll verify the function's logic during build.
+
+**Effort:** 10 min including the `normalizeSource` check. **Risk:** zero — purely cosmetic.
 
 ---
 
 ## Files Touched
 
-- `src/routes/quotes.new.tsx` — ref + haptic/sound block, one new prop on `LiveBuildingPanel`, `<details>` transcript block.
-- `src/routes/quotes.$quoteId.tsx` — money summary card after `PageHeader`.
+- `src/lib/pricing-patterns.ts` — `rankPatternsForJob` filter/sort change.
+- `src/routes/quotes.$quoteId.tsx` — one-line label condition at ~1515 (+ optional `badgeText` wording change at 1248).
 
-No backend, schema, or status-flow changes. Fully reversible.
+No schema, prompt, or status-flow changes.
 
-## Risk
+## Open Questions
 
-Zero. All client-only presentation. Audio/vibrate are feature-detected and try/caught.
+1. Keep **"Your usual price"** (existing) or switch to **"from your last job"** (prompt's wording)?
+2. Should the chip also appear on the customer-facing portal view, or detail-page only? (Current scope = detail page only, matching the prompt.)
 
-## Effort
-
-~45 minutes total.
-
-## Open question
-
-Do you want me to **remove** the existing bottom totals block (lines 1543–1560) on the detail page now that the header card shows the same numbers, or keep both?
-
-### On the Duplicate Totals Question
-
-**Keep both totals sections.** Here's why:
-
-- **Header card** (new) = glance-level money story. "How much is this quote?" Nav sees it immediately.
-- **Bottom block** (existing, lines 1543–1560) = detail-level breakdown. Sits with the line items, right where the numbers come from. "Where did these totals come from?"
-
-They serve different cognitive purposes. The header card is for "what's the big number," the bottom block is for "verify the math." Keep both.
+Implement both as specified. Mitigation 1 verbatim. Mitigation 2: one-line fix at 1515, keep 'Your usual price' wording, detail-page scope only."
