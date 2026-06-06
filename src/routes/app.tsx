@@ -131,7 +131,7 @@ function AppHomePage() {
       <div className="flex flex-col min-h-[calc(100dvh-7rem)]">
       {/* Ink header: greeting + £ outstanding */}
 
-      <header className="bg-ink text-paper rounded-b-[1.5rem] px-5 pt-6 pb-7 relative overflow-hidden">
+      <header className="bg-surface text-paper rounded-b-[1.5rem] px-5 pt-6 pb-7 relative overflow-hidden">
         <span aria-hidden className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-lime/15 blur-2xl pointer-events-none" />
         <div className="relative flex items-center justify-between">
           <QuottrWordmark className="text-[2.5rem] leading-none" />
