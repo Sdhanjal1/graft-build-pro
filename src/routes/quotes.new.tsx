@@ -1179,6 +1179,26 @@ function NewQuotePage() {
               </p>
             </div>
 
+            {lastCustomer && !clientName && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomerMode("existing");
+                  setClientName(lastCustomer.name);
+                  setClientPhone(lastCustomer.phone ?? "");
+                }}
+                className="w-full mb-3 rounded-2xl py-3 px-4 flex items-center gap-3 bg-lime/15 border border-lime/40 active:scale-[0.99] transition text-left"
+              >
+                <div className="h-9 w-9 rounded-full bg-lime/30 flex items-center justify-center text-ink font-bold text-xs shrink-0">
+                  {lastCustomer.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Same as last</p>
+                  <p className="text-sm font-bold text-ink truncate">{lastCustomer.name}</p>
+                </div>
+              </button>
+            )}
+
             {userClients.length === 0 ? (
               <button
                 type="button"
