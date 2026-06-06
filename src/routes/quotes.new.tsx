@@ -247,13 +247,21 @@ function NewQuotePage() {
           .single();
         if (error) throw error;
         if (cancelled) return;
+        const row = data as unknown as {
+          id: string;
+          ref: string;
+          client_id: string | null;
+          title: string;
+          job_description: string | null;
+          line_items: unknown;
+        };
         const q = {
-          id: (data as { id: string }).id,
-          ref: (data as { ref: string }).ref,
-          client_id: (data as { client_id: string }).client_id,
-          title: (data as { title: string }).title,
-          job_description: (data as { job_description: string }).job_description ?? "",
-          line_items: (((data as unknown as { line_items: unknown }).line_items as LineItem[]) ?? []) as LineItem[],
+          id: row.id,
+          ref: row.ref,
+          client_id: row.client_id ?? "",
+          title: row.title,
+          job_description: row.job_description ?? "",
+          line_items: (Array.isArray(row.line_items) ? row.line_items : []) as LineItem[],
         } as Quote;
         apply(q);
       } catch (e) {
