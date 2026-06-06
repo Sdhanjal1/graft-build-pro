@@ -277,6 +277,7 @@ function NewQuotePage() {
   }, [editId]);
 
   const handleVoiceStart = async () => {
+    if (saving) return;
     closeRequestedRef.current = false;
     setVoiceError(null);
     setLastTranscript(null);
