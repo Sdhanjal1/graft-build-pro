@@ -37,11 +37,12 @@ function StatusDot({ status }: { status: Variant }) {
     );
   }
   if (status === "accepted") {
-    return <span className="inline-flex h-2 w-2 rounded-full bg-status-booked" />;
+    return <span className="inline-flex h-2 w-2 rounded-full bg-lime" />;
   }
   if (status === "completed") {
-    return <span className="inline-flex h-2 w-2 rounded-full bg-status-completed" />;
+    return <span className="inline-flex h-2 w-2 rounded-full bg-ink/40" />;
   }
+
   if (status === "overdue") {
     return <span className="inline-flex h-2 w-2 rounded-full bg-status-overdue" />;
   }
