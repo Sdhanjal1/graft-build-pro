@@ -251,6 +251,7 @@ function NewQuotePage() {
   const stopRequestedRef = useRef<boolean>(false);
 
   const stopRecording = () => {
+    setBuilding(true);
     const mr = mediaRecorderRef.current;
     if (!mr || mr.state === "inactive") return;
     stopRequestedRef.current = true;
