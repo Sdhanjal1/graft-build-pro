@@ -87,6 +87,7 @@ function QuoteDetail() {
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
   const [sendOpen, setSendOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [actioning, setActioning] = useState(false);
   
   const [timingOpen, setTimingOpen] = useState(false);
   const [materialsOpen, setMaterialsOpen] = useState(false);
