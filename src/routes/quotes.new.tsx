@@ -1661,6 +1661,18 @@ function VoiceOverlay({
         )}
       </div>
 
+      {transcribing && !hasItems && !hasPending && (
+        <div className="flex flex-col items-center gap-3 mt-8">
+          <span className="relative flex h-12 w-12">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-lime opacity-30 animate-ping" />
+            <span className="relative inline-flex h-12 w-12 rounded-full bg-lime/20 items-center justify-center">
+              <VoiceWaveform size={24} className="text-lime" />
+            </span>
+          </span>
+          <p className="text-sm text-paper/70 font-medium">Building your quote…</p>
+        </div>
+      )}
+
       {/* SCROLLABLE MIDDLE: line items list — fills available space between total and stop button */}
       {showList && (
         <div className="relative flex-1 min-h-0 w-full max-w-md mx-auto mt-2">
