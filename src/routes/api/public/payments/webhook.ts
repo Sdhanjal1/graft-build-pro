@@ -188,6 +188,14 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
         }
 
         const rawBody = await request.text();
+        const secret = getSecretForEnv(env);
+        if (!secret) {
+          // Sandbox-only deployment receiving a live event (or vice versa) —
+          // ack with 200 so Stripe doesn't retry for 3 days.
+          return dropUnconfiguredEnv(env);
+        }
+
+        const rawBody = await request.text();
         const sig =
           request.headers.get("stripe-signature") ??
           request.headers.get("x-webhook-signature") ??
