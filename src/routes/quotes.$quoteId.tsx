@@ -1174,7 +1174,7 @@ function LineItemsEditor({
       // Adding new
       const desc = draft.description.trim();
       const qtyParsed = Number(draft.qty);
-      const priceParsed = Number(draft.price);
+      const priceParsed = parseMoney(draft.price);
       const qty = Number.isFinite(qtyParsed) && qtyParsed > 0 ? +qtyParsed : 1;
       const price = Number.isFinite(priceParsed) && priceParsed > 0 ? +priceParsed.toFixed(2) : 0;
       if (!desc || price <= 0) {
