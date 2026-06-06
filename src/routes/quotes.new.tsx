@@ -895,7 +895,7 @@ function NewQuotePage() {
       >
 
         <div className="card-surface p-4">
-          <div className="mt-2 flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               type="button"
               onClick={toggleRecord}
