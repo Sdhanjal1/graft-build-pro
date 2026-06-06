@@ -182,6 +182,20 @@
     animation: fab-mic-pulse 2.4s ease-out infinite;
     z-index: -1;
   }
+
+  .money-hero {
+    letter-spacing: -0.01em;
+    background: linear-gradient(180deg, var(--lime) 0%, color-mix(in oklab, var(--lime) 82%, #ffffff) 45%, var(--lime) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 8px color-mix(in oklab, var(--lime) 35%, transparent));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-hero { filter: none; }
 }
 
 @keyframes fab-mic-pulse {
