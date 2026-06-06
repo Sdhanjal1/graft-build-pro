@@ -310,7 +310,8 @@ function QuoteCard({
           : quote.status === "paid"
           ? "bg-card border-l-4 border-lime shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
           : quote.status === "pending"
-          ? "bg-card border-l-4 border-status-pending shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
+          ? "bg-card border-l-4 border-ink/15 shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
+
           : "card-surface bg-card"
       }`}
       {...handlers}
