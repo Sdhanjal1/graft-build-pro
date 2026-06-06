@@ -210,6 +210,62 @@ function NewQuotePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
+  // Edit mode: pre-load the existing quote into the draft so the user can
+  // re-record (replaces line items) or tweak before saving.
+  useEffect(() => {
+    if (!editId) return;
+    let cancelled = false;
+    const apply = (q: Quote) => {
+      if (cancelled) return;
+      setDraft({ title: q.title, line_items: q.line_items });
+      originalDraftRef.current = JSON.stringify(q.line_items);
+      setDesc(q.job_description ?? "");
+      if (q.client_id) {
+        const c = getClient(q.client_id);
+        if (c) {
+          setClientName(c.name);
+          setClientPhone(c.phone ?? "");
+          setCustomerMode("existing");
+        }
+      }
+      setEditLoading(false);
+      setEditError(null);
+    };
+    const cached = getQuote(editId);
+    if (cached) {
+      apply(cached);
+      return () => { cancelled = true; };
+    }
+    setEditLoading(true);
+    setEditError(null);
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("quotes")
+          .select("*")
+          .eq("id", editId)
+          .single();
+        if (error) throw error;
+        if (cancelled) return;
+        const q = {
+          id: (data as { id: string }).id,
+          ref: (data as { ref: string }).ref,
+          client_id: (data as { client_id: string }).client_id,
+          title: (data as { title: string }).title,
+          job_description: (data as { job_description: string }).job_description ?? "",
+          line_items: ((data as { line_items: LineItem[] }).line_items ?? []) as LineItem[],
+        } as Quote;
+        apply(q);
+      } catch (e) {
+        if (cancelled) return;
+        setEditError(e instanceof Error ? e.message : "Could not load quote");
+        setEditLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editId]);
+
   const handleVoiceStart = async () => {
     closeRequestedRef.current = false;
     setVoiceError(null);
