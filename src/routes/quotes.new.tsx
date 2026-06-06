@@ -143,6 +143,7 @@ function NewQuotePage() {
   const recognitionRef = useRef<any>(null);
   const liveFinalRef = useRef<string>("");
   const liveInterimRef = useRef<string>("");
+  const firstItemsLandedRef = useRef<boolean>(false);
   const processedPhraseKeysRef = useRef<Set<string>>(new Set());
 
   // LIVE per-phrase pipeline: each recognised final phrase fires a parallel
@@ -476,6 +477,30 @@ function NewQuotePage() {
       if (g.line_items?.length) {
         setLiveItems(g.line_items);
         liveItemsRef.current = g.line_items;
+        // Haptic + sound feedback — only on first items landing per session
+        if (!firstItemsLandedRef.current) {
+          firstItemsLandedRef.current = true;
+          if (typeof navigator !== "undefined" && navigator.vibrate) {
+            try { navigator.vibrate(20); } catch { /* ignore */ }
+          }
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const AC = (window.AudioContext || (window as any).webkitAudioContext);
+            if (AC) {
+              const ctx = new AC();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.frequency.value = 800;
+              osc.type = "sine";
+              gain.gain.setValueAtTime(0.2, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+              osc.start(ctx.currentTime);
+              osc.stop(ctx.currentTime + 0.1);
+            }
+          } catch { /* audio unavailable */ }
+        }
       }
     } catch (err) {
       console.warn("[voice] live regenerate failed", err);
@@ -496,6 +521,7 @@ function NewQuotePage() {
     pendingCountRef.current = 0;
     setLiveItems([]);
     liveItemsRef.current = [];
+    firstItemsLandedRef.current = false;
     phraseSeqRef.current = 0;
     lastFinalIdxRef.current = -1;
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
@@ -835,6 +861,7 @@ function NewQuotePage() {
           livePreview={livePreview}
           liveSupported={liveSupported}
           liveItems={liveItems}
+          transcript={desc}
           pendingItems={pendingItems}
           building={building}
           streamRef={sharedStreamRef}
@@ -1564,6 +1591,7 @@ function VoiceOverlay({
   livePreview,
   liveSupported,
   liveItems,
+  transcript,
   pendingItems,
   building,
   streamRef,
@@ -1582,6 +1610,7 @@ function VoiceOverlay({
   livePreview: string;
   liveSupported: boolean;
   liveItems: LineItem[];
+  transcript: string;
   pendingItems: { id: string; text: string }[];
   building: boolean;
   streamRef?: React.RefObject<MediaStream | null>;
@@ -1828,6 +1857,17 @@ function VoiceOverlay({
               </li>
             )}
           </ul>
+          {/* Transcript — collapsed by default, lets the user verify what was heard */}
+          {liveItems.length > 0 && transcript.trim() && (
+            <details className="mt-4 mx-1 px-4 py-3 rounded-lg bg-paper/[0.04] border border-paper/10">
+              <summary className="text-xs uppercase tracking-widest font-semibold text-paper/60 cursor-pointer hover:text-paper/80 transition list-none">
+                What you said
+              </summary>
+              <p className="mt-3 text-sm text-paper/70 leading-relaxed whitespace-pre-wrap break-words">
+                {transcript}
+              </p>
+            </details>
+          )}
           {/* bottom fade hint that list continues under the stop button */}
           <span aria-hidden className="pointer-events-none absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-ink via-ink/85 to-transparent z-10" />
         </div>
