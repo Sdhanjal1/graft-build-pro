@@ -879,8 +879,8 @@ function QuoteDetail() {
                     />
                   </div>
                   <button
-                    disabled={!customAmt || Number(customAmt) <= 0 || creating}
-                    onClick={() => createPaymentRequest("custom", Number(customAmt))}
+                    disabled={!customAmt || !(parseMoney(customAmt) > 0) || creating}
+                    onClick={() => createPaymentRequest("custom", parseMoney(customAmt))}
                     className="bg-lime text-ink rounded-full px-5 font-bold text-sm disabled:opacity-40"
                   >
                     {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
