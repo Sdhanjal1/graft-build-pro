@@ -932,6 +932,7 @@ function NewQuotePage() {
         }}
       >
 
+        {!draft && (
         <div className="card-surface p-4">
           <div className="flex items-center gap-3 flex-wrap">
             <button
@@ -977,6 +978,8 @@ function NewQuotePage() {
             <RotatingPrompts className="mt-2.5" />
           )}
         </div>
+        )}
+
 
 
 
