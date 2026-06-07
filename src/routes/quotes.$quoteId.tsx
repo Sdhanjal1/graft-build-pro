@@ -8,7 +8,7 @@ import {
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming, markQuotePaid,
-  updateQuoteTitle,
+  
   deleteQuote,
   materialsForQuote, cleanItemDescription, lineIsEstimate, parseMoney,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
@@ -35,8 +35,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef } from "react";
 import { usePaidQuoteCount, useInvalidatePaidQuoteCount, normalizeSource } from "@/hooks/usePaidQuoteCount";
 import { useScrollVisible } from "@/hooks/use-scroll-direction";
-import { useAutoSave } from "@/hooks/use-auto-save";
-import { SaveIndicator } from "@/components/SaveIndicator";
+
+
 
 function celebratePaid(amount: number) {
   if (typeof window === "undefined") return;
@@ -79,17 +79,7 @@ function QuoteDetail() {
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | undefined>(quote.payment_request);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [titleDraft, setTitleDraft] = useState(quote.title);
-  const {
-    isSaving: savingTitle,
-    isSaved: savedTitle,
-    error: titleError,
-    handleChange: saveTitleChange,
-  } = useAutoSave<string>({
-    onSave: async (value) => { await updateQuoteTitle(quote.id, value); },
-    errorTitle: "Couldn't save title",
-  });
+  
   const [askDeposit, setAskDeposit] = useState(false);
   const [askInvoice, setAskInvoice] = useState(false);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
@@ -555,7 +545,7 @@ function QuoteDetail() {
 
   return (
     <AppShell>
-      <PageHeader title={titleDraft || quote.title} subtitle={quote.ref} back="/quotes" compact right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
+      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" compact right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
 
       {/* Money summary card — glance-level total at the top */}
       <div className="mx-5 mt-4 p-4 rounded-2xl bg-paper/[0.04] border border-lime/20 space-y-3">
