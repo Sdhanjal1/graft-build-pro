@@ -66,6 +66,10 @@ function QuoteDetail() {
   const wasJustSent = search.sent === 1;
   const quote = getQuote(quoteId);
   if (!quote) throw notFound();
+  // Drafts (pending) belong in the editor unless the user just sent it
+  if (quote.status === "pending" && !wasJustSent) {
+    return <Navigate to="/quotes/new" search={{ edit: quote.id }} />;
+  }
   const client = getClient(quote.client_id);
 
   // Local state so the mock UI updates instantly. Mutates the mock object
