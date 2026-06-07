@@ -8,7 +8,7 @@ import {
   buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
   setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming, markQuotePaid,
-  updateQuoteTitle,
+  
   deleteQuote,
   materialsForQuote, cleanItemDescription, lineIsEstimate, parseMoney,
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
