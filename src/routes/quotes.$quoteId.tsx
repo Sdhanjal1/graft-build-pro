@@ -545,7 +545,7 @@ function QuoteDetail() {
 
   return (
     <AppShell>
-      <PageHeader title={titleDraft || quote.title} subtitle={quote.ref} back="/quotes" compact right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
+      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" compact right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
 
       {/* Money summary card — glance-level total at the top */}
       <div className="mx-5 mt-4 p-4 rounded-2xl bg-paper/[0.04] border border-lime/20 space-y-3">
