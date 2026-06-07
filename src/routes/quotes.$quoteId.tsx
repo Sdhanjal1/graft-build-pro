@@ -79,17 +79,7 @@ function QuoteDetail() {
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | undefined>(quote.payment_request);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [titleDraft, setTitleDraft] = useState(quote.title);
-  const {
-    isSaving: savingTitle,
-    isSaved: savedTitle,
-    error: titleError,
-    handleChange: saveTitleChange,
-  } = useAutoSave<string>({
-    onSave: async (value) => { await updateQuoteTitle(quote.id, value); },
-    errorTitle: "Couldn't save title",
-  });
+  
   const [askDeposit, setAskDeposit] = useState(false);
   const [askInvoice, setAskInvoice] = useState(false);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
