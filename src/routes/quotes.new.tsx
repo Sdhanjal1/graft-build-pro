@@ -978,6 +978,8 @@ function NewQuotePage() {
             <RotatingPrompts className="mt-2.5" />
           )}
         </div>
+        )}
+
 
 
 
