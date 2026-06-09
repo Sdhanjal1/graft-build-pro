@@ -18,7 +18,6 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MessagesRouteImport } from './routes/messages'
-import { Route as LogoPreviewRouteImport } from './routes/logo-preview'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as FaqsRouteImport } from './routes/faqs'
@@ -88,11 +87,6 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const MessagesRoute = MessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LogoPreviewRoute = LogoPreviewRouteImport.update({
-  id: '/logo-preview',
-  path: '/logo-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -234,7 +228,6 @@ export interface FileRoutesByFullPath {
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/logo-preview': typeof LogoPreviewRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
@@ -271,7 +264,6 @@ export interface FileRoutesByTo {
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/logo-preview': typeof LogoPreviewRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
@@ -309,7 +301,6 @@ export interface FileRoutesById {
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/logo-preview': typeof LogoPreviewRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
@@ -348,7 +339,6 @@ export interface FileRouteTypes {
     | '/faqs'
     | '/features'
     | '/forgot-password'
-    | '/logo-preview'
     | '/messages'
     | '/onboarding'
     | '/pricing'
@@ -385,7 +375,6 @@ export interface FileRouteTypes {
     | '/faqs'
     | '/features'
     | '/forgot-password'
-    | '/logo-preview'
     | '/messages'
     | '/onboarding'
     | '/pricing'
@@ -422,7 +411,6 @@ export interface FileRouteTypes {
     | '/faqs'
     | '/features'
     | '/forgot-password'
-    | '/logo-preview'
     | '/messages'
     | '/onboarding'
     | '/pricing'
@@ -460,7 +448,6 @@ export interface RootRouteChildren {
   FaqsRoute: typeof FaqsRoute
   FeaturesRoute: typeof FeaturesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
-  LogoPreviewRoute: typeof LogoPreviewRoute
   MessagesRoute: typeof MessagesRoute
   OnboardingRoute: typeof OnboardingRoute
   PricingRoute: typeof PricingRoute
@@ -550,13 +537,6 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/messages'
       preLoaderRoute: typeof MessagesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/logo-preview': {
-      id: '/logo-preview'
-      path: '/logo-preview'
-      fullPath: '/logo-preview'
-      preLoaderRoute: typeof LogoPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -758,7 +738,6 @@ const rootRouteChildren: RootRouteChildren = {
   FaqsRoute: FaqsRoute,
   FeaturesRoute: FeaturesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
-  LogoPreviewRoute: LogoPreviewRoute,
   MessagesRoute: MessagesRoute,
   OnboardingRoute: OnboardingRoute,
   PricingRoute: PricingRoute,
