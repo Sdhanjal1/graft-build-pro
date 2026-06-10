@@ -158,15 +158,21 @@ function PortalPage() {
       ? depositExplicit
       : depositPct > 0
       ? +(total * (depositPct / 100)).toFixed(2)
-      : +(total * 0.5).toFixed(2);
+      : +(total * 0.3).toFixed(2);
   const hasCard = !!(profile as any)?.stripe_connect_charges_enabled;
   const bankAccount = ((profile as any)?.account_number ?? "").toString().trim();
   const bankSort = ((profile as any)?.sort_code ?? "").toString().trim();
   const hasBank = !!bankAccount && !!bankSort;
+  const isInvoiced = !!(quote as any).invoiced_at || status === "invoiced";
+  // For on_completion quotes, only surface pay-now options once the trader has issued the invoice.
+  const timingAllowsPayNow =
+    timing === "upfront" ||
+    timing === "deposit_then_balance" ||
+    (timing === "on_completion" && isInvoiced);
   const canPayNow =
-    status === "accepted" && !isPaid &&
-    (timing === "upfront" || timing === "on_completion" || timing === "deposit_then_balance") && hasCard;
-  const showPaymentOptions = status === "accepted" && !isPaid && (canPayNow || hasBank);
+    status === "accepted" && !isPaid && timingAllowsPayNow && hasCard;
+  const showPaymentOptions =
+    status === "accepted" && !isPaid && timingAllowsPayNow && (canPayNow || hasBank);
   const isDepositFlow = timing === "deposit_then_balance";
   const payRequestType: "deposit" | "full" = isDepositFlow ? "deposit" : "full";
   const payAmount = isDepositFlow ? depositAmount : total;

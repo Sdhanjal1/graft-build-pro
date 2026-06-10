@@ -1,73 +1,76 @@
+# Customer portal payment instructions audit
 
-# Add voice-to-edit and payment options to the draft quote preview
+## What I checked
 
-## The gap
+`src/routes/portal.$token.tsx` (single quote link) and `src/routes/portal.c.$code.tsx` (multi-quote client portal) both read `quote.payment_timing`, `quote.deposit_amount`, `quote.deposit_percent` and feed them through `paymentTimingLabel()` / `acceptButtonLabel()` from `src/lib/payment-timing.ts`.
 
-After voicing a quote on `/quotes/new`, the draft preview lets you tweak line items, assign a customer, and Save / Save & send — but it's missing two things that already exist on `/quotes/$quoteId`:
+| Timing | "Payment terms" banner | Accept button | Pay-now card / bank panel |
+|---|---|---|---|
+| `upfront` | "£X upfront" ✅ | "Accept and pay £X" ✅ | "Pay now £total" ✅ |
+| `deposit_then_balance` | "£deposit deposit (X%), balance £Y on completion" ✅ | "Accept and pay deposit £X" ✅ | "Pay deposit £X" + balance note ✅ |
+| `on_completion` | "Due on completion" ✅ | "Accept quote — pay when complete" ✅ | ❌ Still shows "Pay now £total" card + bank panel immediately after accept |
 
-1. **Voice to edit the draft.** Once the AI has produced line items, there's no way to say "add a 4th hour of labour" or "swap the boiler for a Worcester 30i" by voice. You have to type-edit each cell.
-2. **Payment options.** Timing (On completion / Deposit then balance / Upfront) and deposit amount are only configurable after the quote is saved and you're on the detail page. Draft quotes inherit a derived default silently — the trader can't set it during the same flow as creation, and there's no visible parity between a draft on `/quotes/new` and a draft viewed from the list.
+## The bug
 
-The user wants both surfaced consistently on the draft preview, with buttons placed so they sit naturally inside the existing step flow.
+For `on_completion` quotes, once the customer hits Accept, the portal still renders the full "How to pay" section with a "Pay now £total" card button and the bank-transfer details. That contradicts the quote's own terms ("Due on completion") and the accept button's promise ("pay when complete"). The customer should only see payment instructions for `on_completion` at invoice time (i.e. once the trader has sent the final invoice / marked invoiced), not the moment they accept.
+
+`portal.$token.tsx:166-169`:
+
+```ts
+const canPayNow =
+  status === "accepted" && !isPaid &&
+  (timing === "upfront" || timing === "on_completion" || timing === "deposit_then_balance") && hasCard;
+const showPaymentOptions = status === "accepted" && !isPaid && (canPayNow || hasBank);
+```
+
+Both `canPayNow` and `showPaymentOptions` need `timing === "on_completion"` gated behind "invoice has been issued" (e.g. `quote.invoiced_at != null` or `status === "invoiced"`).
+
+Secondary minor issue: when neither `deposit_amount` nor `deposit_percent` is stored, the portal falls back to 50% (line 161), but `defaultDepositPercent()` elsewhere uses 30%. Harmless today because `saveGeneratedQuote` now always writes a value, but the fallback should be `0.3` for consistency.
 
 ## The fix
 
-### 1. Voice to edit (on draft preview)
+### 1. Gate `on_completion` payment options behind invoice issuance
 
-Add a single **"Edit by voice"** pill at the top of the editable preview card (next to the "Preview · editable" label), styled like the existing lime voice CTAs. Tapping it:
+In `src/routes/portal.$token.tsx`:
 
-- Calls `handleVoiceStart()` with a new `recordTargetRef.current = "edit"` mode.
-- Opens the same full-screen voice overlay used today (`?voice=1` UI), but the on-stop pipeline runs an **edit prompt** against the current draft (existing `generateAIQuote` server fn accepts a context — we'll pass the current `draft.line_items` so the AI merges/edits rather than starts fresh).
-- On success, replaces `draft.line_items` with the merged result and keeps the same `draft.title` unless the user explicitly renamed it.
-- On failure, surfaces the existing `voiceError` banner above the preview.
-
-No new server fn for v1 — reuse `generateAIQuote` and pass the existing items as context in the description (e.g. prepend "Current quote: …\nChange requested: <transcript>"). If results are noisy we revisit with a dedicated edit endpoint, but that's out of scope here.
-
-### 2. Payment options (on draft preview AND on saved drafts)
-
-Add a new **Step 5: Payment** section to `/quotes/new` that appears as soon as `draft` exists (between the totals block and "Who's this for?", so the flow reads: preview → payment → customer → save). It contains the same three-option chooser already on the detail page:
-
-- On completion
-- Deposit then balance (with deposit £ / % inputs, mirroring `quotes.$quoteId.tsx` lines ~889–920)
-- Upfront
-
-State (`timing`, `depositAmt`, `depositPct`) is held locally on `/quotes/new`, seeded from `deriveTimingFromTotal(total)` + `defaultDepositPercent(userProfile.default_deposit_percent)`. On save (`save("draft")` or `save("send")`), these values are passed to `saveGeneratedQuote` / `updateGeneratedQuote` instead of those functions silently re-deriving timing — both functions get a new optional `payment_timing`, `deposit_amount`, `deposit_percent` triple in their input.
-
-For **existing drafts opened via `?edit=`**, the same section pre-fills from the loaded quote's stored `payment_timing` / `deposit_*` (already on the row), so a draft viewed on `/quotes/new?edit=...` shows identical controls to the detail page.
-
-### 3. Button placement (final order on draft state)
-
-```text
-[ Editable preview card        ]   ← "Edit by voice" pill added top-right
-[ Step 5 · Payment             ]   ← NEW (timing + deposit)
-[ Step 6 · Who's this for?     ]   ← renumbered from Step 4
-[ Save as draft ] [ Save & send ]  ← unchanged
+```ts
+const isInvoiced = !!quote.invoiced_at || status === "invoiced";
+const canPayNow =
+  !isPaid && hasCard &&
+  (
+    (timing === "upfront" && status === "accepted") ||
+    (timing === "deposit_then_balance" && status === "accepted") ||
+    (timing === "on_completion" && isInvoiced)
+  );
+const showPaymentOptions =
+  !isPaid &&
+  (canPayNow || (hasBank && (
+    (timing !== "on_completion" && status === "accepted") ||
+    (timing === "on_completion" && isInvoiced)
+  )));
 ```
 
-The floating "Generate quote" CTA is hidden once `draft` exists (already the case), so there's no competing primary button.
+Apply the same rule in `portal.c.$code.tsx` where it renders per-quote pay panels.
+
+For `on_completion` after accept (but before invoiced), keep the green "You accepted this quote" banner and the "Payment terms · Due on completion" card — no card/bank panel. Once invoiced, the panel reappears with "Pay now £total" / bank details as today.
+
+### 2. Align the deposit fallback
+
+Change `+(total * 0.5).toFixed(2)` on line 161 to `+(total * 0.3).toFixed(2)` to match `defaultDepositPercent()`.
 
 ## Files touched
 
-- `src/routes/quotes.new.tsx`
-  - Add `timing`, `depositAmt`, `depositPct`, `depositAmtRaw`, `depositPctRaw` state and seed effect (run when `draft` first becomes non-null, and when loading an `editId` quote).
-  - Render new "Edit by voice" pill inside the `{draft && ...}` preview card header.
-  - Render new "Step 5 · Payment" block between the preview totals and the customer block; renumber the customer step.
-  - Extend `handleVoiceStart` / `runTranscribe` to handle `recordTargetRef.current === "edit"` — feed current draft into `generateAIQuote` and replace `line_items` on return.
-  - Pass payment fields into the save call.
-- `src/lib/user-data.ts`
-  - Add optional `payment_timing`, `deposit_amount`, `deposit_percent` to `saveGeneratedQuote` and `updateGeneratedQuote` inputs; use caller-provided values when present, fall back to current derivation otherwise.
-- No changes to `/quotes/$quoteId.tsx` (already correct) or the voice overlay component.
+- `src/routes/portal.$token.tsx` — adjust `canPayNow` / `showPaymentOptions` and the deposit fallback.
+- `src/routes/portal.c.$code.tsx` — apply the same `on_completion` + invoiced gate where the per-quote pay UI is rendered.
 
 ## Out of scope
 
-- Redesigning the voice overlay.
-- New server function for "edit by voice" (reuse `generateAIQuote` with context).
-- Customer portal / Stripe Connect changes — payment **timing** is a trader-side configuration; taking actual payments is unchanged.
-- Touching the floating mic FAB on other pages.
+- Changing the trader-side quote detail UI.
+- Reworking the payment-timing helper labels (already correct).
+- Stripe Connect / bank field configuration.
 
 ## Acceptance
 
-- After voicing a quote, the preview card shows an "Edit by voice" pill that opens the full-screen voice overlay and updates the draft's line items on stop.
-- A "Payment" step is visible on every draft preview (newly voiced OR loaded via `?edit=`), with the same three-option chooser and deposit inputs as `/quotes/$quoteId`.
-- Selected timing/deposit values persist to the saved quote and show identically on the detail page after save.
-- Step numbering and button order on `/quotes/new` reads: preview → payment → customer → save / save & send, with no duplicate primary CTAs.
+- Upfront quote: portal shows "£X upfront" terms, "Accept and pay £X" button, and "Pay now £X" card/bank after accept. ✅ (already correct, confirmed)
+- Deposit quote: portal shows deposit terms, "Accept and pay deposit £X" button, "Pay deposit £X" card/bank + balance note. ✅ (already correct, confirmed)
+- On-completion quote: portal shows "Due on completion" terms and "Accept quote — pay when complete" button. After accept, NO "Pay now" panel. Once the trader marks the quote invoiced, the "How to pay" panel appears with "Pay now £total" / bank details.
