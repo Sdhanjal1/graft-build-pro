@@ -1,76 +1,42 @@
-# Customer portal payment instructions audit
+## Quote creation & voice flow — deep audit
 
-## What I checked
+I read through `src/routes/quotes.new.tsx`, `src/lib/user-data.ts` (`saveGeneratedQuote` / `updateGeneratedQuote`), and the voice/edit-by-voice pipeline. Most of the flow is solid (live Web Speech pipeline + Whisper fallback, payment timing seeding, edit re-load). I found a small set of real bugs and a few minor inconsistencies worth fixing in one pass.
 
-`src/routes/portal.$token.tsx` (single quote link) and `src/routes/portal.c.$code.tsx` (multi-quote client portal) both read `quote.payment_timing`, `quote.deposit_amount`, `quote.deposit_percent` and feed them through `paymentTimingLabel()` / `acceptButtonLabel()` from `src/lib/payment-timing.ts`.
+### Bugs to fix
 
-| Timing | "Payment terms" banner | Accept button | Pay-now card / bank panel |
-|---|---|---|---|
-| `upfront` | "£X upfront" ✅ | "Accept and pay £X" ✅ | "Pay now £total" ✅ |
-| `deposit_then_balance` | "£deposit deposit (X%), balance £Y on completion" ✅ | "Accept and pay deposit £X" ✅ | "Pay deposit £X" + balance note ✅ |
-| `on_completion` | "Due on completion" ✅ | "Accept quote — pay when complete" ✅ | ❌ Still shows "Pay now £total" card + bank panel immediately after accept |
+1. **Enter key bypasses the "no customer" guard.**
+   `<form onSubmit>` calls `save("send")` when a draft exists. The Save / Save & send buttons are disabled until `clientName` is filled, but pressing Enter while focused in any input (e.g. line-item description, deposit %) triggers submit and persists a quote with `client_id: null`, then opens `SendQuoteDialog` with `customerName=undefined`. Fix: in the `onSubmit` handler, refuse to save when `draft && !clientName.trim()` (toast or jump to the customer section).
 
-## The bug
+2. **First-quote celebration fires on edits too.**
+   In `save()`, the `mockQuotes.length === 1` check is run after the upsert. `updateGeneratedQuote` replaces in place and keeps length at 1, so editing a user's only quote triggers the "first quote" confetti flag. Gate the celebration on `!editId`.
 
-For `on_completion` quotes, once the customer hits Accept, the portal still renders the full "How to pay" section with a "Pay now £total" card button and the bank-transfer details. That contradicts the quote's own terms ("Due on completion") and the accept button's promise ("pay when complete"). The customer should only see payment instructions for `on_completion` at invoice time (i.e. once the trader has sent the final invoice / marked invoiced), not the moment they accept.
+3. **Voice edit discards the transcript silently.**
+   `applyVoiceEdit` regenerates line items from the change-request transcript but never updates `desc`. The next `save()` writes the stale `job_description`. Either (a) keep the original `desc` and append a short note, or — simpler and what the UI implies — leave `desc` unchanged but record the voice edit transcript into a local `editTranscript` and append it to `job_description` when saving. Pick (a): no `desc` change, but stop showing "Edit by voice" as if it rewrites the whole quote — the wording is fine as-is, so the smaller fix is just to make sure `desc` stays in sync with the AI-cleaned description when the edit returns one (none today — fine to leave).
+   Concrete fix: do nothing to `desc`; this item is documentation-only. Skip in implementation unless we want behaviour change.
 
-`portal.$token.tsx:166-169`:
+4. **`paymentSeededRef` never resets after a voice edit regenerates the draft.**
+   When voice edit changes the line items, `total` can cross thresholds (e.g. drop below the deposit-suggestion cutoff) but `deriveTimingFromTotal` is not re-run. Deposit *amount* re-syncs via the `[subtotal, paymentTiming]` effect, but the *timing* suggestion is stuck. Fix: in `applyVoiceEdit`, if the user hasn't manually changed timing, reset `paymentSeededRef.current = false` after `setDraft(...)` so the seeding effect runs again. Guard with `!editId` so saved quotes don't auto-flip their timing on re-edit.
 
-```ts
-const canPayNow =
-  status === "accepted" && !isPaid &&
-  (timing === "upfront" || timing === "on_completion" || timing === "deposit_then_balance") && hasCard;
-const showPaymentOptions = status === "accepted" && !isPaid && (canPayNow || hasBank);
-```
+5. **`updateGeneratedQuote` swallows an explicit "remove customer".**
+   The function only assigns `client_id` when a non-empty `trimmedName` is provided (`...(client_id ? { client_id } : {})`). There is no current UI path to clear a customer from an edited draft, so this is theoretical — but worth flagging. Out of scope for this pass.
 
-Both `canPayNow` and `showPaymentOptions` need `timing === "on_completion"` gated behind "invoice has been issued" (e.g. `quote.invoiced_at != null` or `status === "invoiced"`).
+### Minor inconsistencies (no behaviour change required)
 
-Secondary minor issue: when neither `deposit_amount` nor `deposit_percent` is stored, the portal falls back to 50% (line 161), but `defaultDepositPercent()` elsewhere uses 30%. Harmless today because `saveGeneratedQuote` now always writes a value, but the fallback should be `0.3` for consistency.
+- `pickMimeType` falls through to `audio/webm` even when only `audio/mp4` is supported (iOS Safari). MediaRecorder handles the empty string by picking a default, so this is fine, but it makes the `blob.type` fallback on line 709 the load-bearing path. Leave as-is.
+- Submit handler error path: `save()` returns `null` on failure and `onSubmit` swallows it. Fine — `error` state surfaces the message.
+- `closeRequestedRef.current = false` is set after `setEditVoiceOpen(true)` in `handleEditByVoice`. Reads are async so it's safe; no change needed.
 
-## The fix
+### Files to touch
 
-### 1. Gate `on_completion` payment options behind invoice issuance
+- `src/routes/quotes.new.tsx`
+  - `onSubmit` in the form (bug 1)
+  - `save()` celebration block (bug 2)
+  - `applyVoiceEdit()` (bug 4)
 
-In `src/routes/portal.$token.tsx`:
+No backend / schema changes. No new dependencies.
 
-```ts
-const isInvoiced = !!quote.invoiced_at || status === "invoiced";
-const canPayNow =
-  !isPaid && hasCard &&
-  (
-    (timing === "upfront" && status === "accepted") ||
-    (timing === "deposit_then_balance" && status === "accepted") ||
-    (timing === "on_completion" && isInvoiced)
-  );
-const showPaymentOptions =
-  !isPaid &&
-  (canPayNow || (hasBank && (
-    (timing !== "on_completion" && status === "accepted") ||
-    (timing === "on_completion" && isInvoiced)
-  )));
-```
+### Out of scope
 
-Apply the same rule in `portal.c.$code.tsx` where it renders per-quote pay panels.
-
-For `on_completion` after accept (but before invoiced), keep the green "You accepted this quote" banner and the "Payment terms · Due on completion" card — no card/bank panel. Once invoiced, the panel reappears with "Pay now £total" / bank details as today.
-
-### 2. Align the deposit fallback
-
-Change `+(total * 0.5).toFixed(2)` on line 161 to `+(total * 0.3).toFixed(2)` to match `defaultDepositPercent()`.
-
-## Files touched
-
-- `src/routes/portal.$token.tsx` — adjust `canPayNow` / `showPaymentOptions` and the deposit fallback.
-- `src/routes/portal.c.$code.tsx` — apply the same `on_completion` + invoiced gate where the per-quote pay UI is rendered.
-
-## Out of scope
-
-- Changing the trader-side quote detail UI.
-- Reworking the payment-timing helper labels (already correct).
-- Stripe Connect / bank field configuration.
-
-## Acceptance
-
-- Upfront quote: portal shows "£X upfront" terms, "Accept and pay £X" button, and "Pay now £X" card/bank after accept. ✅ (already correct, confirmed)
-- Deposit quote: portal shows deposit terms, "Accept and pay deposit £X" button, "Pay deposit £X" card/bank + balance note. ✅ (already correct, confirmed)
-- On-completion quote: portal shows "Due on completion" terms and "Accept quote — pay when complete" button. After accept, NO "Pay now" panel. Once the trader marks the quote invoiced, the "How to pay" panel appears with "Pay now £total" / bank details.
+- Customer portal payment gating (already fixed in last turn).
+- Trader-side `/quotes/$quoteId` UI.
+- `duplicateQuote` not carrying `payment_timing` (separate concern; ask before changing).

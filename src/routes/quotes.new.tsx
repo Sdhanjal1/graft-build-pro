@@ -523,6 +523,9 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       if (g.line_items?.length) {
         setDraft({ title: draft.title, line_items: g.line_items });
         originalDraftRef.current = JSON.stringify(g.line_items);
+        // Let the seeding effect re-derive payment timing from the new total
+        // (only for fresh quotes — don't auto-flip a saved quote's timing).
+        if (!editId) paymentSeededRef.current = false;
         feedback("success");
         playSample("ding");
       }
@@ -1004,7 +1007,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       }
       feedback("success");
       // First-quote celebration: stash a flag the detail page can read once.
-      if (mockQuotes.length === 1) {
+      if (!editId && mockQuotes.length === 1) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
           const uid = session?.user?.id;
@@ -1112,8 +1115,13 @@ Re-output the FULL updated list of line items for this quote, applying the chang
         className="px-5 mt-4 space-y-4 pb-64"
         onSubmit={(e) => {
           e.preventDefault();
-          if (draft) save("send");
-          else generate();
+          if (draft) {
+            if (!clientName.trim()) {
+              toast.error("Add a customer to save this quote.");
+              return;
+            }
+            void save("send");
+          } else generate();
         }}
       >
 
