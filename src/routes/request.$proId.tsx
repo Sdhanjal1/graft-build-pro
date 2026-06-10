@@ -125,6 +125,15 @@ function RequestPage() {
   }
 
   if (!session) {
+    // Anon sign-in in flight — show spinner. Only fall back to CustomerAuth if
+    // signInAnonymously failed (e.g. provider disabled in dashboard).
+    if (!anonError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-paper">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
     return <CustomerAuth pro={pro} />;
   }
 
