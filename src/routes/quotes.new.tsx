@@ -103,7 +103,7 @@ function NewQuotePage() {
   const router = useRouter();
   const { voice: voiceParam, clientId, edit: editId, prefill } = Route.useSearch();
   const prefillAppliedRef = useRef(false);
-  const [editLoading, setEditLoading] = useState<boolean>(!!editId);
+  const [editLoading, setEditLoading] = useState<boolean>(() => !!editId && !getQuote(editId));
   const [editError, setEditError] = useState<string | null>(null);
   const [mode] = useState<"speak" | "onsite">("speak");
   const [desc, setDesc] = useState("");
@@ -141,7 +141,7 @@ function NewQuotePage() {
   const generateFn = useServerFn(generateAIQuote);
   const prefetchFn = useServerFn(prefetchQuoteContext);
   const transcribeFn = useServerFn(transcribeAudio);
-  const { canUse: subActive, blocked: subBlocked } = useSubscription();
+  const { canUse: subActive, blocked: subBlocked, loading: subLoading } = useSubscription();
   const paidQuoteCount = usePaidQuoteCount();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
