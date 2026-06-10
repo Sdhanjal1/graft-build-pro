@@ -100,19 +100,6 @@ function PortalPage() {
   }, [paymentResult]);
 
 
-  const onRespond = async (response: "accepted" | "declined") => {
-    if (response === "declined" && !confirm("Decline this quote?")) return;
-    setResponding(true);
-    try {
-      const r = await respond({ data: { token, response } });
-      setStatus(r.status);
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not update quote");
-    } finally {
-      setResponding(false);
-    }
-  };
-
   const onPay = async (requestType: "deposit" | "full") => {
     setPaying(true);
     try {
@@ -124,6 +111,41 @@ function PortalPage() {
       setPaying(false);
     }
   };
+
+  const onRespond = async (response: "accepted" | "declined") => {
+    if (response === "declined" && !confirm("Decline this quote?")) return;
+    setResponding(true);
+    try {
+      const r = await respond({ data: { token, response } });
+      setStatus(r.status);
+      // Auto-redirect to Stripe checkout for upfront/deposit when card is set up.
+      if (response === "accepted") {
+        const t: PaymentTiming = (data?.quote?.payment_timing as PaymentTiming) ?? "on_completion";
+        const cardEnabled = !!(data?.profile as any)?.stripe_connect_charges_enabled;
+        if ((t === "upfront" || t === "deposit_then_balance") && cardEnabled) {
+          const reqType: "deposit" | "full" = t === "deposit_then_balance" ? "deposit" : "full";
+          await onPay(reqType);
+          return;
+        }
+        // Bank-only fallback: nudge them to the bank card already on screen.
+        const bankAccountSet = !!((data?.profile as any)?.account_number?.toString().trim());
+        const bankSortSet = !!((data?.profile as any)?.sort_code?.toString().trim());
+        if ((t === "upfront" || t === "deposit_then_balance") && bankAccountSet && bankSortSet) {
+          toast.success("Quote accepted — transfer using the bank details below.");
+          if (typeof window !== "undefined") {
+            window.setTimeout(() => {
+              document.getElementById("how-to-pay")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 100);
+          }
+        }
+      }
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not update quote");
+    } finally {
+      setResponding(false);
+    }
+  };
+
 
   if (loading) {
     return (
