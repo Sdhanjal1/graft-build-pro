@@ -346,6 +346,7 @@ function NewQuotePage() {
     voiceSessionRef.current++;
     try { recognitionRef.current?.stop?.(); } catch { /* noop */ }
     recognitionRef.current = null;
+    if (liveDebounceRef.current) { clearTimeout(liveDebounceRef.current); liveDebounceRef.current = null; }
     const mr = mediaRecorderRef.current;
     if (mr && mr.state !== "inactive") {
       try { mr.stop(); } catch { /* noop */ }
@@ -355,8 +356,9 @@ function NewQuotePage() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     sharedStreamRef.current = null;
     streamRef.current = null;
-    if (voiceParam === 1) navigate({ to: "/quotes/new", search: {}, replace: true });
+    // handleVoiceStart already strips ?voice=1; no need to navigate again here.
     setRecording(false);
+    setBuilding(false);
     setTranscribing(false);
     setVoiceError(null);
     setLastTranscript(null);
@@ -370,6 +372,7 @@ function NewQuotePage() {
     liveItemsRef.current = [];
     phraseSeqRef.current = 0;
     lastFinalIdxRef.current = -1;
+    speechIndexOffsetRef.current = 0;
   };
 
   const recordStartRef = useRef<number>(0);
@@ -377,9 +380,14 @@ function NewQuotePage() {
   const stopRequestedRef = useRef<boolean>(false);
 
   const stopRecording = () => {
-    setBuilding(true);
     const mr = mediaRecorderRef.current;
-    if (!mr || mr.state === "inactive") return;
+    if (!mr || mr.state === "inactive") {
+      // Race: user tapped Stop before getUserMedia resolved or after recorder
+      // already finalised. Don't lock the UI into "building" — clear it.
+      setBuilding(false);
+      return;
+    }
+    setBuilding(true);
     stopRequestedRef.current = true;
     const elapsed = Date.now() - recordStartRef.current;
     const remaining = MIN_RECORD_MS - elapsed;
