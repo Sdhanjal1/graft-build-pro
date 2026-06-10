@@ -1004,6 +1004,25 @@ function NewQuotePage() {
           {!recording && !transcribing && !desc && (
             <RotatingPrompts className="mt-2.5" />
           )}
+          {!recording && !transcribing && desc && (
+            <div className="mt-3">
+              <label htmlFor="quote-desc" className="block text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">
+                Job description
+              </label>
+              <textarea
+                id="quote-desc"
+                ref={textareaRef}
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+                rows={5}
+                className="w-full rounded-2xl bg-secondary text-ink p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-lime resize-y"
+                placeholder="Describe the job…"
+              />
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Edit before generating, or tap the mic to add more detail.
+              </p>
+            </div>
+          )}
         </div>
         )}
 
