@@ -1018,6 +1018,9 @@ export const saveGeneratedQuote = async (input: {
   title: string;
   line_items: LineItem[];
   vatRegistered: boolean;
+  payment_timing?: PaymentTiming;
+  deposit_amount?: number;
+  deposit_percent?: number;
 }): Promise<Quote> => {
   const trimmedName = input.clientName?.trim() ?? "";
   const client = trimmedName
@@ -1032,9 +1035,13 @@ export const saveGeneratedQuote = async (input: {
   const due = new Date();
   due.setDate(due.getDate() + 14);
   const user_id = await requireUserId();
-  const timing = deriveTimingFromTotal(total);
-  const depositPct = timing === "deposit_then_balance" ? defaultDepositPercent(userProfile.default_deposit_percent) : 0;
-  const depositAmt = timing === "deposit_then_balance" ? computeDepositAmount(subtotal, depositPct) : 0;
+  const timing: PaymentTiming = input.payment_timing ?? deriveTimingFromTotal(total);
+  const depositPct = input.deposit_percent !== undefined
+    ? input.deposit_percent
+    : (timing === "deposit_then_balance" ? defaultDepositPercent(userProfile.default_deposit_percent) : 0);
+  const depositAmt = input.deposit_amount !== undefined
+    ? input.deposit_amount
+    : (timing === "deposit_then_balance" ? computeDepositAmount(subtotal, depositPct) : 0);
   const insertPayload = {
     user_id,
     ref: nextQuoteRef(),
