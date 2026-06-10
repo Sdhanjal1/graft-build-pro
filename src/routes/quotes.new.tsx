@@ -337,7 +337,6 @@ function NewQuotePage() {
     setLivePreview("");
     liveFinalRef.current = "";
     liveInterimRef.current = "";
-    processedPhraseKeysRef.current.clear();
     if (voiceParam === 1) navigate({ to: "/quotes/new", search: {}, replace: true });
     await startRecording();
   };
@@ -365,7 +364,6 @@ function NewQuotePage() {
     setLivePreview("");
     liveFinalRef.current = "";
     liveInterimRef.current = "";
-    processedPhraseKeysRef.current.clear();
     clearPendingItems();
     pendingCountRef.current = 0;
     setLiveItems([]);
@@ -591,7 +589,7 @@ function NewQuotePage() {
     const mimeType = pickMimeType();
     liveFinalRef.current = "";
     liveInterimRef.current = "";
-    processedPhraseKeysRef.current.clear();
+    
     setLivePreview("");
     stopRequestedRef.current = false;
 
