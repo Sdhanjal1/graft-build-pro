@@ -1723,6 +1723,27 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+function PaymentMethodOption({
+  active, onClick, icon: Icon, label, sub,
+}: { active: boolean; onClick: () => void; icon: React.ComponentType<{ className?: string }>; label: string; sub: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full text-left rounded-2xl p-3 flex items-center gap-3 transition ${active ? "bg-lime text-ink" : "bg-transparent hover:bg-secondary"}`}
+    >
+      <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${active ? "bg-ink text-lime" : "bg-secondary text-ink"}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold">{label}</p>
+        <p className={`text-[11px] truncate ${active ? "text-ink/70" : "text-muted-foreground"}`}>{sub}</p>
+      </div>
+      {active && <Check className="h-4 w-4 shrink-0" />}
+    </button>
+  );
+}
+
 function prefersReducedMotion() {
   if (typeof window === "undefined" || !window.matchMedia) return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
