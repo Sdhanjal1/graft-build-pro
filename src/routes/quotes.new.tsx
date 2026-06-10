@@ -1025,6 +1025,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       if (mode === "send") {
         // Stay on /quotes/new and open the send sheet over it.
         setSavedQuote(q);
+        wasSentRef.current = false;
         setSendSheetOpen(true);
         toast.success(editId ? "Changes saved" : "Quote saved");
       } else {
