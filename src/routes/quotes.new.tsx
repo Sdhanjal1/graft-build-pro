@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useRouter, Link } from "@tanstack/react-router";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ComponentType } from "react";
 import { createPortal } from "react-dom";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { generateAIQuote, prefetchQuoteContext } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
-import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search, Send } from "lucide-react";
+import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search, Send, Check, Banknote, Zap, Mic } from "lucide-react";
 import { SendQuoteDialog } from "@/components/SendQuoteDialog";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { RotatingStatus, QUOTE_GEN_MESSAGES } from "@/components/RotatingStatus";
@@ -33,6 +33,15 @@ import { feedback, playSample } from "@/lib/feedback";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordingNotice";
 import { usePaidQuoteCount, normalizeSource } from "@/hooks/usePaidQuoteCount";
+import {
+  type PaymentTiming,
+  deriveTimingFromTotal,
+  defaultDepositPercent,
+  computeDepositAmount,
+  computeDepositPercent,
+  parseDepositInput,
+  paymentTimingLabel,
+} from "@/lib/payment-timing";
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
@@ -144,12 +153,22 @@ function NewQuotePage() {
   const { canUse: subActive, blocked: subBlocked, loading: subLoading } = useSubscription();
   const paidQuoteCount = usePaidQuoteCount();
 
+  // Payment timing / deposit state — surfaced on the draft preview so the
+  // trader can pick how this quote gets paid before saving.
+  const [paymentTiming, setPaymentTiming] = useState<PaymentTiming>("on_completion");
+  const [depositPct, setDepositPct] = useState<number>(0);
+  const [depositAmt, setDepositAmt] = useState<number>(0);
+  const [depositAmtRaw, setDepositAmtRaw] = useState<string>("");
+  const [depositPctRaw, setDepositPctRaw] = useState<string>("");
+  const paymentSeededRef = useRef(false);
+  const [editVoiceOpen, setEditVoiceOpen] = useState(false);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const recordTargetRef = useRef<"desc" | "clip">("desc");
+  const recordTargetRef = useRef<"desc" | "clip" | "edit">("desc");
   const lastBlobRef = useRef<{ blob: Blob; mimeType: string } | null>(null);
   const draftRef = useRef<HTMLDivElement | null>(null);
   const originalDraftRef = useRef<string>("");
@@ -276,6 +295,17 @@ function NewQuotePage() {
           setCustomerMode("existing");
         }
       }
+      // Seed payment timing from the stored quote so the draft preview shows
+      // the same options the detail page would.
+      const t: PaymentTiming = q.payment_timing ?? "on_completion";
+      const p = q.deposit_percent ?? 0;
+      const a = q.deposit_amount ?? 0;
+      setPaymentTiming(t);
+      setDepositPct(p);
+      setDepositAmt(a);
+      setDepositPctRaw(p ? String(p) : "");
+      setDepositAmtRaw(a ? String(a) : "");
+      paymentSeededRef.current = true;
       setEditLoading(false);
       setEditError(null);
     };
@@ -302,6 +332,9 @@ function NewQuotePage() {
           title: string;
           job_description: string | null;
           line_items: unknown;
+          payment_timing: PaymentTiming | null;
+          deposit_amount: number | null;
+          deposit_percent: number | null;
         };
         const q = {
           id: row.id,
@@ -310,6 +343,9 @@ function NewQuotePage() {
           title: row.title,
           job_description: row.job_description ?? "",
           line_items: (Array.isArray(row.line_items) ? row.line_items : []) as LineItem[],
+          payment_timing: row.payment_timing ?? "on_completion",
+          deposit_amount: Number(row.deposit_amount ?? 0),
+          deposit_percent: Number(row.deposit_percent ?? 0),
         } as Quote;
         apply(q);
       } catch (e) {
@@ -331,6 +367,19 @@ function NewQuotePage() {
     liveFinalRef.current = "";
     liveInterimRef.current = "";
     if (voiceParam === 1) navigate({ to: "/quotes/new", search: {}, replace: true });
+    await startRecording();
+  };
+  const handleEditByVoice = async () => {
+    if (saving || recording || transcribing) return;
+    feedback("tap");
+    recordTargetRef.current = "edit";
+    setEditVoiceOpen(true);
+    closeRequestedRef.current = false;
+    setVoiceError(null);
+    setLastTranscript(null);
+    setLivePreview("");
+    liveFinalRef.current = "";
+    liveInterimRef.current = "";
     await startRecording();
   };
   const handleVoiceClose = () => {
@@ -364,6 +413,8 @@ function NewQuotePage() {
     phraseSeqRef.current = 0;
     lastFinalIdxRef.current = -1;
     speechIndexOffsetRef.current = 0;
+    setEditVoiceOpen(false);
+    recordTargetRef.current = "desc";
   };
 
   const recordStartRef = useRef<number>(0);
@@ -392,7 +443,7 @@ function NewQuotePage() {
     mr.stop();
   };
 
-  const appendTranscript = (text: string): { combinedDesc: string; target: "desc" | "clip" } => {
+  const appendTranscript = (text: string): { combinedDesc: string; target: "desc" | "clip" | "edit" } => {
     const clean = text.trim();
     const currentTarget = recordTargetRef.current;
     if (!clean) return { combinedDesc: desc, target: currentTarget };
@@ -400,6 +451,9 @@ function NewQuotePage() {
     if (currentTarget === "clip") {
       setClips((prev) => [...prev, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, transcript: clean }]);
       return { combinedDesc: desc, target: "clip" };
+    }
+    if (currentTarget === "edit") {
+      return { combinedDesc: clean, target: "edit" };
     }
     const combined = desc ? `${desc.trim()} ${clean}` : clean;
     setDesc(combined);
@@ -424,6 +478,10 @@ function NewQuotePage() {
       const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
       const { combinedDesc, target } = appendTranscript(text);
       lastBlobRef.current = null;
+      if (target === "edit") {
+        await applyVoiceEdit(combinedDesc);
+        return;
+      }
       if (target === "desc" && mode === "speak" && combinedDesc.trim() && !draft) {
         if (subBlocked) {
           const msg = "Trial ended — add a payment method to generate quotes.";
@@ -446,6 +504,34 @@ function NewQuotePage() {
       setLivePreview("");
       liveFinalRef.current = "";
       clearPendingItems();
+    }
+  };
+
+  const applyVoiceEdit = async (transcript: string) => {
+    if (!draft || !transcript.trim()) return;
+    const existingItems = draft.line_items
+      .map((li, idx) => `${idx + 1}. ${li.description} — qty ${li.qty}, £${li.unit_price} each`)
+      .join("\n");
+    const editPrompt = `EXISTING QUOTE — these are the items currently on this quote:
+${existingItems}
+
+CHANGE REQUEST FROM THE TRADESPERSON: ${transcript}
+
+Re-output the FULL updated list of line items for this quote, applying the change above. Keep unchanged items exactly as written (same description, qty, unit_price). Add, remove, or modify only what the change request asks for.`;
+    try {
+      const g = await generateFn({ data: { description: editPrompt, trade, vatRegistered: vat } });
+      if (g.line_items?.length) {
+        setDraft({ title: draft.title, line_items: g.line_items });
+        originalDraftRef.current = JSON.stringify(g.line_items);
+        feedback("success");
+        playSample("ding");
+      }
+      handleVoiceClose();
+    } catch (e) {
+      console.error(e);
+      const msg = e instanceof Error ? e.message : "Could not apply voice edit.";
+      setVoiceError(msg);
+      feedback("error");
     }
   };
 
@@ -596,7 +682,7 @@ function NewQuotePage() {
     setLivePreview("");
     stopRequestedRef.current = false;
 
-    const isClipMode = recordTargetRef.current === "clip";
+    const isClipMode = recordTargetRef.current === "clip" || recordTargetRef.current === "edit";
 
     let mr: MediaRecorder;
     try {
@@ -820,6 +906,62 @@ function NewQuotePage() {
   const vatAmt = vat ? +(subtotal * 0.2).toFixed(2) : 0;
   const total = +(subtotal + vatAmt).toFixed(2);
 
+  // Seed payment timing the first time a draft appears for a fresh quote
+  // (editId path already seeds from the loaded quote inside `apply()`).
+  useEffect(() => {
+    if (!draft || editId || paymentSeededRef.current) return;
+    const t = deriveTimingFromTotal(total);
+    setPaymentTiming(t);
+    if (t === "deposit_then_balance") {
+      const p = defaultDepositPercent(userProfile.default_deposit_percent);
+      const a = computeDepositAmount(subtotal, p);
+      setDepositPct(p);
+      setDepositAmt(a);
+      setDepositPctRaw(String(p));
+      setDepositAmtRaw(String(a));
+    }
+    paymentSeededRef.current = true;
+  }, [draft, editId, subtotal, total]);
+
+  // Keep deposit amount in sync with subtotal when timing is deposit (user-edited
+  // values are preserved — we only recompute from the stored percent).
+  useEffect(() => {
+    if (paymentTiming !== "deposit_then_balance" || !depositPct) return;
+    const a = computeDepositAmount(subtotal, depositPct);
+    setDepositAmt(a);
+    setDepositAmtRaw(String(a));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal, paymentTiming]);
+
+  const onPaymentTimingChange = (next: PaymentTiming) => {
+    setPaymentTiming(next);
+    if (next === "deposit_then_balance") {
+      const p = depositPct || defaultDepositPercent(userProfile.default_deposit_percent);
+      const a = computeDepositAmount(subtotal, p);
+      setDepositPct(p); setDepositAmt(a);
+      setDepositPctRaw(String(p)); setDepositAmtRaw(String(a));
+    } else {
+      setDepositPct(0); setDepositAmt(0);
+      setDepositPctRaw(""); setDepositAmtRaw("");
+    }
+  };
+  const onDepositAmtBlur = () => {
+    const parsed = parseDepositInput(depositAmtRaw);
+    if (!parsed) return;
+    const amt = parsed.kind === "amount" ? parsed.value : computeDepositAmount(subtotal, parsed.value);
+    const pct = computeDepositPercent(subtotal, amt);
+    setDepositAmt(amt); setDepositPct(pct);
+    setDepositAmtRaw(String(amt)); setDepositPctRaw(String(pct));
+  };
+  const onDepositPctBlur = () => {
+    const parsed = parseDepositInput(depositPctRaw);
+    if (!parsed) return;
+    const pct = Math.max(0, Math.min(100, parsed.value));
+    const amt = computeDepositAmount(subtotal, pct);
+    setDepositPct(pct); setDepositAmt(amt);
+    setDepositPctRaw(String(pct)); setDepositAmtRaw(String(amt));
+  };
+
   const [saving, setSaving] = useState(false);
   const [sendSheetOpen, setSendSheetOpen] = useState(false);
   const [savedQuote, setSavedQuote] = useState<Quote | null>(null);
@@ -837,6 +979,9 @@ function NewQuotePage() {
             title: draft.title,
             line_items: draft.line_items,
             vatRegistered: vat,
+            payment_timing: paymentTiming,
+            deposit_amount: paymentTiming === "deposit_then_balance" ? depositAmt : 0,
+            deposit_percent: paymentTiming === "deposit_then_balance" ? depositPct : 0,
           })
         : await saveGeneratedQuote({
             clientName: clientName.trim(),
@@ -845,6 +990,9 @@ function NewQuotePage() {
             title: draft.title,
             line_items: draft.line_items,
             vatRegistered: vat,
+            payment_timing: paymentTiming,
+            deposit_amount: paymentTiming === "deposit_then_balance" ? depositAmt : 0,
+            deposit_percent: paymentTiming === "deposit_then_balance" ? depositPct : 0,
           });
       // If an existing customer was picked, persist any phone edits to that record.
       if (customerMode === "existing" && q.client_id) {
@@ -899,7 +1047,7 @@ function NewQuotePage() {
 
   return (
     <AppShell>
-      {!draft && (recording || transcribing || voicePending || voiceError) && (
+      {(editVoiceOpen || !draft) && (recording || transcribing || voicePending || voiceError) && (
         <VoiceOverlay
           recording={recording}
           transcribing={transcribing}
@@ -1054,8 +1202,19 @@ function NewQuotePage() {
           <div ref={draftRef} className="card-surface overflow-hidden scroll-mt-20">
 
             <div className="bg-ink text-paper p-4">
-              <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
-              <p className="font-bold mt-0.5">{userProfile.business_name}</p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
+                <button
+                  type="button"
+                  onClick={handleEditByVoice}
+                  disabled={recording || transcribing || saving}
+                  className="inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-3 py-1 text-[11px] font-bold active:scale-[0.98] transition disabled:opacity-60"
+                >
+                  <Mic className="h-3 w-3" />
+                  Edit by voice
+                </button>
+              </div>
+              <p className="font-bold mt-2">{userProfile.business_name}</p>
               {userProfile.registration_number && (
                 <p className="text-[10px] text-paper/60">
                   {userProfile.registration_number}
@@ -1206,11 +1365,78 @@ function NewQuotePage() {
           </div>
         )}
 
-        {/* Step 4: Assign customer (after draft is generated) */}
+        {/* Step 4: Payment options (consistent with the detail page) */}
         {draft && (
           <div className="space-y-3">
             <div>
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Step 4</p>
+              <h3 className="text-lg font-bold mt-0.5">How will you get paid?</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {paymentTimingLabel({ timing: paymentTiming, total, depositAmount: depositAmt, depositPercent: depositPct })}
+              </p>
+            </div>
+            <div className="card-surface p-2 space-y-1.5">
+              <PaymentMethodOption
+                active={paymentTiming === "on_completion"}
+                icon={Check}
+                label="On completion"
+                sub="Customer pays after work is done"
+                onClick={() => onPaymentTimingChange("on_completion")}
+              />
+              <PaymentMethodOption
+                active={paymentTiming === "deposit_then_balance"}
+                icon={Banknote}
+                label="Deposit then balance"
+                sub="Take a deposit up front, balance on completion"
+                onClick={() => onPaymentTimingChange("deposit_then_balance")}
+              />
+              <PaymentMethodOption
+                active={paymentTiming === "upfront"}
+                icon={Zap}
+                label="Upfront"
+                sub="Full payment before work starts"
+                onClick={() => onPaymentTimingChange("upfront")}
+              />
+            </div>
+            {paymentTiming === "deposit_then_balance" && (
+              <div className="card-surface p-4 space-y-3">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Deposit</p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
+                    <span className="text-ink/60 font-bold">£</span>
+                    <input
+                      type="text" inputMode="decimal"
+                      value={depositAmtRaw}
+                      onChange={(e) => setDepositAmtRaw(e.target.value)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onBlur={onDepositAmtBlur}
+                      placeholder="0.00"
+                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none"
+                    />
+                  </label>
+                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
+                    <input
+                      type="text" inputMode="decimal"
+                      value={depositPctRaw}
+                      onChange={(e) => setDepositPctRaw(e.target.value)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onBlur={onDepositPctBlur}
+                      placeholder="0"
+                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none text-right"
+                    />
+                    <span className="text-ink/60 font-bold">%</span>
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Step 5: Assign customer (after draft is generated) */}
+        {draft && (
+          <div className="space-y-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Step 5</p>
               <h3 className="text-lg font-bold mt-0.5">Who's this for?</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Assign a customer so we know where this quote is going.
@@ -1494,6 +1720,27 @@ function Row({ label, value }: { label: string; value: string }) {
       <span className="text-muted-foreground">{label}</span>
       <span className="num">{value}</span>
     </div>
+  );
+}
+
+function PaymentMethodOption({
+  active, onClick, icon: Icon, label, sub,
+}: { active: boolean; onClick: () => void; icon: ComponentType<{ className?: string }>; label: string; sub: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full text-left rounded-2xl p-3 flex items-center gap-3 transition ${active ? "bg-lime text-ink" : "bg-transparent hover:bg-secondary"}`}
+    >
+      <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${active ? "bg-ink text-lime" : "bg-secondary text-ink"}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold">{label}</p>
+        <p className={`text-[11px] truncate ${active ? "text-ink/70" : "text-muted-foreground"}`}>{sub}</p>
+      </div>
+      {active && <Check className="h-4 w-4 shrink-0" />}
+    </button>
   );
 }
 
