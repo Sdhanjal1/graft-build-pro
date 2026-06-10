@@ -523,6 +523,9 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       if (g.line_items?.length) {
         setDraft({ title: draft.title, line_items: g.line_items });
         originalDraftRef.current = JSON.stringify(g.line_items);
+        // Let the seeding effect re-derive payment timing from the new total
+        // (only for fresh quotes — don't auto-flip a saved quote's timing).
+        if (!editId) paymentSeededRef.current = false;
         feedback("success");
         playSample("ding");
       }
