@@ -485,42 +485,10 @@ function NewQuotePage() {
     return `${trade} quote`;
   };
 
-  // Fire-and-forget per-phrase generate. Runs in PARALLEL — phrase 2 starts
-  // immediately even while phrase 1 is still in flight.
-  const processPhrase = async (text: string, sessionId: number) => {
-    if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
-    const id = `p-${++phraseSeqRef.current}`;
-    pendingCountRef.current++;
-    updatePendingItems((prev) => [...prev, { id, text }]);
-    try {
-      const ctx = prefetchedContextRef.current;
-      const g = await generateFn({
-        data: {
-          description: text,
-          trade,
-          vatRegistered: vat,
-          ...(ctx ? { prefetchedContext: ctx } : {}),
-        },
-      });
-      if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
-      if (g.line_items?.length) {
-        setLiveItems((prev) => {
-          const next = [...prev, ...g.line_items];
-          liveItemsRef.current = next;
-          return next;
-        });
-      }
-    } catch (err) {
-      // Quiet failure for live phrases — don't break the recogniser pipeline
-      // or surface a scary error mid-recording. Stop fallback still runs.
-      console.warn("[voice] phrase generate failed", err);
-    } finally {
-      if (sessionId === voiceSessionRef.current) {
-        pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
-        updatePendingItems((prev) => prev.filter((p) => p.id !== id));
-      }
-    }
-  };
+  // (Removed: legacy per-phrase processPhrase. Superseded by the debounced
+  // regenerateLiveQuote pipeline below, which sees the full transcript and
+  // avoids duplicate/invented filler items.)
+
 
   // Pause-debounced full regeneration. When the speaker pauses for
   // LIVE_PAUSE_MS we send the ENTIRE accumulated transcript to the AI and
