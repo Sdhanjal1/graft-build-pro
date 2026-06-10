@@ -175,10 +175,21 @@ function RequestPage() {
           </div>
         )}
 
-        <div className="mt-4">
+        <div className="mt-4 grid gap-3">
           <label className="block">
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-              Your phone (optional)
+              Your name{requireContact ? "" : " (optional)"}
+            </span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Full name"
+              className="mt-1.5 w-full bg-white border border-border rounded-2xl px-4 py-3 text-sm outline-none focus:border-ink/40"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+              Your phone{requireContact ? "" : " (optional)"}
             </span>
             <input
               value={phone}
@@ -187,6 +198,11 @@ function RequestPage() {
               className="mt-1.5 w-full bg-white border border-border rounded-2xl px-4 py-3 text-sm outline-none focus:border-ink/40"
             />
           </label>
+          {requireContact && !contactOk && body.trim() && (
+            <p className="text-xs text-muted-foreground">
+              Add your name and phone so they can get back to you.
+            </p>
+          )}
         </div>
 
         {error && <p className="text-xs text-status-overdue font-medium mt-3">{error}</p>}
@@ -196,7 +212,7 @@ function RequestPage() {
         <div className="max-w-md mx-auto">
           <button
             onClick={send}
-            disabled={sending || !body.trim()}
+            disabled={sending || !body.trim() || !contactOk}
             className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
