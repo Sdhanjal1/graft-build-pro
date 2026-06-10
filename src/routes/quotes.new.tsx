@@ -223,6 +223,24 @@ function NewQuotePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
+  // Seed the description from ?prefill once (e.g. arriving from an inbox request).
+  // Strip the param after applying so it doesn't overwrite later edits.
+  useEffect(() => {
+    if (!prefill || prefillAppliedRef.current) return;
+    prefillAppliedRef.current = true;
+    setDesc(prefill);
+    navigate({
+      to: "/quotes/new",
+      search: (prev) => {
+        const { prefill: _omit, ...rest } = prev;
+        return rest;
+      },
+      replace: true,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefill]);
+
+
   // Edit mode: pre-load the existing quote into the draft so the user can
   // re-record (replaces line items) or tweak before saving.
   useEffect(() => {
