@@ -77,7 +77,14 @@ function MessagesInbox() {
 
   return (
     <AppShell>
-      <PageHeader title="Inbox" subtitle="Requests and chats" />
+      <PageHeader
+        title="Inbox"
+        subtitle={
+          loading
+            ? "Requests and chats"
+            : `${requests.length} request${requests.length === 1 ? "" : "s"}${newRequests.length ? ` · ${newRequests.length} new` : ""}`
+        }
+      />
 
       {loading && <p className="px-5 text-sm text-muted-foreground">Loading…</p>}
 
