@@ -1725,7 +1725,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function PaymentMethodOption({
   active, onClick, icon: Icon, label, sub,
-}: { active: boolean; onClick: () => void; icon: React.ComponentType<{ className?: string }>; label: string; sub: string }) {
+}: { active: boolean; onClick: () => void; icon: ComponentType<{ className?: string }>; label: string; sub: string }) {
   return (
     <button
       type="button"
