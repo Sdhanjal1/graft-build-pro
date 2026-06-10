@@ -486,6 +486,14 @@ function PortalPage() {
         </section>
       )}
 
+      {showNoMethodFallback && (
+        <section className="px-5 mt-4">
+          <div className="rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+            Your tradesperson hasn't set up online payments yet — they'll be in touch with payment details.
+          </div>
+        </section>
+      )}
+
       {isPaid && (
         <section className="px-5 mt-4">
           <div className="card-surface p-5 border-2 border-status-accepted/30 bg-status-accepted/5">
