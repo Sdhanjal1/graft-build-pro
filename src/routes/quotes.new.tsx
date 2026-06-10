@@ -426,7 +426,7 @@ function NewQuotePage() {
     mr.stop();
   };
 
-  const appendTranscript = (text: string): { combinedDesc: string; target: "desc" | "clip" } => {
+  const appendTranscript = (text: string): { combinedDesc: string; target: "desc" | "clip" | "edit" } => {
     const clean = text.trim();
     const currentTarget = recordTargetRef.current;
     if (!clean) return { combinedDesc: desc, target: currentTarget };
@@ -434,6 +434,9 @@ function NewQuotePage() {
     if (currentTarget === "clip") {
       setClips((prev) => [...prev, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, transcript: clean }]);
       return { combinedDesc: desc, target: "clip" };
+    }
+    if (currentTarget === "edit") {
+      return { combinedDesc: clean, target: "edit" };
     }
     const combined = desc ? `${desc.trim()} ${clean}` : clean;
     setDesc(combined);
