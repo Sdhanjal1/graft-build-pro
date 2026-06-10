@@ -1105,6 +1105,18 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           onRetryTranscription={lastBlobRef.current ? retryTranscription : undefined}
           onUpdateItem={(index, patch) => {
             setLiveItems((prev) => {
+              const orig = prev[index];
+              const patched = orig ? { ...orig, ...patch } : orig;
+              if (orig && patched) {
+                const origKey = normDesc(orig.description);
+                editedItemsRef.current.set(origKey, patched);
+                if (patch.description && normDesc(patch.description) !== origKey) {
+                  // User renamed the description — tombstone old key so AI's
+                  // version doesn't reappear alongside on next regenerate.
+                  deletedDescsRef.current.add(origKey);
+                  editedItemsRef.current.set(normDesc(patch.description), patched);
+                }
+              }
               const next = prev.map((it, i) => (i === index ? { ...it, ...patch } : it));
               liveItemsRef.current = next;
               return next;
@@ -1112,6 +1124,8 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           }}
           onDeleteItem={(index) => {
             setLiveItems((prev) => {
+              const victim = prev[index];
+              if (victim) deletedDescsRef.current.add(normDesc(victim.description));
               const next = prev.filter((_, i) => i !== index);
               liveItemsRef.current = next;
               return next;
