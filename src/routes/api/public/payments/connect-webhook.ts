@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { handlePaidEvent, handleFailedEvent } from "@/lib/payments-webhook-shared.server";
 
 // Stripe Connect webhook (platform-level events for connected accounts).
 // Secret was captured at integration-time as STRIPE_CONNECT_WEBHOOK_SECRET.
