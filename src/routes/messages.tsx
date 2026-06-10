@@ -177,7 +177,7 @@ function MessagesInbox() {
               <Link
                 to="/quotes/$quoteId"
                 params={{ quoteId: t.quote_id }}
-                search={{ tab: "messages" } as any}
+                search={{ tab: "messages" }}
                 className="card-surface p-4 flex items-start gap-3"
               >
                 <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
