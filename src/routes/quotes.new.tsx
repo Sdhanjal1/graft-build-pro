@@ -352,6 +352,19 @@ function NewQuotePage() {
     if (voiceParam === 1) navigate({ to: "/quotes/new", search: {}, replace: true });
     await startRecording();
   };
+  const handleEditByVoice = async () => {
+    if (saving || recording || transcribing) return;
+    feedback("tap");
+    recordTargetRef.current = "edit";
+    setEditVoiceOpen(true);
+    closeRequestedRef.current = false;
+    setVoiceError(null);
+    setLastTranscript(null);
+    setLivePreview("");
+    liveFinalRef.current = "";
+    liveInterimRef.current = "";
+    await startRecording();
+  };
   const handleVoiceClose = () => {
     closeRequestedRef.current = true;
     voiceSessionRef.current++;
@@ -383,6 +396,8 @@ function NewQuotePage() {
     phraseSeqRef.current = 0;
     lastFinalIdxRef.current = -1;
     speechIndexOffsetRef.current = 0;
+    setEditVoiceOpen(false);
+    recordTargetRef.current = "desc";
   };
 
   const recordStartRef = useRef<number>(0);
