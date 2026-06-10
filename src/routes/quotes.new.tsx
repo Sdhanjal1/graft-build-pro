@@ -1112,8 +1112,13 @@ Re-output the FULL updated list of line items for this quote, applying the chang
         className="px-5 mt-4 space-y-4 pb-64"
         onSubmit={(e) => {
           e.preventDefault();
-          if (draft) save("send");
-          else generate();
+          if (draft) {
+            if (!clientName.trim()) {
+              toast.error("Add a customer to save this quote.");
+              return;
+            }
+            void save("send");
+          } else generate();
         }}
       >
 
