@@ -89,6 +89,19 @@ export const Route = createFileRoute("/api/public/payments/connect-webhook")({
             .eq("id", userId);
         }
 
+        // Payment events on connected accounts (direct charges) land here, not
+        // on the platform webhook. Route them through the same shared helpers.
+        if (type === "checkout.session.completed" || type === "payment_intent.succeeded") {
+          console.log("[connect-webhook]", type, "account:", evt.account);
+          await handlePaidEvent(evt);
+          return new Response("ok", { status: 200 });
+        }
+        if (type === "payment_intent.payment_failed" || type === "checkout.session.expired") {
+          console.log("[connect-webhook]", type, "account:", evt.account);
+          await handleFailedEvent(evt);
+          return new Response("ok", { status: 200 });
+        }
+
         return new Response("ok", { status: 200 });
       },
       GET: async () => new Response("ok", { status: 200 }),
