@@ -461,6 +461,10 @@ function NewQuotePage() {
       const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
       const { combinedDesc, target } = appendTranscript(text);
       lastBlobRef.current = null;
+      if (target === "edit") {
+        await applyVoiceEdit(combinedDesc);
+        return;
+      }
       if (target === "desc" && mode === "speak" && combinedDesc.trim() && !draft) {
         if (subBlocked) {
           const msg = "Trial ended — add a payment method to generate quotes.";
@@ -483,6 +487,34 @@ function NewQuotePage() {
       setLivePreview("");
       liveFinalRef.current = "";
       clearPendingItems();
+    }
+  };
+
+  const applyVoiceEdit = async (transcript: string) => {
+    if (!draft || !transcript.trim()) return;
+    const existingItems = draft.line_items
+      .map((li, idx) => `${idx + 1}. ${li.description} — qty ${li.qty}, £${li.unit_price} each`)
+      .join("\n");
+    const editPrompt = `EXISTING QUOTE — these are the items currently on this quote:
+${existingItems}
+
+CHANGE REQUEST FROM THE TRADESPERSON: ${transcript}
+
+Re-output the FULL updated list of line items for this quote, applying the change above. Keep unchanged items exactly as written (same description, qty, unit_price). Add, remove, or modify only what the change request asks for.`;
+    try {
+      const g = await generateFn({ data: { description: editPrompt, trade, vatRegistered: vat } });
+      if (g.line_items?.length) {
+        setDraft({ title: draft.title, line_items: g.line_items });
+        originalDraftRef.current = JSON.stringify(g.line_items);
+        feedback("success");
+        playSample("ding");
+      }
+      handleVoiceClose();
+    } catch (e) {
+      console.error(e);
+      const msg = e instanceof Error ? e.message : "Could not apply voice edit.";
+      setVoiceError(msg);
+      feedback("error");
     }
   };
 
