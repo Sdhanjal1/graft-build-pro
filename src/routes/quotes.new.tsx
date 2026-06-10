@@ -672,6 +672,9 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     firstItemsLandedRef.current = false;
     phraseSeqRef.current = 0;
     lastFinalIdxRef.current = -1;
+    lastLiveGenRef.current = null;
+    deletedDescsRef.current = new Set();
+    editedItemsRef.current = new Map();
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
       return;
