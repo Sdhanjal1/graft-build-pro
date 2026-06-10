@@ -644,11 +644,13 @@ function NewQuotePage() {
         liveFinalRef.current = `${liveFinalRef.current} ${finalInterim}`.trim();
       }
       if (liveDebounceRef.current) { clearTimeout(liveDebounceRef.current); liveDebounceRef.current = null; }
-      void regenerateLiveQuote(sessionId);
-
-      // Wait for all in-flight phrase generates to settle before snapshotting
-      // liveItemsRef so the final spoken phrase cannot be orphaned or dropped.
+      // Trigger one final regenerate AND wait for it (plus any earlier in-flight
+      // one) before checking liveItemsRef — otherwise the Whisper fallback can
+      // fire concurrently and produce duplicate line items.
+      const finalRegen = runRegenerate(sessionId);
       setTranscribing(true);
+      try { await finalRegen; } catch { /* swallowed inside regenerateLiveQuote */ }
+      // Belt-and-braces: also wait for any other tracked pending work.
       await waitForPendingPhraseProcessing();
       setTranscribing(false);
 
