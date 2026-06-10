@@ -772,10 +772,17 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       const items = liveItemsRef.current;
       if (items.length > 0) {
         const transcript = liveFinalRef.current.trim();
-        const built = { title: deriveTitle(items), line_items: items };
+        const meta = lastLiveGenRef.current;
+        const built = {
+          title: meta?.title?.trim() || deriveTitle(items),
+          line_items: items,
+        };
         setDraft(built);
         originalDraftRef.current = JSON.stringify(items);
-        setDesc(transcript);
+        setDesc(meta?.clean_description?.trim() || transcript);
+        const ec = meta?.extracted_customer;
+        if (ec?.name && !clientName.trim()) setClientName(ec.name);
+        if (ec?.phone && !clientPhone.trim()) setClientPhone(ec.phone);
         clearPendingItems();
         setLivePreview("");
         liveFinalRef.current = "";
