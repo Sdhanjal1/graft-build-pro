@@ -1365,11 +1365,78 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           </div>
         )}
 
-        {/* Step 4: Assign customer (after draft is generated) */}
+        {/* Step 4: Payment options (consistent with the detail page) */}
         {draft && (
           <div className="space-y-3">
             <div>
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Step 4</p>
+              <h3 className="text-lg font-bold mt-0.5">How will you get paid?</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {paymentTimingLabel({ timing: paymentTiming, total, depositAmount: depositAmt, depositPercent: depositPct })}
+              </p>
+            </div>
+            <div className="card-surface p-2 space-y-1.5">
+              <PaymentMethodOption
+                active={paymentTiming === "on_completion"}
+                icon={Check}
+                label="On completion"
+                sub="Customer pays after work is done"
+                onClick={() => onPaymentTimingChange("on_completion")}
+              />
+              <PaymentMethodOption
+                active={paymentTiming === "deposit_then_balance"}
+                icon={Banknote}
+                label="Deposit then balance"
+                sub="Take a deposit up front, balance on completion"
+                onClick={() => onPaymentTimingChange("deposit_then_balance")}
+              />
+              <PaymentMethodOption
+                active={paymentTiming === "upfront"}
+                icon={Zap}
+                label="Upfront"
+                sub="Full payment before work starts"
+                onClick={() => onPaymentTimingChange("upfront")}
+              />
+            </div>
+            {paymentTiming === "deposit_then_balance" && (
+              <div className="card-surface p-4 space-y-3">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Deposit</p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
+                    <span className="text-ink/60 font-bold">£</span>
+                    <input
+                      type="text" inputMode="decimal"
+                      value={depositAmtRaw}
+                      onChange={(e) => setDepositAmtRaw(e.target.value)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onBlur={onDepositAmtBlur}
+                      placeholder="0.00"
+                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none"
+                    />
+                  </label>
+                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
+                    <input
+                      type="text" inputMode="decimal"
+                      value={depositPctRaw}
+                      onChange={(e) => setDepositPctRaw(e.target.value)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onBlur={onDepositPctBlur}
+                      placeholder="0"
+                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none text-right"
+                    />
+                    <span className="text-ink/60 font-bold">%</span>
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Step 5: Assign customer (after draft is generated) */}
+        {draft && (
+          <div className="space-y-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Step 5</p>
               <h3 className="text-lg font-bold mt-0.5">Who's this for?</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Assign a customer so we know where this quote is going.
