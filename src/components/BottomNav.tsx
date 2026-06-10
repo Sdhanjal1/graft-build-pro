@@ -82,14 +82,14 @@ function NavItem({
         if (!active) playSample("tick");
       }}
       aria-current={active ? "page" : undefined}
-      className="flex-1 h-full min-w-0 flex items-center justify-center relative"
+      className="h-full min-w-0 shrink-0 flex items-center justify-center relative"
     >
       <span
         className={[
           "relative flex items-center gap-1.5 rounded-full transition-all duration-200 ease-out",
           active
-            ? "bg-lime text-ink px-3.5 py-2 shadow-[0_6px_16px_-6px_rgba(200,224,74,0.7)] scale-100"
-            : "text-paper/60 px-2 py-2 scale-95",
+            ? "bg-lime text-ink px-3 py-2 shadow-[0_6px_16px_-6px_rgba(200,224,74,0.7)]"
+            : "text-paper/60 px-2.5 py-2 scale-95",
         ].join(" ")}
       >
         <span className="relative inline-flex">
