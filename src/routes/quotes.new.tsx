@@ -603,10 +603,20 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
       if (genId !== phraseSeqRef.current) return;
       if (g.line_items?.length) {
-        setLiveItems(g.line_items);
-        liveItemsRef.current = g.line_items;
+        const filtered = g.line_items
+          .filter((li) => !deletedDescsRef.current.has(normDesc(li.description)))
+          .map((li) => editedItemsRef.current.get(normDesc(li.description)) ?? li);
+        setLiveItems(filtered);
+        liveItemsRef.current = filtered;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const gAny = g as any;
+        lastLiveGenRef.current = {
+          title: gAny.title,
+          clean_description: gAny.clean_description,
+          extracted_customer: gAny.extracted_customer,
+        };
         // Haptic + sound feedback — only on first items landing per session
-        if (!firstItemsLandedRef.current) {
+        if (!firstItemsLandedRef.current && filtered.length) {
           firstItemsLandedRef.current = true;
           if (typeof navigator !== "undefined" && navigator.vibrate) {
             try { navigator.vibrate(20); } catch { /* ignore */ }
