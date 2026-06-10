@@ -332,6 +332,9 @@ function NewQuotePage() {
           title: string;
           job_description: string | null;
           line_items: unknown;
+          payment_timing: PaymentTiming | null;
+          deposit_amount: number | null;
+          deposit_percent: number | null;
         };
         const q = {
           id: row.id,
@@ -340,6 +343,9 @@ function NewQuotePage() {
           title: row.title,
           job_description: row.job_description ?? "",
           line_items: (Array.isArray(row.line_items) ? row.line_items : []) as LineItem[],
+          payment_timing: row.payment_timing ?? "on_completion",
+          deposit_amount: Number(row.deposit_amount ?? 0),
+          deposit_percent: Number(row.deposit_percent ?? 0),
         } as Quote;
         apply(q);
       } catch (e) {
