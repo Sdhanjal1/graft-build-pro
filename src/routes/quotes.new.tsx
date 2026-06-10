@@ -968,6 +968,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
   const [saving, setSaving] = useState(false);
   const [sendSheetOpen, setSendSheetOpen] = useState(false);
   const [savedQuote, setSavedQuote] = useState<Quote | null>(null);
+  const wasSentRef = useRef(false);
   const save = async (mode: "draft" | "send" = "draft") => {
     if (!draft || saving) return null;
     setSaving(true);
@@ -1024,6 +1025,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       if (mode === "send") {
         // Stay on /quotes/new and open the send sheet over it.
         setSavedQuote(q);
+        wasSentRef.current = false;
         setSendSheetOpen(true);
         toast.success(editId ? "Changes saved" : "Quote saved");
       } else {
@@ -1636,12 +1638,17 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           open={sendSheetOpen}
           onClose={() => {
             setSendSheetOpen(false);
-            // After the user finishes (or cancels) sending, drop them on the
-            // detail page so they can track status and payment.
             const id = savedQuote.id;
+            const sent = wasSentRef.current;
             setSavedQuote(null);
-            navigate({ to: "/quotes/$quoteId", params: { quoteId: id }, search: { sent: 1 } as never });
+            if (sent) {
+              navigate({ to: "/quotes/$quoteId", params: { quoteId: id }, search: { sent: 1 } as never });
+            } else {
+              navigate({ to: "/quotes/$quoteId", params: { quoteId: id } });
+            }
           }}
+          onSent={() => { wasSentRef.current = true; }}
+          onUndo={() => { wasSentRef.current = false; }}
           quoteId={savedQuote.id}
           quoteRef={savedQuote.ref ?? ""}
           quoteTitle={savedQuote.title}

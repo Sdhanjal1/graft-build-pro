@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { handlePaidEvent, handleFailedEvent } from "@/lib/payments-webhook-shared.server";
 
 // Stripe Connect webhook (platform-level events for connected accounts).
 // Secret was captured at integration-time as STRIPE_CONNECT_WEBHOOK_SECRET.
@@ -86,6 +87,19 @@ export const Route = createFileRoute("/api/public/payments/connect-webhook")({
               stripe_connect_payouts_enabled: !!acct.payouts_enabled,
             })
             .eq("id", userId);
+        }
+
+        // Payment events on connected accounts (direct charges) land here, not
+        // on the platform webhook. Route them through the same shared helpers.
+        if (type === "checkout.session.completed" || type === "payment_intent.succeeded") {
+          console.log("[connect-webhook]", type, "account:", evt.account);
+          await handlePaidEvent(evt);
+          return new Response("ok", { status: 200 });
+        }
+        if (type === "payment_intent.payment_failed" || type === "checkout.session.expired") {
+          console.log("[connect-webhook]", type, "account:", evt.account);
+          await handleFailedEvent(evt);
+          return new Response("ok", { status: 200 });
         }
 
         return new Response("ok", { status: 200 });
