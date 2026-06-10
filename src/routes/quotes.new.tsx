@@ -231,7 +231,7 @@ function NewQuotePage() {
     setDesc(prefill);
     navigate({
       to: "/quotes/new",
-      search: (prev) => {
+      search: (prev: QuotesNewSearch) => {
         const { prefill: _omit, ...rest } = prev;
         return rest;
       },
