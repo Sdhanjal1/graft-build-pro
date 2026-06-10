@@ -118,7 +118,10 @@ function MessagesInbox() {
               <li key={r.id}>
                 <button
                   onClick={async () => {
-                    if (!r.read_at) await markRead({ data: { id: r.id } }).catch(() => {});
+                    if (!r.read_at) {
+                      await markRead({ data: { id: r.id } }).catch(() => {});
+                      void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+                    }
                     void load();
                   }}
                   className={`w-full text-left card-surface p-4 flex items-start gap-3 ${!r.read_at ? "ring-1 ring-lime" : ""}`}
@@ -142,7 +145,7 @@ function MessagesInbox() {
                     <div className="mt-2 flex gap-2">
                       <Link
                         to="/quotes/new"
-                        search={{ prefill: r.body } as any}
+                        search={{ prefill: r.body }}
                         className="inline-flex items-center gap-1 text-[11px] font-semibold bg-ink text-paper rounded-full px-3 py-1.5"
                       >
                         <Sparkles className="h-3 w-3" />
@@ -205,7 +208,7 @@ function MessagesInbox() {
   );
 }
 
-function notifyNewRequest(row: any) {
+function notifyNewRequest(row: QuoteRequest) {
   try {
     if (typeof window === "undefined") return;
     if (!("Notification" in window)) return;
