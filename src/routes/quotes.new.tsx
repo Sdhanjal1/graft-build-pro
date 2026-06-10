@@ -968,6 +968,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
   const [saving, setSaving] = useState(false);
   const [sendSheetOpen, setSendSheetOpen] = useState(false);
   const [savedQuote, setSavedQuote] = useState<Quote | null>(null);
+  const wasSentRef = useRef(false);
   const save = async (mode: "draft" | "send" = "draft") => {
     if (!draft || saving) return null;
     setSaving(true);
