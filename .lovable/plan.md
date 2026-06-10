@@ -1,85 +1,94 @@
-# Make the inbox reachable + measurable
+# Code audit — issues found and proposed fixes
 
-Scope: nav visibility, unread badge, count on inbox, minor copy tidy. No new logic, no AI, no DB changes.
+Scope: only fix what's already shipped. No new features, no schema changes, no AI/business-logic changes.
 
-## 1. BottomNav — swap icon + add unread dot
+## Confirmed bugs (worth fixing)
 
-`src/components/BottomNav.tsx` already has the Inbox item between Quotes and Chasers, but uses `MessageSquare`. Two changes:
+### 1. Inbox "Create quote" link is dead — `prefill` is silently dropped
 
-- Swap import + icon to `Inbox` from `lucide-react`.
-- Add an unread dot on the Inbox item only.
+`src/routes/messages.tsx:130` links to `/quotes/new` with `search={{ prefill: r.body } as any}`, but `src/routes/quotes.new.tsx:76` `validateSearch` only whitelists `voice`, `clientId`, `edit`. TanStack Router strips unknown search keys, and `NewQuotePage` never reads `prefill` anyway, so tapping "Create quote" from an inbox request does nothing useful.
 
-Data fetching: app uses TanStack Query (`tanstack-query-integration` is the canonical pattern, `QueryClient` is already in router context). Add `useQuery` inside `BottomNav` calling `getMyIncomingRequests` via `useServerFn`:
-- `queryKey: ["inbox-unread-count"]`
-- `queryFn` → returns the raw response
-- `refetchInterval: 30_000`
-- `refetchOnWindowFocus: true`
-- `staleTime: 15_000`
-- `select: (r) => r.requests.filter((x) => !x.read_at).length`
-- Wrap in try/catch in `select` if needed; on error / loading → treat as `0`, show no dot (fail silent).
+Fix (pick one — recommend A since the link already exists):
 
-Skip the query entirely on routes where the nav is already hidden (the `hide` branch returns early before `useQuery`, which would break the rules of hooks — instead always run the query but guard with `enabled: !hide`).
+- A. Add `prefill?: string` to `validateSearch` in `quotes.new.tsx`, then in `NewQuotePage` read it via `Route.useSearch()` and seed `setDesc(prefill)` in a one-shot effect (guarded by a ref so subsequent edits aren't overwritten). Drop the `as any` cast in `messages.tsx`.
+- B. Remove the `Create quote` CTA from inbox until wiring is real.
 
-Pass `unread: count > 0` to the Inbox `NavItem`. Extend `NavItem` props with optional `unread?: boolean`. Render the dot inside the existing `<span>` wrapper so it tracks with the icon:
+### 2. `BottomNav` unread query 401-spams unauthenticated users on app routes
 
-```tsx
-{unread && (
-  <span aria-hidden className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-lime ring-2 ring-ink" />
-)}
-```
+`BottomNav` runs `getMyIncomingRequests` (auth-required) whenever `showAppChrome` is true. If a logged-out visitor lands on any app route (e.g. `/app` before redirect, transient session loss), the query fires, hits `requireSupabaseAuth`, and throws 401. Currently masked by `retry: false`, but it still produces a network error per nav and a noisy server log.
 
-Position requires `relative` on the icon's wrapper — the inner pill `<span>` is already a flex item; add `relative` to it so the dot anchors to the icon area not the whole `<Link>` (the `<Link>` is already `relative`, but anchoring to that would offset by the active label width).
+Fix: gate the query on session presence. Read `useSession()` in `BottomNav` and set `enabled: !hide && !!session`. No new behavior — just no query without a user.
 
-Accessibility: when `unread`, swap the `sr-only` label from `Inbox` to `Inbox, unread requests`.
+### 3. `inbox-unread-count` cache never invalidates when a request is marked read
 
-## 2. Spacing check on 360px
+`messages.tsx` calls `markRequestRead` then `void load()`, which refreshes its own local state but does NOT touch the `["inbox-unread-count"]` query key used by `BottomNav`. The lime dot only clears on the next 30 s refetch interval (or window-focus).
 
-At 360px with 5 items, only the active label renders ("Chasers" is the longest at 7 chars + icon). The pill is `max-w-md` capped and each item is `flex-1`, so even active Chasers fits. No change unless visual check shows clipping; if so, drop active label from `text-[12px]` to `text-[11px]` — nothing else.
+Fix: in `messages.tsx`, grab `useQueryClient()` and call `queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] })` after a successful `markRead`. Same in any future read-marking spot.
 
-## 3. Inbox screen — total count in header
+### 4. `useEffect` cleanup race in `messages.tsx`
 
-`src/routes/messages.tsx` currently shows `PageHeader title="Inbox" subtitle="Requests and chats"` and a `{newRequests.length} new` chip next to the Quote requests section.
+`useEffect` subscribes to a realtime channel and calls `void load()` on inserts, but `load()` uses `setMessages`/`setRequests` without a mounted guard. If the component unmounts mid-fetch, React logs a set-state-on-unmounted warning in dev. Add a `let cancelled = false;` flag inside the effect and bail out of the setters when cancelled; also do the same inside `load`.
 
-Add a compact count under the page title showing total requests received and unread split. Replace the `subtitle` prop with a dynamic one:
+### 5. `quotes.new.tsx` `validateSearch` type narrowing
 
-- `subtitle={\`${requests.length} request${requests.length === 1 ? "" : "s"}${newRequests.length ? ` · ${newRequests.length} new\` : ""}\``}
+Line 76 returns a union-shaped object without explicit return type. TanStack picks up the inferred type but downstream `navigate({ to: "/quotes/new", search: {}, replace: true })` works only because every key is optional. Add an explicit return type (`{ voice?: 1; clientId?: string; edit?: string; prefill?: string }`) so future links don't silently drop params (this is the underlying cause of bug #1).
 
-If `PageHeader`'s subtitle styling doesn't allow a Bebas Neue numeral, leave it as plain subtitle text — the spec says minimal and on-brand; the existing subtitle style is on-brand. No new component, no header surgery. Keep the existing "X new" chip beside the section header as-is.
+## Code-quality cleanup (low-risk, recommended)
 
-## 4. Customer request form — verify only
+### 6. Remove or tighten `as any` casts (90 occurrences)
 
-`src/routes/request.$proId.tsx`:
+Highest-impact files:
 
-- Business name is already shown in `<Header>` and in the H1 ("Send a request to {business_name}"). No change.
-- Voice/text already a toggle pair with equal weight; lime submit button is primary. No change.
-- Success state already renders a tick + "Request sent" + business-name message, with a manual "Done" link (no auto-redirect). No change.
-- **Conflict to flag**: spec says "Confirm the form still works for a logged-out customer (this route must be public — no auth gate)". The route is publicly reachable, but the form requires sign-in: when `!session`, the route renders `<CustomerAuth />` and forces signup/login before send. `createQuoteRequest` is also `.middleware([requireSupabaseAuth])`. Truly removing the auth gate means:
-  - Changing the server fn to drop `requireSupabaseAuth` and accept anonymous submissions (likely using `supabaseAdmin` server-side).
-  - Adjusting RLS / GRANTs on `quote_requests` for anonymous inserts.
-  - Likely adding bot-protection (rate limit / honeypot) since the endpoint becomes public.
-  
-  That is a backend + security change, not the navigation/visibility scope this prompt describes. **Plan: leave the auth-required behaviour exactly as-is in this PR.** If you want truly public submissions, I'll do that as a separate plan.
+- `src/routes/api/public/payments/webhook.ts` — ~15 `(quote as any).field` accesses. Generate a narrow `type WebhookQuote = Pick<Database['public']['Tables']['quotes']['Row'], ...>` once, cast `quote as WebhookQuote` at the top, drop the per-field casts.
+- `src/routes/messages.tsx` — `useState<any[]>` for `messages` and `requests`. Replace with row types from `Database['public']['Tables']['quote_messages'|'quote_requests']['Row']`.
+- `src/lib/portal-pdf.ts:208-209`, `src/routes/invoices.$quoteId.tsx:137` — same pattern, narrow the `LineItem` type to include `unit?: "hours" | "days" | string` so the per-call cast is gone.
 
-## 5. Portal CTA — verify only
+Leave intentional ones (`navigator.standalone`, web-push subscription JSON shape) with a one-line type assertion + comment.
 
-`src/routes/portal.c.$code.tsx` around line 472. Open it, confirm:
-- The "Request a quote" button uses lime primary styling and reads clearly.
-- It links to `/request/$proId` with the correct `proId` param from the loaded data.
+### 7. Strip `// @ts-ignore` in `src/lib/pdf.ts:138`
 
-If both true → no change. If styling is muted or proId wiring is wrong → fix in place (lime treatment, correct param) without touching anything else on the portal.
+`(doc as any).lastAutoTable.finalY` works without the ignore — the `as any` already silences the missing property. Delete the ignore line and keep the cast.
 
-## Out of scope
-No analytics SDK, no DB changes, no notification changes, no AI handling, no auth changes to the public request form (see §4).
+### 8. Console noise audit
 
-## Acceptance
-1. Inbox icon (lucide `Inbox`) sits between Quotes and Chasers.
-2. Tapping opens `/messages`.
-3. Unread quote requests → lime dot on Inbox icon; clears on next refetch after the request is marked read.
-4. No clipping at 360px.
-5. Inbox header shows `N requests · M new`.
-6. Portal "Request a quote" CTA verified prominent + correctly wired.
+~55 `console.log/error/warn` calls across server fns and routes. Keep server-side `console.error` (Cloudflare logs), but remove or gate dev-only `console.log` in:
 
-## Files touched
-- `src/components/BottomNav.tsx` — icon swap, useQuery, NavItem `unread` prop + dot, sr-only label tweak.
-- `src/routes/messages.tsx` — subtitle change only.
-- `src/routes/portal.c.$code.tsx` — only if §5 check fails.
+- `src/routes/quotes.new.tsx` (8 calls)
+- `src/routes/quotes.$quoteId.tsx` (4 calls)
+- `src/routes/api/public/payments/webhook.ts` (9 — keep `console.error`, drop `console.log` traces)
+- `src/lib/user-data.ts` (10 — most look like debugging)
+
+Rule of thumb: keep `console.error` in catch blocks; remove standalone `console.log`.
+
+### 9. Supabase linter
+
+One WARN: `Extension in Public`. Low priority, security-only nit. Out of scope unless you want me to also move the extension to its own schema (DB migration).
+
+## Out of scope (flagging only, not changing)
+
+- The `/request/$proId` auth-gate question (already deferred in the previous plan).
+- The `quote_requests` row type: types are auto-generated, so #6 just consumes them — no schema change.
+- Skill/agent files, marketing copy, design tokens — no changes.
+
+## Files touched if approved
+
+- `src/routes/quotes.new.tsx` — `validateSearch` + read `prefill` once.
+- `src/routes/messages.tsx` — invalidate inbox count, drop `as any` on search, mounted-guard in effect, typed state.
+- `src/components/BottomNav.tsx` — gate query on session.
+- `src/lib/pdf.ts` — drop `@ts-ignore`.
+- `src/routes/api/public/payments/webhook.ts` — single typed cast, drop log noise.
+- `src/lib/portal-pdf.ts`, `src/routes/invoices.$quoteId.tsx` — narrow `LineItem` casts.
+- `src/lib/user-data.ts`, `src/routes/quotes.new.tsx`, `src/routes/quotes.$quoteId.tsx` — strip debug `console.log`.
+
+## Suggested order
+
+1. Bugs 1-4 (user-visible behavior).
+2. Bug 5 (prevents the same class of bug recurring).
+3. Cleanup 6-8 in one pass.
+4. Lint warning 9 only if you want it now.
+
+Want me to proceed with all of the above, or just the bugs (1-5) and skip the cleanup? 
+
+&nbsp;
+
+Proceed with all and test after each one.
