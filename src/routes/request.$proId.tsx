@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getProPublicInfo, createQuoteRequest } from "@/lib/quote-requests.functions";
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { useSession, signInWithPassword, signUpWithPassword } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { Loader2, Square, Send, CheckCircle2, Hammer } from "lucide-react";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
