@@ -9,6 +9,7 @@ import { downloadPortalPdf } from "@/lib/portal-pdf";
 import { Loader2, Check, X, Download, Copy, Landmark, CreditCard } from "lucide-react";
 import { acceptButtonLabel, paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
 import { feedback } from "@/lib/feedback";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/portal/$token")({
   component: PortalPage,
@@ -99,19 +100,6 @@ function PortalPage() {
   }, [paymentResult]);
 
 
-  const onRespond = async (response: "accepted" | "declined") => {
-    if (response === "declined" && !confirm("Decline this quote?")) return;
-    setResponding(true);
-    try {
-      const r = await respond({ data: { token, response } });
-      setStatus(r.status);
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not update quote");
-    } finally {
-      setResponding(false);
-    }
-  };
-
   const onPay = async (requestType: "deposit" | "full") => {
     setPaying(true);
     try {
@@ -123,6 +111,41 @@ function PortalPage() {
       setPaying(false);
     }
   };
+
+  const onRespond = async (response: "accepted" | "declined") => {
+    if (response === "declined" && !confirm("Decline this quote?")) return;
+    setResponding(true);
+    try {
+      const r = await respond({ data: { token, response } });
+      setStatus(r.status);
+      // Auto-redirect to Stripe checkout for upfront/deposit when card is set up.
+      if (response === "accepted") {
+        const t: PaymentTiming = (data?.quote?.payment_timing as PaymentTiming) ?? "on_completion";
+        const cardEnabled = !!(data?.profile as any)?.stripe_connect_charges_enabled;
+        if ((t === "upfront" || t === "deposit_then_balance") && cardEnabled) {
+          const reqType: "deposit" | "full" = t === "deposit_then_balance" ? "deposit" : "full";
+          await onPay(reqType);
+          return;
+        }
+        // Bank-only fallback: nudge them to the bank card already on screen.
+        const bankAccountSet = !!((data?.profile as any)?.account_number?.toString().trim());
+        const bankSortSet = !!((data?.profile as any)?.sort_code?.toString().trim());
+        if ((t === "upfront" || t === "deposit_then_balance") && bankAccountSet && bankSortSet) {
+          toast.success("Quote accepted — transfer using the bank details below.");
+          if (typeof window !== "undefined") {
+            window.setTimeout(() => {
+              document.getElementById("how-to-pay")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 100);
+          }
+        }
+      }
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not update quote");
+    } finally {
+      setResponding(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -164,15 +187,23 @@ function PortalPage() {
   const bankSort = ((profile as any)?.sort_code ?? "").toString().trim();
   const hasBank = !!bankAccount && !!bankSort;
   const isInvoiced = !!(quote as any).invoiced_at || status === "invoiced";
+  const isUpfrontOrDeposit = timing === "upfront" || timing === "deposit_then_balance";
   // For on_completion quotes, only surface pay-now options once the trader has issued the invoice.
   const timingAllowsPayNow =
-    timing === "upfront" ||
-    timing === "deposit_then_balance" ||
-    (timing === "on_completion" && isInvoiced);
-  const canPayNow =
-    status === "accepted" && !isPaid && timingAllowsPayNow && hasCard;
+    isUpfrontOrDeposit || (timing === "on_completion" && isInvoiced);
+  // Whether we can offer a card payment right now (pre- or post-accept).
+  const canPayNow = !isPaid && timingAllowsPayNow && hasCard;
+  // For upfront/deposit timings, surface payment instructions as soon as the
+  // quote is opened so the customer can see how they'll pay before accepting.
   const showPaymentOptions =
-    status === "accepted" && !isPaid && timingAllowsPayNow && (canPayNow || hasBank);
+    !isPaid &&
+    timingAllowsPayNow &&
+    status !== "declined" &&
+    (hasCard || hasBank) &&
+    (isUpfrontOrDeposit || status === "accepted");
+  const showNoMethodFallback =
+    status === "accepted" && !isPaid && timingAllowsPayNow && !hasCard && !hasBank;
+  const isPreAccept = status !== "accepted" && status !== "paid";
   const isDepositFlow = timing === "deposit_then_balance";
   const payRequestType: "deposit" | "full" = isDepositFlow ? "deposit" : "full";
   const payAmount = isDepositFlow ? depositAmount : total;
@@ -359,8 +390,13 @@ function PortalPage() {
       )}
 
       {showPaymentOptions && (
-        <section className="px-5 mt-4 space-y-3">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">How to pay</p>
+        <section id="how-to-pay" className="px-5 mt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">How to pay</p>
+            {isPreAccept && (
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Preview</p>
+            )}
+          </div>
 
           {canPayNow && (
             <div className="card-surface p-5">
@@ -369,13 +405,17 @@ function PortalPage() {
                 <p className="text-sm font-bold text-ink">Pay by card</p>
               </div>
               <button
-                onClick={() => onPay(payRequestType)}
+                onClick={() => (isPreAccept ? onRespond("accepted") : onPay(payRequestType))}
                 onPointerDown={() => feedback("tap")}
-                disabled={paying}
+                disabled={paying || responding}
                 className="w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
               >
-                {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                <span className="truncate">{isDepositFlow ? "Pay deposit" : "Pay now"} {formatGBP(payAmount)}</span>
+                {(paying || responding) ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                <span className="truncate">
+                  {isPreAccept
+                    ? `${isDepositFlow ? "Accept & pay deposit" : "Accept & pay"} ${formatGBP(payAmount)}`
+                    : `${isDepositFlow ? "Pay deposit" : "Pay now"} ${formatGBP(payAmount)}`}
+                </span>
               </button>
               {isDepositFlow && (
                 <p className="text-center text-[11px] text-muted-foreground mt-2">Balance of {formatGBP(balanceAmount)} due on completion.</p>
@@ -384,6 +424,8 @@ function PortalPage() {
               <WalletBadges className="mt-2" />
             </div>
           )}
+
+
 
           {hasBank && (
             <div className="card-surface p-5">
@@ -441,6 +483,14 @@ function PortalPage() {
               </p>
             </div>
           )}
+        </section>
+      )}
+
+      {showNoMethodFallback && (
+        <section className="px-5 mt-4">
+          <div className="rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+            Your tradesperson hasn't set up online payments yet — they'll be in touch with payment details.
+          </div>
         </section>
       )}
 
