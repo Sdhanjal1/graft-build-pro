@@ -1096,6 +1096,9 @@ export const updateGeneratedQuote = async (input: {
   title: string;
   line_items: LineItem[];
   vatRegistered: boolean;
+  payment_timing?: PaymentTiming;
+  deposit_amount?: number;
+  deposit_percent?: number;
 }): Promise<Quote> => {
   const trimmedName = input.clientName?.trim() ?? "";
   const existing = getQuote(input.id);
@@ -1109,13 +1112,17 @@ export const updateGeneratedQuote = async (input: {
   const subtotal = +input.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
   const vat_amount = input.vatRegistered ? +(subtotal * VAT_RATE).toFixed(2) : 0;
   const total = +(subtotal + vat_amount).toFixed(2);
-  const timing = existing?.payment_timing ?? deriveTimingFromTotal(total);
-  const depositPct = timing === "deposit_then_balance"
-    ? (existing?.deposit_percent ?? defaultDepositPercent(userProfile.default_deposit_percent))
-    : 0;
-  const depositAmt = timing === "deposit_then_balance"
-    ? (existing?.deposit_amount ?? computeDepositAmount(subtotal, depositPct))
-    : 0;
+  const timing: PaymentTiming = input.payment_timing ?? existing?.payment_timing ?? deriveTimingFromTotal(total);
+  const depositPct = input.deposit_percent !== undefined
+    ? input.deposit_percent
+    : (timing === "deposit_then_balance"
+      ? (existing?.deposit_percent ?? defaultDepositPercent(userProfile.default_deposit_percent))
+      : 0);
+  const depositAmt = input.deposit_amount !== undefined
+    ? input.deposit_amount
+    : (timing === "deposit_then_balance"
+      ? (existing?.deposit_amount ?? computeDepositAmount(subtotal, depositPct))
+      : 0);
   const updatePayload = {
     title: input.title,
     job_description: input.description,
