@@ -77,7 +77,7 @@ async function sendBrandedInvoiceEmail(opts: {
         ref: quote.ref,
         title: quote.title,
         job_description: quote.job_description,
-        line_items: Array.isArray(quote.line_items) ? quote.line_items : [],
+        line_items: (Array.isArray(quote.line_items) ? quote.line_items : []) as Parameters<typeof generateInvoicePdfBytes>[0]["line_items"],
         subtotal: Number(quote.subtotal) || 0,
         vat_amount: Number(quote.vat_amount) || 0,
         total: Number(quote.total) || 0,
