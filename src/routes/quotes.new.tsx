@@ -1202,8 +1202,19 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           <div ref={draftRef} className="card-surface overflow-hidden scroll-mt-20">
 
             <div className="bg-ink text-paper p-4">
-              <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
-              <p className="font-bold mt-0.5">{userProfile.business_name}</p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
+                <button
+                  type="button"
+                  onClick={handleEditByVoice}
+                  disabled={recording || transcribing || saving}
+                  className="inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-3 py-1 text-[11px] font-bold active:scale-[0.98] transition disabled:opacity-60"
+                >
+                  <Mic className="h-3 w-3" />
+                  Edit by voice
+                </button>
+              </div>
+              <p className="font-bold mt-2">{userProfile.business_name}</p>
               {userProfile.registration_number && (
                 <p className="text-[10px] text-paper/60">
                   {userProfile.registration_number}
