@@ -60,7 +60,7 @@ async function sendBrandedInvoiceEmail(opts: {
       console.warn("[payments/webhook] quote not found for invoice email", opts.quoteId);
       return;
     }
-    let client: any = null;
+    let client: { name: string | null; address: string | null; email: string | null; phone: string | null } | null = null;
     if (quote.client_id) {
       const { data: c } = await supabaseAdmin
         .from("clients")
@@ -87,8 +87,8 @@ async function sendBrandedInvoiceEmail(opts: {
         payment_method: opts.paymentMethod,
         stripe_payment_intent: opts.paymentIntent ?? null,
       },
-      client,
-      profile as any,
+      client as unknown as Parameters<typeof generateInvoicePdfBytes>[1],
+      profile as unknown as Parameters<typeof generateInvoicePdfBytes>[2],
     );
     const businessName =
       profile?.business_name || profile?.full_name || "Your tradesperson";
