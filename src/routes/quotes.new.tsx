@@ -71,12 +71,20 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return btoa(binary);
 }
 
+type QuotesNewSearch = {
+  voice?: 1;
+  clientId?: string;
+  edit?: string;
+  prefill?: string;
+};
+
 export const Route = createFileRoute("/quotes/new")({
   component: NewQuotePage,
-  validateSearch: (s: Record<string, unknown>) => ({
-    ...(s.voice === 1 || s.voice === "1" ? { voice: 1 } : {}),
+  validateSearch: (s: Record<string, unknown>): QuotesNewSearch => ({
+    ...(s.voice === 1 || s.voice === "1" ? { voice: 1 as const } : {}),
     ...(typeof s.clientId === "string" ? { clientId: s.clientId } : {}),
     ...(typeof s.edit === "string" ? { edit: s.edit } : {}),
+    ...(typeof s.prefill === "string" && s.prefill ? { prefill: s.prefill } : {}),
   }),
 });
 
@@ -89,7 +97,8 @@ type PendingItem = { id: string; text: string };
 function NewQuotePage() {
   const navigate = useNavigate();
   const router = useRouter();
-  const { voice: voiceParam, clientId, edit: editId } = Route.useSearch();
+  const { voice: voiceParam, clientId, edit: editId, prefill } = Route.useSearch();
+  const prefillAppliedRef = useRef(false);
   const [editLoading, setEditLoading] = useState<boolean>(!!editId);
   const [editError, setEditError] = useState<string | null>(null);
   const [mode] = useState<"speak" | "onsite">("speak");
