@@ -153,6 +153,16 @@ function NewQuotePage() {
   const { canUse: subActive, blocked: subBlocked, loading: subLoading } = useSubscription();
   const paidQuoteCount = usePaidQuoteCount();
 
+  // Payment timing / deposit state — surfaced on the draft preview so the
+  // trader can pick how this quote gets paid before saving.
+  const [paymentTiming, setPaymentTiming] = useState<PaymentTiming>("on_completion");
+  const [depositPct, setDepositPct] = useState<number>(0);
+  const [depositAmt, setDepositAmt] = useState<number>(0);
+  const [depositAmtRaw, setDepositAmtRaw] = useState<string>("");
+  const [depositPctRaw, setDepositPctRaw] = useState<string>("");
+  const paymentSeededRef = useRef(false);
+  const [editVoiceOpen, setEditVoiceOpen] = useState(false);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
