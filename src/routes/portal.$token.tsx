@@ -187,15 +187,23 @@ function PortalPage() {
   const bankSort = ((profile as any)?.sort_code ?? "").toString().trim();
   const hasBank = !!bankAccount && !!bankSort;
   const isInvoiced = !!(quote as any).invoiced_at || status === "invoiced";
+  const isUpfrontOrDeposit = timing === "upfront" || timing === "deposit_then_balance";
   // For on_completion quotes, only surface pay-now options once the trader has issued the invoice.
   const timingAllowsPayNow =
-    timing === "upfront" ||
-    timing === "deposit_then_balance" ||
-    (timing === "on_completion" && isInvoiced);
-  const canPayNow =
-    status === "accepted" && !isPaid && timingAllowsPayNow && hasCard;
+    isUpfrontOrDeposit || (timing === "on_completion" && isInvoiced);
+  // Whether we can offer a card payment right now (pre- or post-accept).
+  const canPayNow = !isPaid && timingAllowsPayNow && hasCard;
+  // For upfront/deposit timings, surface payment instructions as soon as the
+  // quote is opened so the customer can see how they'll pay before accepting.
   const showPaymentOptions =
-    status === "accepted" && !isPaid && timingAllowsPayNow && (canPayNow || hasBank);
+    !isPaid &&
+    timingAllowsPayNow &&
+    status !== "declined" &&
+    (hasCard || hasBank) &&
+    (isUpfrontOrDeposit || status === "accepted");
+  const showNoMethodFallback =
+    status === "accepted" && !isPaid && timingAllowsPayNow && !hasCard && !hasBank;
+  const isPreAccept = status !== "accepted" && status !== "paid";
   const isDepositFlow = timing === "deposit_then_balance";
   const payRequestType: "deposit" | "full" = isDepositFlow ? "deposit" : "full";
   const payAmount = isDepositFlow ? depositAmount : total;
