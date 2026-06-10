@@ -42,7 +42,6 @@ async function sendBrandedInvoiceEmail(opts: {
 }) {
   try {
     if (!opts.customerEmail) {
-      console.log("[payments/webhook] no customer email — skipping invoice email");
       return;
     }
     const [{ data: quote }, { data: profile }] = await Promise.all([
