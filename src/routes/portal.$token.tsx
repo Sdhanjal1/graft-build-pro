@@ -390,8 +390,13 @@ function PortalPage() {
       )}
 
       {showPaymentOptions && (
-        <section className="px-5 mt-4 space-y-3">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">How to pay</p>
+        <section id="how-to-pay" className="px-5 mt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">How to pay</p>
+            {isPreAccept && (
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Preview</p>
+            )}
+          </div>
 
           {canPayNow && (
             <div className="card-surface p-5">
@@ -400,13 +405,17 @@ function PortalPage() {
                 <p className="text-sm font-bold text-ink">Pay by card</p>
               </div>
               <button
-                onClick={() => onPay(payRequestType)}
+                onClick={() => (isPreAccept ? onRespond("accepted") : onPay(payRequestType))}
                 onPointerDown={() => feedback("tap")}
-                disabled={paying}
+                disabled={paying || responding}
                 className="w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
               >
-                {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                <span className="truncate">{isDepositFlow ? "Pay deposit" : "Pay now"} {formatGBP(payAmount)}</span>
+                {(paying || responding) ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                <span className="truncate">
+                  {isPreAccept
+                    ? `${isDepositFlow ? "Accept & pay deposit" : "Accept & pay"} ${formatGBP(payAmount)}`
+                    : `${isDepositFlow ? "Pay deposit" : "Pay now"} ${formatGBP(payAmount)}`}
+                </span>
               </button>
               {isDepositFlow && (
                 <p className="text-center text-[11px] text-muted-foreground mt-2">Balance of {formatGBP(balanceAmount)} due on completion.</p>
@@ -415,6 +424,8 @@ function PortalPage() {
               <WalletBadges className="mt-2" />
             </div>
           )}
+
+
 
           {hasBank && (
             <div className="card-surface p-5">
