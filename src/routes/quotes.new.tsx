@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { generateAIQuote, prefetchQuoteContext } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
-import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search, Send } from "lucide-react";
+import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search, Send, Check, Banknote, Zap, Mic } from "lucide-react";
 import { SendQuoteDialog } from "@/components/SendQuoteDialog";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { RotatingStatus, QUOTE_GEN_MESSAGES } from "@/components/RotatingStatus";
@@ -33,6 +33,15 @@ import { feedback, playSample } from "@/lib/feedback";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { IOSStandaloneRecordingNotice } from "@/components/IOSStandaloneRecordingNotice";
 import { usePaidQuoteCount, normalizeSource } from "@/hooks/usePaidQuoteCount";
+import {
+  type PaymentTiming,
+  deriveTimingFromTotal,
+  defaultDepositPercent,
+  computeDepositAmount,
+  computeDepositPercent,
+  parseDepositInput,
+  paymentTimingLabel,
+} from "@/lib/payment-timing";
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
