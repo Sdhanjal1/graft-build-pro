@@ -1,76 +1,100 @@
+# Prompt B — voice + request + inbox fixes
 
-# Fix 1 — Connect payments never mark quotes as paid
-
-**Root cause.** `payments.functions.ts` creates Checkout sessions as **direct charges on the connected account** once Connect is live (`Stripe-Account` header set). For direct charges, `checkout.session.completed` / `payment_intent.succeeded` are delivered to the **connected-account** endpoint (`/api/public/payments/connect-webhook`, verified with `STRIPE_CONNECT_WEBHOOK_SECRET`). That handler today only processes `account.updated` and silently 200s every payment event, so no `invoice_payments` row is updated, no `quotes.status = 'paid'` flip, no invoice email, no trader push. The platform `webhook.ts` (which has all the paid-marking logic) never sees these events.
-
-## Changes
-
-### a) Extract paid/failed handlers into a shared server module
-
-New file: `src/lib/payments-webhook-shared.server.ts`
-
-Exports:
-- `handlePaidEvent(evt: any): Promise<void>` — contains the current `webhook.ts` block (~lines 352–462): identifier extraction, `metadata.kind === "quottr_subscription"` skip, `invoice_payments` upsert-by-session-id (with payment-intent fallback insert), `quotes.status = 'paid'` flip when `request_type !== "deposit"`, best-effort `sendBrandedInvoiceEmail`, best-effort `notifyTraderOfPayment`.
-- `handleFailedEvent(evt: any): Promise<void>` — contains the existing `payment_intent.payment_failed` / `checkout.session.expired` block that flips the pending `invoice_payments` row to `failed` / `expired` by `stripe_payment_intent`.
-
-Pure extraction — no logic, ordering, error-swallowing, or query change. Imports `supabaseAdmin`, `sendBrandedInvoiceEmail`, `notifyTraderOfPayment` from their current locations.
-
-### b) Slim down `webhook.ts`
-
-Replace the inlined paid block (lines ~352–462) with `await handlePaidEvent(evt); return new Response("ok", { status: 200 });` and replace the failed/expired block with `await handleFailedEvent(evt); return new Response("ok", { status: 200 });`. Subscription handling, signature verification, GET health check — unchanged.
-
-### c) Wire payment events into `connect-webhook.ts`
-
-After the existing `account.updated` branch, add:
-
-```ts
-if (type === "checkout.session.completed" || type === "payment_intent.succeeded") {
-  console.log("[connect-webhook]", type, "account:", evt.account);
-  await handlePaidEvent(evt);
-  return new Response("ok", { status: 200 });
-}
-if (type === "payment_intent.payment_failed" || type === "checkout.session.expired") {
-  console.log("[connect-webhook]", type, "account:", evt.account);
-  await handleFailedEvent(evt);
-  return new Response("ok", { status: 200 });
-}
-```
-
-Signature verification, `STRIPE_CONNECT_WEBHOOK_SECRET` usage, and `account.updated` logic unchanged. Idempotency comes for free from the existing upsert-by-session-id pattern.
-
-### d) Out of scope
-
-`payments.functions.ts` fee/session logic, subscription event handling, signature verification in either webhook.
-
-## Acceptance
-
-1. Platform `webhook.ts` behaviour byte-equivalent to today.
-2. A Connect `checkout.session.completed` with `metadata.quote_id`/`user_id`/`request_type=full` → `invoice_payments` paid, `quotes.status = 'paid'`, email + push attempted, errors swallowed.
-3. `request_type=deposit` → payment row updated, quote stays `accepted`.
-4. `account.updated` still updates profile flags.
+Five-part prompt. **#5 (inbox badge) is already implemented** in `BottomNav.tsx` (lime dot, 30s refetch, focus refetch, sr-only label) and `messages.tsx` already shows "X requests · N new", so no work there. Below covers #1–#4.
 
 ---
 
-# Fix 2 — Cancelled send sheet shows "Quote sent" banner
+## 1. Live voice flow keeps AI title / clean description / extracted customer
 
-**Root cause.** In `src/routes/quotes.new.tsx` the `SendQuoteDialog`'s `onClose` always navigates to `/quotes/$quoteId?sent=1`, even when the trader opened the sheet via "Save & Send" and then cancelled without sharing. The `sent=1` query both shows the lime banner and bypasses the detail page's pending→editor guard.
+`src/routes/quotes.new.tsx`
 
-## Changes (single file: `src/routes/quotes.new.tsx`)
+- Add ref alongside the other voice refs (~line 199):
+  `const lastLiveGenRef = useRef<{ title?: string; clean_description?: string; extracted_customer?: { name?: string; phone?: string } } | null>(null);`
+- In `regenerateLiveQuote` (~line 592), when `g.line_items?.length`, also store the metadata: `lastLiveGenRef.current = { title: g.title, clean_description: g.clean_description, extracted_customer: g.extracted_customer };` (only update on a successful, current-session response — alongside the existing `setLiveItems`).
+- In `startRecording` (~line 646), reset `lastLiveGenRef.current = null;` next to the other session resets.
+- In `mr.onstop`, replace the items-success block (~lines 748–752):
+  ```ts
+  const meta = lastLiveGenRef.current;
+  const built = {
+    title: meta?.title?.trim() || deriveTitle(items),
+    line_items: items,
+  };
+  setDraft(built);
+  originalDraftRef.current = JSON.stringify(items);
+  setDesc(meta?.clean_description?.trim() || liveFinalRef.current.trim());
+  const ec = meta?.extracted_customer;
+  if (ec?.name && !clientName.trim()) setClientName(ec.name);
+  if (ec?.phone && !clientPhone.trim()) setClientPhone(ec.phone);
+  ```
+  `deriveTitle` and raw transcript remain fallbacks only.
 
-- Add `const wasSentRef = useRef(false);` alongside the send-sheet state.
-- In the sheet's `onSent` callback set `wasSentRef.current = true`; in `onUndo` set it back to `false`.
-- Reset `wasSentRef.current = false` whenever the sheet opens.
-- In `onClose`: navigate to `/quotes/$quoteId` with `search: { sent: 1 }` only if `wasSentRef.current`; otherwise navigate without the `sent` param so the detail page's existing pending-quote guard sends the trader back to `/quotes/new?edit=<id>`.
+## 2. Mid-recording edits/deletes survive next regeneration
 
-## Acceptance
+`src/routes/quotes.new.tsx`
 
-- Save & Send → share via any channel → close → detail page with "Quote sent" banner.
-- Save & Send → cancel sheet → land back in the editor, no banner, no banner flash.
+- Add two refs next to voice state, reset both in `startRecording`:
+  ```ts
+  const deletedDescsRef = useRef<Set<string>>(new Set());
+  const editedItemsRef = useRef<Map<string, LineItem>>(new Map());
+  ```
+- Add a small helper `const norm = (s: string) => s.trim().toLowerCase();`.
+- VoiceOverlay handlers in the parent (~lines 1073–1086):
+  - `onDeleteItem`: before splicing, push `norm(prev[index].description)` into `deletedDescsRef.current`.
+  - `onUpdateItem`: capture `const origKey = norm(prev[index].description);` first; apply patch; `editedItemsRef.current.set(origKey, patched);`. If `patch.description` and `norm(patch.description) !== origKey`, also `deletedDescsRef.current.add(origKey)` so the AI's old version doesn't reappear.
+- In `regenerateLiveQuote`, after `g.line_items?.length` check, post-process before `setLiveItems`:
+  ```ts
+  const filtered = g.line_items
+    .filter((li) => !deletedDescsRef.current.has(norm(li.description)))
+    .map((li) => editedItemsRef.current.get(norm(li.description)) ?? li);
+  setLiveItems(filtered);
+  liveItemsRef.current = filtered;
+  ```
+  An empty `filtered` (from a non-empty `g.line_items`) still applies — that's the user's intent.
+
+No fuzzy matching, exact normalised match only.
+
+## 3. Voice-chain timeouts
+
+- `src/routes/quotes.new.tsx` — `waitForPendingPhraseProcessing` already has a 30s cap (the prompt's snippet already lives there). No change.
+- `src/lib/ai-quote.functions.ts` — find every `fetch("https://api.anthropic.com/...")` call and add `signal: AbortSignal.timeout(60_000)`. Wrap in try/catch; on `AbortError` / `TimeoutError`, throw `new Error("Took too long — check your connection and try again.")`. Preserve existing error mapping (429 / 402 etc.).
+- `src/lib/ai-capture-quote.functions.ts` — same treatment for its Anthropic fetch.
+- `src/lib/transcribe.functions.ts` — same treatment for the OpenAI Whisper fetch.
+
+## 4. Anonymous quote-request flow
+
+`src/routes/request.$proId.tsx`
+
+- Import `supabase` from `@/integrations/supabase/client`.
+- Add `const anonAttemptedRef = useRef(false);` and `const [anonError, setAnonError] = useState<string | null>(null);`.
+- In an effect that runs when `!sessionLoading && !session && !anonAttemptedRef.current`: set the flag, call `supabase.auth.signInAnonymously()`, on success do nothing (the existing `useSession` listener will pick up the new session), on failure `setAnonError(...)`.
+- Render order:
+  - `sessionLoading` → spinner (unchanged).
+  - `!session && !anonError` → spinner (anon sign-in in progress).
+  - `!session && anonError` → existing `<CustomerAuth pro={pro} />` fallback.
+  - otherwise → form.
+- For sessions where `session.user.is_anonymous === true` (or more robustly: always when no email on the user), require name + phone:
+  - Disable Send unless `customerName.trim()` and `customerPhone.trim()` are filled.
+  - Inline message under the form: "Add your name and phone so they can get back to you."
+- Server fn `createQuoteRequest` and RLS unchanged — anonymous users still have a real `auth.uid()`.
+- Setup note for Sunny: enable anonymous sign-ins in Lovable Cloud Auth providers.
+
+## 5. Inbox unread badge — already done
+
+No code change needed. `src/components/BottomNav.tsx` already queries `getMyIncomingRequests` (30s interval, refetch on focus, retries off), renders the lime dot on `/messages` only, with the "unread requests" sr-only swap. `src/routes/messages.tsx` already shows the "N requests · M new" header.
 
 ---
 
-# Not for Lovable (Sunny's manual steps)
+## Out of scope (explicit)
 
-1. Stripe Dashboard → Webhooks: endpoint at `https://quottr.co.uk/api/public/payments/connect-webhook` listening to **Connected accounts**, subscribed to `account.updated`, `checkout.session.completed`, `payment_intent.succeeded`, `payment_intent.payment_failed`, `checkout.session.expired`; signing secret must match `STRIPE_CONNECT_WEBHOOK_SECRET`. Repeat for live.
-2. Regenerate `package-lock.json` (`npm install` and commit).
-3. End-to-end test on a Connect-onboarded account: quote flips to paid, invoice email arrives, 0.5% application fee shows on the payment.
+- No payments/webhook changes (Prompt A territory).
+- No AI prompt changes.
+- No new dependencies.
+- No server-fn or RLS changes for #4.
+
+## Acceptance
+
+1. Live voice → stop → draft has 3–4 word title, clean description, customer fields pre-filled when mentioned.
+2. Delete a line mid-recording, keep talking → line stays gone after next pause regenerate. Same for edits.
+3. Network killed mid-recording → screen unblocks within ≤30s or shows friendly timeout error.
+4. `/request/<proId>` logged out → no signup screen, form visible after silent anon sign-in; Send blocked until name + phone present.
+5. Unread request → lime dot on Inbox; opening clears within 30s or on focus (already working).
