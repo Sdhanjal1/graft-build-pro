@@ -1004,7 +1004,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       }
       feedback("success");
       // First-quote celebration: stash a flag the detail page can read once.
-      if (mockQuotes.length === 1) {
+      if (!editId && mockQuotes.length === 1) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
           const uid = session?.user?.id;
