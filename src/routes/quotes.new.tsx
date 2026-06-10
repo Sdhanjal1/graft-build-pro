@@ -1638,12 +1638,17 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           open={sendSheetOpen}
           onClose={() => {
             setSendSheetOpen(false);
-            // After the user finishes (or cancels) sending, drop them on the
-            // detail page so they can track status and payment.
             const id = savedQuote.id;
+            const sent = wasSentRef.current;
             setSavedQuote(null);
-            navigate({ to: "/quotes/$quoteId", params: { quoteId: id }, search: { sent: 1 } as never });
+            if (sent) {
+              navigate({ to: "/quotes/$quoteId", params: { quoteId: id }, search: { sent: 1 } as never });
+            } else {
+              navigate({ to: "/quotes/$quoteId", params: { quoteId: id } });
+            }
           }}
+          onSent={() => { wasSentRef.current = true; }}
+          onUndo={() => { wasSentRef.current = false; }}
           quoteId={savedQuote.id}
           quoteRef={savedQuote.ref ?? ""}
           quoteTitle={savedQuote.title}
