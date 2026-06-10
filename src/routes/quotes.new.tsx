@@ -168,7 +168,7 @@ function NewQuotePage() {
   const streamRef = useRef<MediaStream | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const recordTargetRef = useRef<"desc" | "clip">("desc");
+  const recordTargetRef = useRef<"desc" | "clip" | "edit">("desc");
   const lastBlobRef = useRef<{ blob: Blob; mimeType: string } | null>(null);
   const draftRef = useRef<HTMLDivElement | null>(null);
   const originalDraftRef = useRef<string>("");
