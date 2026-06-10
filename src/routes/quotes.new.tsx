@@ -665,7 +665,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     setLivePreview("");
     stopRequestedRef.current = false;
 
-    const isClipMode = recordTargetRef.current === "clip";
+    const isClipMode = recordTargetRef.current === "clip" || recordTargetRef.current === "edit";
 
     let mr: MediaRecorder;
     try {
