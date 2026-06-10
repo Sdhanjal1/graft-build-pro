@@ -9,6 +9,7 @@ import { downloadPortalPdf } from "@/lib/portal-pdf";
 import { Loader2, Check, X, Download, Copy, Landmark, CreditCard } from "lucide-react";
 import { acceptButtonLabel, paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
 import { feedback } from "@/lib/feedback";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/portal/$token")({
   component: PortalPage,
