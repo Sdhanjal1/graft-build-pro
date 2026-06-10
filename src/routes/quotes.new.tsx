@@ -970,70 +970,32 @@ function NewQuotePage() {
       >
 
         {!draft && (
-        <div className="card-surface p-4">
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="card-surface p-4">
+            <label
+              htmlFor="quote-desc"
+              className="block text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5"
+            >
+              Describe the job
+            </label>
+            <textarea
+              id="quote-desc"
+              ref={textareaRef}
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+              rows={5}
+              className="w-full rounded-2xl bg-secondary text-ink p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-lime resize-y"
+              placeholder="e.g. Build single-storey rear extension 4m x 3m — strip foundations"
+            />
+            {!desc && <RotatingPrompts className="mt-2.5" />}
             <button
               type="button"
-              onClick={toggleRecord}
-              disabled={transcribing}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold transition disabled:opacity-60 ${
-                recording ? "bg-status-overdue text-white" : "bg-secondary text-ink"
-              }`}
+              onClick={handleVoiceStart}
+              className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-ink/80 hover:text-ink"
             >
-              {transcribing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Transcribing your voice note…
-                </>
-              ) : recording ? (
-                <>
-                  <span className="relative inline-flex h-2.5 w-2.5">
-                    <span className="absolute inset-0 rounded-full bg-white opacity-75 animate-ping" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-white" />
-                  </span>
-                  <Square className="h-4 w-4" />
-                  Stop · {formatMMSS(recordSeconds)}
-                </>
-              ) : (
-                <>
-                  <VoiceWaveform size={16} />
-                  Voice to text
-                </>
-              )}
+              <VoiceWaveform size={14} />
+              Or speak it instead
             </button>
-            {recording && (
-              <span className="text-[11px] text-muted-foreground">
-                Max {formatMMSS(MAX_RECORD_SECONDS)} · tap stop when done
-              </span>
-            )}
           </div>
-          <IOSStandaloneRecordingNotice active={recording} />
-          {voiceError && (
-            <p className="mt-2 text-[12px] text-status-overdue font-medium">{voiceError}</p>
-          )}
-          {!recording && !transcribing && !desc && (
-            <RotatingPrompts className="mt-2.5" />
-          )}
-          {!recording && !transcribing && desc && (
-            <div className="mt-3">
-              <label htmlFor="quote-desc" className="block text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">
-                Job description
-              </label>
-              <textarea
-                id="quote-desc"
-                ref={textareaRef}
-                value={desc}
-                onChange={(e) => setDesc(e.target.value)}
-                rows={5}
-                className="w-full rounded-2xl bg-secondary text-ink p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-lime resize-y"
-                placeholder="Describe the job…"
-              />
-              <p className="mt-1.5 text-[11px] text-muted-foreground">
-                Edit before generating, or tap the mic to add more detail.
-              </p>
-            </div>
-          )}
-        </div>
         )}
 
 

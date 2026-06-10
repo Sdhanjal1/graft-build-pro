@@ -1,49 +1,44 @@
-# Voice-to-Quote Audit & Fix Plan
+# Simplify /quotes/new — remove the duplicate Voice tile
 
-A read-only audit of `src/routes/quotes.new.tsx` and supporting files (`ai-quote.functions.ts`, `transcribe.functions.ts`, `RotatingPrompts`, `RotatingStatus`, `useSubscription`, `IOSStandaloneRecordingNotice`) surfaced 29 issues. This plan fixes the ones that actually affect users. No new features.
+## The problem
 
-## Critical — fix these or recording can hang / duplicate work
+`/quotes/new` (when no draft exists) currently shows two primary-looking surfaces stacked vertically:
 
-1. **Infinite wait when a phrase-generate hangs** (`quotes.new.tsx` ~192) — `waitForPendingPhraseProcessing` busy-spins with no timeout, so a stuck server call leaves the overlay locked on "Building your quote…" forever. Add a 30 s wall-clock bail-out and proceed with whatever live items exist.
-2. **"Building" state never clears on early-stop race** (`quotes.new.tsx` ~355) — `stopRecording` sets `building=true` then returns early if `mediaRecorderRef` isn't ready, leaving the UI stuck. Move `setBuilding(true)` into `mr.onstop`, or reset on the early-return.
-3. **Duplicate line items when live + fallback both succeed** (`quotes.new.tsx` ~647) — if the debounced `regenerateLiveQuote` is still in flight when `onstop` runs, `liveItemsRef` is empty so `runTranscribe` also fires; both eventually produce line items. Track the in-flight regen promise and await it before the empty-check.
-4. **Mic stays live after navigating away mid-recording** (`quotes.new.tsx` ~201) — unmount cleanup stops `streamRef` but not `sharedStreamRef`, in-flight recognition, or debounced regen. Stop both stream refs, abort recognition, clear the debounce timer, and bump `voiceSessionRef` to orphan in-flight generates.
+1. A card with a **Voice to text** pill + rotating example prompts. Tapping it records, transcribes (Whisper), and dumps the text into a `desc` textarea below.
+2. A floating **Generate quote** button pinned above the bottom nav. Tapping it sends `desc` to the AI.
 
-## High — fix these for UX correctness
+Two issues:
+- They look like competing CTAs but they're sequential steps — record first, then generate.
+- The full-screen voice overlay (`?voice=1`, opened by the floating mic on other pages) already does record → transcribe → generate in one motion. The inline tile is the slower, two-tap version of the same thing.
 
-5. **Trial-blocked users hit a generic error after recording** (`quotes.new.tsx` ~404) — `runTranscribe` calls `generate` without the `subBlocked` guard, so the server rejects and the message lands in `voiceError` (which may already be dismissed). Guard early with a clear "Trial ended — add a payment method" message and surface it on the main form too.
-6. **Session-ID race in `startRecording`** (`quotes.new.tsx` ~543) — `sessionId` is captured before `getUserMedia` resolves; a Close tap during that await can desync guards. Snapshot `sessionId` after `getUserMedia` succeeds.
-7. **iOS Safari mimeType mismatch** (`quotes.new.tsx` ~46, ~615) — when the constructor fallback is used, `mr.mimeType` can be empty and the stored `pickMimeType()` value may not match the actual blob encoding, producing garbled Whisper transcripts. Read `mr.mimeType` once `ondataavailable` first fires and use that for upload.
-8. **Web Speech result-index reset duplicates phrases on auto-restart** (`quotes.new.tsx` ~714) — resetting `lastFinalIdxRef` to -1 on `onend` can re-emit buffered phrases. Track a cumulative offset across restarts instead.
-9. **`MicLevelRings` analyser stuck on a stale stream** (`quotes.new.tsx` ~1586) — effect depends on the ref object, not `streamRef.current`, so swapping streams between recordings keeps the analyser pointed at the old one. Pass the `MediaStream` directly or extract `.current` outside the dep array.
+## The fix
 
-## Medium — code-quality & smaller UX wins
+Make the page have **one** primary action and a clear secondary entry for voice.
 
-10. Remove dead `processPhrase` + `processedPhraseKeysRef` (~451) — superseded by `regenerateLiveQuote`; keeping it is a maintenance trap.
-11. Pass `prefetchedContextRef.current` in the manual-text `generate()` path too (~786) — voice path already does this; saves an extra DB round-trip.
-12. Surface a "loading" state from `useSubscription` so the Generate button doesn't briefly say "Trial ended" during initial fetch (~hooks/useSubscription).
-13. Initialise `editLoading` lazily so cached quotes don't flicker through a loading state (~265).
-14. Fix the leaked inner `setTimeout` in `RotatingPrompts` — capture and clear it in the effect cleanup (~components/RotatingPrompts).
-15. Drop the duplicate `navigate` in `handleVoiceClose` (~334) — `handleVoiceStart` already clears `?voice=1`.
-16. Use stable IDs (not array index) as React keys for `draft.line_items` (~1100) and `liveItems` (~1838) so deletes/reorders don't shuffle focus and animation state.
-17. Merge `voiceError` into the main `error` channel when `runTranscribe` fails after the overlay has been closed, so the failure isn't silently lost (~409).
+### New layout (no draft state)
 
-## Low — accessibility & polish
+- Remove the inline "Voice to text" card entirely (the pill, rotating prompts, voice error, and the iOS standalone notice tied to it).
+- Replace it with a single text area card titled "Describe the job" (always visible, not gated on `desc` being non-empty), with the rotating example prompts shown as placeholder/helper text when empty.
+- Keep the floating **Generate quote** button at the bottom (unchanged behaviour: sends `desc` to AI).
+- Add a secondary **"Or speak it instead"** link/button directly under the textarea that navigates to `?voice=1` — reusing the existing full-screen voice overlay which already handles record → transcribe → generate end-to-end.
 
-18. `desc` textarea: associate the helper text via `aria-describedby` (~1014).
-19. `RotatingStatus`: change `aria-live="polite"` to `"off"` and put a single descriptive label on the parent button — currently announces every 1.5 s tick (~components/RotatingStatus).
-20. Customer phone input: add `id` + `htmlFor` so screen readers announce the label (~1322).
-21. Verify the `safe-bottom` utility resolves to `env(safe-area-inset-bottom)`; if not, the floating Generate button and overlay FAB can clip behind the iPhone home indicator (~1051, ~2005).
-22. `blobToBase64`: replace `String.fromCharCode.apply` chunk loop with `FileReader.readAsDataURL` to avoid a `RangeError` on long recordings (~63).
-23. Reset `lastFinalIdxRef` in `handleVoiceClose` for completeness (~320).
-24. Use a stable channel suffix in `useSubscription` instead of `Math.random()` to avoid churn under StrictMode (~hooks/useSubscription).
+This removes the redundancy: typing path uses the textarea + Generate; voice path uses the overlay (one tap, one flow). No more half-voice / half-type middle state on the main page.
 
-## Out of scope
+### Files touched
 
-- No new features (e.g. no edit-per-unit UI for the overlay price field, even though L-10 flagged a confusing UX).
-- No backend/SQL changes.
-- No visual redesign of the overlay.
+- `src/routes/quotes.new.tsx` — delete the `!draft` "card-surface" block that renders the inline Voice button, `RotatingPrompts`, `IOSStandaloneRecordingNotice`, `voiceError`, and the conditional `desc` textarea. Replace with a single always-visible textarea card + "Or speak it instead" link that calls `handleVoiceStart()` (already defined).
+- Keep `toggleRecord`, `startRecording`, `stopRecording`, and related inline recording state in place for now — they're still used by the overlay path's plumbing. (If audit confirms they're truly dead after removal, a follow-up can delete them; out of scope here.)
 
-## Suggested execution order
+### Out of scope
 
-Critical → High → Medium → Low. Items are independent enough to land in one pass, but I'd verify each Critical fix in the preview (start/stop/cancel cycle, slow-network simulation) before moving on.
+- No changes to the voice overlay itself.
+- No changes to the Generate flow, AI prompt, or backend.
+- No changes to the draft/preview state below.
+- No visual redesign beyond the consolidation described.
+
+## Acceptance
+
+- `/quotes/new` shows: header → "Describe the job" textarea (with rotating placeholder when empty) → "Or speak it instead" link → floating Generate button.
+- Typing + tapping Generate works as today.
+- Tapping "Or speak it instead" opens the existing full-screen voice overlay and the existing record → auto-generate path completes a quote.
+- No second "Voice to text" pill on the page.
