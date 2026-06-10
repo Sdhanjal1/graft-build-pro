@@ -486,7 +486,7 @@ function NewQuotePage() {
   // REPLACE the live items with the returned list. This avoids the duplicate
   // and invented-filler items produced by per-phrase generation, since each
   // call now sees the full context.
-  const regenerateLiveQuote = async (sessionId: number) => {
+  const regenerateLiveQuote = async (sessionId: number): Promise<void> => {
     if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
     const transcript = liveFinalRef.current.trim();
     if (!transcript || !isMeaningfulPhrase(transcript)) return;
@@ -513,17 +513,17 @@ function NewQuotePage() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const AC = (window.AudioContext || (window as any).webkitAudioContext);
             if (AC) {
-              const ctx = new AC();
-              const osc = ctx.createOscillator();
-              const gain = ctx.createGain();
+              const actx = new AC();
+              const osc = actx.createOscillator();
+              const gain = actx.createGain();
               osc.connect(gain);
-              gain.connect(ctx.destination);
+              gain.connect(actx.destination);
               osc.frequency.value = 800;
               osc.type = "sine";
-              gain.gain.setValueAtTime(0.2, ctx.currentTime);
-              gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-              osc.start(ctx.currentTime);
-              osc.stop(ctx.currentTime + 0.1);
+              gain.gain.setValueAtTime(0.2, actx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.1);
+              osc.start(actx.currentTime);
+              osc.stop(actx.currentTime + 0.1);
             }
           } catch { /* audio unavailable */ }
         }
@@ -534,6 +534,16 @@ function NewQuotePage() {
       pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
       setBuilding(false);
     }
+  };
+
+  // Wrapper that exposes the running regenerate promise so `mr.onstop` can
+  // await it before deciding whether to fall back to a full Whisper pass.
+  const runRegenerate = (sessionId: number): Promise<void> => {
+    const p = regenerateLiveQuote(sessionId).finally(() => {
+      if (regenerateInFlightRef.current === p) regenerateInFlightRef.current = null;
+    });
+    regenerateInFlightRef.current = p;
+    return p;
   };
 
   // LIVE FLOW: continuous MediaRecorder (only used as a stop-time fallback if
