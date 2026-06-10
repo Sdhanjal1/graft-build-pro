@@ -158,7 +158,7 @@ function NewQuotePage() {
   const liveFinalRef = useRef<string>("");
   const liveInterimRef = useRef<string>("");
   const firstItemsLandedRef = useRef<boolean>(false);
-  const processedPhraseKeysRef = useRef<Set<string>>(new Set());
+  
 
   // LIVE per-phrase pipeline: each recognised final phrase fires a parallel
   // Haiku generate call. Items append as soon as their phrase resolves.
