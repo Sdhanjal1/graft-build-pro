@@ -199,8 +199,13 @@ function NewQuotePage() {
     setPendingItems([]);
   };
 
-  const waitForPendingPhraseProcessing = async () => {
+  const waitForPendingPhraseProcessing = async (timeoutMs = 30_000) => {
+    const start = Date.now();
     while (pendingCountRef.current > 0 || pendingItemsRef.current.length > 0) {
+      if (Date.now() - start > timeoutMs) {
+        console.warn("[voice] waitForPendingPhraseProcessing timed out, proceeding");
+        return;
+      }
       await new Promise((r) => setTimeout(r, 100));
     }
   };
@@ -210,8 +215,17 @@ function NewQuotePage() {
 
   useEffect(() => {
     return () => {
+      // Orphan any in-flight phrase generates so their results are discarded.
+      voiceSessionRef.current++;
+      closeRequestedRef.current = true;
       if (tickRef.current) clearInterval(tickRef.current);
+      if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current);
+      try { recognitionRef.current?.abort?.() ?? recognitionRef.current?.stop?.(); } catch { /* noop */ }
+      recognitionRef.current = null;
+      sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      sharedStreamRef.current = null;
+      streamRef.current = null;
     };
   }, []);
 
