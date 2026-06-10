@@ -186,13 +186,6 @@ function NewQuotePage() {
   // Kept as inert ref so nothing from older code paths leaks.
   const sharedStreamRef = useRef<MediaStream | null>(null);
 
-  const updatePendingItems = (updater: (items: PendingItem[]) => PendingItem[]) => {
-    setPendingItems((prev) => {
-      const next = updater(prev);
-      pendingItemsRef.current = next;
-      return next;
-    });
-  };
 
   const clearPendingItems = () => {
     pendingItemsRef.current = [];
