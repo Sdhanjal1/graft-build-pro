@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getProPublicInfo, createQuoteRequest } from "@/lib/quote-requests.functions";
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { useSession, signInWithPassword, signUpWithPassword } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { Loader2, Square, Send, CheckCircle2, Hammer } from "lucide-react";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
@@ -33,12 +34,35 @@ function RequestPage() {
   // form state
   const [mode, setMode] = useState<"text" | "voice">("text");
   const [body, setBody] = useState("");
+  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
 
+  // Anonymous sign-in: when there's no session, attempt a silent
+  // supabase.auth.signInAnonymously() so the customer never sees a signup
+  // wall. CustomerAuth is only used as a fallback if anon sign-in is disabled
+  // server-side.
+  const anonAttemptedRef = useRef(false);
+  const [anonError, setAnonError] = useState<string | null>(null);
+  useEffect(() => {
+    if (sessionLoading || session || anonAttemptedRef.current) return;
+    anonAttemptedRef.current = true;
+    supabase.auth
+      .signInAnonymously()
+      .then(({ error }) => {
+        if (error) setAnonError(error.message);
+      })
+      .catch((e) => setAnonError(e instanceof Error ? e.message : "Sign-in failed"));
+  }, [sessionLoading, session]);
+
+  const isAnonUser = !!(session?.user as { is_anonymous?: boolean } | undefined)?.is_anonymous;
+  const anonReady = !!session?.user?.email === false && !!session;
+  const requireContact = isAnonUser || anonReady;
+  const contactOk = !requireContact || (name.trim().length > 0 && phone.trim().length > 0);
+
   const send = async () => {
-    if (!body.trim()) return;
+    if (!body.trim() || !contactOk) return;
     setSending(true);
     try {
       await submit({
@@ -46,6 +70,7 @@ function RequestPage() {
           proId,
           body: body.trim(),
           source: mode,
+          customerName: name.trim() || undefined,
           customerPhone: phone.trim() || undefined,
         },
       });
@@ -100,6 +125,15 @@ function RequestPage() {
   }
 
   if (!session) {
+    // Anon sign-in in flight — show spinner. Only fall back to CustomerAuth if
+    // signInAnonymously failed (e.g. provider disabled in dashboard).
+    if (!anonError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-paper">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
     return <CustomerAuth pro={pro} />;
   }
 
@@ -141,10 +175,21 @@ function RequestPage() {
           </div>
         )}
 
-        <div className="mt-4">
+        <div className="mt-4 grid gap-3">
           <label className="block">
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-              Your phone (optional)
+              Your name{requireContact ? "" : " (optional)"}
+            </span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Full name"
+              className="mt-1.5 w-full bg-white border border-border rounded-2xl px-4 py-3 text-sm outline-none focus:border-ink/40"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+              Your phone{requireContact ? "" : " (optional)"}
             </span>
             <input
               value={phone}
@@ -153,6 +198,11 @@ function RequestPage() {
               className="mt-1.5 w-full bg-white border border-border rounded-2xl px-4 py-3 text-sm outline-none focus:border-ink/40"
             />
           </label>
+          {requireContact && !contactOk && body.trim() && (
+            <p className="text-xs text-muted-foreground">
+              Add your name and phone so they can get back to you.
+            </p>
+          )}
         </div>
 
         {error && <p className="text-xs text-status-overdue font-medium mt-3">{error}</p>}
@@ -162,7 +212,7 @@ function RequestPage() {
         <div className="max-w-md mx-auto">
           <button
             onClick={send}
-            disabled={sending || !body.trim()}
+            disabled={sending || !body.trim() || !contactOk}
             className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

@@ -197,6 +197,19 @@ function NewQuotePage() {
   // Tracks the latest in-flight regenerateLiveQuote so we can await it before
   // deciding whether to run the Whisper fallback in `mr.onstop`.
   const regenerateInFlightRef = useRef<Promise<void> | null>(null);
+  // Latest successful per-phrase AI response metadata — used at stop time so the
+  // live flow keeps the AI's clean title / description / extracted customer
+  // instead of falling back to deriveTitle + raw transcript.
+  const lastLiveGenRef = useRef<{
+    title?: string;
+    clean_description?: string;
+    extracted_customer?: { name?: string; phone?: string };
+  } | null>(null);
+  // Session-scoped tombstones + edit overrides so user changes during recording
+  // survive the next regenerateLiveQuote pass. Keyed by normalised description.
+  const deletedDescsRef = useRef<Set<string>>(new Set());
+  const editedItemsRef = useRef<Map<string, LineItem>>(new Map());
+  const normDesc = (s: string) => s.trim().toLowerCase();
   // Cumulative offset for Web Speech result indices across browser auto-restarts.
   // Each restart's `event.resultIndex` becomes `offset + index` for monotone tracking.
   const speechIndexOffsetRef = useRef<number>(0);
@@ -590,10 +603,18 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
       if (genId !== phraseSeqRef.current) return;
       if (g.line_items?.length) {
-        setLiveItems(g.line_items);
-        liveItemsRef.current = g.line_items;
+        const filtered = g.line_items
+          .filter((li) => !deletedDescsRef.current.has(normDesc(li.description)))
+          .map((li) => editedItemsRef.current.get(normDesc(li.description)) ?? li);
+        setLiveItems(filtered);
+        liveItemsRef.current = filtered;
+        lastLiveGenRef.current = {
+          title: g.title,
+          clean_description: g.clean_description,
+          extracted_customer: g.extracted_customer,
+        };
         // Haptic + sound feedback — only on first items landing per session
-        if (!firstItemsLandedRef.current) {
+        if (!firstItemsLandedRef.current && filtered.length) {
           firstItemsLandedRef.current = true;
           if (typeof navigator !== "undefined" && navigator.vibrate) {
             try { navigator.vibrate(20); } catch { /* ignore */ }
@@ -649,6 +670,9 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     firstItemsLandedRef.current = false;
     phraseSeqRef.current = 0;
     lastFinalIdxRef.current = -1;
+    lastLiveGenRef.current = null;
+    deletedDescsRef.current = new Set();
+    editedItemsRef.current = new Map();
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
       return;
@@ -746,10 +770,17 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       const items = liveItemsRef.current;
       if (items.length > 0) {
         const transcript = liveFinalRef.current.trim();
-        const built = { title: deriveTitle(items), line_items: items };
+        const meta = lastLiveGenRef.current;
+        const built = {
+          title: meta?.title?.trim() || deriveTitle(items),
+          line_items: items,
+        };
         setDraft(built);
         originalDraftRef.current = JSON.stringify(items);
-        setDesc(transcript);
+        setDesc(meta?.clean_description?.trim() || transcript);
+        const ec = meta?.extracted_customer;
+        if (ec?.name && !clientName.trim()) setClientName(ec.name);
+        if (ec?.phone && !clientPhone.trim()) setClientPhone(ec.phone);
         clearPendingItems();
         setLivePreview("");
         liveFinalRef.current = "";
@@ -1072,6 +1103,18 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           onRetryTranscription={lastBlobRef.current ? retryTranscription : undefined}
           onUpdateItem={(index, patch) => {
             setLiveItems((prev) => {
+              const orig = prev[index];
+              const patched = orig ? { ...orig, ...patch } : orig;
+              if (orig && patched) {
+                const origKey = normDesc(orig.description);
+                editedItemsRef.current.set(origKey, patched);
+                if (patch.description && normDesc(patch.description) !== origKey) {
+                  // User renamed the description — tombstone old key so AI's
+                  // version doesn't reappear alongside on next regenerate.
+                  deletedDescsRef.current.add(origKey);
+                  editedItemsRef.current.set(normDesc(patch.description), patched);
+                }
+              }
               const next = prev.map((it, i) => (i === index ? { ...it, ...patch } : it));
               liveItemsRef.current = next;
               return next;
@@ -1079,6 +1122,8 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           }}
           onDeleteItem={(index) => {
             setLiveItems((prev) => {
+              const victim = prev[index];
+              if (victim) deletedDescsRef.current.add(normDesc(victim.description));
               const next = prev.filter((_, i) => i !== index);
               liveItemsRef.current = next;
               return next;
