@@ -1,13 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { getInbox } from "@/lib/messages.functions";
 import { getMyIncomingRequests, markRequestRead } from "@/lib/quote-requests.functions";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { MessageSquare, Inbox, FileText, Sparkles } from "lucide-react";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { EmptyState } from "@/components/EmptyState";
+
+type QuoteMessage = Database["public"]["Tables"]["quote_messages"]["Row"];
+type QuoteRequest = Database["public"]["Tables"]["quote_requests"]["Row"];
 
 export const Route = createFileRoute("/messages")({
   component: MessagesInbox,
@@ -17,46 +22,56 @@ function MessagesInbox() {
   const fetchInbox = useServerFn(getInbox);
   const fetchRequests = useServerFn(getMyIncomingRequests);
   const markRead = useServerFn(markRequestRead);
+  const queryClient = useQueryClient();
 
-  const [messages, setMessages] = useState<any[]>([]);
-  const [requests, setRequests] = useState<any[]>([]);
+  const [messages, setMessages] = useState<QuoteMessage[]>([]);
+  const [requests, setRequests] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const knownReqIds = useRef<Set<string>>(new Set());
   const initialized = useRef(false);
+  const cancelledRef = useRef(false);
 
   const load = async () => {
     try {
       const [inbox, reqs] = await Promise.all([fetchInbox(), fetchRequests()]);
-      setMessages(inbox.messages);
-      setRequests(reqs.requests);
-      // Track ids so realtime inserts can be detected as truly new
+      if (cancelledRef.current) return;
+      setMessages(inbox.messages as QuoteMessage[]);
+      setRequests(reqs.requests as QuoteRequest[]);
       if (!initialized.current) {
-        reqs.requests.forEach((r: any) => knownReqIds.current.add(r.id));
+        reqs.requests.forEach((r: { id: string }) => knownReqIds.current.add(r.id));
         initialized.current = true;
       }
-    } finally { setLoading(false); }
+    } finally {
+      if (!cancelledRef.current) setLoading(false);
+    }
   };
 
   useEffect(() => {
+    cancelledRef.current = false;
     void load();
     const ch = supabase
       .channel("inbox-all")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "quote_messages" }, () => void load())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "quote_requests" }, (payload: any) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "quote_requests" }, (payload: { new: QuoteRequest }) => {
         const row = payload.new;
         if (!knownReqIds.current.has(row.id)) {
           knownReqIds.current.add(row.id);
           notifyNewRequest(row);
         }
         void load();
+        void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
       })
       .subscribe();
-    return () => { void supabase.removeChannel(ch); };
+    return () => {
+      cancelledRef.current = true;
+      void supabase.removeChannel(ch);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+
   const threads = useMemo(() => {
-    const byQuote = new Map<string, { quote_id: string; last: any; unread: number }>();
+    const byQuote = new Map<string, { quote_id: string; last: QuoteMessage; unread: number }>();
     for (const m of messages) {
       const cur = byQuote.get(m.quote_id);
       if (!cur || new Date(m.created_at) > new Date(cur.last.created_at)) {
@@ -103,7 +118,10 @@ function MessagesInbox() {
               <li key={r.id}>
                 <button
                   onClick={async () => {
-                    if (!r.read_at) await markRead({ data: { id: r.id } }).catch(() => {});
+                    if (!r.read_at) {
+                      await markRead({ data: { id: r.id } }).catch(() => {});
+                      void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+                    }
                     void load();
                   }}
                   className={`w-full text-left card-surface p-4 flex items-start gap-3 ${!r.read_at ? "ring-1 ring-lime" : ""}`}
@@ -127,7 +145,7 @@ function MessagesInbox() {
                     <div className="mt-2 flex gap-2">
                       <Link
                         to="/quotes/new"
-                        search={{ prefill: r.body } as any}
+                        search={{ prefill: r.body }}
                         className="inline-flex items-center gap-1 text-[11px] font-semibold bg-ink text-paper rounded-full px-3 py-1.5"
                       >
                         <Sparkles className="h-3 w-3" />
@@ -159,7 +177,7 @@ function MessagesInbox() {
               <Link
                 to="/quotes/$quoteId"
                 params={{ quoteId: t.quote_id }}
-                search={{ tab: "messages" } as any}
+                search={{ tab: "messages" }}
                 className="card-surface p-4 flex items-start gap-3"
               >
                 <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
@@ -190,7 +208,7 @@ function MessagesInbox() {
   );
 }
 
-function notifyNewRequest(row: any) {
+function notifyNewRequest(row: QuoteRequest) {
   try {
     if (typeof window === "undefined") return;
     if (!("Notification" in window)) return;

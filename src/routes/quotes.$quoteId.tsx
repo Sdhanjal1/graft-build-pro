@@ -57,6 +57,7 @@ export const Route = createFileRoute("/quotes/$quoteId")({
     ...(s.sent === 1 || s.sent === "1" ? { sent: 1 as const } : {}),
     ...(s.paid === 1 || s.paid === "1" ? { paid: 1 as const } : {}),
     ...(s.cancelled === 1 || s.cancelled === "1" ? { cancelled: 1 as const } : {}),
+    ...(typeof s.tab === "string" ? { tab: s.tab } : {}),
   }),
 });
 

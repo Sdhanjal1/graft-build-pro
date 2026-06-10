@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { feedback, playSample } from "@/lib/feedback";
 import { getMyIncomingRequests } from "@/lib/quote-requests.functions";
+import { useSession } from "@/lib/auth";
 
 const items = [
   { to: "/app", label: "Home", icon: Home },
@@ -18,10 +19,11 @@ export function BottomNav() {
   const hide = pathname.startsWith("/auth") || pathname.startsWith("/capture") || pathname.startsWith("/portal/");
 
   const fetchRequests = useServerFn(getMyIncomingRequests);
+  const { session } = useSession();
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ["inbox-unread-count"],
     queryFn: () => fetchRequests(),
-    enabled: !hide,
+    enabled: !hide && !!session,
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
     staleTime: 15_000,
