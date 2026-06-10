@@ -434,15 +434,22 @@ function NewQuotePage() {
       const { combinedDesc, target } = appendTranscript(text);
       lastBlobRef.current = null;
       if (target === "desc" && mode === "speak" && combinedDesc.trim() && !draft) {
+        if (subBlocked) {
+          const msg = "Trial ended — add a payment method to generate quotes.";
+          setVoiceError(msg);
+          setError(msg);
+          return;
+        }
         await generate(combinedDesc);
       }
     } catch (err) {
       console.error(err);
-      setVoiceError(
-        err instanceof Error
-          ? err.message
-          : "Could not transcribe. Check your connection and retry.",
-      );
+      const msg = err instanceof Error
+        ? err.message
+        : "Could not transcribe. Check your connection and retry.";
+      setVoiceError(msg);
+      // Mirror to the main form error so failures aren't silent after the overlay closes.
+      setError(msg);
     } finally {
       setTranscribing(false);
       setLivePreview("");
