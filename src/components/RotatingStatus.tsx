@@ -24,7 +24,7 @@ export function RotatingStatus({
   }, [messages, intervalMs]);
 
   return (
-    <span className={className} aria-live="polite">
+    <span className={className} aria-live="off">
       {messages[i]}
     </span>
   );
