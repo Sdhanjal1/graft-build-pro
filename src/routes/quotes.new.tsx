@@ -175,6 +175,12 @@ function NewQuotePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const prefetchedContextRef = useRef<any>(null);
   const liveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks the latest in-flight regenerateLiveQuote so we can await it before
+  // deciding whether to run the Whisper fallback in `mr.onstop`.
+  const regenerateInFlightRef = useRef<Promise<void> | null>(null);
+  // Cumulative offset for Web Speech result indices across browser auto-restarts.
+  // Each restart's `event.resultIndex` becomes `offset + index` for monotone tracking.
+  const speechIndexOffsetRef = useRef<number>(0);
   const LIVE_PAUSE_MS = 2000;
 
   // Kept as inert ref so nothing from older code paths leaks.
