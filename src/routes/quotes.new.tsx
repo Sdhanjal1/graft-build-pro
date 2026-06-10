@@ -295,6 +295,17 @@ function NewQuotePage() {
           setCustomerMode("existing");
         }
       }
+      // Seed payment timing from the stored quote so the draft preview shows
+      // the same options the detail page would.
+      const t: PaymentTiming = q.payment_timing ?? "on_completion";
+      const p = q.deposit_percent ?? 0;
+      const a = q.deposit_amount ?? 0;
+      setPaymentTiming(t);
+      setDepositPct(p);
+      setDepositAmt(a);
+      setDepositPctRaw(p ? String(p) : "");
+      setDepositAmtRaw(a ? String(a) : "");
+      paymentSeededRef.current = true;
       setEditLoading(false);
       setEditError(null);
     };
