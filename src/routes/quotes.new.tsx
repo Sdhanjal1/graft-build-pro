@@ -906,6 +906,62 @@ Re-output the FULL updated list of line items for this quote, applying the chang
   const vatAmt = vat ? +(subtotal * 0.2).toFixed(2) : 0;
   const total = +(subtotal + vatAmt).toFixed(2);
 
+  // Seed payment timing the first time a draft appears for a fresh quote
+  // (editId path already seeds from the loaded quote inside `apply()`).
+  useEffect(() => {
+    if (!draft || editId || paymentSeededRef.current) return;
+    const t = deriveTimingFromTotal(total);
+    setPaymentTiming(t);
+    if (t === "deposit_then_balance") {
+      const p = defaultDepositPercent(userProfile.default_deposit_percent);
+      const a = computeDepositAmount(subtotal, p);
+      setDepositPct(p);
+      setDepositAmt(a);
+      setDepositPctRaw(String(p));
+      setDepositAmtRaw(String(a));
+    }
+    paymentSeededRef.current = true;
+  }, [draft, editId, subtotal, total]);
+
+  // Keep deposit amount in sync with subtotal when timing is deposit (user-edited
+  // values are preserved — we only recompute from the stored percent).
+  useEffect(() => {
+    if (paymentTiming !== "deposit_then_balance" || !depositPct) return;
+    const a = computeDepositAmount(subtotal, depositPct);
+    setDepositAmt(a);
+    setDepositAmtRaw(String(a));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal, paymentTiming]);
+
+  const onPaymentTimingChange = (next: PaymentTiming) => {
+    setPaymentTiming(next);
+    if (next === "deposit_then_balance") {
+      const p = depositPct || defaultDepositPercent(userProfile.default_deposit_percent);
+      const a = computeDepositAmount(subtotal, p);
+      setDepositPct(p); setDepositAmt(a);
+      setDepositPctRaw(String(p)); setDepositAmtRaw(String(a));
+    } else {
+      setDepositPct(0); setDepositAmt(0);
+      setDepositPctRaw(""); setDepositAmtRaw("");
+    }
+  };
+  const onDepositAmtBlur = () => {
+    const parsed = parseDepositInput(depositAmtRaw);
+    if (!parsed) return;
+    const amt = parsed.kind === "amount" ? parsed.value : computeDepositAmount(subtotal, parsed.value);
+    const pct = computeDepositPercent(subtotal, amt);
+    setDepositAmt(amt); setDepositPct(pct);
+    setDepositAmtRaw(String(amt)); setDepositPctRaw(String(pct));
+  };
+  const onDepositPctBlur = () => {
+    const parsed = parseDepositInput(depositPctRaw);
+    if (!parsed) return;
+    const pct = Math.max(0, Math.min(100, parsed.value));
+    const amt = computeDepositAmount(subtotal, pct);
+    setDepositPct(pct); setDepositAmt(amt);
+    setDepositPctRaw(String(pct)); setDepositAmtRaw(String(amt));
+  };
+
   const [saving, setSaving] = useState(false);
   const [sendSheetOpen, setSendSheetOpen] = useState(false);
   const [savedQuote, setSavedQuote] = useState<Quote | null>(null);
