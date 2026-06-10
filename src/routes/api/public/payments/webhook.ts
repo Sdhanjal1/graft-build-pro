@@ -61,11 +61,11 @@ async function sendBrandedInvoiceEmail(opts: {
       return;
     }
     let client: any = null;
-    if ((quote as any).client_id) {
+    if (quote.client_id) {
       const { data: c } = await supabaseAdmin
         .from("clients")
         .select("name, address, email, phone")
-        .eq("id", (quote as any).client_id)
+        .eq("id", quote.client_id)
         .maybeSingle();
       client = c;
     }
@@ -74,15 +74,15 @@ async function sendBrandedInvoiceEmail(opts: {
     const { sendInvoiceEmail } = await import("@/lib/email/send-invoice.server");
     const pdfBytes = generateInvoicePdfBytes(
       {
-        ref: (quote as any).ref,
-        title: (quote as any).title,
-        job_description: (quote as any).job_description,
-        line_items: Array.isArray((quote as any).line_items) ? (quote as any).line_items : [],
-        subtotal: Number((quote as any).subtotal) || 0,
-        vat_amount: Number((quote as any).vat_amount) || 0,
-        total: Number((quote as any).total) || 0,
-        vat_registered: (quote as any).vat_registered,
-        created_at: (quote as any).created_at,
+        ref: quote.ref,
+        title: quote.title,
+        job_description: quote.job_description,
+        line_items: Array.isArray(quote.line_items) ? quote.line_items : [],
+        subtotal: Number(quote.subtotal) || 0,
+        vat_amount: Number(quote.vat_amount) || 0,
+        total: Number(quote.total) || 0,
+        vat_registered: quote.vat_registered,
+        created_at: quote.created_at,
         paid_at: paidAt,
         payment_method: opts.paymentMethod,
         stripe_payment_intent: opts.paymentIntent ?? null,
@@ -91,9 +91,9 @@ async function sendBrandedInvoiceEmail(opts: {
       profile as any,
     );
     const businessName =
-      (profile as any)?.business_name || (profile as any)?.full_name || "Your tradesperson";
-    const ref = (quote as any).ref ?? opts.quoteId.slice(0, 8);
-    const amount = (opts.amountCents ?? Math.round(Number((quote as any).total) * 100)) / 100;
+      profile?.business_name || profile?.full_name || "Your tradesperson";
+    const ref = quote.ref ?? opts.quoteId.slice(0, 8);
+    const amount = (opts.amountCents ?? Math.round(Number(quote.total) * 100)) / 100;
     const amountFormatted = new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency: (opts.currency || "gbp").toUpperCase(),
@@ -106,7 +106,7 @@ async function sendBrandedInvoiceEmail(opts: {
     await sendInvoiceEmail({
       to: opts.customerEmail,
       businessName,
-      replyTo: (profile as any)?.email ?? null,
+      replyTo: profile?.email ?? null,
       invoiceRef: ref,
       amountFormatted,
       paidDate,
