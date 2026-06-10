@@ -979,6 +979,9 @@ Re-output the FULL updated list of line items for this quote, applying the chang
             title: draft.title,
             line_items: draft.line_items,
             vatRegistered: vat,
+            payment_timing: paymentTiming,
+            deposit_amount: paymentTiming === "deposit_then_balance" ? depositAmt : 0,
+            deposit_percent: paymentTiming === "deposit_then_balance" ? depositPct : 0,
           })
         : await saveGeneratedQuote({
             clientName: clientName.trim(),
@@ -987,6 +990,9 @@ Re-output the FULL updated list of line items for this quote, applying the chang
             title: draft.title,
             line_items: draft.line_items,
             vatRegistered: vat,
+            payment_timing: paymentTiming,
+            deposit_amount: paymentTiming === "deposit_then_balance" ? depositAmt : 0,
+            deposit_percent: paymentTiming === "deposit_then_balance" ? depositPct : 0,
           });
       // If an existing customer was picked, persist any phone edits to that record.
       if (customerMode === "existing" && q.client_id) {
