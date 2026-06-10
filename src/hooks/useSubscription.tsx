@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/auth";
 
@@ -38,6 +38,10 @@ export function useSubscription(): SubscriptionState {
   const { user } = useSession();
   const [sub, setSub] = useState<SubscriptionRow | null>(null);
   const [loading, setLoading] = useState(true);
+  // Stable per-mount channel suffix so StrictMode double-invoke doesn't churn channels.
+  const channelSuffixRef = useRef<string>(
+    typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`,
+  );
 
   const load = useCallback(async () => {
     if (!user) {
@@ -62,7 +66,7 @@ export function useSubscription(): SubscriptionState {
   useEffect(() => {
     if (!user) return;
     const ch = supabase
-      .channel(`sub:${user.id}:${Math.random().toString(36).slice(2)}`)
+      .channel(`sub:${user.id}:${channelSuffixRef.current}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "subscriptions", filter: `user_id=eq.${user.id}` },

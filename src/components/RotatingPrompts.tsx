@@ -24,15 +24,18 @@ export function RotatingPrompts({ className = "" }: { className?: string }) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
+    let swap: ReturnType<typeof setTimeout> | null = null;
     const t = setInterval(() => {
       setVisible(false);
-      const swap = setTimeout(() => {
+      swap = setTimeout(() => {
         setI((n) => (n + 1) % prompts.length);
         setVisible(true);
       }, 300);
-      return () => clearTimeout(swap);
     }, 4000);
-    return () => clearInterval(t);
+    return () => {
+      clearInterval(t);
+      if (swap) clearTimeout(swap);
+    };
   }, [prompts.length]);
 
   return (
