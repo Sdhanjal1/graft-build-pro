@@ -135,8 +135,7 @@ export function generateQuotePdf(quote: Quote, client: Client | undefined, varia
   });
 
   // Totals box
-  // @ts-ignore
-  let afterTable = (doc as any).lastAutoTable.finalY + 16;
+  let afterTable = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 16;
   const boxX = w - 240;
   const boxW = 200;
   const showVat = userProfile.vat_registered && quote.vat_amount > 0;
