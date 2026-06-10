@@ -1,11 +1,14 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, FileText, Settings, Clock, MessageSquare } from "lucide-react";
+import { Home, FileText, Settings, Clock, Inbox } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { feedback, playSample } from "@/lib/feedback";
+import { getMyIncomingRequests } from "@/lib/quote-requests.functions";
 
 const items = [
   { to: "/app", label: "Home", icon: Home },
   { to: "/quotes", label: "Quotes", icon: FileText },
-  { to: "/messages", label: "Inbox", icon: MessageSquare },
+  { to: "/messages", label: "Inbox", icon: Inbox },
   { to: "/chaser", label: "Chasers", icon: Clock },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
@@ -13,6 +16,20 @@ const items = [
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const hide = pathname.startsWith("/auth") || pathname.startsWith("/capture") || pathname.startsWith("/portal/");
+
+  const fetchRequests = useServerFn(getMyIncomingRequests);
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ["inbox-unread-count"],
+    queryFn: () => fetchRequests(),
+    enabled: !hide,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    staleTime: 15_000,
+    retry: false,
+    select: (r: { requests: Array<{ read_at: string | null }> }) =>
+      r?.requests?.filter((x) => !x.read_at).length ?? 0,
+  });
+
   if (hide) return null;
 
   const isActive = (to: string) => (to === "/app" ? pathname === "/app" : pathname.startsWith(to));
@@ -29,7 +46,12 @@ export function BottomNav() {
           {/* top edge highlight — sells the glass */}
           <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
           {items.map((it) => (
-            <NavItem key={it.to} {...it} active={isActive(it.to)} />
+            <NavItem
+              key={it.to}
+              {...it}
+              active={isActive(it.to)}
+              unread={it.to === "/messages" && unreadCount > 0}
+            />
           ))}
         </div>
       </div>
@@ -42,11 +64,13 @@ function NavItem({
   label,
   icon: Icon,
   active,
+  unread = false,
 }: {
   to: string;
   label: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   active: boolean;
+  unread?: boolean;
 }) {
   return (
     <Link
@@ -60,23 +84,31 @@ function NavItem({
     >
       <span
         className={[
-          "flex items-center gap-1.5 rounded-full transition-all duration-200 ease-out",
+          "relative flex items-center gap-1.5 rounded-full transition-all duration-200 ease-out",
           active
             ? "bg-lime text-ink px-3.5 py-2 shadow-[0_6px_16px_-6px_rgba(200,224,74,0.7)] scale-100"
             : "text-paper/60 px-2 py-2 scale-95",
         ].join(" ")}
       >
-        <Icon
-          className={active ? "h-[18px] w-[18px]" : "h-5 w-5"}
-          strokeWidth={active ? 2.75 : 2}
-        />
+        <span className="relative inline-flex">
+          <Icon
+            className={active ? "h-[18px] w-[18px]" : "h-5 w-5"}
+            strokeWidth={active ? 2.75 : 2}
+          />
+          {unread && (
+            <span
+              aria-hidden
+              className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-lime ring-2 ring-ink"
+            />
+          )}
+        </span>
         {active && (
           <span className="text-[12px] font-bold tracking-tight leading-none whitespace-nowrap">
             {label}
           </span>
         )}
       </span>
-      <span className="sr-only">{label}</span>
+      <span className="sr-only">{unread ? `${label}, unread requests` : label}</span>
     </Link>
   );
 }
