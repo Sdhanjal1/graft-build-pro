@@ -38,11 +38,21 @@ export const transcribeAudio = createServerFn({ method: "POST" })
     form.append("language", "en");
     form.append("response_format", "json");
 
-    const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}` },
-      body: form,
-    });
+    let res: Response;
+    try {
+      res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}` },
+        body: form,
+        signal: AbortSignal.timeout(60_000),
+      });
+    } catch (err) {
+      const name = (err as { name?: string })?.name;
+      if (name === "TimeoutError" || name === "AbortError") {
+        throw new Error("Took too long — check your connection and try again.");
+      }
+      throw err;
+    }
 
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
