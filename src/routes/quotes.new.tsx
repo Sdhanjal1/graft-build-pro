@@ -197,6 +197,19 @@ function NewQuotePage() {
   // Tracks the latest in-flight regenerateLiveQuote so we can await it before
   // deciding whether to run the Whisper fallback in `mr.onstop`.
   const regenerateInFlightRef = useRef<Promise<void> | null>(null);
+  // Latest successful per-phrase AI response metadata — used at stop time so the
+  // live flow keeps the AI's clean title / description / extracted customer
+  // instead of falling back to deriveTitle + raw transcript.
+  const lastLiveGenRef = useRef<{
+    title?: string;
+    clean_description?: string;
+    extracted_customer?: { name?: string; phone?: string };
+  } | null>(null);
+  // Session-scoped tombstones + edit overrides so user changes during recording
+  // survive the next regenerateLiveQuote pass. Keyed by normalised description.
+  const deletedDescsRef = useRef<Set<string>>(new Set());
+  const editedItemsRef = useRef<Map<string, LineItem>>(new Map());
+  const normDesc = (s: string) => s.trim().toLowerCase();
   // Cumulative offset for Web Speech result indices across browser auto-restarts.
   // Each restart's `event.resultIndex` becomes `offset + index` for monotone tracking.
   const speechIndexOffsetRef = useRef<number>(0);
