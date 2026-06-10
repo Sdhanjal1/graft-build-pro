@@ -61,14 +61,18 @@ function pickMimeType(): string {
 
 
 async function blobToBase64(blob: Blob): Promise<string> {
-  const buf = await blob.arrayBuffer();
-  let binary = "";
-  const bytes = new Uint8Array(buf);
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
-  }
-  return btoa(binary);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error("FileReader failed"));
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== "string") return reject(new Error("Unexpected reader result"));
+      // result is "data:<mime>;base64,<payload>"
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.readAsDataURL(blob);
+  });
 }
 
 type QuotesNewSearch = {
