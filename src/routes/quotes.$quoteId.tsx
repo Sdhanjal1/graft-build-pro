@@ -979,7 +979,7 @@ function QuoteDetail() {
       {/* Bottom sheet: how did the customer pay? */}
       {askingPaid && (
         <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setAskingPaid(false)}>
-          <div className="w-full bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
             <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
             <h3 className="text-2xl">How did the customer pay?</h3>
             <p className="text-xs text-muted-foreground mb-4">This marks the invoice as paid and logs it in your profit tracker.</p>
