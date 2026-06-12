@@ -1113,7 +1113,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
   const wasSentRef = useRef(false);
   const save = async (mode: "draft" | "send" = "draft") => {
     if (!draft || saving) return null;
-    setSaving(true);
+    setSavingMode(mode);
     setError(null);
     try {
       const q = editId
@@ -1188,7 +1188,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       toast.error(editId ? "Could not save changes" : "Could not save quote", { description: message });
       return null;
     } finally {
-      setSaving(false);
+      setSavingMode(null);
     }
   };
 
@@ -1857,7 +1857,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
                 disabled={!clientName.trim() || (draft?.line_items.length ?? 0) === 0 || total <= 0 || saving}
                 className="px-4 py-3 rounded-full text-ink font-bold text-xs inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-ink/5 transition"
               >
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {savingMode === "draft" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 {editId ? "Save" : "Draft"}
               </button>
               <button
@@ -1880,7 +1880,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
                     : "bg-lime text-ink active:scale-[0.99]"
                 } disabled:opacity-60`}
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {savingMode === "send" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 {!clientName.trim()
                   ? "Add a customer ↑"
                   : (draft?.line_items.length ?? 0) === 0 || total <= 0
