@@ -553,36 +553,37 @@ function QuoteDetail() {
       <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" compact right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
 
       {/* Money summary card — glance-level total at the top */}
-      <div className="mx-5 mt-4 p-4 rounded-2xl bg-paper/[0.04] border border-lime/20 space-y-3">
+      <div className="mx-5 mt-4 p-4 rounded-2xl bg-card border border-border space-y-3">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs uppercase tracking-widest font-semibold text-paper/60">Subtotal</p>
-            <p className="text-lg font-bold text-paper num">{formatGBP(quote.subtotal || 0)}</p>
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Subtotal</p>
+            <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP(quote.subtotal || 0)}</p>
           </div>
           {userProfile.vat_registered && (
             <div>
-              <p className="text-xs uppercase tracking-widest font-semibold text-paper/60">VAT (20%)</p>
-              <p className="text-lg font-bold text-paper num">{formatGBP((quote.subtotal || 0) * 0.2)}</p>
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">VAT (20%)</p>
+              <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP((quote.subtotal || 0) * 0.2)}</p>
             </div>
           )}
         </div>
-        <div className="pt-3 border-t border-paper/10 flex items-center justify-between">
-          <p className="text-sm font-semibold text-paper">Total</p>
-          <p className="text-2xl font-bold text-lime num">{formatGBP(quote.total || 0)}</p>
+        <div className="pt-3 border-t border-border flex items-center justify-between">
+          <p className="text-sm font-semibold text-ink">Total</p>
+          <p className="text-2xl font-bold text-ink num">{formatGBP(quote.total || 0)}</p>
         </div>
         {timing === "deposit_then_balance" && configuredDeposit > 0 && (
-          <div className="pt-3 space-y-2 border-t border-paper/10">
+          <div className="pt-3 space-y-2 border-t border-border">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-paper/70">Deposit due</span>
+              <span className="text-muted-foreground">Deposit due</span>
               <span className="font-bold text-status-pending num">{formatGBP(configuredDeposit)}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-paper/70">Balance</span>
-              <span className="font-bold text-paper num">{formatGBP((quote.total || 0) - configuredDeposit)}</span>
+              <span className="text-muted-foreground">Balance</span>
+              <span className="font-bold text-ink num">{formatGBP((quote.total || 0) - configuredDeposit)}</span>
             </div>
           </div>
         )}
       </div>
+
 
 
       {wasJustSent && (
