@@ -4,7 +4,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { getClient, quotesForClient, formatGBP, userProfile, useDataVersion, updateClientFields } from "@/lib/user-data";
 import { resolveTrade, detectCertifications, type Certification } from "@/lib/trades";
-import { Phone, Mail, MapPin, Home, FileText, Plus, CheckCircle2, Calendar, ShieldCheck, BellRing, User } from "lucide-react";
+import { Phone, Mail, MapPin, Home, FileText, Plus, CheckCircle2, Calendar, ShieldCheck, BellRing, User, Pencil } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { CustomerPortalPanel } from "@/components/CustomerPortalPanel";
 import { ClientDetailSkeleton } from "@/components/Skeletons";
@@ -45,12 +45,12 @@ function ClientDetail() {
   const trade = resolveTrade(userProfile.trade_type);
   const jobNoun = trade.noun.job;
   const jobPlural = trade.noun.jobPlural;
+  const firstName = client.name.split(" ")[0];
 
   const quotes = quotesForClient(clientId);
   const totalQuoted = quotes.reduce((s, q) => s + q.total, 0);
   const totalPaid = quotes.filter((q) => q.status === "paid").reduce((s, q) => s + q.total, 0);
 
-  // Service history derivations
   const sortedQuotes = [...quotes].sort((a, b) => {
     const aDate = a.completed_at ?? a.created_at;
     const bDate = b.completed_at ?? b.created_at;
@@ -62,7 +62,6 @@ function ClientDetail() {
     .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
   const customerSince = client.created_at;
 
-  // Per-quote cert detection (used in job history chips)
   const certsByQuote = new Map<string, Certification[]>();
   sortedQuotes.forEach((q) => {
     const haystack = [q.title, q.job_description, ...(q.line_items?.map((li) => li.description) ?? [])]
@@ -76,53 +75,53 @@ function ClientDetail() {
     <AppShell>
       <PageHeader title={client.name} subtitle="Customer" back="/clients" />
 
-      <section className="px-5 grid grid-cols-2 gap-3">
-        <div className="card-surface p-4">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Total quoted</p>
-          <p className="num text-2xl mt-1">{formatGBP(totalQuoted)}</p>
-        </div>
-        <div className="card-surface p-4">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Paid</p>
-          <p className="num text-2xl mt-1 text-status-accepted">{formatGBP(totalPaid)}</p>
+      {/* Combined money summary — one outcome card */}
+      <section className="px-5 mt-5">
+        <div className="card-surface p-5">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Paid to date</p>
+          <p className="num text-4xl mt-1 text-status-accepted tabular-nums leading-none">{formatGBP(totalPaid)}</p>
+          <p className="text-xs text-muted-foreground mt-2 tabular-nums">
+            of {formatGBP(totalQuoted)} quoted across {quotes.length} {quotes.length === 1 ? jobNoun : jobPlural}
+          </p>
         </div>
       </section>
 
+      {/* Merged service summary + cadence */}
       <section className="px-5 mt-3">
-        <div className="card-surface p-4 flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
-            <CheckCircle2 className="h-4 w-4" />
-          </div>
-          <div className="flex-1 min-w-0 text-sm">
-            <p className="font-semibold">
-              {completedJobs.length} {completedJobs.length === 1 ? jobNoun : jobPlural} completed
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5 truncate">
-              {lastService ? `Last ${jobNoun} ${relativeFromNow(lastService)} · ` : ""}
-              Customer since {formatShortDate(customerSince)}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {trade.defaultServiceType && (
-        <section className="px-5 mt-3">
-          <div className="card-surface p-4 flex items-center gap-3">
-            <div className="h-9 w-9 rounded-full bg-lime/30 flex items-center justify-center shrink-0">
-              <BellRing className="h-4 w-4" />
+        <div className="card-surface p-4 divide-y divide-border">
+          <div className="flex items-center gap-3 pb-3">
+            <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-4 w-4" />
             </div>
             <div className="flex-1 min-w-0 text-sm">
-              <p className="font-semibold truncate">{trade.defaultServiceType}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {trade.defaultServiceIntervalMonths
-                  ? `Recommended every ${trade.defaultServiceIntervalMonths} months — set a reminder below.`
-                  : "Set a reminder below to keep this customer's service on track."}
+              <p className="font-semibold">
+                {completedJobs.length} {completedJobs.length === 1 ? jobNoun : jobPlural} completed
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                {lastService ? `Last ${jobNoun} ${relativeFromNow(lastService)} · ` : ""}
+                Customer since {formatShortDate(customerSince)}
               </p>
             </div>
           </div>
-        </section>
-      )}
+          {trade.defaultServiceType && (
+            <div className="flex items-center gap-3 pt-3">
+              <div className="h-9 w-9 rounded-full bg-lime/30 flex items-center justify-center shrink-0">
+                <BellRing className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0 text-sm">
+                <p className="font-semibold truncate">{trade.defaultServiceType}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {trade.defaultServiceIntervalMonths
+                    ? `Recommended every ${trade.defaultServiceIntervalMonths} months.`
+                    : "Set a reminder to keep this customer's service on track."}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
-
+      {/* Contact block */}
       <section className="px-5 mt-4">
         <div className="card-surface p-5 space-y-3">
           <EditableRow
@@ -138,6 +137,7 @@ function ClientDetail() {
             type="tel"
             initial={client.phone}
             placeholder="07…"
+            href={client.phone ? `tel:${client.phone.replace(/\s+/g, "")}` : undefined}
             onSave={(v) => updateClientFields(clientId, { phone: v })}
           />
           <EditableRow
@@ -146,9 +146,15 @@ function ClientDetail() {
             type="email"
             initial={client.email}
             placeholder="name@example.com"
+            href={client.email ? `mailto:${client.email}` : undefined}
             onSave={(v) => updateClientFields(clientId, { email: v })}
           />
-          <Row icon={MapPin} label="Address" value={client.address} />
+          <Row
+            icon={MapPin}
+            label="Address"
+            value={client.address}
+            href={client.address ? `https://maps.google.com/?q=${encodeURIComponent(client.address)}` : undefined}
+          />
           <Row icon={Home} label="Property" value={client.property_type} />
           {client.notes && (
             <div className="pt-3 border-t border-border">
@@ -159,12 +165,7 @@ function ClientDetail() {
         </div>
       </section>
 
-      <section className="px-5 mt-6">
-        <h2 className="text-xl mb-2.5">Customer portal</h2>
-        <CustomerPortalPanel clientId={clientId} />
-      </section>
-
-
+      {/* Job history — promoted above portal */}
       <section className="mt-6">
         <div className="px-5 flex items-center justify-between mb-2.5">
           <h2 className="text-xl">{jobNoun === "service" ? "Service" : "Job"} history</h2>
@@ -174,7 +175,7 @@ function ClientDetail() {
             className="inline-flex items-center gap-1.5 rounded-full bg-lime text-ink px-3.5 py-2 text-xs font-bold active:scale-[0.98] transition"
           >
             <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-            Quote again
+            New quote for {firstName}
           </Link>
         </div>
         <div className="px-5 space-y-2.5">
@@ -182,7 +183,7 @@ function ClientDetail() {
             <EmptyState
               icon={FileText}
               title={`No ${jobPlural} yet`}
-              body={`Send ${client.name.split(" ")[0]} their first quote in a couple of taps.`}
+              body={`Send ${firstName} their first quote in a couple of taps.`}
               cta={{ label: "New quote", to: "/quotes/new", search: { clientId } }}
             />
           )}
@@ -199,7 +200,7 @@ function ClientDetail() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
                     <StatusBadge status={q.status} />
                     {(certsByQuote.get(q.id) ?? []).map((c) => (
                       <span key={c.key} className="inline-flex items-center gap-1 rounded-full bg-lime/30 text-ink text-[10px] font-bold px-2 py-0.5">
@@ -216,12 +217,17 @@ function ClientDetail() {
                   </p>
                 </div>
 
-                <p className="num text-xl text-ink">{formatGBP(q.total)}</p>
+                <p className="num text-sm text-ink tabular-nums shrink-0">{formatGBP(q.total)}</p>
               </Link>
             );
           })}
-
         </div>
+      </section>
+
+      {/* Customer portal — demoted below history */}
+      <section className="px-5 mt-6">
+        <h2 className="text-xl mb-2.5">Customer portal</h2>
+        <CustomerPortalPanel clientId={clientId} />
       </section>
     </AppShell>
   );
@@ -243,13 +249,19 @@ function Row({
       <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
         <Icon className="h-4 w-4" />
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</p>
-        <p className="text-sm font-medium truncate">{value}</p>
+        <p className={`text-sm font-medium truncate ${href ? "text-ink underline-offset-2 hover:underline" : ""}`}>{value || "—"}</p>
       </div>
     </div>
   );
-  return href ? <a href={href}>{content}</a> : content;
+  return href ? (
+    <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noreferrer" : undefined} className="block active:opacity-70">
+      {content}
+    </a>
+  ) : (
+    content
+  );
 }
 
 function EditableRow({
@@ -258,6 +270,7 @@ function EditableRow({
   initial,
   placeholder,
   type = "text",
+  href,
   onSave,
 }: {
   icon: React.ComponentType<{ className?: string }>;
@@ -265,35 +278,51 @@ function EditableRow({
   initial: string;
   placeholder?: string;
   type?: "text" | "tel" | "email";
+  href?: string;
   onSave: (value: string) => Promise<void>;
 }) {
   const [value, setValue] = useState(initial ?? "");
+  const [focused, setFocused] = useState(false);
   const { isSaving, isSaved, error, handleChange } = useAutoSave<string>({
     onSave: (v) => onSave(v),
     errorTitle: `Couldn't save ${label.toLowerCase()}`,
   });
 
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex items-start gap-3 group">
       <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold inline-flex items-center gap-1.5">
             {label}
+            {href && value && !focused && (
+              <a
+                href={href}
+                onClick={(e) => e.stopPropagation()}
+                className="text-ink/60 hover:text-ink normal-case tracking-normal text-[11px] font-medium underline-offset-2 hover:underline"
+              >
+                {type === "tel" ? "Call" : type === "email" ? "Email" : "Open"}
+              </a>
+            )}
           </p>
-          <SaveIndicator isSaving={isSaving} isSaved={isSaved} error={error} />
+          <div className="flex items-center gap-1.5">
+            <SaveIndicator isSaving={isSaving} isSaved={isSaved} error={error} />
+            <Pencil className="h-3 w-3 text-muted-foreground/50 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity" />
+          </div>
         </div>
         <input
           type={type}
           value={value}
           placeholder={placeholder}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           onChange={(e) => {
             setValue(e.target.value);
             handleChange(e.target.value);
           }}
-          className="mt-0.5 w-full bg-transparent border-0 border-b border-transparent focus:border-ink/30 px-0 py-1 text-sm font-medium outline-none transition-colors placeholder:text-muted-foreground/60"
+          className="mt-0.5 w-full bg-transparent border-0 border-b border-dashed border-border focus:border-solid focus:border-ink/40 px-0 py-1 text-sm font-medium outline-none transition-colors placeholder:text-muted-foreground/60"
         />
       </div>
     </div>
