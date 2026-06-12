@@ -269,15 +269,18 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
           .select("stripe_connect_account_id, stripe_connect_charges_enabled")
           .eq("id", tk.user_id)
           .maybeSingle();
+        // If onboarding lapsed since the pending session was created, don't
+        // hand back a link that would land on the platform account.
+        if (
+          !profileForReuse?.stripe_connect_charges_enabled ||
+          !profileForReuse?.stripe_connect_account_id
+        ) {
+          throw new Error("This business hasn't finished setting up payments yet.");
+        }
         const reuseHeaders: Record<string, string> = {
           Authorization: `Bearer ${key}`,
+          "Stripe-Account": profileForReuse.stripe_connect_account_id,
         };
-        if (
-          profileForReuse?.stripe_connect_charges_enabled &&
-          profileForReuse?.stripe_connect_account_id
-        ) {
-          reuseHeaders["Stripe-Account"] = profileForReuse.stripe_connect_account_id;
-        }
         const sessRes = await fetch(
           `https://api.stripe.com/v1/checkout/sessions/${sessionId}`,
           { headers: reuseHeaders },
@@ -287,6 +290,8 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
           return { url: sess.url, sessionId, env, amount };
         }
       } catch (e) {
+        // Re-throw onboarding errors; swallow transient Stripe lookup errors.
+        if (e instanceof Error && e.message.includes("setting up payments")) throw e;
         console.warn("Failed to reuse pending portal session, creating new", e);
       }
     }
@@ -310,6 +315,9 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
       profile?.stripe_connect_charges_enabled && profile?.stripe_connect_account_id
         ? profile.stripe_connect_account_id
         : null;
+    if (!connectAccountId) {
+      throw new Error("This business hasn't finished setting up payments yet.");
+    }
 
     const ref = quote.ref ?? quote.id.slice(0, 8);
     const params: Record<string, string | number> = {
