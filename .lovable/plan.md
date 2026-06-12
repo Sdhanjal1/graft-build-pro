@@ -1,49 +1,93 @@
-## Pass 8: `quotes.index.tsx` polish
+# Spacing Audit — Suggestions
 
-UI-only audit. No backend, no data-layer changes.
+I walked the mobile app shell and key routes. Spacing is mostly consistent, but a few patterns add up to a "loose" feel — especially around headers, sticky CTAs, sheets, and form/list rows. Below are the highest-impact tightens, grouped so you can opt in/out per area.
 
-### 1. Hero pipeline strip
-- Subtitle: replace static `"All work"` with a live single-line summary derived from tiles — e.g. `"3 pending · 2 awaiting · 1 overdue"`, falls back to `"All clear"`. Same pattern used on Messages/Clients.
-- Inside lime hero: tighten the "awaiting / overdue" subline — break into two stacked `text-[11px]` rows with a status dot prefix (amber for awaiting, danger for overdue) instead of `·`-joined inline text. Easier to scan at 550px.
-- Add a tiny `text-[10px]` label below the big number: `"Active pipeline value"` so the GBP figure has explicit meaning (currently unlabeled).
+## 1. AppShell `PageHeader` (touches every screen)
 
-### 2. Overdue dominant tile
-- Drop `motion-safe:animate-pulse-soft` — it draws constant attention even after the user has seen it. Replace with a single one-shot subtle entrance (`row-rise`) and a static danger dot next to the label.
-- When active, swap the inverted ink background for a danger-tinted surface (`bg-status-overdue/10 border-status-overdue`) so the selected state still reads as danger, not as a neutral "selected".
+`px-5 pt-7 pb-6` + a `mt-4` divider + `mt-3` title row = ~44px of stacked vertical air above the screen body. On 550-wide preview the header eats too much above-the-fold.
 
-### 3. Secondary tiles (Pending / Accepted / Awaiting)
-- Active state: same treatment — ditch `bg-ink text-paper` inversion and use `bg-secondary border-ink` with the count badge filled (`bg-ink text-paper rounded-full px-1.5`). Keeps semantic colour of the tile intact when selected.
-- Add a tiny status dot before each tile label, colour-matched to `STATUS_DOT` (pending=ink/40, accepted=lime, awaiting=amber). Consistent with the rest of the audit passes.
-- Reduce `text-[10px] uppercase tracking-widest` to `text-[10px] tracking-wide` — the extra-wide tracking + small size hurts legibility.
+Proposed:
 
-### 4. Search + filter row
-- Bump search input to `text-[15px]` (matches Clients pass).
-- Active-tile chip: move from `bg-ink text-paper` to `bg-secondary text-ink` with a status dot prefix matching the tile. Currently the dark pill competes visually with the overdue tile above it.
-- When `q` has content, show a small ghost `×` inside the input to clear, not just the tile chip.
+- `pt-7 pb-6` → `pt-5 pb-4`
+- divider `mt-4` → `mt-3`, title row `mt-3` → `mt-2`
+- compact variant `pt-7 pb-6` → `pt-5 pb-4`
+- `AppShell` outer `pb-28` → `pb-24` (bottom nav is 64px; 28 ≈ 112px leaves a visible gap on short pages)
 
-### 5. Result list
-- Empty state: when `tile` filter is set and yields nothing, add a secondary inline action `"Clear filter"` (ghost) under the EmptyState body, so users aren't stuck.
-- When `q` has text but no match AND a tile is also active, message reads: `No <tile-label> quotes match "<q>"` (currently shows only the `q` form).
-- Drop the trailing empty `pb-24` from `space-y-2.5`; bottom-safe spacing already handled by AppShell. Verify before removing — only drop if AppShell adds bottom padding (will check). If not, keep.
+Net: ~14–18px reclaimed at the top of every screen.
 
-### 6. QuoteCard (row)
-- Remove the heavy custom shadow on `paid` / draft cards (`shadow-[0_1px_2px...]`). Use the project's `card-surface` token consistently; the left 4px border already differentiates state.
-- `paid` cards: dim the row (`opacity-80`) so the eye is drawn to active/overdue first.
-- `accepted` rows: when `materialsForQuote(quote).length > 0`, the chip currently says `"N materials"` — make it tappable feel by promoting to a `bg-secondary` chip with `ShoppingCart` icon. Pure visual; still inside the Link.
-- Draft cards: replace `"Tap to continue"` text with a small lime dot + `"Draft"` already covered by the pill — the "Tap to continue" string is redundant noise. Drop it.
-- Overdue row: keep the inverted ink treatment (intentional alarm), but add a small `"Chase"` text hint at the right under the amount in `text-[10px] text-paper/60` so the swipe action is discoverable.
-- Long-press: leave `useLongPress` behaviour as-is; no scope changes there.
+## 2. Sticky bottom action bars (quotes.new, clients.new, quotes.$quoteId, portal)
 
-### 7. Out of scope (explicit)
-- `QuoteQuickActionsSheet` internals
-- `SwipeRow` component
-- `markOverdueQuotes`, `deleteQuote`, `duplicateQuote`, `setQuoteStatus` server fns
-- `user-data` layer / `mockQuotes`
-- `useLongPress`, `useDataVersion`, `useSession`
-- `EmptyState` and `QuotesListSkeleton` internals
-- `CountUpGBP` animation
-- Pagination/virtualisation
-- Adding a real in-app message thread (deferred from Messages pass)
+Pattern repeated ~6 places: outer wrapper `px-5 pb-5 pt-2` + button `py-4` + a 24px gradient fade above. Combined with AppShell's `pb-28`, the CTA sits very high off the bottom edge.
 
-### Files touched
-- `src/routes/quotes.index.tsx` only.
+Proposed:
+
+- wrapper `pb-5 pt-2` → `pb-3 pt-1.5`
+- gradient fade `h-6 -mb-2` → `h-4 -mb-1`
+- primary button `py-4` → `py-3.5` (still 52px hit area with text)
+
+## 3. Bottom-sheet content (`p-5 pb-8`)
+
+5 sheets in `quotes.$quoteId.tsx`, plus `SendQuoteDialog`, `MaterialListSheet` — all use `p-5 pb-8`. The `pb-8` is double-counting safe-area when the sheet is already above the nav.
+
+Proposed: `p-5 pb-6` (and rely on `safe-bottom` for the inset). Saves ~8px per sheet.
+
+## 4. Form fields (`clients.new`, `quotes.new`, `settings`)
+
+`Field` component uses `p-3.5` with a `mt-2` between label and control. Label is `text-[10px]` uppercase — `mt-2` is generous for that scale.
+
+Proposed:
+
+- `p-3.5` → `p-3`
+- label→control `mt-2` → `mt-1.5`
+- hint `mt-1.5` → `mt-1`
+
+## 5. List rows (quotes index, messages, clients)
+
+Quote/message/client rows use `p-3.5` or `py-4 px-4`. With existing card border + 16px row gap, vertical rhythm feels airy.
+
+Proposed:
+
+- row padding `p-3.5` / `py-4` → `p-3` / `py-3`
+- list `space-y-2` between rows stays; remove any `mt-4`/`mt-3` wrappers above lists in favor of a single `mt-3`
+
+## 6. `quotes.index.tsx` hero pipeline + tiles
+
+- Tiles grid currently `gap-2` with each tile `p-3.5` — fine. But the section wrapper has `mt-4` + the hero strip has its own `mb-3`/`mb-4`. Collapse to one `mt-3` between hero and tiles.
+- "Active pipeline value" label row: tighten `mt-2` → `mt-1.5`.
+
+## 7. `messages.tsx`
+
+- Thread list wrapper `pb-24` is redundant with AppShell `pb-28` → drop it (just `pb-2`).
+- Skeleton cards `p-3.5` → `p-3`.
+- Gap between "Quote requests" section and "Messages" section currently `mt-6` → `mt-4`.
+
+## 8. `settings.tsx`
+
+- Section spacing `space-y-3` between cards is fine, but card internals use both `py-3` and `py-2` inconsistently. Standardise rows on `py-2.5 px-4`.
+- `mt-1.5` repeated 9× under labels → fold into a `SettingsRow` helper with built-in spacing (also future-proofs).
+
+## 9. Marketing pages (lower priority — not "the app")
+
+`index.tsx`, `about.tsx`, `features.tsx`, `trades.*` use `py-20 md:py-28` for every section. That's intentional landing-page rhythm; **leave alone** unless you want a denser marketing site. Flagging for completeness.
+
+## 10. One-offs worth a quick pass
+
+- `onboarding.tsx` main `pt-8 pb-10` → `pt-6 pb-8`; CTA `mt-8` → `mt-6`.
+- `auth.tsx` `py-10` + `mb-8` header → `py-8` + `mb-6`.
+- `forgot-password.tsx` / `reset-password.tsx` `mb-10` header → `mb-6`.
+- `quotes.new.tsx` line ~2386 `mt-8` on the mic stack → `mt-6`.
+- `confirmed.tsx` `mb-10` + `mb-8` → `mb-6` / `mb-5`.
+
+---
+
+## Suggested rollout
+
+Three tiers — pick what you want me to apply:
+
+- **A. Global wins (highest ROI, low risk):** #1 PageHeader, #2 sticky CTAs, #3 sheet padding. Affects every screen, ~30px reclaimed above the fold + tighter bottom CTAs.
+- **B. List/form density:** #4, #5, #7, #8. Makes lists scannable, reduces scroll on form-heavy screens.
+- **C. Page-specific polish:** #6, #10. Cleans up the leftover loose-ends.
+
+Tell me **A / B / C / all**, or any subset, and I'll implement.
+
+Do A B and C
