@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   userProfile,
@@ -13,6 +13,7 @@ import {
   Receipt, LogOut,
   CheckCircle2, FileText, MessageSquare, AlertTriangle, Trash2,
   Camera, Pencil, PenLine, ChevronRight,
+  Briefcase, PoundSterling, Landmark, FileSignature, Bell, CreditCard, AlertOctagon,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { PushPermissionCard } from "@/components/CustomerQRCard";
@@ -38,6 +39,8 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
+type LucideIcon = React.ComponentType<{ className?: string }>;
+
 /** Trade-aware label for the "registration number" field. */
 function registrationLabelForTrade(trade: string): string {
   const t = (trade || "").toLowerCase();
@@ -45,6 +48,23 @@ function registrationLabelForTrade(trade: string): string {
   if (t.includes("electric")) return "NICEIC / NAPIT number";
   if (t.includes("window") || t.includes("glaz")) return "FENSA / CERTASS number";
   return "Trade registration number";
+}
+
+function registrationHintForTrade(trade: string): string | null {
+  const t = (trade || "").toLowerCase();
+  if (t.includes("gas") || t.includes("plumb") || t.includes("heating")) return "Required to legally certify gas work in the UK.";
+  if (t.includes("electric")) return "Required for Part P notifiable electrical work.";
+  if (t.includes("window") || t.includes("glaz")) return "Required to self-certify replacement windows.";
+  return null;
+}
+
+function formatSortCode(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 6);
+  return digits.length <= 2
+    ? digits
+    : digits.length <= 4
+      ? `${digits.slice(0, 2)}-${digits.slice(2)}`
+      : `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
 }
 
 function SettingsPage() {
@@ -107,8 +127,6 @@ function SettingsPage() {
   const [labourHourly, setLabourHourly] = useState<number>(userProfile.labour_hourly_rate ?? 0);
   const [labourDay, setLabourDay] = useState<number>(userProfile.labour_day_rate ?? 0);
 
-  // Debounced cloud-save, driven by useAutoSave so we share the same
-  // saving / saved / error states with the inline indicator below.
   const {
     isSaving: profileSaving,
     isSaved: profileSaved,
@@ -134,7 +152,6 @@ function SettingsPage() {
     errorTitle: "Couldn't save settings",
   });
 
-  // Skip the first render so we don't fire a save on mount.
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) {
@@ -184,19 +201,26 @@ function SettingsPage() {
 
   const removeLogo = () => saveProfile({ logo_url: "" });
 
-  // --- Collapsed summaries ---
+  // --- Summaries + completion flags ---
   const fmtMoney = (n: number) => (n ? `£${n}` : "—");
-  const pricingSummary = `${fmtMoney(labourHourly)}/hr · ${fmtMoney(labourDay)}/day`;
+  const pricingComplete = labourHourly > 0 || labourDay > 0;
+  const pricingSummary = pricingComplete
+    ? `${fmtMoney(labourHourly)}/hr · ${fmtMoney(labourDay)}/day`
+    : "Set your hourly + day rates";
   const last4 = bank.account_number ? `••${bank.account_number.slice(-4)}` : "no bank";
-  const gettingPaidSummary = `${bank.bank_name || "Bank not set"} ${last4} · ${defaultDepositPct}% deposit${vatRegistered ? " · VAT" : ""}`;
+  const bankComplete = !!bank.account_number;
+  const gettingPaidSummary = bankComplete
+    ? `${bank.bank_name || "Bank"} ${last4} · ${defaultDepositPct}% deposit${vatRegistered ? " · VAT" : ""}`
+    : "Add bank details so you get paid";
   const quoteLookSummary = profile.show_signature
     ? `Signed as ${profile.signature_name || profile.full_name || "you"}`
     : "No signature";
   const regLabel = registrationLabelForTrade(profile.trade_type);
+  const regHint = useMemo(() => registrationHintForTrade(profile.trade_type), [profile.trade_type]);
 
   return (
     <AppShell>
-      <div className="sticky top-0 z-30 bg-paper">
+      <div className="sticky top-0 z-30 bg-paper border-b border-border/60">
         <PageHeader
           title="Settings"
           subtitle="Configuration"
@@ -224,214 +248,269 @@ function SettingsPage() {
         }}
       />
 
-      {/* 1. YOUR BUSINESS — identity + branding, open */}
-      <Section
-        title="Your business"
-        defaultOpen
-        summary={profile.business_name || "Add your business details"}
-      >
-        <div className="card-surface p-5 space-y-3.5">
-          <EditField label="Business name" value={profile.business_name} onChange={(v) => saveProfile({ business_name: v })} />
-          <EditField label="Your name"     value={profile.full_name}     onChange={(v) => saveProfile({ full_name: v })} />
-          <EditField label="Phone"         value={profile.phone}         onChange={(v) => saveProfile({ phone: v })} inputMode="tel" />
-          <SelectField label="Trade type"  value={profile.trade_type}    onChange={(v) => saveProfile({ trade_type: v })} options={TRADE_TYPES} />
-          <EditField label="Address line 1" value={profile.address_line_1} onChange={(v) => saveProfile({ address_line_1: v })} placeholder="e.g. 12 High Street" />
-          <EditField label="Address line 2" value={profile.address_line_2} onChange={(v) => saveProfile({ address_line_2: v })} placeholder="Optional" />
-          <div className="grid grid-cols-2 gap-2.5">
-            <EditField label="Town / City"   value={profile.town}          onChange={(v) => saveProfile({ town: v })} />
-            <EditField
-              label="Postcode"
-              value={profile.postcode}
-              onChange={(v) => saveProfile({ postcode: v.toUpperCase() })}
-              autoCapitalize="characters"
-            />
-          </div>
-
-          <div className="pt-3 border-t border-border/60">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-3">Business logo</p>
-            {profile.logo_url ? (
-              <div className="flex flex-col items-center gap-3">
-                <BusinessLogo logoUrl={profile.logo_url} businessName={profile.business_name} size="xl" />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5 disabled:opacity-50"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                    {uploading ? "Uploading…" : "Change logo"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={removeLogo}
-                    className="text-xs font-bold bg-secondary text-ink px-4 py-2 rounded-full flex items-center gap-1.5"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="w-full rounded-2xl border-2 border-dashed border-lime/60 bg-ink text-paper px-5 py-6 flex flex-col items-center gap-2 hover:bg-ink/90 transition disabled:opacity-50"
-              >
-                <div className="h-12 w-12 rounded-full bg-lime text-ink flex items-center justify-center">
-                  <Camera className="h-5 w-5" />
-                </div>
-                <p className="font-bold text-sm">{uploading ? "Uploading…" : "Add your logo"}</p>
-                <p className="text-xs text-paper/60 text-center max-w-[260px]">
-                  Appears on all quotes, invoices and PDFs.
-                </p>
-              </button>
-            )}
-          </div>
-        </div>
-      </Section>
-
-      {/* 2. YOUR PRICING — collapsed with summary */}
-      <Section title="Your pricing" summary={pricingSummary}>
-        <div className="card-surface p-5 space-y-3">
-          <div className="grid grid-cols-2 gap-2.5">
-            <MoneyField label="Hourly rate" value={labourHourly} onChange={setLabourHourly} placeholder="45" />
-            <MoneyField label="Day rate"    value={labourDay}    onChange={setLabourDay}    placeholder="280" />
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Used to price labour on your quotes — so you never have to correct it.
-          </p>
-        </div>
-      </Section>
-
-      {/* 3. GETTING PAID — bank, terms, deposit, VAT, Gas Safe, card payments, collapsed */}
-      <Section title="Getting paid" summary={gettingPaidSummary}>
-        <div className="space-y-3">
-          <div className="card-surface p-5 space-y-3">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Bank details</p>
-            <Input label="Bank account name" value={bank.account_name} onChange={(v) => saveBank({ account_name: v })} />
-            <Input label="Bank name" value={bank.bank_name} onChange={(v) => saveBank({ bank_name: v })} />
-            <div className="grid grid-cols-2 gap-2.5">
-              <Input label="Sort code" value={bank.sort_code} onChange={(v) => saveBank({ sort_code: v })} inputMode="numeric" />
-              <Input label="Account number" value={bank.account_number} onChange={(v) => saveBank({ account_number: v })} inputMode="numeric" />
-            </div>
-            <Input label="Payment reference instructions" value={bank.payment_reference_note} onChange={(v) => saveBank({ payment_reference_note: v })} multiline rows={2} />
-          </div>
-
-          <div className="card-surface p-5 space-y-3">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Terms & deposit</p>
-            <Input label="Payment terms" value={terms} onChange={setTerms} multiline rows={3} />
+      <div className="divide-y divide-border/60 border-b border-border/60">
+        {/* 1. YOUR BUSINESS */}
+        <Section
+          title="Your business"
+          icon={Briefcase}
+          defaultOpen
+          summary={profile.business_name || "Add your business details"}
+        >
+          <div className="space-y-4">
+            {/* Logo first */}
             <div>
-              <label className="block text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">
-                Default deposit % (jobs over £500)
-              </label>
-              <input
-                type="number" min={0} max={100} step={1}
-                inputMode="numeric"
-                value={defaultDepositPct}
-                onChange={(e) => {
-                  const n = Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)));
-                  setDefaultDepositPct(n);
-                }}
-                className="w-full h-11 bg-card border border-border rounded-2xl px-4 text-sm font-semibold num outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
-              />
-              <p className="text-[11px] text-muted-foreground mt-1.5">
-                Applied to new AI-generated quotes that fall in the deposit-then-balance band.
-              </p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-3">Business logo</p>
+              {profile.logo_url ? (
+                <div className="flex items-center gap-4">
+                  <BusinessLogo logoUrl={profile.logo_url} businessName={profile.business_name} size="lg" />
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      {uploading ? "Uploading…" : "Change"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={removeLogo}
+                      className="text-xs font-bold bg-secondary text-ink px-4 py-2 rounded-full flex items-center gap-1.5"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full rounded-2xl border border-border bg-card px-5 py-5 flex flex-col items-center gap-2 hover:border-ink/30 transition disabled:opacity-50"
+                >
+                  <div className="h-11 w-11 rounded-full bg-lime text-ink flex items-center justify-center">
+                    <Camera className="h-5 w-5" />
+                  </div>
+                  <p className="font-bold text-sm">{uploading ? "Uploading…" : "Add your logo"}</p>
+                  <p className="text-xs text-muted-foreground text-center max-w-[260px]">
+                    Appears on all quotes, invoices and PDFs.
+                  </p>
+                </button>
+              )}
+            </div>
+
+            <div className="card-surface divide-y divide-border/60">
+              <FieldRow><EditField label="Business name" value={profile.business_name} onChange={(v) => saveProfile({ business_name: v })} /></FieldRow>
+              <FieldRow><EditField label="Your name"     value={profile.full_name}     onChange={(v) => saveProfile({ full_name: v })} /></FieldRow>
+              <FieldRow><EditField label="Phone"         value={profile.phone}         onChange={(v) => saveProfile({ phone: v })} inputMode="tel" /></FieldRow>
+              <FieldRow><SelectField label="Trade type"  value={profile.trade_type}    onChange={(v) => saveProfile({ trade_type: v })} options={TRADE_TYPES} /></FieldRow>
+            </div>
+
+            {/* Address sub-group */}
+            <fieldset className="card-surface p-4 space-y-3">
+              <legend className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold px-1">Address</legend>
+              <EditField label="Line 1" value={profile.address_line_1} onChange={(v) => saveProfile({ address_line_1: v })} placeholder="e.g. 12 High Street" />
+              <EditField label="Line 2" value={profile.address_line_2} onChange={(v) => saveProfile({ address_line_2: v })} placeholder="Optional" />
+              <div className="grid grid-cols-2 gap-2.5">
+                <EditField label="Town / City" value={profile.town} onChange={(v) => saveProfile({ town: v })} />
+                <EditField
+                  label="Postcode"
+                  value={profile.postcode}
+                  onChange={(v) => saveProfile({ postcode: v.toUpperCase() })}
+                  autoCapitalize="characters"
+                />
+              </div>
+            </fieldset>
+          </div>
+        </Section>
+
+        {/* 2. YOUR PRICING */}
+        <Section
+          title="Your pricing"
+          icon={PoundSterling}
+          summary={pricingSummary}
+          incomplete={!pricingComplete}
+        >
+          <div className="card-surface p-4 space-y-2">
+            <div className="grid grid-cols-2 gap-2.5">
+              <MoneyField label="Hourly rate" value={labourHourly} onChange={setLabourHourly} placeholder="45" />
+              <MoneyField label="Day rate"    value={labourDay}    onChange={setLabourDay}    placeholder="280" />
+            </div>
+            {labourHourly > 0 && labourDay === 0 && (
+              <p className="text-[11px] text-muted-foreground">Day rate ≈ 8h × hourly = £{labourHourly * 8}</p>
+            )}
+            {labourDay > 0 && labourHourly === 0 && (
+              <p className="text-[11px] text-muted-foreground">Hourly ≈ day ÷ 8 = £{Math.round(labourDay / 8)}</p>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              Used to price labour on your quotes — so you never have to correct it.
+            </p>
+          </div>
+        </Section>
+
+        {/* 3. GETTING PAID */}
+        <Section
+          title="Getting paid"
+          icon={Landmark}
+          summary={gettingPaidSummary}
+          incomplete={!bankComplete}
+        >
+          <div className="card-surface divide-y divide-border/60">
+            {/* Bank */}
+            <div className="p-4 space-y-3">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Bank details</p>
+              <Input label="Bank account name" value={bank.account_name} onChange={(v) => saveBank({ account_name: v })} />
+              <Input label="Bank name" value={bank.bank_name} onChange={(v) => saveBank({ bank_name: v })} />
+              <div className="grid grid-cols-2 gap-2.5">
+                <Input
+                  label="Sort code"
+                  value={bank.sort_code}
+                  onChange={(v) => saveBank({ sort_code: formatSortCode(v) })}
+                  inputMode="numeric"
+                />
+                <Input label="Account number" value={bank.account_number} onChange={(v) => saveBank({ account_number: v })} inputMode="numeric" />
+              </div>
+              <Input label="Payment reference instructions" value={bank.payment_reference_note} onChange={(v) => saveBank({ payment_reference_note: v })} multiline rows={2} />
+            </div>
+
+            {/* Terms & deposit */}
+            <div className="p-4 space-y-3">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Terms & deposit</p>
+              <Input label="Payment terms" value={terms} onChange={setTerms} multiline rows={3} />
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">
+                  Default deposit % (jobs over £500)
+                </label>
+                <input
+                  type="number" min={0} max={100} step={1}
+                  inputMode="numeric"
+                  value={defaultDepositPct}
+                  onChange={(e) => {
+                    const n = Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)));
+                    setDefaultDepositPct(n);
+                  }}
+                  className="w-full h-11 bg-card border border-border rounded-2xl px-4 text-sm font-semibold num outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1.5">
+                  Applied to new AI-generated quotes that fall in the deposit-then-balance band.
+                </p>
+              </div>
+            </div>
+
+            {/* VAT & registration */}
+            <div className="p-4 space-y-3">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">VAT & registration</p>
+              <div>
+                <EditField label={regLabel} value={profile.registration_number} onChange={(v) => saveProfile({ registration_number: v })} />
+                {regHint && (
+                  <p className="text-[11px] text-muted-foreground mt-1.5">{regHint}</p>
+                )}
+              </div>
+              <ToggleRow icon={Receipt} label="VAT registered" hint="Adds 20% VAT to every quote" checked={vatRegistered} onChange={setVatRegistered} flush />
+              {vatRegistered && (
+                <EditField
+                  label="VAT number"
+                  value={profile.vat_number}
+                  onChange={(v) => saveProfile({ vat_number: v.toUpperCase() })}
+                  placeholder="e.g. GB123456789"
+                  autoCapitalize="characters"
+                />
+              )}
+            </div>
+
+            {/* Card payments via Connect — flush sub-block */}
+            <div className="p-4">
+              <BillingSection show="connect" />
             </div>
           </div>
+        </Section>
 
-          <div className="card-surface p-5 space-y-3.5">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">VAT & registration</p>
-            <EditField label={regLabel} value={profile.registration_number} onChange={(v) => saveProfile({ registration_number: v })} />
-            <ToggleRow icon={Receipt} label="VAT registered" hint="Adds 20% VAT to every quote" checked={vatRegistered} onChange={setVatRegistered} flush />
-            {vatRegistered && (
-              <EditField
-                label="VAT number"
-                value={profile.vat_number}
-                onChange={(v) => saveProfile({ vat_number: v.toUpperCase() })}
-                placeholder="e.g. GB123456789"
-                autoCapitalize="characters"
-              />
-            )}
+        {/* 4. HOW QUOTES LOOK */}
+        <Section title="How quotes look" icon={FileSignature} summary={quoteLookSummary}>
+          <div className="card-surface divide-y divide-border/60">
+            <div className="p-4">
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                  Opening message on quotes
+                </span>
+                <textarea
+                  value={profile.quote_intro}
+                  onChange={(e) => saveProfile({ quote_intro: e.target.value })}
+                  rows={2}
+                  className="mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30 resize-y leading-snug"
+                />
+              </label>
+            </div>
+            <div className="p-4">
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                  Footer message
+                </span>
+                <textarea
+                  value={profile.quote_footer}
+                  onChange={(e) => saveProfile({ quote_footer: e.target.value })}
+                  rows={3}
+                  className="mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30 resize-y leading-snug"
+                />
+              </label>
+            </div>
+            <div className="p-4">
+              <EditField label="Your name on quotes" value={profile.signature_name} onChange={(v) => saveProfile({ signature_name: v })} placeholder="e.g. John Smith" />
+            </div>
+            <div className="p-4 space-y-2">
+              <ToggleRow icon={PenLine} label="Show signature on quotes" hint="Adds a signature line at the bottom" checked={profile.show_signature} onChange={(v) => saveProfile({ show_signature: v })} flush />
+              {profile.show_signature && (
+                <p className="font-serif italic text-muted-foreground text-sm pl-12">
+                  — {profile.signature_name || profile.full_name || "your name"}
+                </p>
+              )}
+            </div>
           </div>
+        </Section>
 
-          <BillingSection show="connect" />
-        </div>
-      </Section>
+        {/* 5. NOTIFICATIONS */}
+        <Section title="Notifications" icon={Bell} summary="Push & email alerts">
+          <div className="space-y-3">
+            <PushPermissionCard />
+            <NotificationToggles />
+          </div>
+        </Section>
 
-      {/* 4. HOW QUOTES LOOK — collapsed */}
-      <Section title="How quotes look" summary={quoteLookSummary}>
-        <div className="card-surface p-5 space-y-4">
-          <label className="block">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-              Opening message on quotes
-            </span>
-            <textarea
-              value={profile.quote_intro}
-              onChange={(e) => saveProfile({ quote_intro: e.target.value })}
-              rows={3}
-              className="mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30 resize-y leading-snug"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-              Footer message
-            </span>
-            <textarea
-              value={profile.quote_footer}
-              onChange={(e) => saveProfile({ quote_footer: e.target.value })}
-              rows={3}
-              className="mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30 resize-y leading-snug"
-            />
-          </label>
-          <EditField label="Your name on quotes" value={profile.signature_name} onChange={(v) => saveProfile({ signature_name: v })} placeholder="e.g. John Smith" />
-          <ToggleRow icon={PenLine} label="Show signature on quotes" hint="Adds a signature line at the bottom" checked={profile.show_signature} onChange={(v) => saveProfile({ show_signature: v })} flush />
-        </div>
-      </Section>
-
-      {/* 5. NOTIFICATIONS — collapsed */}
-      <Section title="Notifications" summary="Push & email alerts">
-        <div className="space-y-3">
-          <PushPermissionCard />
-          <NotificationToggles />
-        </div>
-      </Section>
-
-      {/* 6. ACCOUNT & BILLING — collapsed */}
-      <Section title="Account & billing" summary="Subscription, exports, sign out">
-        <div className="space-y-3">
-          <BillingSection show="subscription" />
-          <AccountingSetup />
-          <div className="card-surface">
+        {/* 6. ACCOUNT & BILLING */}
+        <Section title="Account & billing" icon={CreditCard} summary="Subscription, exports, sign out">
+          <div className="space-y-3">
+            <BillingSection show="subscription" />
+            <AccountingSetup />
             <button
               onClick={handleSignOut}
-              className="w-full px-5 py-4 flex items-center gap-3 text-sm font-semibold text-muted-foreground hover:text-status-overdue transition text-left"
+              className="w-full px-5 py-3.5 flex items-center gap-3 text-sm font-semibold text-muted-foreground hover:text-status-overdue transition text-left rounded-2xl"
             >
               <LogOut className="h-5 w-5" />
               Sign out
             </button>
           </div>
-        </div>
-      </Section>
+        </Section>
 
-      {/* 7. DANGER ZONE — collapsed, tinted */}
-      <Section title="Danger zone" tone="danger" summary="Permanent account deletion">
-        <div className="card-surface">
-          <button
-            onClick={() => {
-              setDeleteConfirm("");
-              setDeleteOpen(true);
-            }}
-            disabled={deleting}
-            className="px-5 py-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left disabled:opacity-60"
-          >
-            <Trash2 className="h-5 w-5" />
-            {deleting ? "Deleting…" : "Delete account"}
-          </button>
-        </div>
-      </Section>
+        {/* 7. DANGER ZONE */}
+        <Section title="Danger zone" icon={AlertOctagon} tone="danger" summary="Permanent account deletion">
+          <div className="rounded-2xl bg-status-overdue/5 border border-status-overdue/20">
+            <button
+              onClick={() => {
+                setDeleteConfirm("");
+                setDeleteOpen(true);
+              }}
+              disabled={deleting}
+              className="px-5 py-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left disabled:opacity-60"
+            >
+              <Trash2 className="h-5 w-5" />
+              <span className="flex-1">{deleting ? "Deleting…" : "Delete account"}</span>
+              <ChevronRight className="h-4 w-4 text-status-overdue/60" />
+            </button>
+          </div>
+        </Section>
+      </div>
 
       <div className="h-6" />
 
@@ -450,7 +529,6 @@ function SettingsPage() {
               Type DELETE to confirm
             </span>
             <input
-              autoFocus
               value={deleteConfirm}
               onChange={(e) => setDeleteConfirm(e.target.value)}
               placeholder="DELETE"
@@ -470,7 +548,7 @@ function SettingsPage() {
               type="button"
               onClick={handleDeleteAccount}
               disabled={deleting || deleteConfirm !== "DELETE"}
-              className="px-4 py-2 rounded-full text-sm font-bold bg-status-overdue text-white disabled:opacity-50"
+              className="px-4 py-2 rounded-full text-sm font-bold bg-status-overdue text-paper disabled:opacity-50"
             >
               {deleting ? "Deleting…" : "Delete account"}
             </button>
@@ -481,35 +559,58 @@ function SettingsPage() {
   );
 }
 
-
 function Section({
   title,
   children,
   defaultOpen = false,
   summary,
   tone = "default",
+  icon: Icon,
+  incomplete = false,
 }: {
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
   summary?: string;
   tone?: "default" | "danger";
+  icon?: LucideIcon;
+  incomplete?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(defaultOpen || incomplete);
   const danger = tone === "danger";
   return (
-    <section className="px-5 mt-5">
+    <section className="px-5 py-3">
       <button
         type="button"
         onClick={() => {
           feedback("tap");
           setOpen((o) => !o);
         }}
-        className="w-full flex items-center justify-between gap-3 py-2 text-left"
+        className="w-full flex items-center gap-3 py-2 text-left"
         aria-expanded={open}
       >
+        {Icon && (
+          <div
+            className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
+              danger ? "bg-status-overdue/10 text-status-overdue" : "bg-secondary text-ink"
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+          </div>
+        )}
         <div className="min-w-0 flex-1">
-          <h2 className={`text-xl ${danger ? "text-status-overdue" : ""}`}>{title}</h2>
+          <h2
+            className={`${open ? "text-xl" : "text-base font-bold"} ${
+              danger ? (open ? "text-status-overdue" : "text-status-overdue/80") : ""
+            }`}
+          >
+            {title}
+            {incomplete && !open && (
+              <span className="ml-2 inline-flex items-center align-middle text-[10px] font-bold uppercase tracking-wider bg-status-pending/15 text-status-pending px-1.5 py-0.5 rounded-full">
+                Set up
+              </span>
+            )}
+          </h2>
           {!open && summary && (
             <p className="text-xs text-muted-foreground mt-0.5 truncate">{summary}</p>
           )}
@@ -519,9 +620,13 @@ function Section({
           style={{ transform: open ? "rotate(90deg)" : "rotate(0deg)" }}
         />
       </button>
-      {open && <div className="mt-1">{children}</div>}
+      {open && <div className="mt-2 pb-2">{children}</div>}
     </section>
   );
+}
+
+function FieldRow({ children }: { children: React.ReactNode }) {
+  return <div className="p-4">{children}</div>;
 }
 
 function NotificationToggles() {
@@ -541,8 +646,6 @@ function NotificationToggles() {
     </div>
   );
 }
-
-
 
 function ToggleRow({
   icon: Icon, label, hint, checked, onChange, flush,
@@ -623,12 +726,12 @@ function AccountingSetup() {
   const [software, setSoftware] = useState<typeof userProfile.accounting_software>(userProfile.accounting_software || "");
   const [codes, setCodes] = useState({ ...userProfile.accounting_codes });
   const [codesOpen, setCodesOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   const filledCodes = (Object.values(codes) as string[]).filter((v) => v && v.trim()).length;
   const totalCodes = 5;
   const hasPickedSoftware = !!software;
 
-  // Autosave accounting setup (matches the page-wide autosave behaviour).
   const {
     isSaving: acctSaving,
     isSaved: acctSaved,
@@ -666,86 +769,100 @@ function AccountingSetup() {
   );
 
   return (
-    <div className="card-surface p-5 space-y-4">
+    <div className="card-surface divide-y divide-border/60">
       {/* Software picker */}
-      <label className="block">
-        <span className="text-xs text-muted-foreground font-semibold flex items-center justify-between">
-          <span>Accounting software</span>
-          <SaveIndicator isSaving={acctSaving} isSaved={acctSaved} error={acctError} showLabel={false} />
-        </span>
-        <select
-          value={software}
-          onChange={(e) => setSoftware(e.target.value as typeof software)}
-          className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+      <div className="p-4">
+        <label className="block">
+          <span className="text-xs text-muted-foreground font-semibold flex items-center justify-between">
+            <span>Accounting software</span>
+            <SaveIndicator isSaving={acctSaving} isSaved={acctSaved} error={acctError} showLabel={false} />
+          </span>
+          <select
+            value={software}
+            onChange={(e) => setSoftware(e.target.value as typeof software)}
+            className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+          >
+            {SOFTWARE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {/* Account codes — collapsible row */}
+      <div>
+        <button
+          type="button"
+          onClick={() => { feedback("tap"); setCodesOpen((s) => !s); }}
+          className="w-full flex items-center justify-between text-left px-4 py-3"
+          aria-expanded={codesOpen}
         >
-          {SOFTWARE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-      </label>
+          <div>
+            <p className="text-sm font-semibold">Account codes</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {filledCodes === 0 ? "Using default code (200)" : `${filledCodes} of ${totalCodes} codes set`}
+            </p>
+          </div>
+          <ChevronRight
+            className="h-5 w-5 text-muted-foreground transition-transform"
+            style={{ transform: codesOpen ? "rotate(90deg)" : "rotate(0deg)" }}
+          />
+        </button>
+        {codesOpen && (
+          <div className="space-y-3 px-4 pb-4">
+            <p className="text-xs text-muted-foreground">
+              Map line item categories to the income codes used by your accounting software.
+            </p>
+            {codeRow("labour", "Labour income code", "e.g. 201")}
+            {codeRow("materials", "Materials income code", "e.g. 202")}
+            {codeRow("certificate", "Certificate income code", "e.g. 203")}
+            {codeRow("cis_labour", "CIS labour income code", "e.g. 210")}
+            {codeRow("other", "Other income code", "e.g. 260")}
+          </div>
+        )}
+      </div>
 
-      {/* Account codes — collapsible summary row */}
-      <button
-        type="button"
-        onClick={() => { feedback("tap"); setCodesOpen((s) => !s); }}
-        className="w-full flex items-center justify-between text-left rounded-2xl bg-secondary/60 px-4 py-3"
-        aria-expanded={codesOpen}
-      >
-        <div>
-          <p className="text-sm font-semibold">Account codes</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {filledCodes === 0 ? "Using default code (200)" : `${filledCodes} of ${totalCodes} codes set`}
+      {/* Primary export */}
+      <div className="p-4 space-y-3">
+        {hasPickedSoftware ? (
+          <>
+            <AccountingExportButton />
+            <p className="text-xs text-muted-foreground text-center">
+              Paid invoices, one row per line item, formatted for your accounting software.
+            </p>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground text-center px-2">
+            Pick your accounting software above to get a tailored export.
           </p>
-        </div>
-        <ChevronRight
-          className="h-5 w-5 text-muted-foreground transition-transform"
-          style={{ transform: codesOpen ? "rotate(90deg)" : "rotate(0deg)" }}
-        />
-      </button>
+        )}
+      </div>
 
-      {codesOpen && (
-        <div className="space-y-3 pt-1">
+      {/* Secondary summary CSV — uses Section-style chevron row */}
+      <div>
+        <button
+          type="button"
+          onClick={() => { feedback("tap"); setSummaryOpen((s) => !s); }}
+          className="w-full flex items-center justify-between text-left px-4 py-3"
+          aria-expanded={summaryOpen}
+        >
           <p className="text-xs text-muted-foreground">
-            Map line item categories to the income codes used by your accounting software.
+            Need a simple paid-quotes summary instead?
           </p>
-          {codeRow("labour", "Labour income code", "e.g. 201")}
-          {codeRow("materials", "Materials income code", "e.g. 202")}
-          {codeRow("certificate", "Certificate income code", "e.g. 203")}
-          {codeRow("cis_labour", "CIS labour income code", "e.g. 210")}
-          {codeRow("other", "Other income code", "e.g. 260")}
-        </div>
-      )}
-
-      {/* Divider */}
-      <div className="border-t border-border/60" />
-
-      {/* Primary download CTA */}
-      {hasPickedSoftware ? (
-        <>
-          <AccountingExportButton />
-          <p className="text-xs text-muted-foreground text-center">
-            Paid invoices, one row per line item, formatted for your accounting software.
-          </p>
-        </>
-      ) : (
-        <p className="text-xs text-muted-foreground text-center px-2">
-          Pick your accounting software above to get a tailored export.
-        </p>
-      )}
-
-      {/* Secondary: simple summary CSV */}
-      <details className="group">
-        <summary className="text-xs text-muted-foreground text-center cursor-pointer list-none hover:text-ink">
-          Need a simple paid-quotes summary instead? ›
-        </summary>
-        <div className="pt-3">
-          <ExportInvoicesButton />
-        </div>
-      </details>
+          <ChevronRight
+            className="h-4 w-4 text-muted-foreground transition-transform"
+            style={{ transform: summaryOpen ? "rotate(90deg)" : "rotate(0deg)" }}
+          />
+        </button>
+        {summaryOpen && (
+          <div className="px-4 pb-4">
+            <ExportInvoicesButton />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-
 
 function Input({
   label,
