@@ -1556,6 +1556,23 @@ function LineItemsEditor({
   return (
     <>
       <ul>
+        {/* Add line — promoted to the top so it stays visible on long jobs */}
+        {isAdding && draft ? (
+          renderEditPanel(null, "add-new")
+        ) : (
+          <li className="border-t border-border first:border-t-0">
+            <button
+              type="button"
+              onClick={beginAdd}
+              className="w-full px-5 py-3 inline-flex items-center justify-center gap-2 text-sm font-semibold text-ink hover:bg-secondary/40 transition"
+            >
+              <span className="h-6 w-6 rounded-full bg-lime text-ink inline-flex items-center justify-center">
+                <Plus className="h-3.5 w-3.5" strokeWidth={3} />
+              </span>
+              Add line
+            </button>
+          </li>
+        )}
         {items.map((li, i) => {
           const effectiveSource = normalizeSource(li.source, paidQuoteCount);
           const isEstimate = lineIsEstimate(li);
@@ -1571,7 +1588,7 @@ function LineItemsEditor({
           return (
             <li
               key={i}
-              className="px-5 py-4 flex items-start gap-3 border-t border-border first:border-t-0"
+              className="px-5 py-4 flex items-start gap-3 border-t border-border"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-2 flex-wrap">
@@ -1610,21 +1627,8 @@ function LineItemsEditor({
             </li>
           );
         })}
-        {isAdding && draft
-          ? renderEditPanel(null, "add-new")
-          : (
-            <li className="border-t border-border first:border-t-0">
-              <button
-                type="button"
-                onClick={beginAdd}
-                className="w-full px-5 py-4 inline-flex items-center justify-center gap-2 text-sm font-semibold text-ink/70 hover:text-ink hover:bg-secondary/40 transition"
-              >
-                <Plus className="h-4 w-4" strokeWidth={2.5} />
-                Add line
-              </button>
-            </li>
-          )}
       </ul>
+
 
 
 
