@@ -1460,7 +1460,7 @@ function LineItemsEditor({
                 if (e.key === "Escape") cancelEdit();
               }}
               placeholder={isNew ? "e.g. Replace shower mixer" : undefined}
-              className={`${inputClass} w-full`}
+              className={`${inputClass} h-12 text-[15px] w-full`}
             />
             {isNew && suggestion && suggestion.typical_price > 0 && (
               <button
