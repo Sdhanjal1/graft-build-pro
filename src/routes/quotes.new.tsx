@@ -2064,8 +2064,6 @@ function VoiceOverlay({
   seconds: number;
   error: string | null;
   lastTranscript: string | null;
-  livePreview: string;
-  liveSupported: boolean;
   liveItems: LineItem[];
   transcript: string;
   pendingItems: { id: string; text: string }[];
