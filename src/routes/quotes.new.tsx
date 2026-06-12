@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { generateAIQuote, prefetchQuoteContext } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
-import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search, Send, Check, Banknote, Zap, Mic } from "lucide-react";
+import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search, Send, Check, Banknote, Zap, Mic, ChevronRight, AlertCircle, ArrowLeftRight, Keyboard } from "lucide-react";
 import { SendQuoteDialog } from "@/components/SendQuoteDialog";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { RotatingStatus, QUOTE_GEN_MESSAGES } from "@/components/RotatingStatus";
@@ -171,6 +171,9 @@ function NewQuotePage() {
   const recordTargetRef = useRef<"desc" | "clip" | "edit">("desc");
   const lastBlobRef = useRef<{ blob: Blob; mimeType: string } | null>(null);
   const draftRef = useRef<HTMLDivElement | null>(null);
+  const customerRef = useRef<HTMLDivElement | null>(null);
+  const [showTyping, setShowTyping] = useState(false);
+  const [confirmTrashIdx, setConfirmTrashIdx] = useState<number | null>(null);
   const originalDraftRef = useRef<string>("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
@@ -1280,31 +1283,57 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       >
 
         {!draft && (
-          <div className="card-surface p-4">
-            <label
-              htmlFor="quote-desc"
-              className="block text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5"
-            >
-              Describe the job
-            </label>
-            <textarea
-              id="quote-desc"
-              ref={textareaRef}
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-              rows={5}
-              className="w-full rounded-2xl bg-secondary text-ink p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-lime resize-y"
-              placeholder="e.g. Build single-storey rear extension 4m x 3m — strip foundations"
-            />
-            {!desc && <RotatingPrompts className="mt-2.5" />}
+          <div className="space-y-3">
+            {/* Voice — primary entry */}
             <button
               type="button"
               onClick={handleVoiceStart}
-              className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-ink/80 hover:text-ink"
+              className="w-full bg-lime text-ink rounded-2xl px-5 py-5 active:scale-[0.99] transition flex items-center gap-4 text-left shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)]"
             >
-              <VoiceWaveform size={14} />
-              Or speak it instead
+              <div className="h-12 w-12 rounded-full bg-ink text-lime flex items-center justify-center shrink-0">
+                <Mic className="h-6 w-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-base leading-tight">Speak the job</p>
+                <p className="text-xs text-ink/70 mt-0.5">Describe it out loud — Quottr writes the quote.</p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-ink/60 shrink-0" />
             </button>
+
+            <RotatingPrompts className="" />
+
+            {/* Type fallback — collapsed by default */}
+            {!showTyping && !desc ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTyping(true);
+                  setTimeout(() => textareaRef.current?.focus(), 0);
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground hover:text-ink py-2"
+              >
+                <Keyboard className="h-3.5 w-3.5" />
+                Or type it instead
+              </button>
+            ) : (
+              <div className="card-surface p-4">
+                <label
+                  htmlFor="quote-desc"
+                  className="block text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5"
+                >
+                  Describe the job
+                </label>
+                <textarea
+                  id="quote-desc"
+                  ref={textareaRef}
+                  value={desc}
+                  onChange={(e) => setDesc(e.target.value)}
+                  rows={5}
+                  className="w-full rounded-2xl bg-secondary text-ink p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-lime resize-y"
+                  placeholder="e.g. Build single-storey rear extension 4m x 3m — strip foundations"
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -1331,12 +1360,31 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
         {!draft && (
           <div className="fixed bottom-20 inset-x-0 z-30 px-3 safe-bottom pointer-events-none">
-            <div className="mx-auto max-w-md pointer-events-auto">
+            <div className="mx-auto max-w-md pointer-events-auto space-y-2">
+              {subBlocked && (
+                <div className="rounded-2xl bg-paper/95 backdrop-blur border border-status-overdue/40 px-3.5 py-2.5 flex items-center gap-2.5 shadow-lg">
+                  <AlertCircle className="h-4 w-4 text-status-overdue shrink-0" />
+                  <p className="text-xs text-ink flex-1">Trial ended.</p>
+                  <Link
+                    to="/settings"
+                    className="text-xs font-bold text-ink underline underline-offset-2 shrink-0"
+                  >
+                    Update payment
+                  </Link>
+                </div>
+              )}
+
+              {error && !subBlocked && (
+                <div className="rounded-2xl bg-paper/95 backdrop-blur border border-status-overdue/40 px-3.5 py-2.5 flex items-start gap-2.5 shadow-lg">
+                  <AlertCircle className="h-4 w-4 text-status-overdue shrink-0 mt-0.5" />
+                  <p className="text-xs text-ink flex-1 break-words">{error}</p>
+                </div>
+              )}
+
               <button
                 type="submit"
                 form="new-quote-form"
                 disabled={loading || subBlocked}
-                title={subBlocked ? "Your trial has ended, add a payment method to continue" : undefined}
                 onPointerDown={() => feedback("tap")}
                 className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition disabled:opacity-60 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.35)]"
               >
@@ -1347,14 +1395,8 @@ Re-output the FULL updated list of line items for this quote, applying the chang
                 ) : (
                   <Sparkles className="h-5 w-5" />
                 )}
-                {subBlocked
-                  ? "Trial ended, add payment method"
-                  : loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : error ? "Retry generate" : "Generate quote"}
+                {loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : error ? "Retry generate" : "Generate quote"}
               </button>
-
-              {error && (
-                <p className="mt-2 text-[12px] text-center text-status-overdue font-medium bg-paper/90 rounded-full py-1">{error}</p>
-              )}
             </div>
           </div>
         )}
@@ -1365,12 +1407,15 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
             <div className="bg-ink text-paper p-4">
               <div className="flex items-start justify-between gap-3">
-                <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
+                  <p className="text-[11px] text-paper/55 mt-0.5">Tap any field to edit, or use voice →</p>
+                </div>
                 <button
                   type="button"
                   onClick={handleEditByVoice}
                   disabled={recording || transcribing || saving}
-                  className="inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-3 py-1 text-[11px] font-bold active:scale-[0.98] transition disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-3 py-1 text-[11px] font-bold active:scale-[0.98] transition disabled:opacity-60 shrink-0"
                 >
                   <Mic className="h-3 w-3" />
                   Edit by voice
@@ -1390,119 +1435,125 @@ Re-output the FULL updated list of line items for this quote, applying the chang
               />
             </div>
             <ul>
-              {draft.line_items.map((li, i) => (
-                <li
-                  key={i}
-                  className="px-4 py-3 border-t border-border first:border-t-0 space-y-2"
-                >
-                  {li.source && (() => {
-                    const src = normalizeSource(li.source, paidQuoteCount);
-                    return (
+              {draft.line_items.map((li, i) => {
+                const src = li.source ? normalizeSource(li.source, paidQuoteCount) : null;
+                const showPill = src === "voice" || src === "learned";
+                const isLabour = li.category === "labour" || li.category === "cis_labour";
+                const unit = li.unit ?? (isLabour ? "hours" : "qty");
+                const qtyLabel = unit === "hours" ? "Hrs" : unit === "days" ? "Days" : "Qty";
+                const priceSuffix = unit === "hours" ? "/hr" : unit === "days" ? "/day" : "";
+                const lineTotal = li.qty * li.unit_price;
+                const isPriced = li.unit_price > 0;
+                const isConfirmingTrash = confirmTrashIdx === i;
+                return (
+                  <li
+                    key={i}
+                    className="px-4 py-3 border-t border-border first:border-t-0 space-y-2 group"
+                  >
+                    {showPill && (
                       <span
                         className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          src === "voice"
-                            ? "bg-lime/30 text-ink"
-                            : src === "learned"
-                            ? "bg-lime/15 text-ink"
-                            : "bg-secondary text-muted-foreground"
+                          src === "voice" ? "bg-lime/30 text-ink" : "bg-lime/15 text-ink"
                         }`}
                       >
-                        {src === "voice"
-                          ? "Your price"
-                          : src === "learned"
-                          ? "Your usual price"
-                          : "Quottr suggested"}
+                        {src === "voice" ? "Your price" : "Your usual price"}
                       </span>
-                    );
-                  })()}
-                  <div className="flex items-start gap-2">
-                    <textarea
-                      value={li.description}
-                      onChange={(e) => {
-                        const next = [...draft.line_items];
-                        next[i] = { ...li, description: e.target.value };
-                        setDraft({ ...draft, line_items: next });
-                      }}
-                      rows={1}
-                      className="flex-1 bg-transparent outline-none text-sm font-medium resize-none placeholder:text-muted-foreground"
-                      placeholder="Item description"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = draft.line_items.filter((_, idx) => idx !== i);
-                        setDraft({ ...draft, line_items: next.length ? next : [{ description: "", qty: 1, unit_price: 0 }] });
-                      }}
-                      className="text-muted-foreground hover:text-status-overdue p-1 -mr-1 shrink-0"
-                      aria-label="Remove line item"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                  {(() => {
-                    const isLabour = li.category === "labour" || li.category === "cis_labour";
-                    const unit = li.unit ?? (isLabour ? "hours" : "qty");
-                    const qtyLabel = unit === "hours" ? "Hrs" : unit === "days" ? "Days" : "Qty";
-                    const priceSuffix = unit === "hours" ? "/hr" : unit === "days" ? "/day" : "";
-                    return (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          {qtyLabel}
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            min={0}
-                            step="0.1"
-                            value={li.qty}
-                            onChange={(e) => {
-                              const next = [...draft.line_items];
-                              next[i] = { ...li, qty: parseFloat(e.target.value) || 0 };
-                              setDraft({ ...draft, line_items: next });
-                            }}
-                            className="w-16 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
-                          />
-                        </label>
-                        {isLabour && (
-                          <div className="inline-flex rounded bg-secondary p-0.5 text-[10px] font-semibold">
-                            {(["hours", "days"] as const).map((u) => (
-                              <button
-                                key={u}
-                                type="button"
-                                onClick={() => {
-                                  const next = [...draft.line_items];
-                                  next[i] = { ...li, unit: u };
-                                  setDraft({ ...draft, line_items: next });
-                                }}
-                                className={`px-2 py-0.5 rounded ${unit === u ? "bg-ink text-paper" : "text-muted-foreground"}`}
-                              >
-                                {u === "hours" ? "Hrs" : "Days"}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          £{priceSuffix && <span className="text-[10px]">{priceSuffix}</span>}
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            min={0}
-                            step="0.01"
-                            value={li.unit_price}
-                            onChange={(e) => {
-                              const next = [...draft.line_items];
-                              next[i] = { ...li, unit_price: parseFloat(e.target.value) || 0 };
-                              setDraft({ ...draft, line_items: next });
-                            }}
-                            onFocus={(e) => e.currentTarget.select()}
-                            className="w-24 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
-                          />
-                        </label>
-                        <p className="num text-sm ml-auto font-semibold">{formatGBP(li.qty * li.unit_price)}</p>
-                      </div>
-                    );
-                  })()}
-                </li>
-              ))}
+                    )}
+                    <div className="flex items-start gap-2">
+                      <textarea
+                        value={li.description}
+                        onChange={(e) => {
+                          const next = [...draft.line_items];
+                          next[i] = { ...li, description: e.target.value };
+                          setDraft({ ...draft, line_items: next });
+                        }}
+                        rows={1}
+                        className="flex-1 bg-transparent outline-none text-sm font-medium resize-none placeholder:text-muted-foreground"
+                        placeholder="Item description"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isPriced && !isConfirmingTrash) {
+                            setConfirmTrashIdx(i);
+                            setTimeout(() => setConfirmTrashIdx((v) => (v === i ? null : v)), 3000);
+                            return;
+                          }
+                          setConfirmTrashIdx(null);
+                          const next = draft.line_items.filter((_, idx) => idx !== i);
+                          setDraft({ ...draft, line_items: next.length ? next : [{ description: "", qty: 1, unit_price: 0 }] });
+                        }}
+                        className={`p-1 -mr-1 shrink-0 transition-opacity ${
+                          isConfirmingTrash
+                            ? "text-status-overdue opacity-100"
+                            : "text-muted-foreground/40 group-hover:opacity-100 group-focus-within:opacity-100 hover:text-status-overdue"
+                        }`}
+                        aria-label={isConfirmingTrash ? "Tap again to remove" : "Remove line item"}
+                        title={isConfirmingTrash ? "Tap again to remove" : undefined}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    {isConfirmingTrash && (
+                      <p className="text-[11px] text-status-overdue font-medium">Tap trash again to remove this priced line.</p>
+                    )}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        {qtyLabel}
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="0.1"
+                          value={li.qty}
+                          onChange={(e) => {
+                            const next = [...draft.line_items];
+                            next[i] = { ...li, qty: parseFloat(e.target.value) || 0 };
+                            setDraft({ ...draft, line_items: next });
+                          }}
+                          className="w-16 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
+                        />
+                      </label>
+                      {isLabour && (
+                        <div className="inline-flex rounded bg-secondary p-0.5 text-[10px] font-semibold">
+                          {(["hours", "days"] as const).map((u) => (
+                            <button
+                              key={u}
+                              type="button"
+                              onClick={() => {
+                                const next = [...draft.line_items];
+                                next[i] = { ...li, unit: u };
+                                setDraft({ ...draft, line_items: next });
+                              }}
+                              className={`px-2 py-0.5 rounded ${unit === u ? "bg-ink text-paper" : "text-muted-foreground"}`}
+                            >
+                              {u === "hours" ? "Hrs" : "Days"}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        £{priceSuffix && <span className="text-[10px]">{priceSuffix}</span>}
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          min={0}
+                          step="0.01"
+                          value={li.unit_price}
+                          onChange={(e) => {
+                            const next = [...draft.line_items];
+                            next[i] = { ...li, unit_price: parseFloat(e.target.value) || 0 };
+                            setDraft({ ...draft, line_items: next });
+                          }}
+                          onFocus={(e) => e.currentTarget.select()}
+                          className="w-24 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
+                        />
+                      </label>
+                      <p className="num text-sm ml-auto font-semibold w-full text-right sm:w-auto">{formatGBP(lineTotal)}</p>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
             <button
               type="button"
@@ -1527,79 +1578,11 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           </div>
         )}
 
-        {/* Step 4: Payment options (consistent with the detail page) */}
+        {/* Customer — gates save, surfaced before payment */}
         {draft && (
-          <div className="space-y-3">
+          <div ref={customerRef} className="space-y-3 scroll-mt-20">
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Step 4</p>
-              <h3 className="text-lg font-bold mt-0.5">How will you get paid?</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {paymentTimingLabel({ timing: paymentTiming, total, depositAmount: depositAmt, depositPercent: depositPct })}
-              </p>
-            </div>
-            <div className="card-surface p-2 space-y-1.5">
-              <PaymentMethodOption
-                active={paymentTiming === "on_completion"}
-                icon={Check}
-                label="On completion"
-                sub="Customer pays after work is done"
-                onClick={() => onPaymentTimingChange("on_completion")}
-              />
-              <PaymentMethodOption
-                active={paymentTiming === "deposit_then_balance"}
-                icon={Banknote}
-                label="Deposit then balance"
-                sub="Take a deposit up front, balance on completion"
-                onClick={() => onPaymentTimingChange("deposit_then_balance")}
-              />
-              <PaymentMethodOption
-                active={paymentTiming === "upfront"}
-                icon={Zap}
-                label="Upfront"
-                sub="Full payment before work starts"
-                onClick={() => onPaymentTimingChange("upfront")}
-              />
-            </div>
-            {paymentTiming === "deposit_then_balance" && (
-              <div className="card-surface p-4 space-y-3">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Deposit</p>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
-                    <span className="text-ink/60 font-bold">£</span>
-                    <input
-                      type="text" inputMode="decimal"
-                      value={depositAmtRaw}
-                      onChange={(e) => setDepositAmtRaw(e.target.value)}
-                      onFocus={(e) => e.currentTarget.select()}
-                      onBlur={onDepositAmtBlur}
-                      placeholder="0.00"
-                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none"
-                    />
-                  </label>
-                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
-                    <input
-                      type="text" inputMode="decimal"
-                      value={depositPctRaw}
-                      onChange={(e) => setDepositPctRaw(e.target.value)}
-                      onFocus={(e) => e.currentTarget.select()}
-                      onBlur={onDepositPctBlur}
-                      placeholder="0"
-                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none text-right"
-                    />
-                    <span className="text-ink/60 font-bold">%</span>
-                  </label>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 5: Assign customer (after draft is generated) */}
-        {draft && (
-          <div className="space-y-3">
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Step 5</p>
-              <h3 className="text-lg font-bold mt-0.5">Who's this for?</h3>
+              <h3 className="text-lg font-bold">Customer</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Assign a customer so we know where this quote is going.
               </p>
@@ -1613,7 +1596,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
                   setClientName(lastCustomer.name);
                   setClientPhone(lastCustomer.phone ?? "");
                 }}
-                className="w-full mb-3 rounded-2xl py-3 px-4 flex items-center gap-3 bg-lime/15 border border-lime/40 active:scale-[0.99] transition text-left"
+                className="w-full rounded-2xl py-3 px-4 flex items-center gap-3 bg-lime/15 border border-lime/40 active:scale-[0.99] transition text-left"
               >
                 <div className="h-9 w-9 rounded-full bg-lime/30 flex items-center justify-center text-ink font-bold text-xs shrink-0">
                   {lastCustomer.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
@@ -1622,6 +1605,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Same as last</p>
                   <p className="text-sm font-bold text-ink truncate">{lastCustomer.name}</p>
                 </div>
+                <ChevronRight className="h-4 w-4 text-ink/60 shrink-0" />
               </button>
             )}
 
@@ -1664,21 +1648,22 @@ Re-output the FULL updated list of line items for this quote, applying the chang
             )}
 
             {customerMode === "existing" && clientName && (
-              <div className="card-surface p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Customer</p>
+              <div className="card-surface overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setPickerOpen(true)}
+                  className="w-full p-4 flex items-center gap-3 text-left active:scale-[0.99] transition"
+                >
+                  <div className="h-9 w-9 rounded-full bg-lime/30 flex items-center justify-center text-ink font-bold text-xs shrink-0">
+                    {clientName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Customer · tap to change</p>
                     <p className="text-sm font-semibold truncate mt-0.5">{clientName}</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setPickerOpen(true)}
-                    className="text-xs font-bold text-ink underline underline-offset-2 shrink-0 ml-3"
-                  >
-                    Change
-                  </button>
-                </div>
-                <div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
+                <div className="px-4 pb-4 pt-1 border-t border-border">
                   <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
                     Phone number
                   </label>
@@ -1724,66 +1709,126 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           </div>
         )}
 
+        {/* Payment — after customer */}
         {draft && (
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => { void save("draft"); }}
-                onPointerDown={() => feedback("tap")}
-                disabled={!clientName.trim() || saving}
-                title={!clientName.trim() ? "Add a customer to save this quote." : undefined}
-                className="flex-1 bg-card border border-border text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {editId ? "Save changes" : "Save as draft"}
-              </button>
-              <button
-                type="button"
-                onClick={() => { void save("send"); }}
-                onPointerDown={() => feedback("tap")}
-                disabled={!clientName.trim() || saving}
-                title={!clientName.trim() ? "Add a customer to save this quote." : undefined}
-                className="flex-1 bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Save & send
-              </button>
-            </div>
-            {!clientName.trim() && (
-              <p className="text-[12px] text-center text-muted-foreground">
-                Add a customer to save this quote.
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-lg font-bold">Payment</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {paymentTimingLabel({ timing: paymentTiming, total, depositAmount: depositAmt, depositPercent: depositPct })}
               </p>
-            )}
-            {error && (
-              <div className="rounded-2xl border border-status-overdue/40 bg-status-overdue/10 p-3 space-y-2">
-                <p className="text-sm font-semibold text-status-overdue">Couldn't save quote</p>
-                <p className="text-xs text-status-overdue/90 break-words">{error}</p>
-                <div className="flex gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => { void save("draft"); }}
-                    disabled={saving}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-status-overdue text-white py-2 text-xs font-bold disabled:opacity-60"
-                  >
-                    {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                    {saving ? "Retrying…" : "Retry"}
-                  </button>
-                  {editId && (
-                    <button
-                      type="button"
-                      onClick={() => navigate({ to: "/quotes" })}
-                      className="flex-1 inline-flex items-center justify-center rounded-full border border-status-overdue/40 text-status-overdue py-2 text-xs font-bold"
-                    >
-                      Back to list
-                    </button>
-                  )}
+            </div>
+            <div className="card-surface p-2 space-y-1.5">
+              <PaymentMethodOption
+                active={paymentTiming === "on_completion"}
+                icon={Check}
+                label="On completion"
+                sub="Customer pays after work is done"
+                onClick={() => onPaymentTimingChange("on_completion")}
+              />
+              <PaymentMethodOption
+                active={paymentTiming === "deposit_then_balance"}
+                icon={Banknote}
+                label="Deposit then balance"
+                sub="Take a deposit up front, balance on completion"
+                onClick={() => onPaymentTimingChange("deposit_then_balance")}
+              />
+              <PaymentMethodOption
+                active={paymentTiming === "upfront"}
+                icon={Zap}
+                label="Upfront"
+                sub="Full payment before work starts"
+                onClick={() => onPaymentTimingChange("upfront")}
+              />
+            </div>
+            {paymentTiming === "deposit_then_balance" && (
+              <div className="card-surface p-4 space-y-2">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Deposit</p>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5 flex-1">
+                    <span className="text-ink/60 font-bold">£</span>
+                    <input
+                      type="text" inputMode="decimal"
+                      value={depositAmtRaw}
+                      onChange={(e) => setDepositAmtRaw(e.target.value)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onBlur={onDepositAmtBlur}
+                      placeholder="0.00"
+                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none"
+                    />
+                  </label>
+                  <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5 flex-1">
+                    <input
+                      type="text" inputMode="decimal"
+                      value={depositPctRaw}
+                      onChange={(e) => setDepositPctRaw(e.target.value)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onBlur={onDepositPctBlur}
+                      placeholder="0"
+                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none text-right"
+                    />
+                    <span className="text-ink/60 font-bold">%</span>
+                  </label>
                 </div>
+                <p className="text-[11px] text-muted-foreground">£ and % stay in sync.</p>
               </div>
             )}
           </div>
         )}
       </form>
+
+      {/* Sticky save bar (draft state) */}
+      {draft && (
+        <div className="fixed bottom-20 inset-x-0 z-30 px-3 safe-bottom pointer-events-none">
+          <div className="mx-auto max-w-md pointer-events-auto space-y-2">
+            {error && (
+              <div className="rounded-2xl bg-paper/95 backdrop-blur border border-status-overdue/40 px-3.5 py-2.5 shadow-lg space-y-1.5">
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="h-4 w-4 text-status-overdue shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-ink">Couldn't save quote</p>
+                    <p className="text-[11px] text-muted-foreground break-words mt-0.5">{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-full bg-paper/95 backdrop-blur shadow-[0_12px_32px_-8px_rgba(0,0,0,0.35)] p-1.5 flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => { void save("draft"); }}
+                onPointerDown={() => feedback("tap")}
+                disabled={!clientName.trim() || saving}
+                className="px-4 py-3 rounded-full text-ink font-bold text-xs inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-ink/5 transition"
+              >
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {editId ? "Save" : "Draft"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!clientName.trim()) {
+                    customerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    return;
+                  }
+                  void save("send");
+                }}
+                onPointerDown={() => feedback("tap")}
+                disabled={saving}
+                className={`flex-1 rounded-full py-3 font-bold inline-flex items-center justify-center gap-2 text-sm transition ${
+                  !clientName.trim()
+                    ? "bg-ink/10 text-muted-foreground"
+                    : "bg-lime text-ink active:scale-[0.99]"
+                } disabled:opacity-60`}
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {!clientName.trim() ? "Add a customer ↑" : "Save & send"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {savedQuote && (
         <SendQuoteDialog

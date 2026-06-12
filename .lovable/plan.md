@@ -1,38 +1,42 @@
-# Clients audit — list, detail, new
+# New quote flow audit — `quotes.new.tsx`
 
-Second pass of the per-screen tidy. Scoped to `src/routes/clients.index.tsx`, `src/routes/clients.$clientId.tsx`, and `src/routes/clients.new.tsx`. Visual hierarchy, density, consistency, and affordance only — no data or business-logic changes. Patterns carry over from the Quotes pass (chip filters, single rounded search, AlertDialog over native confirm, ink-on-cream tokens, etc).
+Third pass of the per-screen tidy. Scoped to `src/routes/quotes.new.tsx` (the page wrapper and its main render — the voice overlay internals stay out, see "Out of scope"). Visual hierarchy, step framing, and affordance only — no AI / save / line-item math / customer-data changes.
 
-## Clients list (`clients.index.tsx`)
+This is the most-used screen in the app, and it's accumulated two distinct shapes (pre-draft entry vs post-draft editor) that need a cleaner spine.
 
-1. **Header parity with Quotes.** Tighten the header eyebrow + title to the same rhythm Quotes now uses (eyebrow size, leading, spacing under the title). The "New" pill is fine — keep it, just align baseline with the title.
-2. **Search field chrome.** Same fix as Quotes list — drop the full `card-surface` block, switch to a single rounded input with inline `Search` icon. Reads lighter and matches the rest of the app.
-3. **Customer card hierarchy.** The avatar + name + address line is right, but the meta row currently mixes phone and quote count at the same `[11px] text-muted-foreground` weight, so neither stands out. Promote the **quote count + total** to a right-aligned secondary block (small, tabular `num`, ink) and drop the phone from the meta line — it's already on the detail page, and tapping the card to call is a worse pattern than tapping the row to open the customer. Keeps the address as the only sub-line.
-4. **Duplicate badge.** The amber "Possible duplicate" pill is useful but is currently a noisy inline chip jammed next to the name. Move it to a small left-edge ribbon dot or a single-line muted hint under the address ("Looks similar to *Other Name* — review"), so the card stays scannable. Keep the detection logic.
-5. **Empty state copy.** "Customers you quote for will show here" is fine but unhelpful — add a primary CTA inside the empty state ("Add your first customer" → `/clients/new`) so the only path forward isn't the small "New" pill in the header.
+## Entry state (no draft yet)
 
-## Client detail (`clients.$clientId.tsx`)
+1. **Voice is the headline, not a footnote.** Right now the only entry is a textarea card, with "Or speak it instead" as a small text link under it. Voice is the product's core feature. Restructure to two peer affordances at the top: a large **"Speak the job"** lime button (mic icon, primary), and **"Or type instead"** revealing the textarea below. Default the mic primary because that's what we want them to use. (Keeps the same `handleVoiceStart` / `textareaRef` plumbing.)
+2. **`RotatingPrompts` placement.** The rotating prompt list appears only when `desc` is empty, under the textarea. Promote it to appear under the voice CTA too — same prompts, same component — so the suggestions are visible regardless of which entry mode is showing. Reinforces "here's what good input looks like".
+3. **Trial-ended messaging.** The generate button overloads its own label with "Trial ended, add payment method" — long string inside a primary CTA, and there's no link to fix it. Pull this into a separate **inline banner** above the button: short copy + a "Update payment method" link to `/settings`. Button stays clean ("Generate quote" + disabled state).
+4. **Generate-button error state.** The "Retry generate" icon-swap is good, but the error message currently renders below the button as a tiny pill (`text-status-overdue`). Promote to a proper inline error chip above the button with the exact failure (network / quota / parse) so the user knows whether to retry or rephrase.
 
-6. **Top stats tiles.** "Total quoted" and "Paid" are two equal-weight tiles, but they answer different questions. Reshape to one combined card: big number = **Paid** (the outcome), with "of £X quoted across N {jobs}" as the secondary line. One glance, one story. Smaller, more informative, frees vertical space for the history below.
-7. **Service summary + reminder card.** The "X jobs completed" card and the "Recommended every N months" reminder card are stacked separately with identical chrome — they're the same conversation (service cadence). Merge into a single card with two stacked lines: completed/last-service line on top, recommended-cadence line below, separated by a hairline. Halves the vertical real estate.
-8. **Contact block — inline edit affordance.** `EditableRow` looks identical to the read-only `Row` until you focus it (only the bottom border appears on focus). Add a small pencil glyph on hover/focus and a faint dashed underline at rest, so it's discoverable that name/phone/email are editable without a tap-to-discover. Keep auto-save behaviour.
-9. **Address + Property — make actionable.** `Row` already supports `href` but neither address nor phone uses it. Wire the address to a `geo:` / `maps:` link and the (now non-editable) read-only phone display to `tel:` so taps from the detail card actually do something on mobile. (Phone stays editable — long-press / second tap or a discrete inline pencil to switch into edit mode.)
-10. **Customer portal placement.** "Customer portal" sits between the contact block and the job history — it's the most ignorable section but currently visually equal to history. Demote to **below** job history, or collapse into a one-line summary with a "Manage portal access" expand. Job history is the thing pros open this page for.
-11. **Job history row hierarchy.** Same fix as Quotes list cards — the £ amount is currently the biggest thing on every row but it's the *secondary* fact for an existing customer (status + title is what they want). Drop amount to a tabular right-aligned `num text-sm` ink, promote the title to primary. Status/ref/cert chips stay on the meta row.
-12. **"Quote again" button.** The lime pill in the section header is correct, but consider adding a softer secondary state ("New quote for {firstName}") so the action reads as continuing the relationship rather than starting over. Cheap copy win.
+## Draft state (post-generate)
 
-## New customer (`clients.new.tsx`)
+5. **Step labels are broken.** Sections are labelled "Step 4" and "Step 5" — there is no Step 1/2/3. Either drop the numbering entirely (preferred — the flow is linear and self-evident) or renumber 1–3 (job → payment → customer). Going with **drop numbering**, replace with clear section headings: "Your quote", "Payment", "Customer".
+6. **Customer assignment ordering.** Customer is currently Step 5 — last. But the save buttons are disabled until a customer is set, so users build the whole quote then hit a wall. Move **Customer** above **Payment** (so order is: quote preview → customer → payment). Customer is the gate; surface it earlier. Save buttons can then be primary and never disabled-without-explanation.
+7. **Customer block — pattern reuse.** The "existing" and "new" customer cards reimplement field styling locally (`label` + `input` + `border-b`). Use the same `Field` shape we just introduced in `clients.new` so all three customer-entry surfaces (clients.new, quotes.new, assign dialog) look identical.
+8. **Customer card "Change" link.** Same fix as Quotes detail / payment terms — the entire selected-customer card should be the tap target to re-open the picker. Drop the inline underlined "Change" text in favour of a chevron and an `active:scale-[0.99]` press state on the whole card.
+9. **Save bar — primary/secondary hierarchy.** Two equal-weight buttons (`Save as draft` and `Save & send`) at the bottom of the form. `Save & send` is the primary action 95% of the time. Restructure to a sticky bottom save bar (matches `clients.new` pattern just landed): large lime **Save & send**, with a smaller `Save draft` link above or as a secondary ghost button to its left. Removes the `pb-64` form-padding hack.
+10. **Disabled-CTA explanation.** When `clientName` is empty the save buttons are disabled with a `title` tooltip + a centered helper line. Tooltips don't fire on touch. Replace with an always-visible inline hint **inside the sticky bar** ("Add a customer above to save") that's only shown when disabled. Bonus: tapping it scrolls to the customer block (`scrollIntoView`).
+11. **Error block on save.** The save-error block is good (specific copy + retry) but lives at the very bottom of the form below the save buttons, where it can be off-screen after a failed `save("send")`. Hoist into the sticky bar area (above the buttons) so the user sees it without scrolling.
+12. **"Edit by voice" affordance.** The dark preview header has a small `bg-lime` "Edit by voice" pill in the top-right. Good action, weak discoverability — looks like a status badge. Add a subtle "Tap to edit, or use voice" line under the "Preview · editable" eyebrow so users understand both entry modes from the start.
 
-13. **`Field` component — kill the card chrome per field.** Six stacked `card-surface` blocks for six fields is heavy and doesn't match `clients.new` density elsewhere in the app. Switch to a single `card-surface` containing all fields, with hairline dividers between rows. Label stays on top, field below. Phone/email stay side-by-side. Saves ~30% vertical scroll on mobile.
-14. **Property type — chips not select.** `<select>` for 8 options is fine but feels like a desktop form. Replace with a horizontally-scrollable chip row (Homeowner / Landlord / Commercial / Letting agent) and a "More…" sheet for the sub-types (Victorian terrace, semi-detached, etc). Faster on mobile, no native picker UI.
-15. **Save bar.** The full-width lime "Save customer" button at the end of the form is correct, but on a long form it's off-screen. Add a sticky bottom save bar (matches the pattern from `quotes.new`) so it's always reachable. Keep the inline button as well, or drop it in favour of the sticky bar.
-16. **Error display.** `text-red-500` inline error above the button is the only red on the page and doesn't match the rest of the app (which uses `text-destructive` / toast surfaces). Swap to `text-destructive` and lean on the existing `sonner` toast for redundancy (already there).
-17. **Phone/email validation.** No client-side validation — typos in phone/email silently save and break later (the quote-send flow needs them). Add lightweight format checks on blur (UK mobile shape + standard email regex) with an inline hint, non-blocking.
+## Line-item editor (within the preview card)
+
+13. **Row wrap behaviour on narrow widths.** The qty / unit-toggle / £ / total row uses `flex-wrap` and the total drops to a new line on iPhone SE-class widths. Restructure to a 2-row layout on narrow: row 1 = description + trash, row 2 = qty + price + total (right-aligned). Stops the total from orphaning.
+14. **Source pill noise.** Three source variants ("Your price" lime, "Your usual price" lime/15, "Quottr suggested" secondary) are visible on every line. Once a quote is mostly user-priced this becomes wallpaper. Show the pill **only when source is `voice` or `learned`** (the wins worth signalling) — drop the muted "Quottr suggested" badge entirely. Reduces visual chatter; suggested is the implicit default.
+15. **Trash affordance.** Trash icon next to each description is at full opacity always — easy to fat-finger on mobile. Drop to `text-muted-foreground/40` at rest, full opacity on row focus/hover, and require a confirm (`AlertDialog`, not `window.confirm`) when deleting a row with a non-zero `unit_price`. Empty rows delete immediately.
+
+## Payment section
+
+16. **Deposit input pairing.** £ and % inputs are presented as two equal pill-cards. They're linked (changing one updates the other) but visually independent. Add a subtle "↔" between them and a one-line helper underneath ("£ and % stay in sync") so the relationship is obvious.
 
 ## Out of scope (this pass)
 
-- `CustomerPortalPanel` internals (separate audit — it's substantial)
-- `AssignClientDialog` — owned by the quote-send flow
-- Duplicate-detection logic itself (only its presentation)
-- Any data / RLS / server-fn changes
+- `VoiceOverlay` / `MicLevelBars` / `MicLevelRings` — separate audit (substantial)
+- `SendQuoteDialog`, `CustomerPicker` internals (audited with the send flow / clients respectively)
+- AI generation logic, line-item math, save logic, RLS
+- The big stuff in `useEffect`s — handlers / debouncing / scroll behaviour
 
-After this lands, next pass is **New quote flow** (`quotes.new`) or **Home / dashboard + nav** — your call.
+Next pass after this: **Home / dashboard + nav** (`index.tsx`, `BottomNav`, `FloatingMicButton`, banners, pull-to-refresh).
