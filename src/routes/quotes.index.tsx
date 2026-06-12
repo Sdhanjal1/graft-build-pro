@@ -129,7 +129,7 @@ function QuotesPage() {
           >
             <CountUpGBP value={pipelineTotal} />
           </p>
-          <p className="text-[10px] uppercase tracking-widest font-bold text-ink/55 mt-1">
+          <p className="text-[10px] uppercase tracking-widest font-bold text-ink/55 mt-0.5">
             Active pipeline value
           </p>
           {(awaitingTile.count > 0 || overdueTile.count > 0) && (

@@ -199,13 +199,13 @@ function NewClientPage() {
         style={{ bottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="mx-auto max-w-md">
-          <div className="h-6 -mb-2 bg-gradient-to-t from-paper to-transparent pointer-events-none" />
-          <div className="px-5 pb-5 pt-2 pointer-events-auto bg-paper">
+          <div className="h-4 -mb-1 bg-gradient-to-t from-paper to-transparent pointer-events-none" />
+          <div className="px-5 pb-3 pt-1.5 pointer-events-auto bg-paper">
             <button
               type="button"
               onClick={(e) => save(e as unknown as React.FormEvent)}
               disabled={!name.trim() || saving}
-              className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.99] transition shadow-lg shadow-ink/10"
+              className="w-full bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.99] transition shadow-lg shadow-ink/10"
             >
               <Save className="h-5 w-5" /> {saving ? "Saving…" : "Save customer"}
             </button>
@@ -228,13 +228,13 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block p-3.5">
+    <label className="block p-3">
       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
         {label}
         {required && <span className="text-lime"> *</span>}
       </span>
-      <div className="mt-2">{children}</div>
-      {hint && <p className="mt-1.5 text-[11px] text-amber-700">{hint}</p>}
+      <div className="mt-1.5">{children}</div>
+      {hint && <p className="mt-1 text-[11px] text-amber-700">{hint}</p>}
     </label>
   );
 }

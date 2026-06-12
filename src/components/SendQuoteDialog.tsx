@@ -158,7 +158,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={handleClose}>
-      <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-6" onClick={(e) => e.stopPropagation()}>
         <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
 
         {sentVia ? (

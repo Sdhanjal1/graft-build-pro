@@ -14,7 +14,7 @@ export function AppShell({
   const handleRefresh = onRefresh ?? (() => router.invalidate());
   return (
     <div className="min-h-screen bg-paper">
-      <div className="mx-auto max-w-md min-h-screen pb-28">
+      <div className="mx-auto max-w-md min-h-screen pb-24">
         <PullToRefresh onRefresh={handleRefresh}>{children}</PullToRefresh>
       </div>
     </div>
@@ -40,7 +40,7 @@ export function PageHeader({
 
   if (compact) {
     return (
-      <header className="bg-surface text-paper rounded-b-[1.5rem] px-5 pt-7 pb-6 relative overflow-hidden">
+      <header className="bg-surface text-paper rounded-b-[1.5rem] px-5 pt-5 pb-4 relative overflow-hidden">
         <span aria-hidden className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-lime/15 blur-3xl pointer-events-none" />
         <span aria-hidden className="absolute left-0 top-0 h-full w-1.5 bg-lime" />
         <div className="relative flex items-start gap-3">
@@ -72,7 +72,7 @@ export function PageHeader({
 
 
   return (
-    <header className="bg-surface text-paper rounded-b-[1.5rem] px-5 pt-7 pb-6 relative overflow-hidden">
+    <header className="bg-surface text-paper rounded-b-[1.5rem] px-5 pt-5 pb-4 relative overflow-hidden">
       <span aria-hidden className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-lime/15 blur-3xl pointer-events-none" />
       <span aria-hidden className="absolute left-0 top-0 h-full w-1.5 bg-lime" />
 
@@ -88,10 +88,10 @@ export function PageHeader({
       </div>
 
       {/* Hairline divider */}
-      <div className="relative mt-4 h-px bg-paper/10" />
+      <div className="relative mt-3 h-px bg-paper/10" />
 
       {/* Secondary: screen title */}
-      <div className="relative mt-3 flex items-center gap-3">
+      <div className="relative mt-2 flex items-center gap-3">
         {showBack && (
           <Link
             to={backTo}
