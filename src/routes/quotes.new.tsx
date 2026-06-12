@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { generateAIQuote, prefetchQuoteContext } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
-import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search, Send, Check, Banknote, Zap, Mic } from "lucide-react";
+import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search, Send, Check, Banknote, Zap, Mic, ChevronRight, AlertCircle, ArrowLeftRight, Keyboard } from "lucide-react";
 import { SendQuoteDialog } from "@/components/SendQuoteDialog";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { RotatingStatus, QUOTE_GEN_MESSAGES } from "@/components/RotatingStatus";
