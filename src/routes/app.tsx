@@ -47,9 +47,6 @@ export const Route = createFileRoute("/app")({
   }),
 });
 
-// Mic-example copy is sourced from the trade registry — see src/lib/trades.ts.
-
-
 function AppHomePage() {
   const { session, loading } = useSession();
   const navigate = useNavigate();
@@ -68,8 +65,6 @@ function AppHomePage() {
     if (typeof window === "undefined") return;
     if (firstRun && window.localStorage.getItem("firstRunSeen") !== "true") {
       setShowFirstRun(true);
-      // Snooze the PWA install banner for 30 minutes so the first-run
-      // tooltip stands alone on the mic. The PWA prompt can return later.
       window.localStorage.setItem(
         "quottr.pwa-dismissed-until",
         String(Date.now() + 30 * 60 * 1000),
@@ -107,7 +102,6 @@ function AppHomePage() {
   const today = todaysJobs();
   const firstName = userProfile.full_name.split(" ")[0] || "there";
   const greeting = greetingFor();
-  
 
   // Action-queue breakdown
   const pendingQuotes = mockQuotes.filter((q) => q.status === "pending");
@@ -126,41 +120,14 @@ function AppHomePage() {
     sentQuotes.length > 0 ||
     overdueQuotes.length > 0;
 
-  return (
-    <AppShell>
-      <div className="flex flex-col min-h-[calc(100dvh-7rem)]">
-      {/* Ink header: greeting + £ outstanding */}
-
-      <header className="bg-surface text-paper rounded-b-[1.5rem] px-5 pt-6 pb-7 relative overflow-hidden">
-        <span aria-hidden className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-lime/15 blur-2xl pointer-events-none" />
-        <div className="relative flex items-center justify-between">
-          <QuottrWordmark className="text-[2.5rem] leading-none" />
-          <Link
-            to="/settings"
-            className="flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] font-bold text-paper/60 hover:text-lime transition max-w-[55%]"
-          >
-            <span className="truncate">{userProfile.business_name || "Set up"}</span>
-            <Settings className="h-3.5 w-3.5 shrink-0" />
-          </Link>
-        </div>
-
-        <p className="relative mt-6 text-sm text-paper/70 font-medium">
-          {greeting}, {firstName}
-        </p>
-
-        {s.paidTodayCount > 0 ? (
-          <div className="relative mt-2">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-lime font-bold">
-              Paid today
-            </p>
-            <p
-              className="money-hero text-lime mt-1 leading-[0.82] tabular-nums"
-              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4.5rem, 22vw, 7rem)" }}
-            >
-              <span className="num-appear inline-block">{formatGBP(s.paidToday)}</span>
-
-            </p>
-            <p className="text-[11px] text-paper/60 font-medium mt-2">
+  // Single hero number: paid > owed > won > nothing.
+  const hero: { label: string; amount: number; href?: string; sub?: React.ReactNode } | null =
+    s.paidTodayCount > 0
+      ? {
+          label: "Paid today",
+          amount: s.paidToday,
+          sub: (
+            <>
               {s.paidTodayCount} payment{s.paidTodayCount !== 1 ? "s" : ""}
               {s.outstanding > 0 && (
                 <>
@@ -170,72 +137,179 @@ function AppHomePage() {
                   </Link>
                 </>
               )}
-            </p>
-          </div>
-        ) : s.outstanding > 0 ? (
-          <div className="relative mt-2">
-            {s.acceptedTodayCount > 0 && (
-              <p className="text-sm text-lime font-semibold mb-1">
-                Won today: {formatGBP(s.acceptedTodayAmount)}
-              </p>
-            )}
-            <p className="text-[10px] uppercase tracking-[0.2em] text-lime font-bold">
-              You are owed
-            </p>
-            <Link to="/chaser" className="block mt-1 active:opacity-80 transition">
-              <p
-                className="money-hero text-lime leading-[0.82] tabular-nums"
-                style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4.5rem, 22vw, 7rem)" }}
-              >
-                <span className="num-appear inline-block">{formatGBP(s.outstanding)}</span>
+            </>
+          ),
+        }
+      : s.outstanding > 0
+      ? {
+          label: "You are owed",
+          amount: s.outstanding,
+          href: "/chaser",
+          sub:
+            s.acceptedTodayCount > 0 ? (
+              <span className="text-lime">Won today: {formatGBP(s.acceptedTodayAmount)}</span>
+            ) : null,
+        }
+      : s.acceptedTodayCount > 0
+      ? { label: "Won today", amount: s.acceptedTodayAmount }
+      : null;
 
-              </p>
+  // Action cards in priority order
+  const cards: Array<{ to: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; tone: "pending" | "neutral" | "overdue" | "accepted"; title: string; count: number; amount: number; cta: string }> = [];
+  if (overdueQuotes.length > 0) cards.push({ to: "/chaser", icon: AlertTriangle, tone: "overdue", title: "Overdue", count: overdueQuotes.length, amount: overdueTotal, cta: "Send reminder" });
+  if (pendingQuotes.length > 0) cards.push({ to: "/quotes", icon: Send, tone: "pending", title: "Quotes to send", count: pendingQuotes.length, amount: pendingTotal, cta: "Send now" });
+  if (acceptedQuotes.length > 0) cards.push({ to: "/quotes", icon: CheckCircle2, tone: "accepted", title: "Booked jobs", count: acceptedQuotes.length, amount: acceptedTotal, cta: "Mark complete" });
+  if (sentQuotes.length > 0) cards.push({ to: "/chaser", icon: Bell, tone: "neutral", title: "Awaiting reply", count: sentQuotes.length, amount: awaitingReplyTotal, cta: "Chase up" });
+
+  const bookedWithMats = mockQuotes
+    .filter((q) => q.status === "accepted")
+    .map((q) => ({ q, mats: materialsForQuote(q) }))
+    .filter(({ mats }) => mats.length > 0);
+  const totalMatItems = bookedWithMats.reduce((sum, { mats }) => sum + mats.length, 0);
+
+  const showStripeBanner = mockQuotes.length > 0 && !userProfile.stripe_connected && !bannerDismissed;
+
+  return (
+    <AppShell>
+      <div className="flex flex-col min-h-[calc(100dvh-7rem)]">
+        {/* Ink header: greeting + hero £ */}
+        <header className="bg-surface text-paper rounded-b-[1.5rem] px-5 pt-6 pb-7 relative overflow-hidden">
+          <span aria-hidden className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-lime/15 blur-2xl pointer-events-none" />
+          <div className="relative flex items-center justify-between">
+            <QuottrWordmark className="text-[2.5rem] leading-none" />
+            <Link
+              to="/settings"
+              className="flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] font-bold text-paper/60 hover:text-lime transition max-w-[55%]"
+            >
+              <span className="truncate">{userProfile.business_name || "Set up"}</span>
+              <Settings className="h-3.5 w-3.5 shrink-0" />
             </Link>
           </div>
-        ) : s.acceptedTodayCount > 0 ? (
-          <div className="relative mt-2">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-lime font-bold">
-              Won today
-            </p>
-            <p
-              className="money-hero text-lime mt-1 leading-[0.82] tabular-nums"
-              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4.5rem, 22vw, 7rem)" }}
-            >
-              <span className="num-appear inline-block">{formatGBP(s.acceptedTodayAmount)}</span>
 
-            </p>
-          </div>
-        ) : null}
+          <p className="relative mt-6 text-sm text-paper/70 font-medium">
+            {greeting}, {firstName}
+          </p>
 
-        {/* Stat pills */}
+          {hero && <HeroNumber {...hero} />}
+        </header>
+
+        {/* Action queue — leads the feed */}
         {hasActions && (
-          <div className="relative mt-5 flex gap-2 flex-wrap">
-            {pendingQuotes.length > 0 && (
-              <StatPill icon={FileText} count={pendingQuotes.length} label="to send" tone="pending" to="/quotes" />
-            )}
-            {acceptedQuotes.length > 0 && (
-              <StatPill icon={CheckCircle2} count={acceptedQuotes.length} label="booked" tone="accepted" to="/quotes" />
-            )}
-            {sentQuotes.length > 0 && (
-              <StatPill icon={Clock} count={sentQuotes.length} label="awaiting reply" tone="neutral" to="/chaser" />
-            )}
-            {overdueQuotes.length > 0 && (
-              <StatPill icon={AlertTriangle} count={overdueQuotes.length} label="overdue" tone="overdue" to="/chaser" />
-            )}
-          </div>
+          <section className="px-5 mt-5 space-y-2.5">
+            {cards.map((c, i) => (
+              <ActionCard key={c.title} {...c} hero={i === 0} />
+            ))}
+          </section>
         )}
-      </header>
 
+        {/* Today's jobs */}
+        {today.length > 0 && (
+          <section className="px-5 mt-5">
+            <div className="card-surface p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="h-4 w-4 text-lime" />
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
+                  Today's jobs
+                </p>
+              </div>
+              <div className="space-y-2">
+                {today.map((j) => {
+                  const q = getQuote(j.quote_id);
+                  const c = q ? getClient(q.client_id) : undefined;
+                  if (!q) return null;
+                  return (
+                    <Link
+                      key={j.id}
+                      to="/quotes/$quoteId"
+                      params={{ quoteId: q.id }}
+                      className="flex items-center gap-3 active:scale-[0.99] transition"
+                    >
+                      <div className="num text-lg text-ink leading-none w-16 shrink-0 tabular-nums">
+                        {formatTime(j.starts_at)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">{q.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {c?.name} · {c?.address}
+                        </p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
 
-      {/* Materials needed across all booked jobs */}
-      {(() => {
-        const bookedWithMats = mockQuotes
-          .filter((q) => q.status === "accepted")
-          .map((q) => ({ q, mats: materialsForQuote(q) }))
-          .filter(({ mats }) => mats.length > 0);
-        const totalItems = bookedWithMats.reduce((s, { mats }) => s + mats.length, 0);
-        if (totalItems === 0) return null;
-        return (
+        {/* Voice-first hero CTA — big central mic */}
+        <section ref={micCardRef} id="home-mic-card" className="px-5 mt-5 flex-1 flex flex-col scroll-mt-20">
+          {showFirstRun && (
+            <div className="relative mb-3 rounded-2xl bg-lime text-ink p-4 shadow-[0_10px_28px_-12px_rgba(0,0,0,0.35)] ring-1 ring-ink/10">
+              <button
+                type="button"
+                onClick={dismissFirstRun}
+                aria-label="Dismiss"
+                className="absolute top-2 right-2 h-7 w-7 rounded-full flex items-center justify-center hover:bg-ink/10 active:scale-95"
+              >
+                <X className="h-4 w-4 text-ink" strokeWidth={2.5} />
+              </button>
+              <p className="text-sm font-semibold pr-7">
+                Welcome, {firstName}. Tap the mic to speak your first quote.
+              </p>
+              <p className="mt-1 text-xs text-ink/75">
+                Try: &ldquo;{resolveTrade(userProfile.trade_type).homeMicExample}&rdquo;
+              </p>
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={dismissFirstRun}
+                  className="rounded-full bg-ink text-paper text-xs font-semibold px-4 py-2 active:scale-95"
+                >
+                  Got it
+                </button>
+              </div>
+              <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-3 w-3 rotate-45 bg-lime ring-1 ring-ink/10" />
+            </div>
+          )}
+          <div className="flex flex-col w-full rounded-2xl bg-surface text-paper p-5 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center flex-1">
+            <Link
+              to="/quotes/new"
+              search={{ voice: 1 }}
+              onClick={() => buzz(12)}
+              className="flex flex-col items-center justify-center flex-1 active:scale-[0.99] transition rounded-2xl py-2"
+            >
+              <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+                Tap to start
+              </p>
+              <p className="text-2xl font-semibold leading-tight mt-1">New voice quote</p>
+
+              <div className="flex items-center justify-center my-3">
+                <span className="relative h-32 w-32 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_48px_-14px_rgba(200,224,74,0.8)]">
+                  <span className="absolute inset-0 rounded-full bg-lime mic-ring-inner origin-center" />
+                  <span className="absolute inset-0 rounded-full bg-lime mic-ring-outer origin-center" />
+                  <VoiceWaveform size={64} className="relative text-ink" />
+                </span>
+              </div>
+            </Link>
+
+            <div className="pt-3 mt-auto border-t border-paper/10">
+              <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">
+                Try saying
+              </p>
+              <RotatingPrompts className="mt-1 text-sm text-paper/85 leading-snug" />
+              <Link
+                to="/quotes/new"
+                className="inline-block mt-3 text-xs text-paper/60 hover:text-lime underline underline-offset-4 decoration-paper/30"
+              >
+                Or type instead
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Materials needed across all booked jobs */}
+        {totalMatItems > 0 && (
           <section className="px-5 mt-4">
             <Link
               to="/quotes"
@@ -249,225 +323,107 @@ function AppHomePage() {
                   Materials needed
                 </p>
                 <p className="text-sm font-semibold mt-0.5">
-                  {totalItems} item{totalItems === 1 ? "" : "s"} across {bookedWithMats.length} booked job{bookedWithMats.length === 1 ? "" : "s"}
+                  {totalMatItems} item{totalMatItems === 1 ? "" : "s"} across {bookedWithMats.length} booked job{bookedWithMats.length === 1 ? "" : "s"}
                 </p>
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground" />
             </Link>
           </section>
-        );
-      })()}
+        )}
 
-
-      {/* Connect Stripe banner: after first quote, until connected or dismissed */}
-      {mockQuotes.length > 0 && !userProfile.stripe_connected && !bannerDismissed && (
+        {/* Customer book */}
         <section className="px-5 mt-4">
-          <div className="card-surface p-3 flex items-center gap-3 border-l-4 border-lime">
-            <div className="h-10 w-10 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
-              <CreditCard className="h-5 w-5 text-ink" />
+          <Link
+            to="/clients"
+            className="card-surface p-4 flex items-center gap-3 active:scale-[0.99] transition"
+          >
+            <div className="h-10 w-10 rounded-full bg-ink/10 flex items-center justify-center shrink-0">
+              <Users className="h-5 w-5 text-ink" strokeWidth={2.25} />
             </div>
-            <Link
-              to="/settings"
-              className="flex-1 min-w-0 active:opacity-80 transition"
-            >
-              <p className="text-sm font-semibold text-ink">Take card payments</p>
-              <p className="text-[11px] text-muted-foreground">
-                Connect Stripe in 60 seconds.
-              </p>
-            </Link>
-            <button
-              type="button"
-              aria-label="Dismiss"
-              onClick={() => {
-                if (typeof window !== "undefined") {
-                  window.localStorage.setItem(STRIPE_BANNER_DISMISS_KEY, "1");
-                }
-                setBannerDismissed(true);
-              }}
-              className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-ink active:scale-95 transition shrink-0"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </section>
-      )}
-
-      {/* Customer book entry */}
-      <Link
-        to="/clients"
-        className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-ink/5 hover:bg-ink/10 active:bg-ink/15 transition-colors"
-      >
-        <div className="h-9 w-9 rounded-full bg-ink/10 flex items-center justify-center shrink-0">
-          <Users className="h-4 w-4 text-ink" strokeWidth={2.25} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-ink leading-tight">Customer book</div>
-          <div className="text-xs text-ink/60 leading-tight mt-0.5">
-            {userClients.length} {userClients.length === 1 ? "customer" : "customers"}
-          </div>
-        </div>
-        <ArrowRight className="h-4 w-4 text-ink/40 shrink-0" strokeWidth={2.25} />
-      </Link>
-
-      {/* Action queue — first card is the hero, the rest are compact rows */}
-      {hasActions ? (() => {
-        const cards: Array<{ to: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; tone: "pending" | "neutral" | "overdue" | "accepted"; title: string; count: number; amount: number; cta: string }> = [];
-        if (overdueQuotes.length > 0) cards.push({ to: "/chaser", icon: AlertTriangle, tone: "overdue", title: "Overdue", count: overdueQuotes.length, amount: overdueTotal, cta: "Send reminder" });
-        if (pendingQuotes.length > 0) cards.push({ to: "/quotes", icon: Send, tone: "pending", title: "Quotes to send", count: pendingQuotes.length, amount: pendingTotal, cta: "Send now" });
-        if (acceptedQuotes.length > 0) cards.push({ to: "/quotes", icon: CheckCircle2, tone: "accepted", title: "Booked jobs", count: acceptedQuotes.length, amount: acceptedTotal, cta: "Mark complete" });
-        if (sentQuotes.length > 0) cards.push({ to: "/chaser", icon: Bell, tone: "neutral", title: "Awaiting reply", count: sentQuotes.length, amount: awaitingReplyTotal, cta: "Chase up" });
-        return (
-          <section className="px-5 mt-5 space-y-2.5">
-            {cards.map((c, i) => (
-              <ActionCard key={c.title} {...c} hero={i === 0} />
-            ))}
-          </section>
-        );
-      })() : null}
-
-
-
-      {/* Today's jobs */}
-      {today.length > 0 && (
-        <section className="px-5 mt-5">
-          <div className="card-surface p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="h-4 w-4 text-lime" />
+            <div className="flex-1 min-w-0">
               <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
-                Today's jobs
+                Customer book
+              </p>
+              <p className="text-sm font-semibold mt-0.5">
+                {userClients.length} {userClients.length === 1 ? "customer" : "customers"}
               </p>
             </div>
-            <div className="space-y-2">
-              {today.map((j) => {
-                const q = getQuote(j.quote_id);
-                const c = q ? getClient(q.client_id) : undefined;
-                if (!q) return null;
-                return (
-                  <Link
-                    key={j.id}
-                    to="/quotes/$quoteId"
-                    params={{ quoteId: q.id }}
-                    className="flex items-center gap-3 active:scale-[0.99] transition"
-                  >
-                    <div className="num text-lg text-ink leading-none w-14 shrink-0">
-                      {formatTime(j.starts_at)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{q.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {c?.name} · {c?.address}
-                      </p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
         </section>
-      )}
 
-      {/* Voice-first hero CTA — big central mic */}
-      <section ref={micCardRef} id="home-mic-card" className="px-5 mt-5 flex-1 flex flex-col scroll-mt-20">
-        {showFirstRun && (
-          <div className="relative mb-3 rounded-2xl bg-lime text-ink p-4 shadow-[0_10px_28px_-12px_rgba(0,0,0,0.35)] ring-1 ring-ink/10">
-            <button
-              type="button"
-              onClick={dismissFirstRun}
-              aria-label="Dismiss"
-              className="absolute top-2 right-2 h-7 w-7 rounded-full flex items-center justify-center hover:bg-ink/10 active:scale-95"
-            >
-              <X className="h-4 w-4 text-ink" strokeWidth={2.5} />
-            </button>
-            <p className="text-sm font-semibold pr-7">
-              Welcome, {firstName}. Tap the mic to speak your first quote.
-            </p>
-            <p className="mt-1 text-xs text-ink/75">
-              Try: &ldquo;{resolveTrade(userProfile.trade_type).homeMicExample}&rdquo;
-            </p>
-            <div className="mt-3 flex justify-end">
+        {/* Connect Stripe banner: after first quote, until connected or dismissed */}
+        {showStripeBanner && (
+          <section className="px-5 mt-4">
+            <div className="card-surface p-3 flex items-center gap-3 border-l-4 border-lime">
+              <div className="h-10 w-10 rounded-full bg-lime/15 flex items-center justify-center shrink-0">
+                <CreditCard className="h-5 w-5 text-ink" />
+              </div>
+              <Link
+                to="/settings"
+                className="flex-1 min-w-0 active:opacity-80 transition"
+              >
+                <p className="text-sm font-semibold text-ink">Take card payments</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Connect Stripe in 60 seconds.
+                </p>
+              </Link>
               <button
                 type="button"
-                onClick={dismissFirstRun}
-                className="rounded-full bg-ink text-paper text-xs font-semibold px-4 py-2 active:scale-95"
+                aria-label="Dismiss"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.localStorage.setItem(STRIPE_BANNER_DISMISS_KEY, "1");
+                  }
+                  setBannerDismissed(true);
+                }}
+                className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-ink active:scale-95 transition shrink-0"
               >
-                Got it
+                <X className="h-4 w-4" />
               </button>
             </div>
-            {/* downward caret */}
-            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-3 w-3 rotate-45 bg-lime ring-1 ring-ink/10" />
-          </div>
+          </section>
         )}
-        <div className="flex flex-col w-full rounded-2xl bg-surface text-paper p-5 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)] text-center flex-1">
-          <Link
-            to="/quotes/new"
-            search={{ voice: 1 }}
-            onClick={() => buzz(12)}
-            className="flex flex-col items-center justify-center flex-1 active:scale-[0.99] transition rounded-2xl py-2"
-          >
-            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-              Tap to start
-            </p>
-            <p className="text-2xl font-semibold leading-tight mt-1">New voice quote</p>
-
-            <div className="flex items-center justify-center my-3">
-              <span className="relative h-32 w-32 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_48px_-14px_rgba(200,224,74,0.8)]">
-                <span className="absolute inset-0 rounded-full bg-lime mic-ring-inner origin-center" />
-                <span className="absolute inset-0 rounded-full bg-lime mic-ring-outer origin-center" />
-                <VoiceWaveform size={64} className="relative text-ink" />
-              </span>
-            </div>
-          </Link>
-
-          <div className="pt-3 mt-auto border-t border-paper/10">
-            <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">
-              Try saying
-            </p>
-            <RotatingPrompts className="mt-1 text-sm text-paper/85 leading-snug" />
-          </div>
-        </div>
-      </section>
-
-
-
-
       </div>
     </AppShell>
-
   );
 }
 
 /* ---------- Sub-components ---------- */
 
-function StatPill({
-  icon: Icon,
-  count,
+function HeroNumber({
   label,
-  tone,
-  to,
+  amount,
+  href,
+  sub,
 }: {
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  count: number;
   label: string;
-  tone: "pending" | "neutral" | "overdue" | "accepted";
-  to: string;
+  amount: number;
+  href?: string;
+  sub?: React.ReactNode;
 }) {
-  const toneCls =
-    tone === "pending"
-      ? "bg-status-pending/20 text-status-pending"
-      : tone === "overdue"
-      ? "bg-status-overdue/20 text-status-overdue"
-      : tone === "accepted"
-      ? "bg-lime/20 text-lime"
-      : "bg-paper/10 text-paper/80";
-  return (
-    <Link
-      to={to}
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold active:opacity-80 transition ${toneCls}`}
+  const numberEl = (
+    <p
+      className="money-hero text-lime leading-[0.82] tabular-nums"
+      style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.5rem, 18vw, 6rem)" }}
     >
-      <Icon className="h-3 w-3" />
-      {count} {label}
-    </Link>
+      <span className="num-appear inline-block">{formatGBP(amount)}</span>
+    </p>
+  );
+  return (
+    <div className="relative mt-2">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-lime font-bold">{label}</p>
+      <div className="mt-1">
+        {href ? (
+          <Link to={href} className="block active:opacity-80 transition">
+            {numberEl}
+          </Link>
+        ) : (
+          numberEl
+        )}
+      </div>
+      {sub && <p className="text-[11px] text-paper/60 font-medium mt-2">{sub}</p>}
+    </div>
   );
 }
 
@@ -491,17 +447,26 @@ function ActionCard({
   hero?: boolean;
 }) {
   if (hero) {
+    // Distinct surface per tone so the queue's mood reads at a glance.
     const heroBg =
       tone === "overdue"
-        ? "bg-ink text-paper"
+        ? "bg-status-overdue text-paper"
         : tone === "accepted"
         ? "bg-lime text-ink"
         : tone === "pending"
         ? "bg-ink text-paper"
-        : "bg-ink text-paper";
-    const amountColor = tone === "accepted" ? "text-ink" : "text-lime";
-    const subColor = tone === "accepted" ? "text-ink/70" : "text-paper/65";
-    const eyebrowColor = tone === "accepted" ? "text-ink/60" : "text-lime";
+        : "bg-paper text-ink ring-1 ring-border";
+    const onLight = tone === "accepted" || tone === "neutral";
+    const amountColor = onLight ? "text-ink" : "text-lime";
+    const subColor = onLight ? "text-ink/70" : "text-paper/65";
+    const eyebrowColor =
+      tone === "accepted"
+        ? "text-ink/60"
+        : tone === "neutral"
+        ? "text-ink/50"
+        : "text-lime";
+    const ctaColor = onLight ? "text-ink" : "text-lime";
+    const iconColor = onLight ? "text-ink/70" : "text-paper/70";
     return (
       <Link
         to={to}
@@ -509,7 +474,7 @@ function ActionCard({
       >
         <div className="flex items-center justify-between">
           <p className={`text-[10px] uppercase tracking-[0.2em] font-bold ${eyebrowColor}`}>{title}</p>
-          <Icon className={`h-4 w-4 ${tone === "accepted" ? "text-ink/70" : "text-paper/70"}`} />
+          <Icon className={`h-4 w-4 ${iconColor}`} />
         </div>
         <p
           className={`mt-2 leading-[0.85] tabular-nums ${amountColor}`}
@@ -521,7 +486,7 @@ function ActionCard({
           <p className={`text-xs font-medium ${subColor}`}>
             {count} quote{count !== 1 ? "s" : ""}
           </p>
-          <span className={`inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider ${tone === "accepted" ? "text-ink" : "text-lime"}`}>
+          <span className={`inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider ${ctaColor}`}>
             {cta} <ArrowRight className="h-3.5 w-3.5" />
           </span>
         </div>
