@@ -1829,6 +1829,8 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           </div>
         </div>
       )}
+
+      {savedQuote && (
         <SendQuoteDialog
           open={sendSheetOpen}
           onClose={() => {
