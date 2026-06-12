@@ -1794,7 +1794,6 @@ Re-output the FULL updated list of line items for this quote, applying the chang
               </div>
             )}
 
-            {(() => null)()}
             {draft && (draft.line_items.length === 0 || total <= 0) && clientName.trim() && (
               <div className="mb-2 rounded-2xl bg-paper/95 backdrop-blur shadow-[0_8px_24px_-8px_rgba(0,0,0,0.25)] px-3 py-2">
                 <p className="text-xs font-semibold text-ink">Add at least one item before sending.</p>
