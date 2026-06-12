@@ -90,7 +90,7 @@ function ClientsPage() {
             />
           )
         )}
-        {filtered.map((c) => {
+        {hydrated && filtered.map((c) => {
           const cQuotes = quotesForClient(c.id);
           const total = cQuotes.reduce((s, x) => s + x.total, 0);
           const paidTotal = cQuotes
