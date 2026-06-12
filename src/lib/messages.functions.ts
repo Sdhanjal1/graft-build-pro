@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/lib/require-active-subscription";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
 
 // ---------- Pro: create/get portal token for a quote ----------
 export const ensurePortalToken = createServerFn({ method: "POST" })
