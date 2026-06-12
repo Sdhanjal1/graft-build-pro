@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { userClients, quotesForClient, formatGBP } from "@/lib/user-data";
+import { userClients, quotesForClient, formatGBP, useHasHydrated } from "@/lib/user-data";
 import { Search, ArrowRight, UserPlus, Users, Inbox, AlertTriangle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { useState } from "react";
 
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/clients/")({
 
 function ClientsPage() {
   const [q, setQ] = useState("");
+  const hydrated = useHasHydrated();
   const filtered = userClients.filter(
     (c) =>
       c.name.toLowerCase().includes(q.toLowerCase()) ||
@@ -64,7 +66,14 @@ function ClientsPage() {
       </div>
 
       <div className="px-5 mt-4 space-y-2">
-        {filtered.length === 0 && (
+        {!hydrated && (
+          <>
+            <Skeleton className="h-16 w-full rounded-2xl bg-ink/5" />
+            <Skeleton className="h-16 w-full rounded-2xl bg-ink/5" />
+            <Skeleton className="h-16 w-full rounded-2xl bg-ink/5" />
+          </>
+        )}
+        {hydrated && filtered.length === 0 && (
           userClients.length === 0 ? (
             <EmptyState
               icon={Users}
@@ -81,7 +90,7 @@ function ClientsPage() {
             />
           )
         )}
-        {filtered.map((c) => {
+        {hydrated && filtered.map((c) => {
           const cQuotes = quotesForClient(c.id);
           const total = cQuotes.reduce((s, x) => s + x.total, 0);
           const paidTotal = cQuotes

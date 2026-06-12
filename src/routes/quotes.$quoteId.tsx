@@ -39,6 +39,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef } from "react";
 import { usePaidQuoteCount, useInvalidatePaidQuoteCount, normalizeSource } from "@/hooks/usePaidQuoteCount";
 import { useScrollVisible } from "@/hooks/use-scroll-direction";
+import { useConnectStatus } from "@/hooks/useConnectStatus";
 
 
 
@@ -56,7 +57,20 @@ function celebratePaid(amount: number) {
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
-  notFoundComponent: () => <div className="p-8 text-center">Quote not found</div>,
+  notFoundComponent: () => (
+    <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center gap-4">
+      <p className="text-base font-semibold text-ink">Quote not found</p>
+      <p className="text-sm text-muted-foreground max-w-[28ch]">
+        This quote may have been deleted or the link is wrong.
+      </p>
+      <Link
+        to="/quotes"
+        className="inline-flex items-center bg-lime text-ink rounded-full px-5 py-2.5 text-xs font-bold active:scale-95 transition"
+      >
+        Back to quotes
+      </Link>
+    </div>
+  ),
   validateSearch: (s: Record<string, unknown>) => ({
     ...(s.sent === 1 || s.sent === "1" ? { sent: 1 as const } : {}),
     ...(s.paid === 1 || s.paid === "1" ? { paid: 1 as const } : {}),
@@ -124,6 +138,9 @@ function QuoteDetail() {
   // (schedule defaults removed)
 
   const createCheckout = useServerFn(createInvoiceCheckout);
+  const connect = useConnectStatus();
+  const canTakePayment = connect.chargesEnabled;
+  const paymentsBlocked = !connect.loading && !canTakePayment;
   const fetchPortalStatus = useServerFn(getPortalLinkStatusForQuote);
   const regeneratePortalCodeFn = useServerFn(regeneratePortalCode);
   const recordDepositFn = useServerFn(recordManualDeposit);
@@ -830,11 +847,30 @@ function QuoteDetail() {
                 {status !== "paid" && depositPaid > 0 && (
                   <MoreItem icon={Undo2} label="Remove recorded deposit" onClick={removeRecordedDeposit} chevron />
                 )}
-                {status === "accepted" && (
+                {status === "accepted" && canTakePayment && (
                   <MoreItem icon={Zap} label="Request payment (send link)" onClick={() => setRequesting(true)} chevron />
                 )}
-                {(status === "accepted" || status === "sent") && (
+                {(status === "accepted" || status === "sent") && canTakePayment && (
                   <MoreItem icon={Smartphone} label="Take payment on site" onClick={() => takePaymentOnSite("full")} />
+                )}
+                {(status === "accepted" || status === "sent") && paymentsBlocked && (
+                  <li className="px-3 py-3">
+                    <div className="rounded-2xl bg-secondary/60 border border-border p-3">
+                      <p className="text-xs font-semibold text-ink flex items-center gap-1.5">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Set up payments first
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Connect your bank in Settings to take card payments. Funds go straight to you.
+                      </p>
+                      <Link
+                        to="/settings"
+                        className="mt-2 inline-flex items-center bg-ink text-paper rounded-full px-3 py-1.5 text-[11px] font-bold"
+                      >
+                        Connect bank
+                      </Link>
+                    </div>
+                  </li>
                 )}
 
                 <MoreGroup label="Status" />
