@@ -194,16 +194,22 @@ function NewClientPage() {
       </form>
 
       {/* Sticky save bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none">
-        <div className="mx-auto max-w-md px-5 pb-5 pt-3 pointer-events-auto bg-gradient-to-t from-paper via-paper/95 to-transparent">
-          <button
-            type="button"
-            onClick={(e) => save(e as unknown as React.FormEvent)}
-            disabled={!name.trim() || saving}
-            className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.99] transition shadow-lg shadow-ink/10"
-          >
-            <Save className="h-5 w-5" /> {saving ? "Saving…" : "Save customer"}
-          </button>
+      <div
+        className="fixed left-0 right-0 z-30 pointer-events-none"
+        style={{ bottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="mx-auto max-w-md">
+          <div className="h-6 -mb-2 bg-gradient-to-t from-paper to-transparent pointer-events-none" />
+          <div className="px-5 pb-5 pt-2 pointer-events-auto bg-paper">
+            <button
+              type="button"
+              onClick={(e) => save(e as unknown as React.FormEvent)}
+              disabled={!name.trim() || saving}
+              className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.99] transition shadow-lg shadow-ink/10"
+            >
+              <Save className="h-5 w-5" /> {saving ? "Saving…" : "Save customer"}
+            </button>
+          </div>
         </div>
       </div>
     </AppShell>
