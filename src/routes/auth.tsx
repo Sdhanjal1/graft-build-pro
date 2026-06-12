@@ -76,8 +76,8 @@ function AuthPage() {
         className="absolute inset-0 opacity-40 pointer-events-none"
         style={{ background: "radial-gradient(circle at 50% 0%, color-mix(in oklab, var(--lime) 35%, transparent), transparent 55%)" }}
       />
-      <div className="flex-1 flex flex-col justify-center px-6 max-w-md mx-auto w-full relative py-10">
-        <div className="mb-8 text-center">
+      <div className="flex-1 flex flex-col justify-center px-6 max-w-md mx-auto w-full relative py-8">
+        <div className="mb-6 text-center">
           <h1
             className="text-lime leading-[0.8] tracking-tight"
             style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(4.5rem, 28vw, 8rem)" }}
