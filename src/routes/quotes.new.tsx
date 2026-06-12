@@ -1407,12 +1407,15 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
             <div className="bg-ink text-paper p-4">
               <div className="flex items-start justify-between gap-3">
-                <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
+                  <p className="text-[11px] text-paper/55 mt-0.5">Tap any field to edit, or use voice →</p>
+                </div>
                 <button
                   type="button"
                   onClick={handleEditByVoice}
                   disabled={recording || transcribing || saving}
-                  className="inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-3 py-1 text-[11px] font-bold active:scale-[0.98] transition disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-3 py-1 text-[11px] font-bold active:scale-[0.98] transition disabled:opacity-60 shrink-0"
                 >
                   <Mic className="h-3 w-3" />
                   Edit by voice
