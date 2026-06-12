@@ -1360,12 +1360,31 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
         {!draft && (
           <div className="fixed bottom-20 inset-x-0 z-30 px-3 safe-bottom pointer-events-none">
-            <div className="mx-auto max-w-md pointer-events-auto">
+            <div className="mx-auto max-w-md pointer-events-auto space-y-2">
+              {subBlocked && (
+                <div className="rounded-2xl bg-paper/95 backdrop-blur border border-status-overdue/40 px-3.5 py-2.5 flex items-center gap-2.5 shadow-lg">
+                  <AlertCircle className="h-4 w-4 text-status-overdue shrink-0" />
+                  <p className="text-xs text-ink flex-1">Trial ended.</p>
+                  <Link
+                    to="/settings"
+                    className="text-xs font-bold text-ink underline underline-offset-2 shrink-0"
+                  >
+                    Update payment
+                  </Link>
+                </div>
+              )}
+
+              {error && !subBlocked && (
+                <div className="rounded-2xl bg-paper/95 backdrop-blur border border-status-overdue/40 px-3.5 py-2.5 flex items-start gap-2.5 shadow-lg">
+                  <AlertCircle className="h-4 w-4 text-status-overdue shrink-0 mt-0.5" />
+                  <p className="text-xs text-ink flex-1 break-words">{error}</p>
+                </div>
+              )}
+
               <button
                 type="submit"
                 form="new-quote-form"
                 disabled={loading || subBlocked}
-                title={subBlocked ? "Your trial has ended, add a payment method to continue" : undefined}
                 onPointerDown={() => feedback("tap")}
                 className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition disabled:opacity-60 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.35)]"
               >
@@ -1376,14 +1395,8 @@ Re-output the FULL updated list of line items for this quote, applying the chang
                 ) : (
                   <Sparkles className="h-5 w-5" />
                 )}
-                {subBlocked
-                  ? "Trial ended, add payment method"
-                  : loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : error ? "Retry generate" : "Generate quote"}
+                {loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : error ? "Retry generate" : "Generate quote"}
               </button>
-
-              {error && (
-                <p className="mt-2 text-[12px] text-center text-status-overdue font-medium bg-paper/90 rounded-full py-1">{error}</p>
-              )}
             </div>
           </div>
         )}
