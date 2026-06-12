@@ -78,8 +78,11 @@ function ClientDetail() {
       {/* Combined money summary — one outcome card */}
       <section className="px-5 mt-5">
         <div className="card-surface p-5">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Paid to date</p>
-          <p className="num text-4xl mt-1 text-status-accepted tabular-nums leading-none">{formatGBP(totalPaid)}</p>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-status-accepted" />
+            Paid to date
+          </p>
+          <p className="num text-4xl mt-1 text-ink tabular-nums leading-none">{formatGBP(totalPaid)}</p>
           <p className="text-xs text-muted-foreground mt-2 tabular-nums">
             of {formatGBP(totalQuoted)} quoted across {quotes.length} {quotes.length === 1 ? jobNoun : jobPlural}
           </p>
@@ -105,7 +108,7 @@ function ClientDetail() {
           </div>
           {trade.defaultServiceType && (
             <div className="flex items-center gap-3 pt-3">
-              <div className="h-9 w-9 rounded-full bg-lime/30 flex items-center justify-center shrink-0">
+              <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
                 <BellRing className="h-4 w-4" />
               </div>
               <div className="flex-1 min-w-0 text-sm">
