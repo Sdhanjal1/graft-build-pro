@@ -6,22 +6,12 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { SwipeRow } from "@/components/SwipeRow";
 import { mockQuotes, getClient, formatGBP, deleteQuote, duplicateQuote, setQuoteStatus, useDataVersion, buildChaserMessage, waLink, materialsForQuote, userProfile, markOverdueQuotes, type Quote, type QuoteStatus } from "@/lib/user-data";
 import { resolveTrade } from "@/lib/trades";
-import { Search, FileText, Inbox, ShoppingCart } from "lucide-react";
+import { Search, FileText, Inbox, ShoppingCart, X } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { QuotesListSkeleton } from "@/components/Skeletons";
 import { useSession } from "@/lib/auth";
 import { useLongPress } from "@/hooks/useLongPress";
-import { QuoteQuickActionsSheet, type QuoteQuickAction } from "@/components/QuoteQuickActionsSheet";
-
-const STATUS_DOT: Record<QuoteStatus, string> = {
-  pending: "bg-status-pending",
-  sent: "bg-status-sent",
-  accepted: "bg-status-booked",
-  declined: "bg-status-overdue",
-  completed: "bg-status-completed",
-  paid: "bg-status-paid",
-  overdue: "bg-status-overdue",
-};
+import { QuoteQuickActionsSheet } from "@/components/QuoteQuickActionsSheet";
 
 const STATUS_LABEL: Record<QuoteStatus, string> = {
   pending: "Draft",
@@ -42,6 +32,13 @@ const TILE_LABEL: Record<TileKey, string> = {
   overdue: "Overdue",
 };
 
+const TILE_DOT: Record<TileKey, string> = {
+  pending: "bg-status-pending",
+  accepted: "bg-lime",
+  awaiting: "bg-status-sent",
+  overdue: "bg-status-overdue",
+};
+
 // Unpaid for the swipe-row "Chase" action — only chase work that's done or overdue.
 const UNPAID: QuoteStatus[] = ["completed", "overdue"];
 
@@ -58,7 +55,6 @@ const tileMatches = (tile: TileKey, q: Quote): boolean => {
 };
 
 // Three visual states only: neutral, positive, danger.
-// Status meaning is carried by the label text + the card's left border colour.
 const STATUS_PILL: Record<QuoteStatus, string> = {
   pending: "bg-ink/8 text-muted-foreground",
   sent: "bg-ink/8 text-muted-foreground",
@@ -89,7 +85,17 @@ function QuotesPage() {
   const pipelineTotal = tiles.reduce((s, t) => s + t.total, 0);
   const pipelineCount = tiles.reduce((s, t) => s + t.count, 0);
   const overdueTile = tiles.find((t) => t.key === "overdue")!;
+  const awaitingTile = tiles.find((t) => t.key === "awaiting")!;
+  const pendingTile = tiles.find((t) => t.key === "pending")!;
   const secondaryTiles = tiles.filter((t) => t.key !== "overdue");
+
+  const subtitle = (() => {
+    const parts: string[] = [];
+    if (pendingTile.count) parts.push(`${pendingTile.count} pending`);
+    if (awaitingTile.count) parts.push(`${awaitingTile.count} awaiting`);
+    if (overdueTile.count) parts.push(`${overdueTile.count} overdue`);
+    return parts.length ? parts.join(" · ") : "All clear";
+  })();
 
   const filtered = mockQuotes.filter((x) => {
     if (tile && !tileMatches(tile, x)) return false;
@@ -97,11 +103,18 @@ function QuotesPage() {
     return true;
   });
 
+  const emptyMessage = (() => {
+    if (q && tile) return `No ${TILE_LABEL[tile].toLowerCase()} quotes match "${q}".`;
+    if (q) return `No quotes match "${q}".`;
+    if (tile) return `No ${TILE_LABEL[tile].toLowerCase()} quotes right now.`;
+    return "No quotes right now.";
+  })();
+
   return (
     <AppShell>
-      <PageHeader title="Quotes" subtitle="All work" />
+      <PageHeader title="Quotes" subtitle={subtitle} />
 
-      {/* HERO PIPELINE STRIP — confident lime block */}
+      {/* HERO PIPELINE STRIP */}
       <div className="px-5 mt-5">
         <div className="rounded-2xl bg-lime text-ink p-5 relative overflow-hidden">
           <div className="flex items-center justify-between">
@@ -116,41 +129,51 @@ function QuotesPage() {
           >
             <CountUpGBP value={pipelineTotal} />
           </p>
-          {(() => {
-            const awaiting = tiles.find((t) => t.key === "awaiting")!;
-            const parts: string[] = [];
-            if (awaiting.count > 0) parts.push(`${formatGBP(awaiting.total)} awaiting payment`);
-            if (overdueTile.count > 0) parts.push(`${formatGBP(overdueTile.total)} overdue`);
-            if (parts.length === 0) return null;
-            return (
-              <p className="mt-2 text-xs font-semibold text-ink/75 tabular-nums">
-                {parts.join(" · ")}
-              </p>
-            );
-          })()}
+          <p className="text-[10px] uppercase tracking-widest font-bold text-ink/55 mt-1">
+            Active pipeline value
+          </p>
+          {(awaitingTile.count > 0 || overdueTile.count > 0) && (
+            <div className="mt-3 space-y-1">
+              {awaitingTile.count > 0 && (
+                <p className="text-[11px] font-semibold text-ink/80 tabular-nums inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-status-sent" />
+                  {formatGBP(awaitingTile.total)} awaiting payment
+                </p>
+              )}
+              {overdueTile.count > 0 && (
+                <p className="text-[11px] font-semibold text-ink/80 tabular-nums flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-status-overdue" />
+                  {formatGBP(overdueTile.total)} overdue
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Overdue dominant tile if present */}
+      {/* Overdue dominant tile */}
       {overdueTile.count > 0 && (
-        <div className="px-5 mt-3">
+        <div className="px-5 mt-3 row-rise">
           <button
             onClick={() => setTile(tile === "overdue" ? null : "overdue")}
             aria-pressed={tile === "overdue"}
-            className={`w-full text-left rounded-2xl px-4 py-3 border-2 transition motion-safe:animate-pulse-soft ${
-              tile === "overdue" ? "bg-ink text-paper border-ink" : "bg-card text-ink border-status-overdue/40"
+            className={`w-full text-left rounded-2xl px-4 py-3 border-2 transition ${
+              tile === "overdue"
+                ? "bg-status-overdue/10 border-status-overdue"
+                : "bg-card border-status-overdue/40"
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase tracking-widest font-bold text-status-overdue">
+              <span className="text-[10px] tracking-wide uppercase font-bold text-status-overdue inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-status-overdue" />
                 Overdue · action needed
               </span>
-              <span className={`text-[10px] font-bold tabular-nums ${tile === "overdue" ? "text-paper" : "text-ink/60"}`}>
+              <span className="text-[10px] font-bold tabular-nums bg-status-overdue text-white rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
                 {overdueTile.count}
               </span>
             </div>
             <p
-              className={`mt-1.5 leading-none tabular-nums ${tile === "overdue" ? "text-lime" : "text-ink"}`}
+              className="mt-1.5 leading-none tabular-nums text-ink"
               style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.875rem" }}
             >
               <CountUpGBP value={overdueTile.total} />
@@ -169,21 +192,22 @@ function QuotesPage() {
               onClick={() => setTile(active ? null : t.key)}
               className={`text-left rounded-2xl px-4 py-3 border transition ${
                 active
-                  ? "bg-ink text-paper border-ink"
+                  ? "bg-secondary text-ink border-ink"
                   : "bg-card text-ink border-border hover:border-ink/30"
               }`}
               aria-pressed={active}
             >
-              <div className="flex items-center justify-between">
-                <span className={`text-[10px] uppercase tracking-widest font-bold ${active ? "text-paper/70" : "text-muted-foreground"}`}>
-                  {TILE_LABEL[t.key]}
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] tracking-wide uppercase font-bold text-muted-foreground inline-flex items-center gap-1 min-w-0">
+                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${TILE_DOT[t.key]}`} />
+                  <span className="truncate">{TILE_LABEL[t.key]}</span>
                 </span>
-                <span className={`text-[10px] font-bold tabular-nums ${active ? "text-paper" : "text-ink/60"}`}>
+                <span className={`text-[10px] font-bold tabular-nums shrink-0 ${active ? "bg-ink text-paper rounded-full px-1.5 min-w-[18px] text-center" : "text-ink/60"}`}>
                   {t.count}
                 </span>
               </div>
               <span
-                className={`mt-1.5 block leading-none tabular-nums ${active ? "text-lime" : "text-ink"}`}
+                className="mt-1.5 block leading-none tabular-nums text-ink"
                 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.875rem" }}
               >
                 <CountUpGBP value={t.total} />
@@ -196,22 +220,33 @@ function QuotesPage() {
 
       <div className="px-5 mt-4 flex items-center gap-2">
         <div className="flex-1 flex items-center gap-2 rounded-full bg-card border border-border px-3.5 py-2">
-          <Search className="h-4 w-4 text-muted-foreground" />
+          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search quotes"
-            className="bg-transparent flex-1 outline-none text-sm placeholder:text-muted-foreground"
+            className="bg-transparent flex-1 outline-none text-[15px] placeholder:text-muted-foreground min-w-0"
           />
+          {q && (
+            <button
+              type="button"
+              onClick={() => setQ("")}
+              aria-label="Clear search"
+              className="shrink-0 text-muted-foreground hover:text-ink"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
         {tile && (
           <button
             onClick={() => setTile(null)}
-            className="shrink-0 inline-flex items-center gap-1 rounded-full bg-ink text-paper px-3 py-2 text-[11px] font-bold uppercase tracking-wider"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-secondary text-ink px-3 py-2 text-[11px] font-bold uppercase tracking-wide"
             aria-label={`Clear ${TILE_LABEL[tile]} filter`}
           >
+            <span className={`h-1.5 w-1.5 rounded-full ${TILE_DOT[tile]}`} />
             {TILE_LABEL[tile]}
-            <span aria-hidden className="text-paper/70 text-sm leading-none">×</span>
+            <span aria-hidden className="text-muted-foreground text-sm leading-none">×</span>
           </button>
         )}
       </div>
@@ -231,11 +266,24 @@ function QuotesPage() {
               />
             );
           })() : (
-            <EmptyState
-              icon={Inbox}
-              title="Nothing here"
-              body={q ? `No quotes match "${q}".` : tile ? `No ${TILE_LABEL[tile].toLowerCase()} quotes right now.` : `No quotes right now.`}
-            />
+            <div>
+              <EmptyState
+                icon={Inbox}
+                title="Nothing here"
+                body={emptyMessage}
+              />
+              {(tile || q) && (
+                <div className="flex justify-center mt-3">
+                  <button
+                    type="button"
+                    onClick={() => { setTile(null); setQ(""); }}
+                    className="inline-flex items-center text-[11px] font-semibold text-muted-foreground rounded-full px-3 py-1.5 hover:bg-secondary"
+                  >
+                    Clear filter
+                  </button>
+                </div>
+              )}
+            </div>
           )
         )}
         {filtered.map((quote, i) => {
@@ -320,14 +368,16 @@ function QuoteCard({
   const { handlers, didLongPress, resetLongPress } = useLongPress(onOpenQuickActions, 500);
 
   const isDraft = quote.status === "pending";
+  const isOverdue = quote.status === "overdue";
+  const isPaid = quote.status === "paid";
 
   const className = `rounded-2xl py-4 px-4 flex items-start gap-3 transition active:scale-[0.99] ${
-    quote.status === "overdue"
+    isOverdue
       ? "bg-ink text-paper border-l-4 border-status-overdue"
-      : quote.status === "paid"
-      ? "bg-card border-l-4 border-lime shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
+      : isPaid
+      ? "card-surface bg-card border-l-4 border-lime opacity-80"
       : isDraft
-      ? "bg-lime/10 border-l-4 border-lime shadow-[0_1px_2px_rgb(0_0_0/0.04),0_4px_12px_-4px_rgb(0_0_0/0.06)]"
+      ? "card-surface bg-lime/10 border-l-4 border-lime"
       : "card-surface bg-card"
   }`;
 
@@ -339,14 +389,13 @@ function QuoteCard({
     }
   };
 
-  const isOverdue = quote.status === "overdue";
   const hasClient = clientName && clientName.toLowerCase() !== "new client";
   const acceptedMaterials = quote.status === "accepted" ? materialsForQuote(quote).length : 0;
 
   const inner = (
     <>
       <div className="flex-1 min-w-0">
-        {/* Primary: client name (what you scan for) */}
+        {/* Primary: client name */}
         <p className={`text-sm font-semibold truncate ${isOverdue ? "text-paper" : "text-ink"}`}>
           {hasClient
             ? clientName
@@ -361,20 +410,15 @@ function QuoteCard({
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold ${STATUS_PILL[quote.status]}`}>
             {STATUS_LABEL[quote.status]}
           </span>
-          {isDraft && (
-            <span className="text-[10px] uppercase tracking-widest font-bold text-ink/55">
-              Tap to continue
-            </span>
-          )}
           {acceptedMaterials > 0 && (
-            <span className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-widest font-semibold ${isOverdue ? "text-paper/70" : "text-ink/70"}`}>
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold ${isOverdue ? "bg-paper/15 text-paper/80" : "bg-secondary text-ink/80"}`}>
               <ShoppingCart className="h-3 w-3" />
               {acceptedMaterials} material{acceptedMaterials === 1 ? "" : "s"}
             </span>
           )}
         </div>
       </div>
-      {/* Right: amount, tabular, right-aligned */}
+      {/* Right: amount */}
       <div className="shrink-0 text-right">
         <p
           className={`leading-none tabular-nums ${isOverdue ? "text-lime" : "text-ink"}`}
@@ -382,6 +426,11 @@ function QuoteCard({
         >
           {formatGBP(quote.total)}
         </p>
+        {isOverdue && (
+          <p className="text-[10px] uppercase tracking-widest font-bold text-paper/60 mt-1">
+            Swipe to chase
+          </p>
+        )}
       </div>
     </>
   );
@@ -413,4 +462,3 @@ function QuoteCard({
 function CountUpGBP({ value, className }: { value: number; className?: string }) {
   return <span className={`num-appear inline-block ${className ?? ""}`}>{formatGBP(value)}</span>;
 }
-
