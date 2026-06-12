@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   getQuote, getClient, userProfile, formatGBP, waLink,
@@ -17,7 +17,20 @@ import { getQuotePaymentStatus } from "@/lib/payments.functions";
 
 export const Route = createFileRoute("/invoices/$quoteId")({
   component: InvoicePage,
-  notFoundComponent: () => <div className="p-8 text-center">Invoice not found</div>,
+  notFoundComponent: () => (
+    <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center gap-4">
+      <p className="text-base font-semibold text-ink">Invoice not found</p>
+      <p className="text-sm text-muted-foreground max-w-[28ch]">
+        This invoice may have been deleted or hasn't been issued yet.
+      </p>
+      <Link
+        to="/quotes"
+        className="inline-flex items-center bg-lime text-ink rounded-full px-5 py-2.5 text-xs font-bold active:scale-95 transition"
+      >
+        Back to quotes
+      </Link>
+    </div>
+  ),
 });
 
 function InvoicePage() {
