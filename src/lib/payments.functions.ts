@@ -63,6 +63,9 @@ export const createInvoiceCheckout = createServerFn({ method: "POST" })
 
     const { key, env } = getStripeEnv();
     const amountCents = Math.round(data.amount * 100);
+    if (amountCents < 30) {
+      throw new Error("Quote total is too low to request payment (minimum 30p).");
+    }
 
     // Look up the pro's Connect account so client payments land in their
     // Stripe balance directly (Quottr never holds funds).
