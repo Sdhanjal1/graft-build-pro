@@ -15,7 +15,7 @@ import {
 } from "@/lib/user-data";
 import { createInvoiceCheckout, recordManualDeposit, removeManualDeposit, getQuotePaymentStatus } from "@/lib/payments.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
-import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus, ShoppingCart, ChevronDown, RotateCcw, Undo2, Mic } from "lucide-react";
+import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus, ShoppingCart, ChevronDown, ChevronRight, RotateCcw, Undo2, Mic } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -584,46 +584,13 @@ function QuoteDetail() {
 
   return (
     <AppShell>
-      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" compact right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
+      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" compact />
 
-      {/* Money summary card — glance-level total at the top */}
-      <div className="mx-5 mt-4 p-4 rounded-2xl bg-card border border-border space-y-3">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Subtotal</p>
-            <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP(quote.subtotal || 0)}</p>
-          </div>
-          {userProfile.vat_registered && (
-            <div>
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">VAT (20%)</p>
-              <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP((quote.subtotal || 0) * 0.2)}</p>
-            </div>
-          )}
-        </div>
-        <div className="pt-3 border-t border-border flex items-center justify-between">
-          <p className="text-sm font-semibold text-ink">Total</p>
-          <p className="text-2xl font-bold text-ink num">{formatGBP(quote.total || 0)}</p>
-        </div>
-        {timing === "deposit_then_balance" && configuredDeposit > 0 && (
-          <div className="pt-3 space-y-2 border-t border-border">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Deposit due</span>
-              <span className="font-bold text-status-pending num">{formatGBP(configuredDeposit)}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Balance</span>
-              <span className="font-bold text-ink num">{formatGBP((quote.total || 0) - configuredDeposit)}</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-
-
-      {showSentBanner && (
-        <section className="px-5 mt-3">
-          <div className="rounded-2xl bg-lime/15 border border-lime/40 px-4 py-3 flex items-center gap-3">
-            <span className="h-8 w-8 rounded-full bg-lime/30 flex items-center justify-center shrink-0">
+      {/* Money summary card — glance-level total + status at the top */}
+      <div className="mx-5 mt-4 rounded-2xl bg-card border border-border overflow-hidden">
+        {showSentBanner && (
+          <div className="bg-lime/15 px-4 py-3 flex items-center gap-3 border-b border-border/60">
+            <span className="h-8 w-8 rounded-full bg-lime/40 flex items-center justify-center shrink-0">
               <Check className="h-4 w-4 text-ink" strokeWidth={3} />
             </span>
             <div className="min-w-0">
@@ -631,11 +598,46 @@ function QuoteDetail() {
               <p className="text-[11px] text-muted-foreground">We'll let you know when they open it.</p>
             </div>
           </div>
-        </section>
-      )}
-
-
-
+        )}
+        <div className="p-5 divide-y divide-border/60">
+          <div className="pb-4 flex items-start justify-between gap-3">
+            <div className="grid grid-cols-2 gap-4 flex-1 min-w-0">
+              <div>
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Subtotal</p>
+                <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP(quote.subtotal || 0)}</p>
+              </div>
+              {userProfile.vat_registered && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">VAT (20%)</p>
+                  <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP((quote.subtotal || 0) * 0.2)}</p>
+                </div>
+              )}
+            </div>
+            <StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />
+          </div>
+          <div className="py-4 flex items-center justify-between">
+            <p className="text-sm font-semibold text-ink inline-flex items-center gap-1.5">
+              {status === "paid" && <Check className="h-4 w-4 text-status-paid" strokeWidth={3} />}
+              Total
+            </p>
+            <p className={`text-2xl font-bold num ${status === "paid" ? "text-status-paid" : "text-ink"}`}>
+              {formatGBP(quote.total || 0)}
+            </p>
+          </div>
+          {timing === "deposit_then_balance" && configuredDeposit > 0 && (
+            <div className="pt-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Deposit due</span>
+                <span className="font-bold text-status-pending num">{formatGBP(configuredDeposit)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Balance</span>
+                <span className="font-bold text-ink num">{formatGBP((quote.total || 0) - configuredDeposit)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {status === "declined" && (
         <section className="px-5 mt-5">
@@ -648,51 +650,44 @@ function QuoteDetail() {
       {client && (
         <section className="px-5 mt-5">
           <Link to="/clients/$clientId" params={{ clientId: client.id }} className="card-surface p-4 flex items-center gap-3">
-            <div className="h-11 w-11 rounded-full bg-lime/30 flex items-center justify-center text-ink font-bold">
+            <div className="h-10 w-10 rounded-full bg-lime/30 flex items-center justify-center text-ink font-bold">
               {client.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm">{client.name}</p>
               <p className="text-xs text-muted-foreground truncate">{client.address}</p>
             </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
           </Link>
         </section>
       )}
 
-
-
-
-
-
       {userProfile.quote_intro && (
-        <section className="px-5 mt-5">
-          <div className="card-surface p-5">
-            <p className="text-sm leading-relaxed italic text-muted-foreground">{userProfile.quote_intro}</p>
-          </div>
-        </section>
+        <p className="px-6 mt-5 text-sm leading-relaxed italic text-muted-foreground">
+          {userProfile.quote_intro}
+        </p>
       )}
 
+      {/* Job description + Itemised — single divided card */}
       <section className="px-5 mt-5">
-        <div className="card-surface p-5">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Job description</p>
-          <p className="text-sm mt-2 leading-relaxed">{quote.job_description}</p>
-        </div>
-      </section>
-
-      <section className="px-5 mt-5">
-        <div className="card-surface overflow-hidden">
-          <div className="px-5 pt-4 pb-2">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Itemised</p>
+        <div className="card-surface overflow-hidden divide-y divide-border">
+          <div className="p-5">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Job description</p>
+            <p className="text-sm mt-2 leading-relaxed">{quote.job_description}</p>
           </div>
-          <LineItemsEditor
-            quote={quote}
-            vatRegistered={userProfile.vat_registered}
-            depositPaid={status !== "paid" ? depositPaid : 0}
-            onChange={(items) => {
-              quote.line_items = items;
-            }}
-          />
-
+          <div>
+            <div className="px-5 pt-4 pb-2">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Itemised</p>
+            </div>
+            <LineItemsEditor
+              quote={quote}
+              vatRegistered={userProfile.vat_registered}
+              depositPaid={status !== "paid" ? depositPaid : 0}
+              onChange={(items) => {
+                quote.line_items = items;
+              }}
+            />
+          </div>
         </div>
       </section>
 
@@ -705,7 +700,7 @@ function QuoteDetail() {
           aria-label="Change payment terms"
         >
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms · tap to change</p>
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
             <p className="text-sm font-bold text-ink leading-tight">
               {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
             </p>
@@ -742,21 +737,18 @@ function QuoteDetail() {
       )}
 
       {(userProfile.quote_footer || (userProfile.show_signature && (userProfile.signature_name || userProfile.full_name))) && (
-        <section className="px-5 mt-5">
-          <div className="px-1 space-y-2">
-            {userProfile.quote_footer && (
-              <p className="text-[11px] text-muted-foreground leading-relaxed">{userProfile.quote_footer}</p>
-            )}
-            {userProfile.show_signature && (userProfile.signature_name || userProfile.full_name) && (
-              <p className="text-[11px] text-muted-foreground">
-                Signed{" "}
-                <span className="text-sm text-ink" style={{ fontFamily: "'Caveat', 'Bradley Hand', cursive" }}>
-                  {userProfile.signature_name || userProfile.full_name}
-                </span>
-                {" · "}{userProfile.business_name}
-              </p>
-            )}
-          </div>
+        <section className="px-5 mt-5 space-y-2">
+          {userProfile.quote_footer && (
+            <p className="text-[11px] text-muted-foreground leading-relaxed">{userProfile.quote_footer}</p>
+          )}
+          {userProfile.show_signature && (userProfile.signature_name || userProfile.full_name) && (
+            <p className="text-[11px] text-muted-foreground">
+              <span className="text-sm text-ink" style={{ fontFamily: "'Caveat', 'Bradley Hand', cursive" }}>
+                — {userProfile.signature_name || userProfile.full_name}
+              </span>
+              {" · "}{userProfile.business_name}
+            </p>
+          )}
         </section>
       )}
 
@@ -802,68 +794,61 @@ function QuoteDetail() {
                 </div>
               )}
 
-              {/* Action shortcuts */}
-              <div className="space-y-2 pt-1">
-                {/* Sharing & communication */}
-                <ul className="space-y-0.5">
-                  <MoreItem icon={Eye} label="View as customer" onClick={viewAsCustomer} />
-                  <MoreItem icon={Share2} label="Download PDF" onClick={sharePdf} />
-                  <MoreItem icon={Mail} label="Email customer" onClick={() => { window.location.href = mailHref; }} />
-                  <MoreItem icon={Phone} label="Call customer" onClick={() => { window.location.href = `tel:${client?.phone}`; }} />
-                  {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
-                    <MoreItem icon={MessageCircle} label="Send chaser on WhatsApp" onClick={() => {
-                      const first = client.name.split(" ")[0] ?? "there";
-                      const msg = `Hi ${first}, just following up on ${quote.ref} for ${formatGBP(quote.total)}. Could you let me know when payment will be made? Thanks.`;
-                      window.open(waLink(client.phone, msg), "_blank");
-                    }} />
-                  )}
-                  {invoicedAt && (
-                    <MoreItem icon={FileText} label="View final invoice" onClick={() => navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } })} />
-                  )}
-                </ul>
+              {/* Action shortcuts — grouped by purpose */}
+              <ul className="divide-y divide-border/40 pt-1">
+                <MoreGroup label="Share" />
+                <MoreItem icon={Eye} label="View as customer" onClick={viewAsCustomer} />
+                <MoreItem icon={Share2} label="Download PDF" onClick={sharePdf} />
+                <MoreItem icon={Mail} label="Email customer" onClick={() => { window.location.href = mailHref; }} />
+                <MoreItem icon={Phone} label="Call customer" onClick={() => { window.location.href = `tel:${client?.phone}`; }} />
+                {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
+                  <MoreItem icon={MessageCircle} label="Send chaser on WhatsApp" onClick={() => {
+                    const first = client.name.split(" ")[0] ?? "there";
+                    const msg = `Hi ${first}, just following up on ${quote.ref} for ${formatGBP(quote.total)}. Could you let me know when payment will be made? Thanks.`;
+                    window.open(waLink(client.phone, msg), "_blank");
+                  }} />
+                )}
+                {invoicedAt && (
+                  <MoreItem icon={FileText} label="View final invoice" onClick={() => navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } })} chevron />
+                )}
 
-                {/* Payment actions */}
-                <ul className="space-y-0.5 border-t border-border/40 pt-2">
-                  {status !== "paid" && (
-                    <MoreItem icon={CheckCircle2} label="Mark as paid" onClick={() => setAskingPaid(true)} />
-                  )}
-                  {status === "paid" && (
-                    <MoreItem icon={RotateCcw} label="Mark as unpaid" onClick={markUnpaid} />
-                  )}
-                  {status !== "paid" && timing === "deposit_then_balance" && configuredDeposit > 0 && (
-                    <MoreItem
-                      icon={Banknote}
-                      label={`Record deposit received (${formatGBP(configuredDeposit)})`}
-                      onClick={() => setRecordDepositOpen(true)}
-                    />
-                  )}
-                  {status !== "paid" && depositPaid > 0 && (
-                    <MoreItem icon={Undo2} label="Remove recorded deposit" onClick={removeRecordedDeposit} />
-                  )}
-                  {status === "accepted" && (
-                    <MoreItem icon={Zap} label="Request payment (send link)" onClick={() => setRequesting(true)} />
-                  )}
-                  {(status === "accepted" || status === "sent") && (
-                    <MoreItem icon={Smartphone} label="Take payment on site" onClick={() => takePaymentOnSite("full")} />
-                  )}
-                </ul>
+                <MoreGroup label="Payments" />
+                {status !== "paid" && (
+                  <MoreItem icon={CheckCircle2} label="Mark as paid" onClick={() => setAskingPaid(true)} chevron />
+                )}
+                {status === "paid" && (
+                  <MoreItem icon={RotateCcw} label="Mark as unpaid" onClick={markUnpaid} chevron />
+                )}
+                {status !== "paid" && timing === "deposit_then_balance" && configuredDeposit > 0 && (
+                  <MoreItem
+                    icon={Banknote}
+                    label={`Record deposit received (${formatGBP(configuredDeposit)})`}
+                    onClick={() => setRecordDepositOpen(true)}
+                    chevron
+                  />
+                )}
+                {status !== "paid" && depositPaid > 0 && (
+                  <MoreItem icon={Undo2} label="Remove recorded deposit" onClick={removeRecordedDeposit} chevron />
+                )}
+                {status === "accepted" && (
+                  <MoreItem icon={Zap} label="Request payment (send link)" onClick={() => setRequesting(true)} chevron />
+                )}
+                {(status === "accepted" || status === "sent") && (
+                  <MoreItem icon={Smartphone} label="Take payment on site" onClick={() => takePaymentOnSite("full")} />
+                )}
 
-                {/* Status & admin */}
-                <ul className="space-y-0.5 border-t border-border/40 pt-2">
-                  <MoreItem icon={Copy} label="Duplicate quote" onClick={duplicate} />
-                  {status === "pending" && (
-                    <MoreItem icon={Send} label="Mark as sent" onClick={markSent} />
-                  )}
-                  {status !== "declined" && status !== "paid" && (
-                    <MoreItem icon={XCircle} label="Mark as declined" onClick={declineQuote} />
-                  )}
-                </ul>
+                <MoreGroup label="Status" />
+                <MoreItem icon={Copy} label="Duplicate quote" onClick={duplicate} />
+                {status === "pending" && (
+                  <MoreItem icon={Send} label="Mark as sent" onClick={markSent} />
+                )}
+                {status !== "declined" && status !== "paid" && (
+                  <MoreItem icon={XCircle} label="Mark as declined" onClick={declineQuote} />
+                )}
 
-                {/* Danger */}
-                <ul className="space-y-0.5 border-t border-border/40 pt-2">
-                  <MoreItem icon={Trash2} label="Delete quote" onClick={removeQuote} danger />
-                </ul>
-              </div>
+                <MoreGroup label="Danger" />
+                <MoreItem icon={Trash2} label="Delete quote" onClick={removeQuote} danger chevron />
+              </ul>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
@@ -876,18 +861,19 @@ function QuoteDetail() {
       {/* Sticky bottom action bar — single primary action.
           Hides on downscroll, returns on upscroll / near bottom (Plan 1). */}
       <div
-        className={`fixed bottom-20 inset-x-0 z-40 pointer-events-none transition-transform duration-200 ${barVisible ? "translate-y-0" : "translate-y-[140%]"}`}
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        className={`fixed inset-x-0 z-40 pointer-events-none transition-transform duration-200 ${barVisible ? "translate-y-0" : "translate-y-[140%]"}`}
+        style={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }}
       >
-        <div className="mx-auto max-w-md px-4 pt-3 pointer-events-auto bg-gradient-to-t from-paper via-paper to-paper/0">
-          <div className="flex items-center gap-2">
+        <div className="mx-auto max-w-md px-4 pointer-events-auto">
+          <div className="h-6 -mb-2 bg-gradient-to-t from-paper via-paper/80 to-paper/0" aria-hidden />
+          <div className="bg-paper pt-2 pb-1 flex items-center gap-2">
             {showChaseSecondary && waHref && (
               <a
                 href={waHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 onPointerDown={() => feedback("tap")}
-                className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-ink/5 ring-1 ring-ink/10 text-ink px-4 py-3.5 text-xs font-bold active:scale-[0.98]"
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-card border border-border text-ink px-4 py-3.5 text-xs font-bold active:scale-[0.98]"
                 aria-label="Send chaser on WhatsApp"
               >
                 <MessageCircle className="h-4 w-4" />
@@ -993,7 +979,7 @@ function QuoteDetail() {
       {/* Bottom sheet: how did the customer pay? */}
       {askingPaid && (
         <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setAskingPaid(false)}>
-          <div className="w-full bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
             <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
             <h3 className="text-2xl">How did the customer pay?</h3>
             <p className="text-xs text-muted-foreground mb-4">This marks the invoice as paid and logs it in your profit tracker.</p>
@@ -1010,7 +996,7 @@ function QuoteDetail() {
       {/* Bottom sheet: request payment via Stripe */}
       {requesting && (
         <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setRequesting(false)}>
-          <div className="w-full bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
             <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
             <h3 className="text-2xl">Request payment</h3>
             <p className="text-xs text-muted-foreground mb-4">
@@ -1207,7 +1193,7 @@ function QuoteDetail() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmRemoveQuote}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-status-overdue text-paper hover:bg-status-overdue/90"
             >
               Delete quote
             </AlertDialogAction>
@@ -1277,8 +1263,8 @@ function PaidButton({ icon: Icon, label, onClick }: { icon: React.ComponentType<
 }
 
 function MoreItem({
-  icon: Icon, label, onClick, danger,
-}: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void; danger?: boolean }) {
+  icon: Icon, label, onClick, danger, chevron,
+}: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void; danger?: boolean; chevron?: boolean }) {
   return (
     <li>
       <button
@@ -1286,8 +1272,17 @@ function MoreItem({
         className={`w-full flex items-center gap-3 px-3 py-3.5 rounded-2xl hover:bg-secondary text-left ${danger ? "text-status-overdue" : "text-ink"}`}
       >
         <Icon className="h-5 w-5 shrink-0" />
-        <span className="text-sm font-semibold">{label}</span>
+        <span className="text-sm font-semibold flex-1 min-w-0">{label}</span>
+        {chevron && <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
       </button>
+    </li>
+  );
+}
+
+function MoreGroup({ label }: { label: string }) {
+  return (
+    <li className="px-3 pt-3 pb-1 text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+      {label}
     </li>
   );
 }
@@ -1465,7 +1460,7 @@ function LineItemsEditor({
                 if (e.key === "Escape") cancelEdit();
               }}
               placeholder={isNew ? "e.g. Replace shower mixer" : undefined}
-              className={`${inputClass} w-full`}
+              className={`${inputClass} h-12 text-[15px] w-full`}
             />
             {isNew && suggestion && suggestion.typical_price > 0 && (
               <button
@@ -1561,6 +1556,23 @@ function LineItemsEditor({
   return (
     <>
       <ul>
+        {/* Add line — promoted to the top so it stays visible on long jobs */}
+        {isAdding && draft ? (
+          renderEditPanel(null, "add-new")
+        ) : (
+          <li className="border-t border-border first:border-t-0">
+            <button
+              type="button"
+              onClick={beginAdd}
+              className="w-full px-5 py-3 inline-flex items-center justify-center gap-2 text-sm font-semibold text-ink hover:bg-secondary/40 transition"
+            >
+              <span className="h-6 w-6 rounded-full bg-lime text-ink inline-flex items-center justify-center">
+                <Plus className="h-3.5 w-3.5" strokeWidth={3} />
+              </span>
+              Add line
+            </button>
+          </li>
+        )}
         {items.map((li, i) => {
           const effectiveSource = normalizeSource(li.source, paidQuoteCount);
           const isEstimate = lineIsEstimate(li);
@@ -1576,7 +1588,7 @@ function LineItemsEditor({
           return (
             <li
               key={i}
-              className="px-5 py-4 flex items-start gap-3 border-t border-border first:border-t-0"
+              className="px-5 py-4 flex items-start gap-3 border-t border-border"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-2 flex-wrap">
@@ -1615,46 +1627,19 @@ function LineItemsEditor({
             </li>
           );
         })}
-        {isAdding && draft
-          ? renderEditPanel(null, "add-new")
-          : (
-            <li className="border-t border-border first:border-t-0">
-              <button
-                type="button"
-                onClick={beginAdd}
-                className="w-full px-5 py-4 inline-flex items-center justify-center gap-2 text-sm font-semibold text-ink/70 hover:text-ink hover:bg-secondary/40 transition"
-              >
-                <Plus className="h-4 w-4" strokeWidth={2.5} />
-                Add line
-              </button>
-            </li>
-          )}
       </ul>
 
 
 
 
-      <div className="px-5 py-4 border-t border-border bg-secondary/40 space-y-1.5">
-        <Row label="Subtotal" value={formatGBP(subtotal)} />
-        {vatRegistered && <Row label="VAT (20%)" value={formatGBP(vat)} />}
-        <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
-          <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
-          <span className="num text-3xl text-ink">{formatGBP(total)}</span>
-        </div>
-        {depositPaid > 0 && (
-          <>
-            <Row label="Less deposit paid" value={`−${formatGBP(depositPaid)}`} />
-            <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
-              <span className="text-sm uppercase tracking-widest font-semibold">Balance due</span>
-              <span className="num text-2xl text-ink">{formatGBP(Math.max(0, total - depositPaid))}</span>
-            </div>
-          </>
-        )}
 
-        {saving && (
-          <p className="text-[10px] text-muted-foreground pt-1">Saving…</p>
-        )}
+      <div className="px-5 py-3 border-t border-border bg-secondary/40 flex items-center justify-between">
+        <span className="text-sm font-semibold text-ink">Total</span>
+        <span className="num text-lg font-bold text-ink">{formatGBP(total)}</span>
       </div>
+      {saving && (
+        <p className="px-5 py-1 text-[10px] text-muted-foreground border-t border-border bg-secondary/20">Saving…</p>
+      )}
     </>
   );
 }
