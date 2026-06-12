@@ -847,11 +847,30 @@ function QuoteDetail() {
                 {status !== "paid" && depositPaid > 0 && (
                   <MoreItem icon={Undo2} label="Remove recorded deposit" onClick={removeRecordedDeposit} chevron />
                 )}
-                {status === "accepted" && (
+                {status === "accepted" && canTakePayment && (
                   <MoreItem icon={Zap} label="Request payment (send link)" onClick={() => setRequesting(true)} chevron />
                 )}
-                {(status === "accepted" || status === "sent") && (
+                {(status === "accepted" || status === "sent") && canTakePayment && (
                   <MoreItem icon={Smartphone} label="Take payment on site" onClick={() => takePaymentOnSite("full")} />
+                )}
+                {(status === "accepted" || status === "sent") && paymentsBlocked && (
+                  <li className="px-3 py-3">
+                    <div className="rounded-2xl bg-secondary/60 border border-border p-3">
+                      <p className="text-xs font-semibold text-ink flex items-center gap-1.5">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Set up payments first
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Connect your bank in Settings to take card payments. Funds go straight to you.
+                      </p>
+                      <Link
+                        to="/settings"
+                        className="mt-2 inline-flex items-center bg-ink text-paper rounded-full px-3 py-1.5 text-[11px] font-bold"
+                      >
+                        Connect bank
+                      </Link>
+                    </div>
+                  </li>
                 )}
 
                 <MoreGroup label="Status" />
