@@ -30,6 +30,7 @@ export const Route = createFileRoute("/clients/")({
 
 function ClientsPage() {
   const [q, setQ] = useState("");
+  const hydrated = useHasHydrated();
   const filtered = userClients.filter(
     (c) =>
       c.name.toLowerCase().includes(q.toLowerCase()) ||
