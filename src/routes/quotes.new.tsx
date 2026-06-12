@@ -1794,12 +1794,21 @@ Re-output the FULL updated list of line items for this quote, applying the chang
               </div>
             )}
 
+            {(() => null)()}
+            {draft && (draft.line_items.length === 0 || total <= 0) && clientName.trim() && (
+              <div className="mb-2 rounded-2xl bg-paper/95 backdrop-blur shadow-[0_8px_24px_-8px_rgba(0,0,0,0.25)] px-3 py-2">
+                <p className="text-xs font-semibold text-ink">Add at least one item before sending.</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Quotes need a non-zero total.</p>
+              </div>
+            )}
+
             <div className="rounded-full bg-paper/95 backdrop-blur shadow-[0_12px_32px_-8px_rgba(0,0,0,0.35)] p-1.5 flex items-center gap-1.5">
+              {(() => null)()}
               <button
                 type="button"
                 onClick={() => { void save("draft"); }}
                 onPointerDown={() => feedback("tap")}
-                disabled={!clientName.trim() || saving}
+                disabled={!clientName.trim() || (draft?.line_items.length ?? 0) === 0 || total <= 0 || saving}
                 className="px-4 py-3 rounded-full text-ink font-bold text-xs inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-ink/5 transition"
               >
                 {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
@@ -1812,20 +1821,28 @@ Re-output the FULL updated list of line items for this quote, applying the chang
                     customerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
                     return;
                   }
+                  if ((draft?.line_items.length ?? 0) === 0 || total <= 0) {
+                    return;
+                  }
                   void save("send");
                 }}
                 onPointerDown={() => feedback("tap")}
-                disabled={saving}
+                disabled={saving || (draft?.line_items.length ?? 0) === 0 || total <= 0}
                 className={`flex-1 rounded-full py-3 font-bold inline-flex items-center justify-center gap-2 text-sm transition ${
-                  !clientName.trim()
+                  !clientName.trim() || (draft?.line_items.length ?? 0) === 0 || total <= 0
                     ? "bg-ink/10 text-muted-foreground"
                     : "bg-lime text-ink active:scale-[0.99]"
                 } disabled:opacity-60`}
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                {!clientName.trim() ? "Add a customer ↑" : "Save & send"}
+                {!clientName.trim()
+                  ? "Add a customer ↑"
+                  : (draft?.line_items.length ?? 0) === 0 || total <= 0
+                  ? "Add an item ↓"
+                  : "Save & send"}
               </button>
             </div>
+
           </div>
         </div>
       )}
