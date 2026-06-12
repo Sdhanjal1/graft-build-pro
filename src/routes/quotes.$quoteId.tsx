@@ -18,6 +18,10 @@ import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.
 import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus, ShoppingCart, ChevronDown, RotateCcw, Undo2, Mic } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { MaterialListSheet } from "@/components/MaterialListSheet";
 import { suggestPriceForDescription } from "@/lib/pricing-patterns.functions";
 import {
@@ -129,6 +133,31 @@ function QuoteDetail() {
   const [recordDepositOpen, setRecordDepositOpen] = useState(false);
   const [depositRecorded, setDepositRecorded] = useState(false);
   const [depositPaid, setDepositPaid] = useState(0);
+
+  // Confirm dialogs (replacing window.confirm for parity with Settings).
+  const [confirmRemoveDeposit, setConfirmRemoveDeposit] = useState(false);
+  const [confirmMarkUnpaid, setConfirmMarkUnpaid] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // "Just sent" banner — auto-dismiss after 5s and strip ?sent=1 so a refresh doesn't reshow it.
+  const [showSentBanner, setShowSentBanner] = useState(wasJustSent);
+  useEffect(() => {
+    if (!wasJustSent) return;
+    const t = setTimeout(() => setShowSentBanner(false), 5000);
+    return () => clearTimeout(t);
+  }, [wasJustSent]);
+  useEffect(() => {
+    if (!wasJustSent || typeof window === "undefined") return;
+    // Remove ?sent=1 (and ?paid / ?cancelled if present) once consumed.
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("sent")) {
+        url.searchParams.delete("sent");
+        window.history.replaceState({}, "", url.pathname + (url.search || "") + url.hash);
+      }
+    } catch { /* noop */ }
+  }, [wasJustSent]);
+
 
   // Real configured deposit for this quote (not a hardcoded 50%).
   const configuredDeposit = (() => {
@@ -267,8 +296,9 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
     }
   };
-  const removeRecordedDeposit = async () => {
-    if (!window.confirm("Remove the recorded deposit? The balance will go back to the full amount.")) return;
+  const removeRecordedDeposit = () => setConfirmRemoveDeposit(true);
+  const confirmRemoveRecordedDeposit = async () => {
+    setConfirmRemoveDeposit(false);
     try {
       await removeDepositFn({ data: { quoteId: quote.id } });
       setDepositPaid(0);
@@ -278,8 +308,9 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not remove deposit");
     }
   };
-  const markUnpaid = async () => {
-    if (!window.confirm("Mark this quote as unpaid? It will go back to awaiting payment.")) return;
+  const markUnpaid = () => setConfirmMarkUnpaid(true);
+  const confirmMarkUnpaidAction = async () => {
+    setConfirmMarkUnpaid(false);
     try {
       await setQuoteStatus(quote.id, "completed");
       setStatusState("completed");
@@ -288,6 +319,7 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
     }
   };
+
   // (confirmSchedule removed)
   const markPaid = async (m: PaymentMethod) => {
     try {
@@ -312,8 +344,9 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not duplicate quote");
     }
   };
-  const removeQuote = async () => {
-    if (typeof window !== "undefined" && !window.confirm("Delete this quote? This cannot be undone.")) return;
+  const removeQuote = () => setConfirmDelete(true);
+  const confirmRemoveQuote = async () => {
+    setConfirmDelete(false);
     try {
       await deleteQuote(quote.id);
       feedback("success"); toast.success("Quote deleted");
@@ -322,6 +355,7 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not delete quote");
     }
   };
+
   const viewAsCustomer = () => {
     if (portalStatus?.portal_code) {
       navigate({ to: "/portal/c/$code", params: { code: portalStatus.portal_code } });
@@ -553,39 +587,40 @@ function QuoteDetail() {
       <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" compact right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
 
       {/* Money summary card — glance-level total at the top */}
-      <div className="mx-5 mt-4 p-4 rounded-2xl bg-paper/[0.04] border border-lime/20 space-y-3">
+      <div className="mx-5 mt-4 p-4 rounded-2xl bg-card border border-border space-y-3">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs uppercase tracking-widest font-semibold text-paper/60">Subtotal</p>
-            <p className="text-lg font-bold text-paper num">{formatGBP(quote.subtotal || 0)}</p>
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Subtotal</p>
+            <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP(quote.subtotal || 0)}</p>
           </div>
           {userProfile.vat_registered && (
             <div>
-              <p className="text-xs uppercase tracking-widest font-semibold text-paper/60">VAT (20%)</p>
-              <p className="text-lg font-bold text-paper num">{formatGBP((quote.subtotal || 0) * 0.2)}</p>
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">VAT (20%)</p>
+              <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP((quote.subtotal || 0) * 0.2)}</p>
             </div>
           )}
         </div>
-        <div className="pt-3 border-t border-paper/10 flex items-center justify-between">
-          <p className="text-sm font-semibold text-paper">Total</p>
-          <p className="text-2xl font-bold text-lime num">{formatGBP(quote.total || 0)}</p>
+        <div className="pt-3 border-t border-border flex items-center justify-between">
+          <p className="text-sm font-semibold text-ink">Total</p>
+          <p className="text-2xl font-bold text-ink num">{formatGBP(quote.total || 0)}</p>
         </div>
         {timing === "deposit_then_balance" && configuredDeposit > 0 && (
-          <div className="pt-3 space-y-2 border-t border-paper/10">
+          <div className="pt-3 space-y-2 border-t border-border">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-paper/70">Deposit due</span>
+              <span className="text-muted-foreground">Deposit due</span>
               <span className="font-bold text-status-pending num">{formatGBP(configuredDeposit)}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-paper/70">Balance</span>
-              <span className="font-bold text-paper num">{formatGBP((quote.total || 0) - configuredDeposit)}</span>
+              <span className="text-muted-foreground">Balance</span>
+              <span className="font-bold text-ink num">{formatGBP((quote.total || 0) - configuredDeposit)}</span>
             </div>
           </div>
         )}
       </div>
 
 
-      {wasJustSent && (
+
+      {showSentBanner && (
         <section className="px-5 mt-3">
           <div className="rounded-2xl bg-lime/15 border border-lime/40 px-4 py-3 flex items-center gap-3">
             <span className="h-8 w-8 rounded-full bg-lime/30 flex items-center justify-center shrink-0">
@@ -661,24 +696,24 @@ function QuoteDetail() {
         </div>
       </section>
 
-      {/* Payment terms — visible at a glance */}
-      <section className="px-5 mt-5">
-        <div className="rounded-2xl border-2 border-lime bg-lime/10 px-4 py-3 flex items-center justify-between gap-3">
+      {/* Payment terms — visible at a glance, whole card is the tap target */}
+      <section className="px-5 mt-6">
+        <button
+          type="button"
+          onClick={() => setTimingOpen(true)}
+          className="w-full text-left rounded-2xl border-2 border-lime bg-lime/10 px-4 py-3 flex items-center justify-between gap-3 active:scale-[0.99] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="Change payment terms"
+        >
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms · tap to change</p>
             <p className="text-sm font-bold text-ink leading-tight">
               {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setTimingOpen(true)}
-            className="shrink-0 text-xs font-semibold text-ink underline underline-offset-2"
-          >
-            Change
-          </button>
-        </div>
+          <ChevronDown className="h-4 w-4 text-ink/60 shrink-0" />
+        </button>
       </section>
+
 
       {/* Materials — next step after payment terms */}
       {showMaterialsCta && (
@@ -729,8 +764,11 @@ function QuoteDetail() {
       <section className="px-5 mt-5">
         <Accordion type="single" collapsible className="card-surface px-4">
           <AccordionItem value="options" className="border-b-0">
-            <AccordionTrigger className="text-sm font-semibold text-ink hover:no-underline">
-              Options
+            <AccordionTrigger className="text-sm font-semibold text-ink hover:no-underline py-4">
+              <span className="flex flex-col items-start gap-0.5">
+                <span>More actions</span>
+                <span className="text-[11px] font-normal text-muted-foreground">Share, payments, customer link</span>
+              </span>
             </AccordionTrigger>
             <AccordionContent className="space-y-3 pt-1">
               {/* Portal link status warning */}
@@ -1125,6 +1163,57 @@ function QuoteDetail() {
           </div>
         </div>
       )}
+
+      {/* Confirm dialogs — replace native window.confirm for parity with Settings */}
+      <AlertDialog open={confirmRemoveDeposit} onOpenChange={setConfirmRemoveDeposit}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove the recorded deposit?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The balance will go back to the full amount.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemoveRecordedDeposit}>Remove deposit</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmMarkUnpaid} onOpenChange={setConfirmMarkUnpaid}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark this quote as unpaid?</AlertDialogTitle>
+            <AlertDialogDescription>
+              It will go back to awaiting payment.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmMarkUnpaidAction}>Mark unpaid</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this quote?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRemoveQuote}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete quote
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

@@ -57,15 +57,16 @@ const tileMatches = (tile: TileKey, q: Quote): boolean => {
   return false;
 };
 
+// Three visual states only: neutral, positive, danger.
+// Status meaning is carried by the label text + the card's left border colour.
 const STATUS_PILL: Record<QuoteStatus, string> = {
-  pending: "bg-ink/10 text-ink",
-  sent: "bg-ink/10 text-ink",
-  accepted: "bg-lime/25 text-ink border border-lime",
-  declined: "bg-ink/10 text-muted-foreground line-through",
-  completed: "bg-ink/10 text-ink",
+  pending: "bg-ink/8 text-muted-foreground",
+  sent: "bg-ink/8 text-muted-foreground",
+  accepted: "bg-lime/30 text-ink",
+  declined: "bg-ink/8 text-muted-foreground line-through",
+  completed: "bg-ink/8 text-muted-foreground",
   paid: "bg-lime text-ink",
   overdue: "bg-status-overdue text-white",
-
 };
 
 
@@ -115,6 +116,18 @@ function QuotesPage() {
           >
             <CountUpGBP value={pipelineTotal} />
           </p>
+          {(() => {
+            const awaiting = tiles.find((t) => t.key === "awaiting")!;
+            const parts: string[] = [];
+            if (awaiting.count > 0) parts.push(`${formatGBP(awaiting.total)} awaiting payment`);
+            if (overdueTile.count > 0) parts.push(`${formatGBP(overdueTile.total)} overdue`);
+            if (parts.length === 0) return null;
+            return (
+              <p className="mt-2 text-xs font-semibold text-ink/75 tabular-nums">
+                {parts.join(" · ")}
+              </p>
+            );
+          })()}
         </div>
       </div>
 
@@ -124,21 +137,21 @@ function QuotesPage() {
           <button
             onClick={() => setTile(tile === "overdue" ? null : "overdue")}
             aria-pressed={tile === "overdue"}
-            className={`w-full text-left rounded-2xl px-5 py-4 border-2 transition motion-safe:animate-pulse-soft ${
+            className={`w-full text-left rounded-2xl px-4 py-3 border-2 transition motion-safe:animate-pulse-soft ${
               tile === "overdue" ? "bg-ink text-paper border-ink" : "bg-card text-ink border-status-overdue/40"
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className={`text-[10px] uppercase tracking-[0.2em] font-bold ${tile === "overdue" ? "text-status-overdue" : "text-status-overdue"}`}>
+              <span className="text-[10px] uppercase tracking-widest font-bold text-status-overdue">
                 Overdue · action needed
               </span>
-              <span className={`text-xs font-bold tabular-nums ${tile === "overdue" ? "text-paper" : "text-status-overdue"}`}>
+              <span className={`text-[10px] font-bold tabular-nums ${tile === "overdue" ? "text-paper" : "text-ink/60"}`}>
                 {overdueTile.count}
               </span>
             </div>
             <p
-              className={`mt-1 leading-none tabular-nums ${tile === "overdue" ? "text-lime" : "text-ink"}`}
-              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(2.25rem, 9vw, 3rem)" }}
+              className={`mt-1.5 leading-none tabular-nums ${tile === "overdue" ? "text-lime" : "text-ink"}`}
+              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.875rem" }}
             >
               <CountUpGBP value={overdueTile.total} />
             </p>
@@ -154,7 +167,7 @@ function QuotesPage() {
             <button
               key={t.key}
               onClick={() => setTile(active ? null : t.key)}
-              className={`text-left rounded-2xl px-3 py-3 border transition ${
+              className={`text-left rounded-2xl px-4 py-3 border transition ${
                 active
                   ? "bg-ink text-paper border-ink"
                   : "bg-card text-ink border-border hover:border-ink/30"
@@ -162,7 +175,7 @@ function QuotesPage() {
               aria-pressed={active}
             >
               <div className="flex items-center justify-between">
-                <span className={`text-[9px] uppercase tracking-widest font-bold ${active ? "text-paper/70" : "text-muted-foreground"}`}>
+                <span className={`text-[10px] uppercase tracking-widest font-bold ${active ? "text-paper/70" : "text-muted-foreground"}`}>
                   {TILE_LABEL[t.key]}
                 </span>
                 <span className={`text-[10px] font-bold tabular-nums ${active ? "text-paper" : "text-ink/60"}`}>
@@ -171,7 +184,7 @@ function QuotesPage() {
               </div>
               <span
                 className={`mt-1.5 block leading-none tabular-nums ${active ? "text-lime" : "text-ink"}`}
-                style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.5rem" }}
+                style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.875rem" }}
               >
                 <CountUpGBP value={t.total} />
               </span>
@@ -181,8 +194,8 @@ function QuotesPage() {
       </div>
 
 
-      <div className="px-5 mt-4">
-        <div className="card-surface flex items-center gap-2 px-4 py-3">
+      <div className="px-5 mt-4 flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 rounded-full bg-card border border-border px-3.5 py-2">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input
             value={q}
@@ -191,18 +204,18 @@ function QuotesPage() {
             className="bg-transparent flex-1 outline-none text-sm placeholder:text-muted-foreground"
           />
         </div>
-      </div>
-
-      {tile && (
-        <div className="px-5 mt-3">
+        {tile && (
           <button
             onClick={() => setTile(null)}
-            className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground hover:text-ink"
+            className="shrink-0 inline-flex items-center gap-1 rounded-full bg-ink text-paper px-3 py-2 text-[11px] font-bold uppercase tracking-wider"
+            aria-label={`Clear ${TILE_LABEL[tile]} filter`}
           >
-            Showing {TILE_LABEL[tile]} · Clear filter
+            {TILE_LABEL[tile]}
+            <span aria-hidden className="text-paper/70 text-sm leading-none">×</span>
           </button>
-        </div>
-      )}
+        )}
+      </div>
+
 
 
 
@@ -308,7 +321,7 @@ function QuoteCard({
 
   const isDraft = quote.status === "pending";
 
-  const className = `rounded-2xl py-5 px-4 flex items-center gap-4 transition active:scale-[0.99] ${
+  const className = `rounded-2xl py-4 px-4 flex items-start gap-3 transition active:scale-[0.99] ${
     quote.status === "overdue"
       ? "bg-ink text-paper border-l-4 border-status-overdue"
       : quote.status === "paid"
@@ -326,43 +339,53 @@ function QuoteCard({
     }
   };
 
+  const isOverdue = quote.status === "overdue";
+  const hasClient = clientName && clientName.toLowerCase() !== "new client";
+  const acceptedMaterials = quote.status === "accepted" ? materialsForQuote(quote).length : 0;
+
   const inner = (
     <>
       <div className="flex-1 min-w-0">
-        <p
-          className={`leading-none tabular-nums ${quote.status === "overdue" ? "text-lime" : "text-ink"}`}
-          style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "2.5rem", letterSpacing: "0.01em" }}
-        >
-          {formatGBP(quote.total)}
-        </p>
-        <p className={`text-sm mt-2 truncate font-medium ${quote.status === "overdue" ? "text-paper" : "text-ink"}`}>
-          {clientName && clientName.toLowerCase() !== "new client"
+        {/* Primary: client name (what you scan for) */}
+        <p className={`text-sm font-semibold truncate ${isOverdue ? "text-paper" : "text-ink"}`}>
+          {hasClient
             ? clientName
             : <span className="text-status-pending">Tap to assign client</span>}
         </p>
-        <p className={`text-[11px] truncate mt-0.5 ${quote.status === "overdue" ? "text-paper/60" : "text-muted-foreground"}`}>{quote.title}</p>
-        {isDraft && (
-          <p className="text-[10px] uppercase tracking-widest font-bold text-ink/60 mt-1.5">
-            Draft · tap to continue
-          </p>
-        )}
-        {quote.status === "accepted" && (() => {
-          const n = materialsForQuote(quote).length;
-          return n > 0 ? (
-            <p className="mt-1.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-widest font-semibold text-ink/70">
+        {/* Secondary: job title */}
+        <p className={`text-[12px] truncate mt-0.5 ${isOverdue ? "text-paper/70" : "text-muted-foreground"}`}>
+          {quote.title}
+        </p>
+        {/* Status / hint chip row */}
+        <div className="mt-2 flex items-center gap-2 flex-wrap">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold ${STATUS_PILL[quote.status]}`}>
+            {STATUS_LABEL[quote.status]}
+          </span>
+          {isDraft && (
+            <span className="text-[10px] uppercase tracking-widest font-bold text-ink/55">
+              Tap to continue
+            </span>
+          )}
+          {acceptedMaterials > 0 && (
+            <span className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-widest font-semibold ${isOverdue ? "text-paper/70" : "text-ink/70"}`}>
               <ShoppingCart className="h-3 w-3" />
-              {n} material{n === 1 ? "" : "s"}
-            </p>
-          ) : null;
-        })()}
+              {acceptedMaterials} material{acceptedMaterials === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
       </div>
-      <div className="shrink-0">
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider font-bold ${STATUS_PILL[quote.status]}`}>
-          {STATUS_LABEL[quote.status]}
-        </span>
+      {/* Right: amount, tabular, right-aligned */}
+      <div className="shrink-0 text-right">
+        <p
+          className={`leading-none tabular-nums ${isOverdue ? "text-lime" : "text-ink"}`}
+          style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.75rem", letterSpacing: "0.01em" }}
+        >
+          {formatGBP(quote.total)}
+        </p>
       </div>
     </>
   );
+
 
   const sharedProps = {
     className,
