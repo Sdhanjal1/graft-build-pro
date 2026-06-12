@@ -112,7 +112,7 @@ type PendingItem = { id: string; text: string };
 function NewQuotePage() {
   const navigate = useNavigate();
   const router = useRouter();
-  const { voice: voiceParam, clientId, edit: editId, prefill } = Route.useSearch();
+  const { voice: voiceParam, type: typeParam, clientId, edit: editId, prefill } = Route.useSearch();
   const prefillAppliedRef = useRef(false);
   const [editLoading, setEditLoading] = useState<boolean>(() => !!editId && !getQuote(editId));
   const [editError, setEditError] = useState<string | null>(null);
