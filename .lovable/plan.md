@@ -1,18 +1,31 @@
-## Problem
+## Findings
 
-On the quote create/edit page (`/quotes/new`, also used for editing via `?id=…`), the Payment card has a large empty gap below it before the sticky Save / Save & send bar (visible in screenshot).
+I scanned all in-app routes and shared components for stale large paddings, margins, gaps and stack spacing. After the previous two tightening passes the app is in good shape — only one real outlier remains, plus one small nit.
 
-Cause: the form wrapper uses `pb-64` (256px) to clear the sticky bar, but the bar only needs ~152px of clearance (`bottom-20` = 80px + ~56px bar height + small buffer).
+### 1. Public request form has excessive bottom padding (real issue)
 
-## Change
+`src/routes/request.$proId.tsx:141`
 
-`src/routes/quotes.new.tsx`, line 1272:
+```tsx
+<div className="min-h-screen bg-paper pb-32">
+```
 
-- `className="px-5 mt-4 space-y-4 pb-64"` → `className="px-5 mt-4 space-y-4 pb-40"`
+This page has **no sticky bottom bar** — the submit button is inline at the end of the form. `pb-32` (128px) leaves a large empty block under the CTA before the footer, mirroring the issue you just flagged on the new-quote page.
 
-This tightens the gap below the last card (Payment, or Deposit panel when expanded) so it sits closer to the sticky action bar without overlap.
+**Change:** `pb-32` → `pb-12`.
 
-## Scope
+### 2. Invoice hero banner (intentional, leave alone)
 
-- Single file. Same component renders both the new-quote and edit-quote flows (edit is keyed off `editId`), so this one change covers both pages as requested.
-- No other layout, no logic, no other padding touched.
+`src/routes/invoices.$quoteId.tsx:86, 104` use `px-6 py-6` inside the dark "INVOICE" hero card. This is a deliberately weighty hero block (logo + huge amount due) — tightening it would weaken the visual hierarchy. **No change.**
+
+### 3. Everything else
+
+Headers, list rows, sticky CTAs, sheets, settings rows, chaser cards, clients pages, messages, quotes index, quote detail, onboarding, auth, forgot/reset password and the customer portal are all using the tightened values from the last pass. Marketing pages (`index.tsx`, `about.tsx`, `features.tsx`, `trades.*`, `faqs.tsx`, `privacy.tsx`, `terms.tsx`, `pricing.tsx`) intentionally keep generous `py-16`/`py-20`/`mt-12` spacing for landing-page rhythm — left alone, consistent with the previous pass.
+
+## Plan
+
+Single one-line edit:
+
+- `src/routes/request.$proId.tsx` line 141: `pb-32` → `pb-12`.
+
+No other files touched.
