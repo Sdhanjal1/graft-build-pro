@@ -606,8 +606,26 @@ Re-output the FULL updated list of line items for this quote, applying the chang
         const filtered = g.line_items
           .filter((li) => !deletedDescsRef.current.has(normDesc(li.description)))
           .map((li) => editedItemsRef.current.get(normDesc(li.description)) ?? li);
-        setLiveItems(filtered);
-        liveItemsRef.current = filtered;
+        // Append-only merge: keep existing tiles in place; update qty/unit_price
+        // in place when a filtered item matches by normDesc; append new ones.
+        // Never remove tiles here — only the tombstone path does that.
+        const base = liveItemsRef.current;
+        const indexByKey = new Map<string, number>();
+        base.forEach((it, i) => indexByKey.set(normDesc(it.description), i));
+        const next = base.slice();
+        for (const li of filtered) {
+          const key = normDesc(li.description);
+          const idx = indexByKey.get(key);
+          if (idx != null) {
+            const existing = next[idx];
+            next[idx] = { ...existing, qty: li.qty, unit_price: li.unit_price };
+          } else {
+            indexByKey.set(key, next.length);
+            next.push(li);
+          }
+        }
+        setLiveItems(next);
+        liveItemsRef.current = next;
         lastLiveGenRef.current = {
           title: g.title,
           clean_description: g.clean_description,
@@ -760,14 +778,76 @@ Re-output the FULL updated list of line items for this quote, applying the chang
         liveFinalRef.current = `${liveFinalRef.current} ${finalInterim}`.trim();
       }
       if (liveDebounceRef.current) { clearTimeout(liveDebounceRef.current); liveDebounceRef.current = null; }
-      // Trigger one final regenerate AND wait for it (plus any earlier in-flight
-      // one) before checking liveItemsRef — otherwise the Whisper fallback can
-      // fire concurrently and produce duplicate line items.
+
+      // INSTANT-STOP BRANCH: if we already have tiles, build the draft right
+      // now from what's visible — no spinner. Then reconcile in the background
+      // (final regenerate + pending phrases) and merge any genuinely new items
+      // append-only, only if the user hasn't started editing.
+      if (liveItemsRef.current.length > 0) {
+        const items = liveItemsRef.current;
+        const transcript = liveFinalRef.current.trim();
+        const meta = lastLiveGenRef.current;
+        const built = {
+          title: meta?.title?.trim() || deriveTitle(items),
+          line_items: items,
+        };
+        setDraft(built);
+        // Set the baseline BEFORE kicking off background work so an untouched
+        // draft compares equal and the background merge proceeds.
+        originalDraftRef.current = JSON.stringify(built.line_items);
+        setDesc(meta?.clean_description?.trim() || transcript);
+        const ec = meta?.extracted_customer;
+        if (ec?.name && !clientName.trim()) setClientName(ec.name);
+        if (ec?.phone && !clientPhone.trim()) setClientPhone(ec.phone);
+        clearPendingItems();
+        setLivePreview("");
+        liveFinalRef.current = "";
+        liveInterimRef.current = "";
+        feedback("success");
+        playSample("ding");
+        requestAnimationFrame(() => {
+          draftRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+
+        // Background reconcile — never blocks UI, never sets transcribing.
+        void (async () => {
+          try {
+            await runRegenerate(sessionId);
+            await waitForPendingPhraseProcessing();
+          } catch { /* swallowed */ }
+          if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
+          const lateItems = liveItemsRef.current;
+          if (!lateItems.length) return;
+          setDraft((prev) => {
+            if (!prev) return prev;
+            // Skip merge if the user has started editing the draft.
+            if (JSON.stringify(prev.line_items) !== originalDraftRef.current) return prev;
+            const indexByKey = new Map<string, number>();
+            prev.line_items.forEach((it, i) => indexByKey.set(normDesc(it.description), i));
+            const next = prev.line_items.slice();
+            let appended = false;
+            for (const li of lateItems) {
+              const key = normDesc(li.description);
+              if (deletedDescsRef.current.has(key)) continue;
+              if (indexByKey.has(key)) continue;
+              indexByKey.set(key, next.length);
+              next.push(li);
+              appended = true;
+            }
+            if (!appended) return prev;
+            const merged = { ...prev, line_items: next };
+            originalDraftRef.current = JSON.stringify(merged.line_items);
+            return merged;
+          });
+        })();
+        return;
+      }
+
+      // ZERO-TILES BRANCH: unchanged — spinner + Whisper fallback.
       const finalRegen = runRegenerate(sessionId);
       setTranscribing(true);
       try { await finalRegen; } catch { /* swallowed inside regenerateLiveQuote */ }
-      // Belt-and-braces: also wait for any other tracked pending work.
-      await waitForPendingPhraseProcessing();
+      try { await waitForPendingPhraseProcessing(); } catch { /* noop */ }
       setTranscribing(false);
 
       const items = liveItemsRef.current;
@@ -2071,28 +2151,18 @@ function VoiceOverlay({
         )}
       </div>
 
-      {/* Plan 2: live partial transcript — dim, reactive to webkitSpeechRecognition.
-          Shows the last ~80 chars so layout doesn't shift as speech accumulates.
-          Falls back to a reassuring message when Web Speech isn't available. */}
+      {/* Listening cue — quiet pulsing mic dot + label. Replaces the visible
+          transcript; capture continues internally and still feeds the AI. */}
       {recording && (
-        <div className="w-full max-w-md mx-auto mt-3 px-2 transition-opacity duration-150" aria-live="polite">
-          {liveSupported ? (
-            livePreview ? (
-              <p
-                className={`italic text-paper/40 ${hasItems ? "text-xs text-center truncate" : "text-sm text-center"}`}
-                style={hasItems ? undefined : { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
-              >
-                {hasItems && "Hearing: "}
-                {livePreview.length > 80 ? `…${livePreview.slice(-80)}` : livePreview}
-              </p>
-            ) : !hasItems ? (
-              <p className="text-xs text-paper/30 text-center italic">Listening — speak naturally.</p>
-            ) : null
-          ) : !hasItems ? (
-            <p className="text-xs text-paper/40 text-center italic">Transcribing on stop — you can speak freely.</p>
-          ) : null}
+        <div className="w-full max-w-md mx-auto mt-3 px-2 flex items-center justify-center gap-2" aria-live="polite">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-lime opacity-60 animate-ping" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-lime" />
+          </span>
+          <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">Listening…</span>
         </div>
       )}
+
 
       {(transcribing || building) && !hasItems && (
         <div className="flex flex-col items-center gap-3 mt-8">
