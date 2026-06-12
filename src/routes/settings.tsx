@@ -12,7 +12,7 @@ import { feedback } from "@/lib/feedback";
 import {
   Receipt, LogOut,
   CheckCircle2, FileText, MessageSquare, AlertTriangle, Trash2,
-  Camera, Pencil, PenLine,
+  Camera, Pencil, PenLine, ChevronRight,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { PushPermissionCard } from "@/components/CustomerQRCard";
@@ -25,10 +25,27 @@ import { AccountingExportButton } from "@/components/AccountingExportButton";
 import { deleteMyAccount } from "@/lib/account.functions";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { SaveIndicator } from "@/components/SaveIndicator";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
+
+/** Trade-aware label for the "registration number" field. */
+function registrationLabelForTrade(trade: string): string {
+  const t = (trade || "").toLowerCase();
+  if (t.includes("gas") || t.includes("plumb") || t.includes("heating")) return "Gas Safe registration number";
+  if (t.includes("electric")) return "NICEIC / NAPIT number";
+  if (t.includes("window") || t.includes("glaz")) return "FENSA / CERTASS number";
+  return "Trade registration number";
+}
 
 function SettingsPage() {
   const navigate = useNavigate();
@@ -39,11 +56,10 @@ function SettingsPage() {
   };
   const deleteAccount = useServerFn(deleteMyAccount);
   const [deleting, setDeleting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
   const handleDeleteAccount = async () => {
-    const first = confirm("Permanently delete your account and all your data? This cannot be undone.");
-    if (!first) return;
-    const second = prompt('Type DELETE to confirm.');
-    if (second !== "DELETE") return;
+    if (deleteConfirm !== "DELETE") return;
     setDeleting(true);
     try {
       await deleteAccount();
@@ -168,15 +184,30 @@ function SettingsPage() {
 
   const removeLogo = () => saveProfile({ logo_url: "" });
 
+  // --- Collapsed summaries ---
+  const fmtMoney = (n: number) => (n ? `£${n}` : "—");
+  const pricingSummary = `${fmtMoney(labourHourly)}/hr · ${fmtMoney(labourDay)}/day`;
+  const last4 = bank.account_number ? `••${bank.account_number.slice(-4)}` : "no bank";
+  const gettingPaidSummary = `${bank.bank_name || "Bank not set"} ${last4} · ${defaultDepositPct}% deposit${vatRegistered ? " · VAT" : ""}`;
+  const quoteLookSummary = profile.show_signature
+    ? `Signed as ${profile.signature_name || profile.full_name || "you"}`
+    : "No signature";
+  const regLabel = registrationLabelForTrade(profile.trade_type);
+
   return (
     <AppShell>
-      <PageHeader title="Settings" subtitle="Configuration" />
-
-      <div className="px-5 mt-2 h-5">
-        <SaveIndicator
-          isSaving={profileSaving}
-          isSaved={profileSaved}
-          error={profileError}
+      <div className="sticky top-0 z-30 bg-paper">
+        <PageHeader
+          title="Settings"
+          subtitle="Configuration"
+          right={
+            <SaveIndicator
+              isSaving={profileSaving}
+              isSaved={profileSaved}
+              error={profileError}
+              className="text-paper/80"
+            />
+          }
         />
       </div>
 
@@ -194,16 +225,27 @@ function SettingsPage() {
       />
 
       {/* 1. YOUR BUSINESS — identity + branding, open */}
-      <Section title="Your business" defaultOpen>
+      <Section
+        title="Your business"
+        defaultOpen
+        summary={profile.business_name || "Add your business details"}
+      >
         <div className="card-surface p-5 space-y-3.5">
           <EditField label="Business name" value={profile.business_name} onChange={(v) => saveProfile({ business_name: v })} />
           <EditField label="Your name"     value={profile.full_name}     onChange={(v) => saveProfile({ full_name: v })} />
-          <EditField label="Phone"         value={profile.phone}         onChange={(v) => saveProfile({ phone: v })} />
+          <EditField label="Phone"         value={profile.phone}         onChange={(v) => saveProfile({ phone: v })} inputMode="tel" />
           <SelectField label="Trade type"  value={profile.trade_type}    onChange={(v) => saveProfile({ trade_type: v })} options={TRADE_TYPES} />
           <EditField label="Address line 1" value={profile.address_line_1} onChange={(v) => saveProfile({ address_line_1: v })} placeholder="e.g. 12 High Street" />
           <EditField label="Address line 2" value={profile.address_line_2} onChange={(v) => saveProfile({ address_line_2: v })} placeholder="Optional" />
-          <EditField label="Town / City"   value={profile.town}          onChange={(v) => saveProfile({ town: v })} />
-          <EditField label="Postcode"      value={profile.postcode}      onChange={(v) => saveProfile({ postcode: v })} />
+          <div className="grid grid-cols-2 gap-2.5">
+            <EditField label="Town / City"   value={profile.town}          onChange={(v) => saveProfile({ town: v })} />
+            <EditField
+              label="Postcode"
+              value={profile.postcode}
+              onChange={(v) => saveProfile({ postcode: v.toUpperCase() })}
+              autoCapitalize="characters"
+            />
+          </div>
 
           <div className="pt-3 border-t border-border/60">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-3">Business logo</p>
@@ -250,8 +292,8 @@ function SettingsPage() {
         </div>
       </Section>
 
-      {/* 2. YOUR PRICING — labour rates, open (used on every quote) */}
-      <Section title="Your pricing" defaultOpen>
+      {/* 2. YOUR PRICING — collapsed with summary */}
+      <Section title="Your pricing" summary={pricingSummary}>
         <div className="card-surface p-5 space-y-3">
           <div className="grid grid-cols-2 gap-2.5">
             <MoneyField label="Hourly rate" value={labourHourly} onChange={setLabourHourly} placeholder="45" />
@@ -263,16 +305,16 @@ function SettingsPage() {
         </div>
       </Section>
 
-      {/* 3. GETTING PAID — bank, terms, deposit, VAT, Gas Safe, card payments, open */}
-      <Section title="Getting paid" defaultOpen>
+      {/* 3. GETTING PAID — bank, terms, deposit, VAT, Gas Safe, card payments, collapsed */}
+      <Section title="Getting paid" summary={gettingPaidSummary}>
         <div className="space-y-3">
           <div className="card-surface p-5 space-y-3">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Bank details</p>
             <Input label="Bank account name" value={bank.account_name} onChange={(v) => saveBank({ account_name: v })} />
             <Input label="Bank name" value={bank.bank_name} onChange={(v) => saveBank({ bank_name: v })} />
             <div className="grid grid-cols-2 gap-2.5">
-              <Input label="Sort code" value={bank.sort_code} onChange={(v) => saveBank({ sort_code: v })} />
-              <Input label="Account number" value={bank.account_number} onChange={(v) => saveBank({ account_number: v })} />
+              <Input label="Sort code" value={bank.sort_code} onChange={(v) => saveBank({ sort_code: v })} inputMode="numeric" />
+              <Input label="Account number" value={bank.account_number} onChange={(v) => saveBank({ account_number: v })} inputMode="numeric" />
             </div>
             <Input label="Payment reference instructions" value={bank.payment_reference_note} onChange={(v) => saveBank({ payment_reference_note: v })} multiline rows={2} />
           </div>
@@ -286,6 +328,7 @@ function SettingsPage() {
               </label>
               <input
                 type="number" min={0} max={100} step={1}
+                inputMode="numeric"
                 value={defaultDepositPct}
                 onChange={(e) => {
                   const n = Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)));
@@ -301,9 +344,17 @@ function SettingsPage() {
 
           <div className="card-surface p-5 space-y-3.5">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">VAT & registration</p>
-            <EditField label="Gas Safe registration number" value={profile.registration_number} onChange={(v) => saveProfile({ registration_number: v })} />
-            <EditField label="VAT number" value={profile.vat_number} onChange={(v) => saveProfile({ vat_number: v })} />
+            <EditField label={regLabel} value={profile.registration_number} onChange={(v) => saveProfile({ registration_number: v })} />
             <ToggleRow icon={Receipt} label="VAT registered" hint="Adds 20% VAT to every quote" checked={vatRegistered} onChange={setVatRegistered} flush />
+            {vatRegistered && (
+              <EditField
+                label="VAT number"
+                value={profile.vat_number}
+                onChange={(v) => saveProfile({ vat_number: v.toUpperCase() })}
+                placeholder="e.g. GB123456789"
+                autoCapitalize="characters"
+              />
+            )}
           </div>
 
           <BillingSection show="connect" />
@@ -311,7 +362,7 @@ function SettingsPage() {
       </Section>
 
       {/* 4. HOW QUOTES LOOK — collapsed */}
-      <Section title="How quotes look">
+      <Section title="How quotes look" summary={quoteLookSummary}>
         <div className="card-surface p-5 space-y-4">
           <label className="block">
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
@@ -341,7 +392,7 @@ function SettingsPage() {
       </Section>
 
       {/* 5. NOTIFICATIONS — collapsed */}
-      <Section title="Notifications">
+      <Section title="Notifications" summary="Push & email alerts">
         <div className="space-y-3">
           <PushPermissionCard />
           <NotificationToggles />
@@ -349,7 +400,7 @@ function SettingsPage() {
       </Section>
 
       {/* 6. ACCOUNT & BILLING — collapsed */}
-      <Section title="Account & billing">
+      <Section title="Account & billing" summary="Subscription, exports, sign out">
         <div className="space-y-3">
           <BillingSection show="subscription" />
           <AccountingSetup />
@@ -365,11 +416,14 @@ function SettingsPage() {
         </div>
       </Section>
 
-      {/* 7. DANGER ZONE — collapsed */}
-      <Section title="Danger zone">
+      {/* 7. DANGER ZONE — collapsed, tinted */}
+      <Section title="Danger zone" tone="danger" summary="Permanent account deletion">
         <div className="card-surface">
           <button
-            onClick={handleDeleteAccount}
+            onClick={() => {
+              setDeleteConfirm("");
+              setDeleteOpen(true);
+            }}
             disabled={deleting}
             className="px-5 py-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left disabled:opacity-60"
           >
@@ -380,6 +434,49 @@ function SettingsPage() {
       </Section>
 
       <div className="h-6" />
+
+      {/* Delete account dialog */}
+      <AlertDialog open={deleteOpen} onOpenChange={(v) => !deleting && setDeleteOpen(v)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-status-overdue">Delete your account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes your profile, quotes, invoices and clients.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+              Type DELETE to confirm
+            </span>
+            <input
+              autoFocus
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              placeholder="DELETE"
+              className="mt-1.5 w-full h-11 bg-card border border-border rounded-2xl px-4 text-sm font-semibold outline-none focus:border-status-overdue focus:ring-2 focus:ring-status-overdue/30"
+            />
+          </label>
+          <AlertDialogFooter>
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+              className="px-4 py-2 rounded-full text-sm font-semibold bg-secondary text-ink disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteAccount}
+              disabled={deleting || deleteConfirm !== "DELETE"}
+              className="px-4 py-2 rounded-full text-sm font-bold bg-status-overdue text-white disabled:opacity-50"
+            >
+              {deleting ? "Deleting…" : "Delete account"}
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
@@ -389,12 +486,17 @@ function Section({
   title,
   children,
   defaultOpen = false,
+  summary,
+  tone = "default",
 }: {
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  summary?: string;
+  tone?: "default" | "danger";
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const danger = tone === "danger";
   return (
     <section className="px-5 mt-5">
       <button
@@ -403,16 +505,19 @@ function Section({
           feedback("tap");
           setOpen((o) => !o);
         }}
-        className="w-full flex items-center justify-between py-2 text-left"
+        className="w-full flex items-center justify-between gap-3 py-2 text-left"
         aria-expanded={open}
       >
-        <h2 className="text-xl">{title}</h2>
-        <span
-          className="text-muted-foreground text-xl leading-none transition-transform"
+        <div className="min-w-0 flex-1">
+          <h2 className={`text-xl ${danger ? "text-status-overdue" : ""}`}>{title}</h2>
+          {!open && summary && (
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">{summary}</p>
+          )}
+        </div>
+        <ChevronRight
+          className={`h-5 w-5 shrink-0 transition-transform ${danger ? "text-status-overdue/70" : "text-muted-foreground"}`}
           style={{ transform: open ? "rotate(90deg)" : "rotate(0deg)" }}
-        >
-          ›
-        </span>
+        />
       </button>
       {open && <div className="mt-1">{children}</div>}
     </section>
@@ -464,14 +569,23 @@ function ToggleRow({
 }
 
 function EditField({
-  label, value, onChange, placeholder,
-}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  label, value, onChange, placeholder, inputMode, autoCapitalize,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  inputMode?: "text" | "tel" | "email" | "numeric" | "decimal" | "search" | "url" | "none";
+  autoCapitalize?: "off" | "none" | "on" | "sentences" | "words" | "characters";
+}) {
   return (
     <label className="block">
       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
       <input
         value={value}
         placeholder={placeholder}
+        inputMode={inputMode}
+        autoCapitalize={autoCapitalize}
         onChange={(e) => onChange(e.target.value)}
         className="mt-1.5 w-full h-11 bg-card border border-border rounded-2xl px-4 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
       />
@@ -508,34 +622,35 @@ function AccountingSetup() {
   ];
   const [software, setSoftware] = useState<typeof userProfile.accounting_software>(userProfile.accounting_software || "");
   const [codes, setCodes] = useState({ ...userProfile.accounting_codes });
-  const [saving, setSaving] = useState(false);
   const [codesOpen, setCodesOpen] = useState(false);
 
   const filledCodes = (Object.values(codes) as string[]).filter((v) => v && v.trim()).length;
   const totalCodes = 5;
   const hasPickedSoftware = !!software;
 
-  const save = async () => {
-    setSaving(true);
-    try {
+  // Autosave accounting setup (matches the page-wide autosave behaviour).
+  const {
+    isSaving: acctSaving,
+    isSaved: acctSaved,
+    error: acctError,
+    handleChange: queueAcctSave,
+  } = useAutoSave<void>({
+    debounceMs: 600,
+    onSave: async () => {
       await saveProfileToCloud({ accounting_software: software, accounting_codes: codes });
-      toast.success("Accounting setup saved");
-      setCodesOpen(false);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not save");
-    } finally {
-      setSaving(false);
-    }
-  };
+    },
+    errorTitle: "Couldn't save accounting setup",
+  });
 
-  const onSoftwareChange = async (v: typeof software) => {
-    setSoftware(v);
-    try {
-      await saveProfileToCloud({ accounting_software: v, accounting_codes: codes });
-    } catch {
-      // silent — explicit Save button handles errors
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
     }
-  };
+    queueAcctSave();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [software, codes]);
 
   const codeRow = (key: keyof typeof codes, label: string, placeholder: string) => (
     <label className="block">
@@ -543,6 +658,7 @@ function AccountingSetup() {
       <input
         value={codes[key]}
         placeholder={placeholder}
+        inputMode="numeric"
         onChange={(e) => setCodes((c) => ({ ...c, [key]: e.target.value }))}
         className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
       />
@@ -553,10 +669,13 @@ function AccountingSetup() {
     <div className="card-surface p-5 space-y-4">
       {/* Software picker */}
       <label className="block">
-        <span className="text-xs text-muted-foreground font-semibold">Accounting software</span>
+        <span className="text-xs text-muted-foreground font-semibold flex items-center justify-between">
+          <span>Accounting software</span>
+          <SaveIndicator isSaving={acctSaving} isSaved={acctSaved} error={acctError} showLabel={false} />
+        </span>
         <select
           value={software}
-          onChange={(e) => void onSoftwareChange(e.target.value as typeof software)}
+          onChange={(e) => setSoftware(e.target.value as typeof software)}
           className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
         >
           {SOFTWARE_OPTIONS.map((o) => (
@@ -578,12 +697,10 @@ function AccountingSetup() {
             {filledCodes === 0 ? "Using default code (200)" : `${filledCodes} of ${totalCodes} codes set`}
           </p>
         </div>
-        <span
-          className="text-muted-foreground text-xl leading-none transition-transform"
+        <ChevronRight
+          className="h-5 w-5 text-muted-foreground transition-transform"
           style={{ transform: codesOpen ? "rotate(90deg)" : "rotate(0deg)" }}
-        >
-          ›
-        </span>
+        />
       </button>
 
       {codesOpen && (
@@ -596,14 +713,6 @@ function AccountingSetup() {
           {codeRow("certificate", "Certificate income code", "e.g. 203")}
           {codeRow("cis_labour", "CIS labour income code", "e.g. 210")}
           {codeRow("other", "Other income code", "e.g. 260")}
-          <button
-            type="button"
-            onClick={save}
-            disabled={saving}
-            className="w-full bg-ink text-paper rounded-full py-3 font-bold text-sm disabled:opacity-60"
-          >
-            {saving ? "Saving…" : "Save codes"}
-          </button>
         </div>
       )}
 
@@ -644,12 +753,14 @@ function Input({
   onChange,
   multiline,
   rows = 3,
+  inputMode,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   multiline?: boolean;
   rows?: number;
+  inputMode?: "text" | "tel" | "email" | "numeric" | "decimal" | "search" | "url" | "none";
 }) {
   const fieldClass =
     "mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30";
@@ -666,6 +777,7 @@ function Input({
       ) : (
         <input
           value={value}
+          inputMode={inputMode}
           onChange={(e) => onChange(e.target.value)}
           className={fieldClass + " h-11"}
         />
@@ -714,10 +826,3 @@ function MoneyField({
     </label>
   );
 }
-
-
-
-
-
-
-
