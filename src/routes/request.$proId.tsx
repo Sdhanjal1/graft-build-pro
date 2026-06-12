@@ -138,7 +138,7 @@ function RequestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-paper pb-32">
+    <div className="min-h-screen bg-paper pb-12">
       <Header pro={pro} />
 
       <section className="px-5 mt-5">
