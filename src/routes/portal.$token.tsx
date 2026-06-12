@@ -10,6 +10,16 @@ import { Loader2, Check, X, Download, Copy, Landmark, CreditCard } from "lucide-
 import { acceptButtonLabel, paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
 import { feedback } from "@/lib/feedback";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/portal/$token")({
   component: PortalPage,
