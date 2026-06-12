@@ -1106,7 +1106,8 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     setDepositPctRaw(String(pct)); setDepositAmtRaw(String(amt));
   };
 
-  const [saving, setSaving] = useState(false);
+  const [savingMode, setSavingMode] = useState<"draft" | "send" | null>(null);
+  const saving = savingMode !== null;
   const [sendSheetOpen, setSendSheetOpen] = useState(false);
   const [savedQuote, setSavedQuote] = useState<Quote | null>(null);
   const wasSentRef = useRef(false);
