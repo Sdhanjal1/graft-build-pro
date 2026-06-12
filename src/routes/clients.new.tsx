@@ -26,7 +26,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function NewClientPage() {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
+  const { name: presetName } = Route.useSearch();
+  const [name, setName] = useState(presetName ?? "");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
