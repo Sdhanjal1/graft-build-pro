@@ -39,6 +39,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef } from "react";
 import { usePaidQuoteCount, useInvalidatePaidQuoteCount, normalizeSource } from "@/hooks/usePaidQuoteCount";
 import { useScrollVisible } from "@/hooks/use-scroll-direction";
+import { useConnectStatus } from "@/hooks/useConnectStatus";
 
 
 
