@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { userClients, quotesForClient, formatGBP } from "@/lib/user-data";
+import { userClients, quotesForClient, formatGBP, useHasHydrated } from "@/lib/user-data";
 import { Search, ArrowRight, UserPlus, Users, Inbox, AlertTriangle } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useState } from "react";
