@@ -1,12 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import {
   getClientPortalData,
   respondQuoteFromPortal,
 } from "@/lib/portal.functions";
 import { downloadPortalPdf } from "@/lib/portal-pdf";
 import { BusinessLogo } from "@/components/BusinessLogo";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Loader2,
   ChevronDown,
@@ -18,8 +29,30 @@ import {
   Check,
   X,
 } from "lucide-react";
-import { acceptButtonLabel, paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
+import { paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
 import { feedback } from "@/lib/feedback";
+
+function acceptLabelParts(q: any): { primary: string; sub: string | null } {
+  const timing = ((q?.payment_timing as PaymentTiming) ?? "on_completion") as PaymentTiming;
+  const total = Number(q?.total) || 0;
+  const deposit = Number(q?.deposit_amount) || 0;
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: "GBP",
+      maximumFractionDigits: n < 1000 ? 2 : 0,
+    }).format(n);
+  if (timing === "deposit" && deposit > 0 && deposit < total) {
+    return {
+      primary: "Accept & pay deposit",
+      sub: `${fmt(deposit)} today · ${fmt(total - deposit)} on completion`,
+    };
+  }
+  if (timing === "upfront") {
+    return { primary: "Accept & pay", sub: fmt(total) };
+  }
+  return { primary: "Accept quote", sub: `${fmt(total)} on completion` };
+}
 
 export const Route = createFileRoute("/portal/c/$code")({
   component: ClientPortalPage,
