@@ -32,12 +32,29 @@ function daysOverdue(due?: string) {
 function ChaserPage() {
   // Include both completed (job done, awaiting payment) and overdue invoices —
   // these are the unpaid jobs the trader is waiting on.
+  const hydrated = useHasHydrated();
   const overdue = mockQuotes.filter((q) => q.status === "completed" || q.status === "overdue");
   const total = overdue.reduce((s, q) => s + q.total, 0);
   const [, force] = useState(0);
   useEffect(() => { void markOverdueQuotes().then((n) => { if (n > 0) force((x) => x + 1); }); }, []);
   const due = chasesDueNow();
   const upcoming = upcomingChases().slice(0, 4);
+
+  if (!hydrated) {
+    return (
+      <AppShell>
+        <PageHeader title="Invoice chaser" subtitle="Awaiting payment" back="/" />
+        <section className="px-5">
+          <Skeleton className="h-28 w-full rounded-2xl bg-ink/5" />
+        </section>
+        <section className="px-5 mt-5 space-y-2">
+          <Skeleton className="h-24 w-full rounded-2xl bg-ink/5" />
+          <Skeleton className="h-24 w-full rounded-2xl bg-ink/5" />
+          <Skeleton className="h-24 w-full rounded-2xl bg-ink/5" />
+        </section>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
