@@ -56,7 +56,20 @@ function celebratePaid(amount: number) {
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
-  notFoundComponent: () => <div className="p-8 text-center">Quote not found</div>,
+  notFoundComponent: () => (
+    <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center gap-4">
+      <p className="text-base font-semibold text-ink">Quote not found</p>
+      <p className="text-sm text-muted-foreground max-w-[28ch]">
+        This quote may have been deleted or the link is wrong.
+      </p>
+      <Link
+        to="/quotes"
+        className="inline-flex items-center bg-lime text-ink rounded-full px-5 py-2.5 text-xs font-bold active:scale-95 transition"
+      >
+        Back to quotes
+      </Link>
+    </div>
+  ),
   validateSearch: (s: Record<string, unknown>) => ({
     ...(s.sent === 1 || s.sent === "1" ? { sent: 1 as const } : {}),
     ...(s.paid === 1 || s.paid === "1" ? { paid: 1 as const } : {}),
