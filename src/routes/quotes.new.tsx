@@ -2261,8 +2261,30 @@ function VoiceOverlay({
   const hasItems = liveItems.length > 0;
   const hasPending = pendingItems.length > 0;
   const showList = (recording || transcribing) && (hasItems || hasPending);
+
+  // aria-live status — announces transitions (Listening / Processing / Stopped
+  // / error) without firing on every render. Visually hidden.
+  const announcement = error
+    ? `Microphone error. ${error}`
+    : transcribing || building
+      ? "Processing your quote"
+      : recording
+        ? "Listening"
+        : "Stopped";
+
   return createPortal(
     <div className={`fixed inset-0 z-[60] bg-ink text-paper flex flex-col px-6 pt-12 pb-8 safe-top safe-bottom ${showList ? "" : "items-center justify-between"}`}>
+      {/* Visually hidden aria-live region for screen readers. Updates on
+          transitions: Listening → Processing → Stopped (or error). */}
+      <span
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {announcement}
+      </span>
+
 
       {/* PINNED TOP: meta + running total */}
       <div className={`flex flex-col items-center w-full max-w-md mx-auto ${showList ? "shrink-0" : ""}`}>
