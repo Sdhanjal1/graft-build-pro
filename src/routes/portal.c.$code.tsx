@@ -191,18 +191,18 @@ function ClientPortalPage() {
   }, [paymentResult]);
 
 
-  const onRespond = async (quoteId: string, response: "accepted" | "declined") => {
-    const confirmMsg =
-      response === "accepted"
-        ? "Accept this quote? Your tradesperson will be notified."
-        : "Decline this quote?";
-    if (!confirm(confirmMsg)) return;
+  const performRespond = async (quoteId: string, response: "accepted" | "declined") => {
     setRespondingId(quoteId);
     try {
       await respondQuote({ data: { code, quoteId, response } });
       await load();
+      if (response === "accepted") {
+        toast.success("Quote accepted — your tradesperson has been notified.");
+      } else {
+        toast("Quote declined.");
+      }
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not update quote");
+      toast.error(e instanceof Error ? e.message : "Could not update quote");
     } finally {
       setRespondingId(null);
     }
