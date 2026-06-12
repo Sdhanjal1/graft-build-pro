@@ -1802,7 +1802,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
             )}
 
             <div className="rounded-full bg-paper/95 backdrop-blur shadow-[0_12px_32px_-8px_rgba(0,0,0,0.35)] p-1.5 flex items-center gap-1.5">
-              {(() => null)()}
+              
               <button
                 type="button"
                 onClick={() => { void save("draft"); }}
