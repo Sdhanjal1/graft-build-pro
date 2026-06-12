@@ -552,12 +552,35 @@ function ClientPortalPage() {
         )}
       </section>
 
-      <footer className="text-center mt-8 mb-4 text-[10px] text-muted-foreground">
+      <footer className="text-center mt-8 mb-8 text-[10px] text-muted-foreground">
         <a href="https://quottr.co.uk" className="hover:underline">
           Powered by <span className="text-lime">Quottr</span>
         </a>
       </footer>
 
+      <AlertDialog open={!!declineTargetId} onOpenChange={(o) => { if (!o) setDeclineTargetId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Decline this quote?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your tradesperson will be notified that you've declined.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const id = declineTargetId;
+                setDeclineTargetId(null);
+                if (id) void performRespond(id, "declined");
+              }}
+              className="bg-status-overdue text-paper hover:bg-status-overdue/90"
+            >
+              Decline quote
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
