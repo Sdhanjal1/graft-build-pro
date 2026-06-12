@@ -134,6 +134,31 @@ function QuoteDetail() {
   const [depositRecorded, setDepositRecorded] = useState(false);
   const [depositPaid, setDepositPaid] = useState(0);
 
+  // Confirm dialogs (replacing window.confirm for parity with Settings).
+  const [confirmRemoveDeposit, setConfirmRemoveDeposit] = useState(false);
+  const [confirmMarkUnpaid, setConfirmMarkUnpaid] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // "Just sent" banner — auto-dismiss after 5s and strip ?sent=1 so a refresh doesn't reshow it.
+  const [showSentBanner, setShowSentBanner] = useState(wasJustSent);
+  useEffect(() => {
+    if (!wasJustSent) return;
+    const t = setTimeout(() => setShowSentBanner(false), 5000);
+    return () => clearTimeout(t);
+  }, [wasJustSent]);
+  useEffect(() => {
+    if (!wasJustSent || typeof window === "undefined") return;
+    // Remove ?sent=1 (and ?paid / ?cancelled if present) once consumed.
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("sent")) {
+        url.searchParams.delete("sent");
+        window.history.replaceState({}, "", url.pathname + (url.search || "") + url.hash);
+      }
+    } catch { /* noop */ }
+  }, [wasJustSent]);
+
+
   // Real configured deposit for this quote (not a hardcoded 50%).
   const configuredDeposit = (() => {
     const total = Number(quote.total) || 0;
