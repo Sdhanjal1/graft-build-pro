@@ -86,6 +86,7 @@ async function blobToBase64(blob: Blob): Promise<string> {
 
 type QuotesNewSearch = {
   voice?: 1;
+  type?: 1;
   clientId?: string;
   edit?: string;
   prefill?: string;
@@ -95,6 +96,7 @@ export const Route = createFileRoute("/quotes/new")({
   component: NewQuotePage,
   validateSearch: (s: Record<string, unknown>): QuotesNewSearch => ({
     ...(s.voice === 1 || s.voice === "1" ? { voice: 1 as const } : {}),
+    ...(s.type === 1 || s.type === "1" || s.type === true || s.type === "true" ? { type: 1 as const } : {}),
     ...(typeof s.clientId === "string" ? { clientId: s.clientId } : {}),
     ...(typeof s.edit === "string" ? { edit: s.edit } : {}),
     ...(typeof s.prefill === "string" && s.prefill ? { prefill: s.prefill } : {}),
