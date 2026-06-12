@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AppShell } from "@/components/AppShell";
+import { AppShell, PageHeader } from "@/components/AppShell";
 import { userClients, quotesForClient, formatGBP } from "@/lib/user-data";
-import { Search, Phone, ArrowRight, UserPlus, Users, Inbox } from "lucide-react";
+import { Search, ArrowRight, UserPlus, Users, Inbox } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useState } from "react";
 
-function findDuplicateIds(clients: typeof userClients): Set<string> {
-  const dupes = new Set<string>();
+function findDuplicatesMap(clients: typeof userClients): Map<string, string> {
   const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+  const matches = new Map<string, string>();
   for (let i = 0; i < clients.length; i++) {
     for (let j = i + 1; j < clients.length; j++) {
       const a = norm(clients[i].name);
@@ -15,12 +15,12 @@ function findDuplicateIds(clients: typeof userClients): Set<string> {
       if (!a || !b) continue;
       const similar = a === b || a.startsWith(b + " ") || b.startsWith(a + " ");
       if (similar) {
-        dupes.add(clients[i].id);
-        dupes.add(clients[j].id);
+        if (!matches.has(clients[i].id)) matches.set(clients[i].id, clients[j].name);
+        if (!matches.has(clients[j].id)) matches.set(clients[j].id, clients[i].name);
       }
     }
   }
-  return dupes;
+  return matches;
 }
 
 export const Route = createFileRoute("/clients/")({
@@ -34,33 +34,31 @@ function ClientsPage() {
       c.name.toLowerCase().includes(q.toLowerCase()) ||
       c.address.toLowerCase().includes(q.toLowerCase()),
   );
-  const duplicateIds = findDuplicateIds(userClients);
+  const duplicates = findDuplicatesMap(userClients);
+
+  const newCustomerPill = (
+    <Link
+      to="/clients/new"
+      aria-label="Add new customer"
+      className="h-9 px-3.5 rounded-full bg-lime text-ink inline-flex items-center gap-1.5 font-bold text-xs active:scale-95 transition"
+    >
+      <UserPlus className="h-3.5 w-3.5" />
+      New
+    </Link>
+  );
 
   return (
     <AppShell>
-      <header className="px-5 pt-8 pb-4 flex items-end justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Customer book</p>
-          <h1 className="text-4xl leading-none mt-1">Customers</h1>
-        </div>
-        <Link
-          to="/clients/new"
-          aria-label="Add new customer"
-          className="h-11 px-4 rounded-full bg-lime text-ink inline-flex items-center gap-1.5 font-bold text-sm active:scale-95 transition"
-        >
-          <UserPlus className="h-4 w-4" />
-          New
-        </Link>
-      </header>
+      <PageHeader title="Customers" subtitle="Customer book" right={newCustomerPill} />
 
-      <div className="px-5">
-        <div className="card-surface flex items-center gap-2 px-4 py-3">
-          <Search className="h-4 w-4 text-muted-foreground" />
+      <div className="px-5 mt-5">
+        <div className="relative">
+          <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search customers"
-            className="bg-transparent flex-1 outline-none text-sm placeholder:text-muted-foreground"
+            className="w-full h-11 pl-10 pr-3 rounded-full bg-card border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:border-ink/30 transition-colors"
           />
         </div>
       </div>
@@ -70,7 +68,9 @@ function ClientsPage() {
           userClients.length === 0 ? (
             <EmptyState
               icon={Users}
-              title="Customers you quote for will show here"
+              title="No customers yet"
+              body="Add your first customer to start sending quotes."
+              cta={{ label: "Add your first customer", to: "/clients/new" }}
             />
           ) : (
             <EmptyState icon={Inbox} title="No matches" body={`No customers match "${q}".`} />
@@ -79,37 +79,35 @@ function ClientsPage() {
         {filtered.map((c) => {
           const cQuotes = quotesForClient(c.id);
           const total = cQuotes.reduce((s, x) => s + x.total, 0);
+          const dupOf = duplicates.get(c.id);
           return (
             <Link
               to="/clients/$clientId"
               params={{ clientId: c.id }}
               key={c.id}
-              className="card-surface p-4 flex items-center gap-3"
+              className={`card-surface p-4 flex items-center gap-3 relative ${dupOf ? "border-l-2 border-l-amber-400" : ""}`}
             >
-              <div className="h-12 w-12 rounded-full bg-lime/30 flex items-center justify-center text-ink font-bold">
+              <div className="h-12 w-12 rounded-full bg-lime/30 flex items-center justify-center text-ink font-bold shrink-0">
                 {c.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <p className="font-semibold text-sm truncate">{c.name}</p>
-                  {duplicateIds.has(c.id) && (
-                    <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                      Possible duplicate
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground truncate">{c.address}</p>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
-                    <Phone className="h-3 w-3" />
-                    {c.phone}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {cQuotes.length} {cQuotes.length === 1 ? "quote" : "quotes"} · {formatGBP(total)}
-                  </span>
-                </div>
+                <p className="font-semibold text-sm truncate">{c.name}</p>
+                {c.address && (
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">{c.address}</p>
+                )}
+                {dupOf && (
+                  <p className="text-[11px] text-amber-700 truncate mt-0.5">
+                    Looks similar to <span className="font-medium">{dupOf}</span> — review
+                  </p>
+                )}
               </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              <div className="text-right shrink-0">
+                <p className="num text-sm text-ink tabular-nums">{formatGBP(total)}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {cQuotes.length} {cQuotes.length === 1 ? "quote" : "quotes"}
+                </p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground/60 ml-1 shrink-0" />
             </Link>
           );
         })}
