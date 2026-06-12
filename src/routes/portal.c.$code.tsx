@@ -1,12 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import {
   getClientPortalData,
   respondQuoteFromPortal,
 } from "@/lib/portal.functions";
 import { downloadPortalPdf } from "@/lib/portal-pdf";
 import { BusinessLogo } from "@/components/BusinessLogo";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Loader2,
   ChevronDown,
@@ -18,8 +29,30 @@ import {
   Check,
   X,
 } from "lucide-react";
-import { acceptButtonLabel, paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
+import { paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
 import { feedback } from "@/lib/feedback";
+
+function acceptLabelParts(q: any): { primary: string; sub: string | null } {
+  const timing = ((q?.payment_timing as PaymentTiming) ?? "on_completion") as PaymentTiming;
+  const total = Number(q?.total) || 0;
+  const deposit = Number(q?.deposit_amount) || 0;
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: "GBP",
+      maximumFractionDigits: n < 1000 ? 2 : 0,
+    }).format(n);
+  if (timing === "deposit_then_balance" && deposit > 0 && deposit < total) {
+    return {
+      primary: "Accept & pay deposit",
+      sub: `${fmt(deposit)} today · ${fmt(total - deposit)} on completion`,
+    };
+  }
+  if (timing === "upfront") {
+    return { primary: "Accept & pay", sub: fmt(total) };
+  }
+  return { primary: "Accept quote", sub: `${fmt(total)} on completion` };
+}
 
 export const Route = createFileRoute("/portal/c/$code")({
   component: ClientPortalPage,
@@ -91,6 +124,7 @@ function ClientPortalPage() {
   const pollRef = useRef<number | null>(null);
   const [paymentResult, setPaymentResult] = useState<"paid" | "cancelled" | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [declineTargetId, setDeclineTargetId] = useState<string | null>(null);
 
 
   const load = async () => {
@@ -157,18 +191,18 @@ function ClientPortalPage() {
   }, [paymentResult]);
 
 
-  const onRespond = async (quoteId: string, response: "accepted" | "declined") => {
-    const confirmMsg =
-      response === "accepted"
-        ? "Accept this quote? Your tradesperson will be notified."
-        : "Decline this quote?";
-    if (!confirm(confirmMsg)) return;
+  const performRespond = async (quoteId: string, response: "accepted" | "declined") => {
     setRespondingId(quoteId);
     try {
       await respondQuote({ data: { code, quoteId, response } });
       await load();
+      if (response === "accepted") {
+        toast.success("Quote accepted — your tradesperson has been notified.");
+      } else {
+        toast("Quote declined.");
+      }
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not update quote");
+      toast.error(e instanceof Error ? e.message : "Could not update quote");
     } finally {
       setRespondingId(null);
     }
@@ -215,28 +249,62 @@ function ClientPortalPage() {
         />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold truncate">{businessName}</p>
-          <p className="text-[10px] text-paper/60 truncate">Customer Portal</p>
+          <p className="text-xs text-paper/80 truncate">Customer Portal</p>
         </div>
       </header>
 
-      {paymentResult === "paid" && (
-        <section className="px-5 mt-5">
-          <div className="card-surface p-6 text-center border-2 border-status-accepted/40 bg-status-accepted/5">
-            <div className="h-14 w-14 rounded-full bg-status-accepted text-paper inline-flex items-center justify-center mb-3">
-              <Check className="h-7 w-7" strokeWidth={3} />
-            </div>
-            <h2 className="text-2xl leading-tight">Payment received — thank you!</h2>
-            <p className="text-sm text-muted-foreground mt-2">
-              A receipt and invoice have been emailed to you.
-            </p>
-            {confirming && (
-              <p className="text-xs text-muted-foreground mt-3 inline-flex items-center gap-1.5">
-                <Loader2 className="h-3 w-3 animate-spin" /> Confirming with {businessName}…
+      {paymentResult === "paid" && (() => {
+        const paidQuote = quotes.find((q: any) => q.status === "paid");
+        return (
+          <section className="px-5 mt-5">
+            <div className="card-surface p-6 text-center border-2 border-status-accepted/40 bg-status-accepted/5">
+              <div className="h-14 w-14 rounded-full bg-status-accepted text-paper inline-flex items-center justify-center mb-3">
+                <Check className="h-7 w-7" strokeWidth={3} />
+              </div>
+              <h2 className="text-2xl leading-tight">Payment received — thank you!</h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                A receipt and invoice have been emailed to you.
               </p>
-            )}
-          </div>
-        </section>
-      )}
+              {confirming && (
+                <p className="text-xs text-muted-foreground mt-3 inline-flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Confirming with {businessName}…
+                </p>
+              )}
+              <button
+                disabled={!paidQuote}
+                onClick={() => {
+                  if (!paidQuote) return;
+                  try {
+                    void downloadPortalPdf(
+                      {
+                        ref: paidQuote.ref,
+                        title: paidQuote.title,
+                        job_description: paidQuote.job_description,
+                        status: paidQuote.status,
+                        subtotal: Number(paidQuote.subtotal) || 0,
+                        vat_amount: Number(paidQuote.vat_amount) || 0,
+                        total: Number(paidQuote.total) || 0,
+                        vat_registered: paidQuote.vat_registered,
+                        created_at: paidQuote.created_at,
+                        line_items: (paidQuote.line_items as any[]) ?? [],
+                      },
+                      { name: client.name, address: (client as any).address ?? null },
+                      profile as any,
+                      "invoice",
+                    );
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Could not generate PDF");
+                  }
+                }}
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold disabled:opacity-60"
+              >
+                <Download className="h-3.5 w-3.5" />
+                {paidQuote ? "Download invoice PDF" : "Preparing your invoice…"}
+              </button>
+            </div>
+          </section>
+        );
+      })()}
 
       {paymentResult === "cancelled" && (
         <section className="px-5 mt-5">
@@ -299,7 +367,7 @@ function ClientPortalPage() {
                         >
                           {STATUS_LABEL[q.status] ?? q.status}
                         </span>
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                        <span className="bg-secondary text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-medium">
                           {new Date(q.created_at).toLocaleDateString("en-GB", {
                             day: "numeric",
                             month: "short",
@@ -321,16 +389,15 @@ function ClientPortalPage() {
                     </div>
                   </button>
                   {expanded && (
-                    <div className="border-t border-border bg-secondary/30">
+                    <div className="border-t border-border bg-secondary/30 divide-y divide-border">
                       {q.job_description && (
                         <div className="px-4 py-3">
-                          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-                            Job description
+                          <p className="text-sm whitespace-pre-line italic text-muted-foreground">
+                            {q.job_description}
                           </p>
-                          <p className="text-sm mt-1 whitespace-pre-line">{q.job_description}</p>
                         </div>
                       )}
-                      <ul className="border-t border-border">
+                      <ul>
                         {lineItems.map((li, i) => (
                           <li
                             key={i}
@@ -350,54 +417,54 @@ function ClientPortalPage() {
                           </li>
                         ))}
                       </ul>
-                      <div className="px-4 py-3 border-t border-border flex items-center justify-between text-sm">
+                      <div className="px-4 py-3 flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Total</span>
                         <span className="num text-lg">{formatGBP(q.total)}</span>
                       </div>
-                      <div className="px-4 pb-3">
-                        <div className="rounded-xl border-2 border-lime bg-lime/10 px-3 py-2">
-                          <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
-                          <p className="text-sm font-bold text-ink leading-tight">
-                            {paymentTimingLabel({
-                              timing: ((q as any).payment_timing as PaymentTiming) ?? "on_completion",
-                              total: Number(q.total) || 0,
-                              depositAmount: Number((q as any).deposit_amount) || 0,
-                              depositPercent: Number((q as any).deposit_percent) || 0,
-                            })}
-                          </p>
-                        </div>
+                      <div className="px-4 py-3 bg-lime/10">
+                        <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
+                        <p className="text-sm font-bold text-ink leading-tight">
+                          {paymentTimingLabel({
+                            timing: ((q as any).payment_timing as PaymentTiming) ?? "on_completion",
+                            total: Number(q.total) || 0,
+                            depositAmount: Number((q as any).deposit_amount) || 0,
+                            depositPercent: Number((q as any).deposit_percent) || 0,
+                          })}
+                        </p>
                       </div>
-                      {(q.status === "pending" || q.status === "sent") && (
-                        <div className="px-4 py-3 border-t border-border grid grid-cols-2 gap-2">
-                          <button
-                            onClick={() => onRespond(q.id, "declined")}
-                            disabled={respondingId === q.id}
-                            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border py-2.5 text-xs font-semibold disabled:opacity-50"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                            Decline
-                          </button>
-                          <button
-                            onClick={() => onRespond(q.id, "accepted")}
-                            onPointerDown={() => feedback("tap")}
-                            disabled={respondingId === q.id}
-                            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-lime text-ink py-2.5 text-xs font-bold disabled:opacity-50 px-2"
-                          >
-                            {respondingId === q.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Check className="h-3.5 w-3.5" />
-                            )}
-                            <span className="truncate">
-                              {acceptButtonLabel({
-                                timing: ((q as any).payment_timing as PaymentTiming) ?? "on_completion",
-                                total: Number(q.total) || 0,
-                                depositAmount: Number((q as any).deposit_amount) || 0,
-                              })}
-                            </span>
-                          </button>
-                        </div>
-                      )}
+                      {(q.status === "pending" || q.status === "sent") && (() => {
+                        const { primary, sub } = acceptLabelParts(q);
+                        return (
+                          <div className="px-4 py-3 flex items-stretch gap-2">
+                            <button
+                              onClick={() => setDeclineTargetId(q.id)}
+                              disabled={respondingId === q.id}
+                              className="w-24 shrink-0 inline-flex items-center justify-center gap-1.5 rounded-full border border-border py-2.5 text-xs font-semibold disabled:opacity-50"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                              No
+                            </button>
+                            <button
+                              onClick={() => void performRespond(q.id, "accepted")}
+                              onPointerDown={() => feedback("tap")}
+                              disabled={respondingId === q.id}
+                              className="flex-1 min-h-14 inline-flex flex-col items-center justify-center gap-0.5 rounded-2xl bg-lime text-ink py-2 text-sm font-bold disabled:opacity-50 px-2 leading-tight"
+                            >
+                              <span className="inline-flex items-center gap-1.5">
+                                {respondingId === q.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="h-3.5 w-3.5" />
+                                )}
+                                {primary}
+                              </span>
+                              {sub && (
+                                <span className="text-[11px] font-medium text-ink/70">{sub}</span>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })()}
                       <div className="px-4 py-3 border-t border-border">
                         <button
                           onClick={() =>
@@ -485,12 +552,35 @@ function ClientPortalPage() {
         )}
       </section>
 
-      <footer className="text-center mt-8 mb-4 text-[10px] text-muted-foreground">
+      <footer className="text-center mt-8 mb-8 text-[10px] text-muted-foreground">
         <a href="https://quottr.co.uk" className="hover:underline">
           Powered by <span className="text-lime">Quottr</span>
         </a>
       </footer>
 
+      <AlertDialog open={!!declineTargetId} onOpenChange={(o) => { if (!o) setDeclineTargetId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Decline this quote?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your tradesperson will be notified that you've declined.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const id = declineTargetId;
+                setDeclineTargetId(null);
+                if (id) void performRespond(id, "declined");
+              }}
+              className="bg-status-overdue text-paper hover:bg-status-overdue/90"
+            >
+              Decline quote
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
