@@ -2523,16 +2523,27 @@ function VoiceOverlay({
         {error ? (
           <>
             <p className="text-sm text-status-overdue font-medium">{error}</p>
-            {onRetryTranscription && (
-              <button
-                type="button"
-                onClick={onRetryTranscription}
-                className="mt-2 inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-4 py-2 text-xs font-bold active:scale-[0.99]"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Retry without re-recording
-              </button>
-            )}
+            <div className="mt-2 flex items-center justify-center gap-2 flex-wrap">
+              {onRetryTranscription && (
+                <button
+                  type="button"
+                  onClick={onRetryTranscription}
+                  className="inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-4 py-2 text-xs font-bold active:scale-[0.99]"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Retry without re-recording
+                </button>
+              )}
+              {onTypeInstead && (
+                <button
+                  type="button"
+                  onClick={onTypeInstead}
+                  className="inline-flex items-center gap-1.5 bg-paper/10 text-paper rounded-full px-4 py-2 text-xs font-bold active:scale-[0.99] border border-paper/20"
+                >
+                  Type the quote instead
+                </button>
+              )}
+            </div>
           </>
         ) : transcribing ? (
           <p className="text-sm text-paper/70">Building your quote…</p>
