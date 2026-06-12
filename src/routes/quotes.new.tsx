@@ -1435,119 +1435,125 @@ Re-output the FULL updated list of line items for this quote, applying the chang
               />
             </div>
             <ul>
-              {draft.line_items.map((li, i) => (
-                <li
-                  key={i}
-                  className="px-4 py-3 border-t border-border first:border-t-0 space-y-2"
-                >
-                  {li.source && (() => {
-                    const src = normalizeSource(li.source, paidQuoteCount);
-                    return (
+              {draft.line_items.map((li, i) => {
+                const src = li.source ? normalizeSource(li.source, paidQuoteCount) : null;
+                const showPill = src === "voice" || src === "learned";
+                const isLabour = li.category === "labour" || li.category === "cis_labour";
+                const unit = li.unit ?? (isLabour ? "hours" : "qty");
+                const qtyLabel = unit === "hours" ? "Hrs" : unit === "days" ? "Days" : "Qty";
+                const priceSuffix = unit === "hours" ? "/hr" : unit === "days" ? "/day" : "";
+                const lineTotal = li.qty * li.unit_price;
+                const isPriced = li.unit_price > 0;
+                const isConfirmingTrash = confirmTrashIdx === i;
+                return (
+                  <li
+                    key={i}
+                    className="px-4 py-3 border-t border-border first:border-t-0 space-y-2 group"
+                  >
+                    {showPill && (
                       <span
                         className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          src === "voice"
-                            ? "bg-lime/30 text-ink"
-                            : src === "learned"
-                            ? "bg-lime/15 text-ink"
-                            : "bg-secondary text-muted-foreground"
+                          src === "voice" ? "bg-lime/30 text-ink" : "bg-lime/15 text-ink"
                         }`}
                       >
-                        {src === "voice"
-                          ? "Your price"
-                          : src === "learned"
-                          ? "Your usual price"
-                          : "Quottr suggested"}
+                        {src === "voice" ? "Your price" : "Your usual price"}
                       </span>
-                    );
-                  })()}
-                  <div className="flex items-start gap-2">
-                    <textarea
-                      value={li.description}
-                      onChange={(e) => {
-                        const next = [...draft.line_items];
-                        next[i] = { ...li, description: e.target.value };
-                        setDraft({ ...draft, line_items: next });
-                      }}
-                      rows={1}
-                      className="flex-1 bg-transparent outline-none text-sm font-medium resize-none placeholder:text-muted-foreground"
-                      placeholder="Item description"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = draft.line_items.filter((_, idx) => idx !== i);
-                        setDraft({ ...draft, line_items: next.length ? next : [{ description: "", qty: 1, unit_price: 0 }] });
-                      }}
-                      className="text-muted-foreground hover:text-status-overdue p-1 -mr-1 shrink-0"
-                      aria-label="Remove line item"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                  {(() => {
-                    const isLabour = li.category === "labour" || li.category === "cis_labour";
-                    const unit = li.unit ?? (isLabour ? "hours" : "qty");
-                    const qtyLabel = unit === "hours" ? "Hrs" : unit === "days" ? "Days" : "Qty";
-                    const priceSuffix = unit === "hours" ? "/hr" : unit === "days" ? "/day" : "";
-                    return (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          {qtyLabel}
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            min={0}
-                            step="0.1"
-                            value={li.qty}
-                            onChange={(e) => {
-                              const next = [...draft.line_items];
-                              next[i] = { ...li, qty: parseFloat(e.target.value) || 0 };
-                              setDraft({ ...draft, line_items: next });
-                            }}
-                            className="w-16 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
-                          />
-                        </label>
-                        {isLabour && (
-                          <div className="inline-flex rounded bg-secondary p-0.5 text-[10px] font-semibold">
-                            {(["hours", "days"] as const).map((u) => (
-                              <button
-                                key={u}
-                                type="button"
-                                onClick={() => {
-                                  const next = [...draft.line_items];
-                                  next[i] = { ...li, unit: u };
-                                  setDraft({ ...draft, line_items: next });
-                                }}
-                                className={`px-2 py-0.5 rounded ${unit === u ? "bg-ink text-paper" : "text-muted-foreground"}`}
-                              >
-                                {u === "hours" ? "Hrs" : "Days"}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          £{priceSuffix && <span className="text-[10px]">{priceSuffix}</span>}
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            min={0}
-                            step="0.01"
-                            value={li.unit_price}
-                            onChange={(e) => {
-                              const next = [...draft.line_items];
-                              next[i] = { ...li, unit_price: parseFloat(e.target.value) || 0 };
-                              setDraft({ ...draft, line_items: next });
-                            }}
-                            onFocus={(e) => e.currentTarget.select()}
-                            className="w-24 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
-                          />
-                        </label>
-                        <p className="num text-sm ml-auto font-semibold">{formatGBP(li.qty * li.unit_price)}</p>
-                      </div>
-                    );
-                  })()}
-                </li>
-              ))}
+                    )}
+                    <div className="flex items-start gap-2">
+                      <textarea
+                        value={li.description}
+                        onChange={(e) => {
+                          const next = [...draft.line_items];
+                          next[i] = { ...li, description: e.target.value };
+                          setDraft({ ...draft, line_items: next });
+                        }}
+                        rows={1}
+                        className="flex-1 bg-transparent outline-none text-sm font-medium resize-none placeholder:text-muted-foreground"
+                        placeholder="Item description"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isPriced && !isConfirmingTrash) {
+                            setConfirmTrashIdx(i);
+                            setTimeout(() => setConfirmTrashIdx((v) => (v === i ? null : v)), 3000);
+                            return;
+                          }
+                          setConfirmTrashIdx(null);
+                          const next = draft.line_items.filter((_, idx) => idx !== i);
+                          setDraft({ ...draft, line_items: next.length ? next : [{ description: "", qty: 1, unit_price: 0 }] });
+                        }}
+                        className={`p-1 -mr-1 shrink-0 transition-opacity ${
+                          isConfirmingTrash
+                            ? "text-status-overdue opacity-100"
+                            : "text-muted-foreground/40 group-hover:opacity-100 group-focus-within:opacity-100 hover:text-status-overdue"
+                        }`}
+                        aria-label={isConfirmingTrash ? "Tap again to remove" : "Remove line item"}
+                        title={isConfirmingTrash ? "Tap again to remove" : undefined}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    {isConfirmingTrash && (
+                      <p className="text-[11px] text-status-overdue font-medium">Tap trash again to remove this priced line.</p>
+                    )}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        {qtyLabel}
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="0.1"
+                          value={li.qty}
+                          onChange={(e) => {
+                            const next = [...draft.line_items];
+                            next[i] = { ...li, qty: parseFloat(e.target.value) || 0 };
+                            setDraft({ ...draft, line_items: next });
+                          }}
+                          className="w-16 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
+                        />
+                      </label>
+                      {isLabour && (
+                        <div className="inline-flex rounded bg-secondary p-0.5 text-[10px] font-semibold">
+                          {(["hours", "days"] as const).map((u) => (
+                            <button
+                              key={u}
+                              type="button"
+                              onClick={() => {
+                                const next = [...draft.line_items];
+                                next[i] = { ...li, unit: u };
+                                setDraft({ ...draft, line_items: next });
+                              }}
+                              className={`px-2 py-0.5 rounded ${unit === u ? "bg-ink text-paper" : "text-muted-foreground"}`}
+                            >
+                              {u === "hours" ? "Hrs" : "Days"}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        £{priceSuffix && <span className="text-[10px]">{priceSuffix}</span>}
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          min={0}
+                          step="0.01"
+                          value={li.unit_price}
+                          onChange={(e) => {
+                            const next = [...draft.line_items];
+                            next[i] = { ...li, unit_price: parseFloat(e.target.value) || 0 };
+                            setDraft({ ...draft, line_items: next });
+                          }}
+                          onFocus={(e) => e.currentTarget.select()}
+                          className="w-24 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
+                        />
+                      </label>
+                      <p className="num text-sm ml-auto font-semibold w-full text-right sm:w-auto">{formatGBP(lineTotal)}</p>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
             <button
               type="button"
