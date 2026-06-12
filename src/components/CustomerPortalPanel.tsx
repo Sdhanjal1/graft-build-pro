@@ -140,11 +140,14 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
     }
   };
 
-  const onRegen = async () => {
-    if (!confirm("Generate a new portal link? The old link will stop working.")) return;
-    const r = await regen({ data: { clientId } });
-    setInfo({ ...info, portal_code: r.portal_code });
-    toast.success("Portal link regenerated");
+  const performRegen = async () => {
+    try {
+      const r = await regen({ data: { clientId } });
+      setInfo({ ...info, portal_code: r.portal_code });
+      toast.success("Portal link regenerated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not regenerate link");
+    }
   };
 
   const onToggleActive = async (active: boolean) => {
@@ -185,10 +188,14 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
     }
   };
 
-  const onDelete = async (id: string) => {
-    if (!confirm("Remove this document?")) return;
-    await delDoc({ data: { documentId: id } });
-    setDocs(docs.filter((d) => d.id !== id));
+  const performDelete = async (id: string) => {
+    try {
+      await delDoc({ data: { documentId: id } });
+      setDocs(docs.filter((d) => d.id !== id));
+      toast.success("Document removed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not delete");
+    }
   };
 
   const onToggleVis = async (id: string, visible: boolean) => {
