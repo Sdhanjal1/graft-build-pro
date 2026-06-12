@@ -2151,28 +2151,18 @@ function VoiceOverlay({
         )}
       </div>
 
-      {/* Plan 2: live partial transcript — dim, reactive to webkitSpeechRecognition.
-          Shows the last ~80 chars so layout doesn't shift as speech accumulates.
-          Falls back to a reassuring message when Web Speech isn't available. */}
+      {/* Listening cue — quiet pulsing mic dot + label. Replaces the visible
+          transcript; capture continues internally and still feeds the AI. */}
       {recording && (
-        <div className="w-full max-w-md mx-auto mt-3 px-2 transition-opacity duration-150" aria-live="polite">
-          {liveSupported ? (
-            livePreview ? (
-              <p
-                className={`italic text-paper/40 ${hasItems ? "text-xs text-center truncate" : "text-sm text-center"}`}
-                style={hasItems ? undefined : { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
-              >
-                {hasItems && "Hearing: "}
-                {livePreview.length > 80 ? `…${livePreview.slice(-80)}` : livePreview}
-              </p>
-            ) : !hasItems ? (
-              <p className="text-xs text-paper/30 text-center italic">Listening — speak naturally.</p>
-            ) : null
-          ) : !hasItems ? (
-            <p className="text-xs text-paper/40 text-center italic">Transcribing on stop — you can speak freely.</p>
-          ) : null}
+        <div className="w-full max-w-md mx-auto mt-3 px-2 flex items-center justify-center gap-2" aria-live="polite">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-lime opacity-60 animate-ping" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-lime" />
+          </span>
+          <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">Listening…</span>
         </div>
       )}
+
 
       {(transcribing || building) && !hasItems && (
         <div className="flex flex-col items-center gap-3 mt-8">
