@@ -1,49 +1,75 @@
-# Home / nav / banners audit — fourth pass
+# Settings audit — fifth pass
 
-Scoped to `src/routes/app.tsx` (the signed-in home), `src/components/BottomNav.tsx`, `src/components/BannerSlot.tsx` + its four banner children, and `src/components/FloatingMicButton.tsx`. Marketing landing (`routes/index.tsx`) is out of scope — it has its own visual language and was audited before signup work. `PullToRefresh` is already tidy, no changes.
+Scoped to `src/routes/settings.tsx` and the two embedded sub-components it owns (`BillingSection`, `AccountingSetup`). `PushPermissionCard`, `BusinessLogo`, `ExportInvoicesButton`, `AccountingExportButton` are out of scope unless trivially adjacent.
 
-Visual hierarchy, density, and affordance only — no data, save, or subscription-logic changes.
+Visual hierarchy, density, consistency and a few small UX bugs — no data, save, or subscription-logic changes.
 
-## Home (`/app`)
+## Page-level
 
-The signed-in home tries to do four things at once (greeting + £ hero, stat pills, action queue, today's jobs, materials, Stripe banner, customer book, mic CTA). Order and weight need tightening.
+1. **Section component → use `divide-y` framing.** Each `<Section>` currently sits in its own `px-5 mt-5` block. With 7 sections the page reads as floating cards on paper rather than a structured list. Replace with a single `divide-y divide-border` container wrapping all sections, each section becoming a flush row (header pad `py-4`, content `pb-5`). Matches the treatment used on `clients.new`. Removes the 20px gaps between collapsed rows so the user can scan summaries quickly.
+2. **Section header weight.** `text-xl` on every collapsed row competes with the actual content when one is open. Drop to `text-base font-bold` for collapsed, keep `text-xl` only for the *open* section. Visual signal of "this is what you're editing".
+3. **Sticky header — Save indicator placement.** `SaveIndicator` lives in `PageHeader.right` with `text-paper/80`. When nothing is saving, the slot still reserves width — header reads as if there's an unlabelled control. Render the indicator only when `isSaving || isSaved || error` (it likely already does internally; if not, wrap conditionally). Also move the indicator to a floating chip just under the header (`sticky top-[header] mx-5 mt-2 inline-flex …`) so it doesn't fight the title.
+4. **Sticky header background.** Currently `bg-paper`. Add `border-b border-border/60` so it doesn't bleed into the first open section when scrolled.
+5. **Section summary truncation.** `gettingPaidSummary` ("HSBC ••1234 · 30% deposit · VAT") is fine, but `pricingSummary` shows "£0/hr · £0/day" before the user has set rates — reads as a finished state. Replace with "Set your hourly + day rates" when both are 0.
+6. **Default-open behaviour.** Only "Your business" defaults open. On a returning user with a fully filled profile this still pushes the actionable bits (Getting paid, Notifications) below the fold. Add an `important` flag to Section and default-open any section whose `summary` indicates *missing* data: pricing if both rates are 0, getting paid if no `bank.account_number`. Single source: an `incomplete` prop that overrides `defaultOpen` when true.
+7. **Section icons.** Each row gets a tiny leading icon (`Briefcase`, `PoundSterling`, `Landmark`, `FileText`, `Bell`, `CreditCard`, `AlertOctagon` for danger) at `h-4 w-4` left of the title. Helps scanning and matches the iconography in the action queue on Home.
 
-1. **Hero £ — single source of truth.** Three different "hero number" branches (paid today / owed / won today) live in the ink header, each with the same Bebas Neue size. Means the user has to read the eyebrow to know which figure they're staring at. Restructure to a single `<HeroNumber>` block that takes `{ amount, label, accentColor, href }` so the eyebrow ("Paid today" / "You're owed" / "Won today") is always rendered in the same slot with the same type ramp, and the £ value drops to `clamp(3.5rem, 18vw, 6rem)` (currently 22vw clips at 550px). Removes 60 lines of near-duplicated JSX.
-2. **Stat-pill ↔ action-card redundancy.** The header pills (`to send`, `booked`, `awaiting reply`, `overdue`) repeat the same four buckets shown immediately below as `ActionCard`s. Drop the pills entirely — the action cards already lead with count + £ and are tap targets. Frees ~50px above the fold and removes the "I tapped a pill but it scrolled past the same info" confusion. Keep the pills only when `hasActions === false` is impossible (it isn't — guarded by `hasActions &&`).
-3. **Hero-card tone palette.** `ActionCard` hero variant picks `bg-ink text-paper` for overdue, pending, and neutral — three identical surfaces. Map tone → background distinctly: overdue = `bg-status-overdue text-paper`, pending = `bg-ink text-paper`, accepted = `bg-lime text-ink`, neutral = `bg-paper text-ink` with `ring-1 ring-border`. User can identify the queue's mood at a glance without reading the eyebrow.
-4. **Section order rework.** Current order: header → materials → Stripe banner → customer book → action queue → today's jobs → mic. The mic CTA is the product's primary action and is buried below five sections. Reorder to: header → action queue → today's jobs → mic CTA → materials → customer book → Stripe banner. Mic moves up to "first scroll" position; passive utilities (materials, customer book, Stripe) drop below.
-5. **Customer book row — visual weight.** It's currently a full-bleed `bg-ink/5` row outside any section padding (`px-4 py-3`), which makes it visually heavier than the cards above and below. Wrap in the same `px-5 mt-4` section frame as its siblings, change to `card-surface` with the existing icon-left + arrow-right layout. Consistency with materials card.
-6. **Stripe-connect banner placement.** This banner is rendered inside the home feed only — but it's a billing setup, not a piece of work-in-progress. Move into `BannerSlot` (see banner section below) so it sits in the same priority chain as the trial / offline banners. Frees the home page from one-off banner dismissal state.
-7. **First-run tooltip — anchor.** The "Welcome, {firstName}" lime tooltip sits inside the mic section with a downward-pointing caret, but with section reordering the mic moves up. Keep the caret pointing at the mic; verify scroll-into-view still lands near the centre after reorder. (Behaviour-only check, no logic change.)
-8. **`StatPill` deletion.** Once #2 lands, the `StatPill` sub-component is unused — remove the function definition (lines ~442–472).
-9. **Mic CTA — secondary "type instead".** The mic card has no fallback for users who can't / won't speak (loud site, accent issues). Add a small `text-paper/60` "Or type" link under the rotating prompts that navigates to `/quotes/new` without `?voice=1`. Matches the entry-state we just landed in `quotes.new`.
-10. **Today's jobs row affordance.** Each row has `active:scale-[0.99]` but no `tabular-nums` on the time column. Add tabular-nums so 9:30 and 10:00 left-align cleanly. Also bump the time column from `w-14` to `w-16` so 10:00 doesn't crowd the title.
+## Your business
 
-## Bottom nav (`BottomNav.tsx`)
+8. **Logo placement.** The logo block sits below 7 fields and only after the user has scrolled. Promote to the top of the section, above the fields, so brand identity reads first. Reduce the empty-state card from `py-6` to `py-5` and remove the dashed border in favour of a solid `border border-border` on `bg-card` — dashed lime on ink feels like a debug placeholder.
+9. **Address grouping.** "Address line 1", "Address line 2", "Town / City", "Postcode" should sit in a labelled sub-group (`<fieldset>` styled as a flush card with a tiny eyebrow "Address"). Visual chunking that mirrors how the user reads it (one address, not four fields).
+10. **`EditField` `<label>` spacing.** `mt-1.5` between label and input is fine; the `space-y-3.5` between rows feels loose at 3 fields and tight at 7. Switch the inner card to `divide-y divide-border/40` with each field as `py-3` — removes the need to tune `space-y`.
 
-11. **Active-tab label ellipsis risk.** When active, the pill expands to `gap-1.5 px-3 py-2` plus a label. With 5 items and a max-width of `28rem`, "Settings" + icon at 12px font fits, but "Chasers" + active "Inbox" together pushes the nav close to overflow on 320px iPhone SE. Add `min-w-0` on the label `<span>` and `truncate` so long active labels clip rather than wrap. (Defensive — no visible change at common widths.)
-12. **Unread dot — accessibility.** The dot is `bg-lime` ring on the icon, but only on `/messages`. Bump from `h-2.5 w-2.5` to `h-2 w-2` with a stronger `ring-2 ring-ink` so it reads as a notification rather than part of the icon. Add a numeric `aria-label` ("Inbox, 3 unread requests") instead of the boolean "unread requests" — already partly there, just include the count.
-13. **Hide-nav heuristic.** Currently hides on `/auth` and `/capture`. Extend to also hide on `/onboarding` (full-screen flow) and `/quotes/new` (where the sticky save bar collides with the nav). The save bar in `quotes.new` already added bottom padding to clear it, but visually a quote-edit screen with a tab bar reads "this isn't the focus" — hiding the nav signals "finish this first".
+## Your pricing
 
-## Floating mic (`FloatingMicButton.tsx`)
+11. **Card density.** Two money fields + one help line is over-sized in a `p-5` card. Drop to `p-4`, the help line moves to `text-[11px] text-muted-foreground -mt-1`.
+12. **Hourly/day relationship hint.** Users frequently set one but not both. Add tiny calculated text under the grid: "Day rate ≈ 8h × hourly" if hourly set but not day, and "Hourly ≈ day / 8" the other way. Pure UI, no auto-fill.
 
-14. **Component is dead code.** `FloatingMicButton` exports but is never imported (`__root.tsx` renders only `BottomNav`). Either delete the file outright, or wire it in. Recommendation: **delete**. The bottom nav already includes a quote shortcut via the home tab → mic card, and the home page leads with a giant mic. A second floating CTA would compete with the bottom nav. Removes 26 unused lines + a `feedback("tap")` registration.
+## Getting paid
 
-## Banners (`BannerSlot.tsx` and children)
+13. **Three sub-cards → divided list.** Bank details / Terms & deposit / VAT & registration are three `card-surface p-5` cards stacked with `space-y-3`. Replace with a single `card-surface divide-y divide-border` containing three sub-blocks. Each sub-block keeps its eyebrow heading but loses the surrounding card chrome. Cuts visual weight by ~40%.
+14. **Sort code mask.** `inputMode="numeric"` but no formatting. Add a tiny on-blur formatter that inserts dashes (`12-34-56`). Visually consistent with how UK sort codes are written.
+15. **VAT toggle position.** Toggle is mid-card; if VAT is on, the VAT number field appears below. Fine. But the registration label changes per trade — surface a `text-[11px]` hint under the field clarifying what to enter ("Required for Gas Safe-listed work" etc.) only when relevant.
+16. **`BillingSection show="connect"` placement.** Connect sits at the bottom of Getting paid, which is correct contextually, but the embedded card has its own `card-surface p-5` chrome inside a Section that's already chrome-heavy. When #13 lands, wrap Connect as a fourth flush sub-block inside the same divided list.
 
-15. **Banner-slot priority documented but not surfaced.** Comment says "Priority: PWA install > Trial banner > Offline banner" but the code order is Update > PWA > Trial > Offline. Fix the comment; verify the order matches product intent (Update wins because it's a refresh, then install for fresh users, then trial for retention, then offline for transient). One-line change.
-16. **Trial banner — copy + styling.** Hard-coded Tailwind palette (`bg-red-50`, `text-red-900`, `bg-amber-50`) bypasses the design tokens. Replace with `bg-destructive/5 text-destructive border-destructive/20` (expired) and `bg-status-pending/5 text-status-pending border-status-pending/20` (warn). Matches the rest of the app.
-17. **Trial banner — single action.** Expired variant renders one button inside a flex `gap-2` container as if more buttons were planned. Simplify to a single right-aligned `<button>` outside the flex. Removes orphan flex container.
-18. **Offline banner stacking.** Uses `z-[70]`, but the bottom nav uses `z-40` and the save bars use `z-50`. Offline pill is `fixed inset-x-0 top-0` so no collision — but document the layer order in a short `// z-index map` comment at the top of `BannerSlot` so future banners don't drift.
-19. **UpdateBanner / PWAInstallBanner consistency pass.** Both should match the new trial banner shape (`mx-4 my-3 rounded-2xl border ...` with semantic tokens). Will check both files and align.
-20. **`BannerSlot` mount location.** Currently rendered at the bottom of `__root.tsx`'s `RootComponent`, after `BottomNav`. That puts banner DOM beneath the nav — fine because banners are either `mx-4 my-3` (in-flow at top of body) or `fixed`. Verify visually that the trial banner shows above the action queue rather than below the nav.
+## How quotes look
 
-## Out of scope (this pass)
+17. **Two textareas → unified card.** Same divide-y treatment. Intro / Footer / Signature name / Show signature read as a sequence, not four unrelated fields.
+18. **Signature toggle should show a preview.** When `show_signature` is on, render a 1-line preview under the toggle: `— {signature_name}` in handwriting-ish italic (`font-serif italic text-muted-foreground`). Cheap; closes the loop on "what does this look like on the quote".
+19. **Textarea heights.** Both at `rows={3}`. The intro is typically 1 sentence, footer is 2-3. Drop intro to `rows={2}`, keep footer at `rows={3}`.
 
-- `routes/index.tsx` (marketing landing — separate visual system)
-- `PullToRefresh` (already tidy)
-- `Splash`, `AppShell` chrome (no complaints; not part of nav/banners)
-- Subscription / billing logic, PWA install eligibility logic, SW registration
-- `BannerSlot` priority *order* (only the comment is updated, not the logic)
+## Notifications
 
-Next pass after this: **Settings / billing / profile** — long screen with several stacked sub-sections that could use the same `divide-y` treatment we used on `clients.new`.
+20. **Toggle list.** Already uses `divide-y` — leave the structure but verify it nests cleanly inside the new outer `divide-y` (no double border).
+21. **Push permission card vs toggles.** Two separate `card-surface` blocks with `space-y-3`. Combine — push card becomes the first row of the same divided list with an "Enable push" CTA on the right.
+
+## Account & billing
+
+22. **Sign out as a flush row.** Currently its own `card-surface` with a single button. Drop the chrome — sign out becomes a flush divided row under AccountingSetup.
+23. **`AccountingSetup` — collapsible codes already exist.** Good. Tighten the codes summary row: replace the `bg-secondary/60` pill with a flush divided sub-row matching #13. The collapsible details/summary at the bottom ("Need a simple paid-quotes summary instead? ›") should use the same chevron+expand pattern as Section, not the native `<details>` (whose chevron and focus ring don't match the design).
+24. **`BillingSection show="subscription"` styling.** Same shape as Connect — when #13 + #16 land, audit that subscription card lives nicely as a flush row inside this Section.
+
+## Danger zone
+
+25. **Tone.** Section title `text-status-overdue` is loud; collapsed it reads like an active warning. Soften to `text-status-overdue/80` collapsed, full saturation when open. Also add a `bg-status-overdue/5` tint to the open content area to underline "you're in a destructive section".
+26. **Delete button.** The button inside the card uses `text-status-overdue` on `bg-card` — currently the only destructive-tone button in the app that isn't on a coloured background. When open, swap to `bg-status-overdue/10` on the row with a right-aligned `ChevronRight` to communicate "this opens a confirmation step".
+
+## Delete account dialog
+
+27. **`Cancel` / `Delete account` buttons.** `<button>` with custom classes — fine, but the delete button uses `bg-status-overdue text-white`. Use `text-paper` to match the rest of the app's tokens. No visual change; consistency.
+28. **Type-DELETE input.** `autoFocus` on a destructive confirmation is a footgun — users tab past the description and start typing without reading. Remove `autoFocus`; require an explicit tap.
+
+## Sub-components in this file
+
+29. **`Section`** — accept `incomplete?: boolean` + `icon?: LucideIcon` (per #6, #7). Apply to all call sites.
+30. **`EditField` / `Input` / `MoneyField`** — three near-identical field components. Out of scope for this pass (refactor would touch every call site), but flag in `.lovable/plan.md` for a later cleanup pass: unify into a single `<Field>` with `type="text|money|select|toggle"` variants.
+
+## Out of scope
+
+- `BillingSection.tsx` internals (already audited in pass 4 for the Stripe Connect banner placement)
+- `PushPermissionCard`, `BusinessLogo`, `ExportInvoicesButton`, `AccountingExportButton`
+- Autosave plumbing (`useAutoSave`, `SaveIndicator`)
+- Profile schema, RLS, server functions
+- Trade-aware registration label heuristics
+
+Next pass after this: **Quote detail (`quotes.$quoteId.tsx`) + invoice detail (`invoices.$quoteId.tsx`) + portal pages**.
