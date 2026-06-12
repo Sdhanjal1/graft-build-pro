@@ -42,7 +42,7 @@ function acceptLabelParts(q: any): { primary: string; sub: string | null } {
       currency: "GBP",
       maximumFractionDigits: n < 1000 ? 2 : 0,
     }).format(n);
-  if (timing === "deposit" && deposit > 0 && deposit < total) {
+  if (timing === "deposit_then_balance" && deposit > 0 && deposit < total) {
     return {
       primary: "Accept & pay deposit",
       sub: `${fmt(deposit)} today · ${fmt(total - deposit)} on completion`,
