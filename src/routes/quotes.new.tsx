@@ -174,7 +174,7 @@ function NewQuotePage() {
   const lastBlobRef = useRef<{ blob: Blob; mimeType: string } | null>(null);
   const draftRef = useRef<HTMLDivElement | null>(null);
   const customerRef = useRef<HTMLDivElement | null>(null);
-  const [showTyping, setShowTyping] = useState(false);
+  const [showTyping, setShowTyping] = useState(!!typeParam);
   const [confirmTrashIdx, setConfirmTrashIdx] = useState<number | null>(null);
   const originalDraftRef = useRef<string>("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
