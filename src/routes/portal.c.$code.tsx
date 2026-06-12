@@ -249,28 +249,62 @@ function ClientPortalPage() {
         />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold truncate">{businessName}</p>
-          <p className="text-[10px] text-paper/60 truncate">Customer Portal</p>
+          <p className="text-xs text-paper/80 truncate">Customer Portal</p>
         </div>
       </header>
 
-      {paymentResult === "paid" && (
-        <section className="px-5 mt-5">
-          <div className="card-surface p-6 text-center border-2 border-status-accepted/40 bg-status-accepted/5">
-            <div className="h-14 w-14 rounded-full bg-status-accepted text-paper inline-flex items-center justify-center mb-3">
-              <Check className="h-7 w-7" strokeWidth={3} />
-            </div>
-            <h2 className="text-2xl leading-tight">Payment received — thank you!</h2>
-            <p className="text-sm text-muted-foreground mt-2">
-              A receipt and invoice have been emailed to you.
-            </p>
-            {confirming && (
-              <p className="text-xs text-muted-foreground mt-3 inline-flex items-center gap-1.5">
-                <Loader2 className="h-3 w-3 animate-spin" /> Confirming with {businessName}…
+      {paymentResult === "paid" && (() => {
+        const paidQuote = quotes.find((q: any) => q.status === "paid");
+        return (
+          <section className="px-5 mt-5">
+            <div className="card-surface p-6 text-center border-2 border-status-accepted/40 bg-status-accepted/5">
+              <div className="h-14 w-14 rounded-full bg-status-accepted text-paper inline-flex items-center justify-center mb-3">
+                <Check className="h-7 w-7" strokeWidth={3} />
+              </div>
+              <h2 className="text-2xl leading-tight">Payment received — thank you!</h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                A receipt and invoice have been emailed to you.
               </p>
-            )}
-          </div>
-        </section>
-      )}
+              {confirming && (
+                <p className="text-xs text-muted-foreground mt-3 inline-flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Confirming with {businessName}…
+                </p>
+              )}
+              <button
+                disabled={!paidQuote}
+                onClick={() => {
+                  if (!paidQuote) return;
+                  try {
+                    void downloadPortalPdf(
+                      {
+                        ref: paidQuote.ref,
+                        title: paidQuote.title,
+                        job_description: paidQuote.job_description,
+                        status: paidQuote.status,
+                        subtotal: Number(paidQuote.subtotal) || 0,
+                        vat_amount: Number(paidQuote.vat_amount) || 0,
+                        total: Number(paidQuote.total) || 0,
+                        vat_registered: paidQuote.vat_registered,
+                        created_at: paidQuote.created_at,
+                        line_items: (paidQuote.line_items as any[]) ?? [],
+                      },
+                      { name: client.name, address: (client as any).address ?? null },
+                      profile as any,
+                      "invoice",
+                    );
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Could not generate PDF");
+                  }
+                }}
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold disabled:opacity-60"
+              >
+                <Download className="h-3.5 w-3.5" />
+                {paidQuote ? "Download invoice PDF" : "Preparing your invoice…"}
+              </button>
+            </div>
+          </section>
+        );
+      })()}
 
       {paymentResult === "cancelled" && (
         <section className="px-5 mt-5">
