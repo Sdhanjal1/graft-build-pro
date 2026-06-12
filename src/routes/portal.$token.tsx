@@ -158,7 +158,7 @@ function PortalPage() {
         }
       }
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not update quote");
+      toast.error(e instanceof Error ? e.message : "Could not update quote");
     } finally {
       setResponding(false);
     }
