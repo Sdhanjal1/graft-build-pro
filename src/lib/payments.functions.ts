@@ -259,8 +259,10 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
         ? +(total * (pct / 100)).toFixed(2)
         : +(total * 0.5).toFixed(2);
     }
-    if (amount <= 0) throw new Error("Invalid payment amount");
     const amountCents = Math.round(amount * 100);
+    if (amountCents < 30) {
+      throw new Error("Quote total is too low to request payment (minimum 30p).");
+    }
 
     if (existingPending?.stripe_session_id && existingPending.amount_cents === amountCents) {
       // Reuse the existing Checkout Session URL.
