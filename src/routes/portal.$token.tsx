@@ -118,7 +118,7 @@ function PortalPage() {
       const r = await startCheckout({ data: { token, requestType, returnOrigin: origin } });
       window.location.href = r.url;
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not start payment");
+      toast.error(e instanceof Error ? e.message : "Could not start payment");
       setPaying(false);
     }
   };
