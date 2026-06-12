@@ -367,7 +367,7 @@ function ClientPortalPage() {
                         >
                           {STATUS_LABEL[q.status] ?? q.status}
                         </span>
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                        <span className="bg-secondary text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-medium">
                           {new Date(q.created_at).toLocaleDateString("en-GB", {
                             day: "numeric",
                             month: "short",
@@ -389,16 +389,15 @@ function ClientPortalPage() {
                     </div>
                   </button>
                   {expanded && (
-                    <div className="border-t border-border bg-secondary/30">
+                    <div className="border-t border-border bg-secondary/30 divide-y divide-border">
                       {q.job_description && (
                         <div className="px-4 py-3">
-                          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-                            Job description
+                          <p className="text-sm whitespace-pre-line italic text-muted-foreground">
+                            {q.job_description}
                           </p>
-                          <p className="text-sm mt-1 whitespace-pre-line">{q.job_description}</p>
                         </div>
                       )}
-                      <ul className="border-t border-border">
+                      <ul>
                         {lineItems.map((li, i) => (
                           <li
                             key={i}
@@ -418,54 +417,54 @@ function ClientPortalPage() {
                           </li>
                         ))}
                       </ul>
-                      <div className="px-4 py-3 border-t border-border flex items-center justify-between text-sm">
+                      <div className="px-4 py-3 flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Total</span>
                         <span className="num text-lg">{formatGBP(q.total)}</span>
                       </div>
-                      <div className="px-4 pb-3">
-                        <div className="rounded-xl border-2 border-lime bg-lime/10 px-3 py-2">
-                          <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
-                          <p className="text-sm font-bold text-ink leading-tight">
-                            {paymentTimingLabel({
-                              timing: ((q as any).payment_timing as PaymentTiming) ?? "on_completion",
-                              total: Number(q.total) || 0,
-                              depositAmount: Number((q as any).deposit_amount) || 0,
-                              depositPercent: Number((q as any).deposit_percent) || 0,
-                            })}
-                          </p>
-                        </div>
+                      <div className="px-4 py-3 bg-lime/10">
+                        <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
+                        <p className="text-sm font-bold text-ink leading-tight">
+                          {paymentTimingLabel({
+                            timing: ((q as any).payment_timing as PaymentTiming) ?? "on_completion",
+                            total: Number(q.total) || 0,
+                            depositAmount: Number((q as any).deposit_amount) || 0,
+                            depositPercent: Number((q as any).deposit_percent) || 0,
+                          })}
+                        </p>
                       </div>
-                      {(q.status === "pending" || q.status === "sent") && (
-                        <div className="px-4 py-3 border-t border-border grid grid-cols-2 gap-2">
-                          <button
-                            onClick={() => onRespond(q.id, "declined")}
-                            disabled={respondingId === q.id}
-                            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border py-2.5 text-xs font-semibold disabled:opacity-50"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                            Decline
-                          </button>
-                          <button
-                            onClick={() => onRespond(q.id, "accepted")}
-                            onPointerDown={() => feedback("tap")}
-                            disabled={respondingId === q.id}
-                            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-lime text-ink py-2.5 text-xs font-bold disabled:opacity-50 px-2"
-                          >
-                            {respondingId === q.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Check className="h-3.5 w-3.5" />
-                            )}
-                            <span className="truncate">
-                              {acceptButtonLabel({
-                                timing: ((q as any).payment_timing as PaymentTiming) ?? "on_completion",
-                                total: Number(q.total) || 0,
-                                depositAmount: Number((q as any).deposit_amount) || 0,
-                              })}
-                            </span>
-                          </button>
-                        </div>
-                      )}
+                      {(q.status === "pending" || q.status === "sent") && (() => {
+                        const { primary, sub } = acceptLabelParts(q);
+                        return (
+                          <div className="px-4 py-3 flex items-stretch gap-2">
+                            <button
+                              onClick={() => setDeclineTargetId(q.id)}
+                              disabled={respondingId === q.id}
+                              className="w-24 shrink-0 inline-flex items-center justify-center gap-1.5 rounded-full border border-border py-2.5 text-xs font-semibold disabled:opacity-50"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                              No
+                            </button>
+                            <button
+                              onClick={() => void performRespond(q.id, "accepted")}
+                              onPointerDown={() => feedback("tap")}
+                              disabled={respondingId === q.id}
+                              className="flex-1 min-h-14 inline-flex flex-col items-center justify-center gap-0.5 rounded-2xl bg-lime text-ink py-2 text-sm font-bold disabled:opacity-50 px-2 leading-tight"
+                            >
+                              <span className="inline-flex items-center gap-1.5">
+                                {respondingId === q.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="h-3.5 w-3.5" />
+                                )}
+                                {primary}
+                              </span>
+                              {sub && (
+                                <span className="text-[11px] font-medium text-ink/70">{sub}</span>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })()}
                       <div className="px-4 py-3 border-t border-border">
                         <button
                           onClick={() =>
