@@ -606,8 +606,26 @@ Re-output the FULL updated list of line items for this quote, applying the chang
         const filtered = g.line_items
           .filter((li) => !deletedDescsRef.current.has(normDesc(li.description)))
           .map((li) => editedItemsRef.current.get(normDesc(li.description)) ?? li);
-        setLiveItems(filtered);
-        liveItemsRef.current = filtered;
+        // Append-only merge: keep existing tiles in place; update qty/unit_price
+        // in place when a filtered item matches by normDesc; append new ones.
+        // Never remove tiles here — only the tombstone path does that.
+        const base = liveItemsRef.current;
+        const indexByKey = new Map<string, number>();
+        base.forEach((it, i) => indexByKey.set(normDesc(it.description), i));
+        const next = base.slice();
+        for (const li of filtered) {
+          const key = normDesc(li.description);
+          const idx = indexByKey.get(key);
+          if (idx != null) {
+            const existing = next[idx];
+            next[idx] = { ...existing, qty: li.qty, unit_price: li.unit_price };
+          } else {
+            indexByKey.set(key, next.length);
+            next.push(li);
+          }
+        }
+        setLiveItems(next);
+        liveItemsRef.current = next;
         lastLiveGenRef.current = {
           title: g.title,
           clean_description: g.clean_description,
