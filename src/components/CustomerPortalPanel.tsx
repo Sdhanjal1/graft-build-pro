@@ -359,6 +359,43 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
           </ul>
         )}
       </div>
+
+      <AlertDialog
+        open={!!pendingConfirm}
+        onOpenChange={(o) => { if (!o) setPendingConfirm(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingConfirm?.type === "regen"
+                ? "Generate a new portal link?"
+                : "Remove this document?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingConfirm?.type === "regen"
+                ? "The old link will stop working immediately. Anyone using the old link won't be able to access the portal."
+                : pendingConfirm?.type === "delete-doc"
+                  ? `"${pendingConfirm.title}" will be deleted from this customer's portal.`
+                  : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const c = pendingConfirm;
+                setPendingConfirm(null);
+                if (!c) return;
+                if (c.type === "regen") void performRegen();
+                else if (c.type === "delete-doc") void performDelete(c.id);
+              }}
+              className="bg-status-overdue text-paper hover:bg-status-overdue/90"
+            >
+              {pendingConfirm?.type === "regen" ? "Regenerate link" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
