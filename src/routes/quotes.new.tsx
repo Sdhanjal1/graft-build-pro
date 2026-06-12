@@ -1173,8 +1173,11 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           seconds={recordSeconds}
           error={voiceError}
           lastTranscript={lastTranscript}
-          livePreview={livePreview}
-          liveSupported={liveSupported}
+          // NOTE: livePreview / liveSupported are intentionally NOT passed to
+          // the overlay. The live transcript is captured internally to feed
+          // the AI on every regenerate / on stop — it must never be rendered.
+          // If you need a live cue, use MicLevelBars below.
+
           liveItems={liveItems}
           transcript={desc}
           pendingItems={pendingItems}
