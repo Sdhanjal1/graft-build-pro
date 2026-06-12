@@ -1281,7 +1281,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
         <form
         id="new-quote-form"
-        className={`px-5 mt-4 space-y-4 ${draft ? "pb-40" : "pb-8"}`}
+        className={`px-5 mt-4 space-y-4 ${draft ? "pb-28" : "pb-8 flex flex-col min-h-[calc(100dvh-12rem)]"}`}
         onSubmit={(e) => {
           e.preventDefault();
           if (draft) {
@@ -1406,7 +1406,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
 
         {!draft && (
-          <div className="mt-2">
+          <div className="mt-auto pt-2 safe-bottom">
             <div className="mx-auto max-w-md space-y-2">
               {subBlocked && (
                 <div className="rounded-2xl bg-paper/95 backdrop-blur border border-status-overdue/40 px-3.5 py-2.5 flex items-center gap-2.5 shadow-lg">
@@ -1827,7 +1827,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
       {/* Sticky save bar (draft state) */}
       {draft && (
-        <div className="fixed bottom-20 inset-x-0 z-30 px-3 safe-bottom pointer-events-none">
+        <div className="fixed bottom-0 inset-x-0 z-30 px-3 pb-3 safe-bottom pointer-events-none">
           <div className="mx-auto max-w-md pointer-events-auto space-y-2">
             {error && (
               <div className="rounded-2xl bg-paper/95 backdrop-blur border border-status-overdue/40 px-3.5 py-2.5 shadow-lg space-y-1.5">
