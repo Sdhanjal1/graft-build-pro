@@ -794,68 +794,61 @@ function QuoteDetail() {
                 </div>
               )}
 
-              {/* Action shortcuts */}
-              <div className="space-y-2 pt-1">
-                {/* Sharing & communication */}
-                <ul className="space-y-0.5">
-                  <MoreItem icon={Eye} label="View as customer" onClick={viewAsCustomer} />
-                  <MoreItem icon={Share2} label="Download PDF" onClick={sharePdf} />
-                  <MoreItem icon={Mail} label="Email customer" onClick={() => { window.location.href = mailHref; }} />
-                  <MoreItem icon={Phone} label="Call customer" onClick={() => { window.location.href = `tel:${client?.phone}`; }} />
-                  {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
-                    <MoreItem icon={MessageCircle} label="Send chaser on WhatsApp" onClick={() => {
-                      const first = client.name.split(" ")[0] ?? "there";
-                      const msg = `Hi ${first}, just following up on ${quote.ref} for ${formatGBP(quote.total)}. Could you let me know when payment will be made? Thanks.`;
-                      window.open(waLink(client.phone, msg), "_blank");
-                    }} />
-                  )}
-                  {invoicedAt && (
-                    <MoreItem icon={FileText} label="View final invoice" onClick={() => navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } })} />
-                  )}
-                </ul>
+              {/* Action shortcuts — grouped by purpose */}
+              <ul className="divide-y divide-border/40 pt-1">
+                <MoreGroup label="Share" />
+                <MoreItem icon={Eye} label="View as customer" onClick={viewAsCustomer} />
+                <MoreItem icon={Share2} label="Download PDF" onClick={sharePdf} />
+                <MoreItem icon={Mail} label="Email customer" onClick={() => { window.location.href = mailHref; }} />
+                <MoreItem icon={Phone} label="Call customer" onClick={() => { window.location.href = `tel:${client?.phone}`; }} />
+                {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
+                  <MoreItem icon={MessageCircle} label="Send chaser on WhatsApp" onClick={() => {
+                    const first = client.name.split(" ")[0] ?? "there";
+                    const msg = `Hi ${first}, just following up on ${quote.ref} for ${formatGBP(quote.total)}. Could you let me know when payment will be made? Thanks.`;
+                    window.open(waLink(client.phone, msg), "_blank");
+                  }} />
+                )}
+                {invoicedAt && (
+                  <MoreItem icon={FileText} label="View final invoice" onClick={() => navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } })} chevron />
+                )}
 
-                {/* Payment actions */}
-                <ul className="space-y-0.5 border-t border-border/40 pt-2">
-                  {status !== "paid" && (
-                    <MoreItem icon={CheckCircle2} label="Mark as paid" onClick={() => setAskingPaid(true)} />
-                  )}
-                  {status === "paid" && (
-                    <MoreItem icon={RotateCcw} label="Mark as unpaid" onClick={markUnpaid} />
-                  )}
-                  {status !== "paid" && timing === "deposit_then_balance" && configuredDeposit > 0 && (
-                    <MoreItem
-                      icon={Banknote}
-                      label={`Record deposit received (${formatGBP(configuredDeposit)})`}
-                      onClick={() => setRecordDepositOpen(true)}
-                    />
-                  )}
-                  {status !== "paid" && depositPaid > 0 && (
-                    <MoreItem icon={Undo2} label="Remove recorded deposit" onClick={removeRecordedDeposit} />
-                  )}
-                  {status === "accepted" && (
-                    <MoreItem icon={Zap} label="Request payment (send link)" onClick={() => setRequesting(true)} />
-                  )}
-                  {(status === "accepted" || status === "sent") && (
-                    <MoreItem icon={Smartphone} label="Take payment on site" onClick={() => takePaymentOnSite("full")} />
-                  )}
-                </ul>
+                <MoreGroup label="Payments" />
+                {status !== "paid" && (
+                  <MoreItem icon={CheckCircle2} label="Mark as paid" onClick={() => setAskingPaid(true)} chevron />
+                )}
+                {status === "paid" && (
+                  <MoreItem icon={RotateCcw} label="Mark as unpaid" onClick={markUnpaid} chevron />
+                )}
+                {status !== "paid" && timing === "deposit_then_balance" && configuredDeposit > 0 && (
+                  <MoreItem
+                    icon={Banknote}
+                    label={`Record deposit received (${formatGBP(configuredDeposit)})`}
+                    onClick={() => setRecordDepositOpen(true)}
+                    chevron
+                  />
+                )}
+                {status !== "paid" && depositPaid > 0 && (
+                  <MoreItem icon={Undo2} label="Remove recorded deposit" onClick={removeRecordedDeposit} chevron />
+                )}
+                {status === "accepted" && (
+                  <MoreItem icon={Zap} label="Request payment (send link)" onClick={() => setRequesting(true)} chevron />
+                )}
+                {(status === "accepted" || status === "sent") && (
+                  <MoreItem icon={Smartphone} label="Take payment on site" onClick={() => takePaymentOnSite("full")} />
+                )}
 
-                {/* Status & admin */}
-                <ul className="space-y-0.5 border-t border-border/40 pt-2">
-                  <MoreItem icon={Copy} label="Duplicate quote" onClick={duplicate} />
-                  {status === "pending" && (
-                    <MoreItem icon={Send} label="Mark as sent" onClick={markSent} />
-                  )}
-                  {status !== "declined" && status !== "paid" && (
-                    <MoreItem icon={XCircle} label="Mark as declined" onClick={declineQuote} />
-                  )}
-                </ul>
+                <MoreGroup label="Status" />
+                <MoreItem icon={Copy} label="Duplicate quote" onClick={duplicate} />
+                {status === "pending" && (
+                  <MoreItem icon={Send} label="Mark as sent" onClick={markSent} />
+                )}
+                {status !== "declined" && status !== "paid" && (
+                  <MoreItem icon={XCircle} label="Mark as declined" onClick={declineQuote} />
+                )}
 
-                {/* Danger */}
-                <ul className="space-y-0.5 border-t border-border/40 pt-2">
-                  <MoreItem icon={Trash2} label="Delete quote" onClick={removeQuote} danger />
-                </ul>
-              </div>
+                <MoreGroup label="Danger" />
+                <MoreItem icon={Trash2} label="Delete quote" onClick={removeQuote} danger chevron />
+              </ul>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
