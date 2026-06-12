@@ -39,7 +39,7 @@ function refShort(quoteId: string): string {
 
 function SkeletonCard() {
   return (
-    <div className="card-surface p-3.5 flex items-start gap-3 animate-pulse">
+    <div className="card-surface p-3 flex items-start gap-3 animate-pulse">
       <div className="h-10 w-10 rounded-full bg-secondary shrink-0" />
       <div className="flex-1 space-y-2 py-1">
         <div className="h-3 w-1/2 rounded bg-secondary" />
