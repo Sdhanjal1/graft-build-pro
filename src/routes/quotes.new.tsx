@@ -2115,6 +2115,11 @@ function MicLevelBars({
       }
     }
 
+    // Peak-hold: when a bar lights, keep it lit for HOLD_MS so the meter
+    // doesn't strobe between syllables. Analyser already smooths at 0.6.
+    const HOLD_MS = 220;
+    const holdUntil = [0, 0, 0, 0, 0];
+
     const tick = () => {
       if (stopped) return;
       let level = 0;
@@ -2130,17 +2135,21 @@ function MicLevelBars({
         levelRef.current += (target - levelRef.current) * 0.3;
         level = levelRef.current;
       }
+      const now = performance.now();
       for (let i = 0; i < barRefs.length; i++) {
         const el = barRefs[i].current;
         if (!el) continue;
-        const lit = level >= thresholds[i];
+        const meets = level >= thresholds[i];
+        if (meets) holdUntil[i] = now + HOLD_MS;
+        const lit = meets || now < holdUntil[i];
         el.style.backgroundColor = lit ? "rgb(190 242 100)" /* lime */ : "rgba(245,245,245,0.18)";
-        const scale = lit ? 1 + Math.min(0.6, (level - thresholds[i]) * 1.6) : 0.55;
+        const scale = lit ? 1 + Math.min(0.6, (Math.max(level, thresholds[i]) - thresholds[i]) * 1.6) : 0.55;
         el.style.transform = `scaleY(${scale.toFixed(3)})`;
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
+
 
     return () => {
       stopped = true;
