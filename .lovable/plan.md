@@ -1,52 +1,50 @@
-Additional notes - 1. (Fix 2 — the one to get right) Handle the already-hydrated case on mount. The risk with adding a loading flag is the mirror of the flash: on warm navigation (store already populated), you don’t want a skeleton flashing over data that’s already there, and you definitely don’t want it stuck on loading: true if the version listener doesn’t re-fire. Initialize the flag from whether the store is already hydrated — something like useState(() => !storeAlreadyHydrated) — so a warm load renders instantly and only a genuine cold load shows the skeleton. Tell Lovable to confirm both cold and warm loads behave.
+## Block empty / £0 quotes from being saved or sent
 
-2. (Fix 1 UI) Verify the “Set up payments” link actually hits the working onboarding flow. The plan says “re-use whatever Settings uses.” Make sure it resolves to the real Connect start-onboarding trigger, not a placeholder or dead link — glance at the diff to confirm the target is the same action that works from Settings.
+Scoped guard so blank or zero-total quotes can't reach a customer, plus a tiny backend safety net for sub-30p payment requests. Out of scope: AI generation, connected-account charge path, payment-gating from the previous round.
 
-3. (Fix 1 backend) Confirm the thrown error surfaces gracefully. Since the backend throw is a backstop behind the UI gate, make sure the “Request payment” dialog catches it and shows the message rather than throwing an unhandled rejection. Low risk because the buttons are disabled, but worth a line so the edge case fails cleanly.
+### 1. `src/routes/quotes.new.tsx` — disable Save/Send when empty
 
-Everything else — the reuse-branch guard, the skeleton mirroring of messages, the not-found back links, the acceptance criteria — is right. Add those three notes, run it, then point me at the repo and I’ll verify all three landed before you move o
+Just above the action bar (near line 1797), derive:
 
-&nbsp;
+```ts
+const hasItems = (draft?.line_items.length ?? 0) > 0;
+const hasTotal = total > 0;
+const canSend = clientName.trim() && hasItems && hasTotal && !saving;
+const blockedReason =
+  !clientName.trim() ? "client"
+  : !hasItems || !hasTotal ? "items"
+  : null;
+```
 
-&nbsp;
+Wire both buttons:
 
-&nbsp;
+- Draft button (line 1802): `disabled={!clientName.trim() || !hasItems || !hasTotal || saving}`.
+- Send button (line 1818): `disabled={!canSend}`. In its onClick, before the `clientName` early-return, add an items/total guard that scrolls to the line-items section (reuse an existing ref if available; otherwise fall back to a no-op return, since the button is already disabled).
+- Send button label/colour (lines 1820–1826): extend the existing ternary so the "needs items" state shows `"Add an item ↓"` with the same muted styling already used for `!clientName.trim()`. Three states: missing client → "Add a customer ↑", missing items/total → "Add an item ↓", else "Save & send".
 
-# Launch gap fixes
+### 2. Inline hint above the action bar
 
-Three scoped fixes. The connected-account charge path, 0.5% fee, webhooks, AI/voice, and messages loading state are untouched.
+Reuse the existing error-pill styling pattern at lines 1788–1795 (rounded card, `text-xs font-semibold text-ink` + muted subtext). Render conditionally when `blockedReason === "items"` only (the client-name case is already handled by the inline button label, so we don't double up):
 
-## 1. Payment gating (money-critical)
+```
+Add at least one item before sending.
+```
 
-**Backend — `src/lib/payments.functions.ts**`
+Keep it visually distinct from the red "Couldn't save quote" error — neutral paper background, no red accent.
 
-- `createInvoiceCheckout` (~line 89): right after `connectAccountId` is computed, if it's `null`, throw `"Set up payments before you can take payment — finish connecting your bank in Settings."` and return before any Stripe API call. Existing connected-account branch (Stripe-Account header + `application_fee_amount`) is unchanged.
-- Public payment-link function (~line 304, same `charges_enabled && account_id` pattern used for the portal token flow): same guard immediately after `connectAccountId` is computed, throwing a customer-appropriate message: `"This business hasn't finished setting up payments yet."`. Also apply to the reuse-pending branch at ~line 270 so a previously created session isn't returned when onboarding has since lapsed.
+### 3. `src/lib/payments.functions.ts` — Stripe 30p minimum guard
 
-**UI — `src/routes/quotes.$quoteId.tsx**`
+- `createInvoiceCheckout` handler (~line 73, right after `amountCents` is computed): if `amountCents < 30`, throw `"Quote total is too low to request payment (minimum 30p)."` before any Stripe call.
+- `createPortalCheckout` handler (~line 254, where `if (amount <= 0)` already throws): change the condition to `if (amountCents < 30)` with the same message wording, so the existing zero check and the new minimum are one branch. Compute `amountCents` just before the check (already happens at line 256).
 
-- Import and call `useConnectStatus()`.
-- When `!chargesEnabled` (and not loading), gate the "Request payment (send link)" (line 834) and "Take payment on site" (line 837) actions: disable both and render a small inline prompt "Set up payments first" that links to the existing Connect onboarding entry point used in Settings (re-use whatever Settings uses — `connect.functions.ts` start flow or the Settings billing section trigger).
-- While `loading` from the hook is true, keep the buttons disabled to avoid a flash of enabled→disabled.
+No changes to the connected-account routing, fees, idempotency, or webhooks.
 
-## 2. Empty-state flash — Chasers and Clients
+### Acceptance
 
-Mirror the pattern `src/routes/messages.tsx` uses.
+- Save and Send are disabled with an inline "Add at least one item before sending." hint when there are zero line items or total is £0.
+- A normal quote with a client + items + non-zero total saves and sends exactly as today.
+- A payment request for a sub-30p total throws a clear "too low" error instead of a raw Stripe 400.
 
-- `src/routes/chaser.tsx` and `src/routes/clients.index.tsx`: add a `loading` flag (default `true`), subscribe to the existing store version listener in `src/lib/user-data.ts` (same one `messages.tsx` uses), flip `loading` to `false` on first hydration.
-- While loading, render the same `SkeletonCard` pattern from messages (reuse `src/components/Skeletons.tsx`) — a short stack of skeleton rows matching the list layout.
-- Only render `EmptyState` when `!loading && list.length === 0`.
+createPortalCheckout ordering: in the actual code, the existing if (amount <= 0) check is at line 259, but amountCents isn’t computed until line 260 — after the check. So if Lovable replaces line 259 with if (amountCents < 30) as written, it’ll reference amountCents before it’s declared, which is a build error (TDZ on the const). Tell Lovable to move the amountCents computation above the guard (or just guard on amount < 0.30 in pounds instead). The plan’s note says amountCents “already happens at line 256” — that’s slightly off; it’s at 260, below the check, so the declaration genuinely needs to move up. createInvoiceCheckout doesn’t have this problem — there amountCents is at line 65, already above where the guard goes.
 
-## 3. Not-found back link
-
-Replace bare "not found" text in the two `notFoundComponent`s with a centered card containing the message + a "Back to quotes" button linking to `/quotes`, using the existing button styles already used elsewhere (lime pill `bg-lime text-ink rounded-full px-5 py-2.5 text-xs font-bold` to match `EmptyState`'s CTA).
-
-- `src/routes/quotes.$quoteId.tsx` line 59
-- `src/routes/invoices.$quoteId.tsx` line 20
-
-## Acceptance
-
-- Non-onboarded trader: both payment buttons in quote detail are disabled with onboarding prompt; if somehow invoked, backend throws clear error — no charge reaches the platform account.
-- Onboarded trader: unchanged flow, funds route to connected account, 0.5% fee applied.
-- Chasers/Clients: cold load shows skeleton, no empty flash; truly empty state shows EmptyState after hydration.
-- `/quotes/{missing}` and `/invoices/{missing}`: friendly message + working back link to `/quotes`.
+Everything else lines up: the UI logic is sound (the three button states with directional arrows are a nice touch), the inline hint is kept distinct from the red error, and the connect routing/fees/webhooks are correctly left untouched.
