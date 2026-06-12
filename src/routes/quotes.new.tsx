@@ -1404,8 +1404,8 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
 
         {!draft && (
-          <div className="fixed bottom-20 inset-x-0 z-30 px-3 safe-bottom pointer-events-none">
-            <div className="mx-auto max-w-md pointer-events-auto space-y-2">
+          <div className="mt-2">
+            <div className="mx-auto max-w-md space-y-2">
               {subBlocked && (
                 <div className="rounded-2xl bg-paper/95 backdrop-blur border border-status-overdue/40 px-3.5 py-2.5 flex items-center gap-2.5 shadow-lg">
                   <AlertCircle className="h-4 w-4 text-status-overdue shrink-0" />
