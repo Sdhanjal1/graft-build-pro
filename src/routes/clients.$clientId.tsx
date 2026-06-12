@@ -259,8 +259,8 @@ function Row({
 }) {
   const content = (
     <div className="flex items-start gap-3">
-      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
-        <Icon className="h-4 w-4" />
+      <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+        <Icon className="h-3.5 w-3.5" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</p>
@@ -302,41 +302,40 @@ function EditableRow({
   });
 
   return (
-    <div className="flex items-start gap-3 group">
-      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
-        <Icon className="h-4 w-4" />
+    <div className="flex items-start gap-3">
+      <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+        <Icon className="h-3.5 w-3.5" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold inline-flex items-center gap-1.5">
-            {label}
-            {href && value && !focused && (
-              <a
-                href={href}
-                onClick={(e) => e.stopPropagation()}
-                className="text-ink/60 hover:text-ink normal-case tracking-normal text-[11px] font-medium underline-offset-2 hover:underline"
-              >
-                {type === "tel" ? "Call" : type === "email" ? "Email" : "Open"}
-              </a>
-            )}
-          </p>
-          <div className="flex items-center gap-1.5">
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold inline-flex items-center gap-1.5">
+          {label}
+          {href && value && !focused && (
+            <a
+              href={href}
+              onClick={(e) => e.stopPropagation()}
+              className="text-ink/60 hover:text-ink normal-case tracking-normal text-[11px] font-medium underline-offset-2 hover:underline"
+            >
+              {type === "tel" ? "Call" : type === "email" ? "Email" : "Open"}
+            </a>
+          )}
+        </p>
+        <div className="relative">
+          <input
+            type={type}
+            value={value}
+            placeholder={placeholder}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onChange={(e) => {
+              setValue(e.target.value);
+              handleChange(e.target.value);
+            }}
+            className="mt-0.5 w-full bg-transparent border-0 border-b border-dashed border-border focus:border-solid focus:border-ink/40 px-0 py-1 pr-7 text-sm font-medium outline-none transition-colors placeholder:text-muted-foreground/60"
+          />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none">
             <SaveIndicator isSaving={isSaving} isSaved={isSaved} error={error} />
-            <Pencil className="h-3 w-3 text-muted-foreground/50 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity" />
           </div>
         </div>
-        <input
-          type={type}
-          value={value}
-          placeholder={placeholder}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onChange={(e) => {
-            setValue(e.target.value);
-            handleChange(e.target.value);
-          }}
-          className="mt-0.5 w-full bg-transparent border-0 border-b border-dashed border-border focus:border-solid focus:border-ink/40 px-0 py-1 text-sm font-medium outline-none transition-colors placeholder:text-muted-foreground/60"
-        />
       </div>
     </div>
   );
