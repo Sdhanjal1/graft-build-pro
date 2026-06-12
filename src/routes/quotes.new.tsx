@@ -2188,6 +2188,7 @@ function VoiceOverlay({
   onStart,
   onStop,
   onClose,
+  onTypeInstead,
   onRetryTranscription,
   onUpdateItem,
   onDeleteItem,
@@ -2205,6 +2206,7 @@ function VoiceOverlay({
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
+  onTypeInstead?: () => void;
   onRetryTranscription?: () => void;
   onUpdateItem: (index: number, patch: Partial<LineItem>) => void;
   onDeleteItem: (index: number) => void;
