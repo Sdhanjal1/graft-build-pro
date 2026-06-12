@@ -59,10 +59,13 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
   const [docs, setDocs] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadKind, setUploadKind] =
+  const [uploadKind] =
     useState<"certificate" | "service" | "warranty" | "other">("certificate");
   const [serviceType, setServiceType] = useState("");
   const [serviceDate, setServiceDate] = useState("");
+  const [confirm, setConfirm] = useState<ConfirmTarget | null>(null);
+  const canNativeShare =
+    typeof navigator !== "undefined" && typeof (navigator as any).share === "function";
 
   useEffect(() => {
     if (!isUuid(clientId)) {
