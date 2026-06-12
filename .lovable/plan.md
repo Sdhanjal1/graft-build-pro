@@ -1,76 +1,61 @@
-# Smoother voice quote flow
+# Transcript audit guard + accessible listening cue
 
-Three display-only changes to `src/routes/quotes.new.tsx` and its overlay. Whole-transcript AI generation, tombstone/edit filtering, Whisper fallback, and the 60s/30s timeouts stay exactly as they are.
+Two small additions on top of the just-shipped voice flow changes. Scope stays inside `src/routes/quotes.new.tsx` and its overlay component.
 
-## 1. Stable tiles — merge instead of replace
+## 1. Audit guard — transcript captured, never rendered
 
-In `regenerateLiveQuote` (around lines 605–610), replace the wholesale `setLiveItems(filtered) / liveItemsRef.current = filtered` with an append-only merge keyed by `normDesc(description)`:
+Goal: make it structurally impossible to render the live transcript in the overlay, so a future edit can't accidentally bring it back. The Web Speech handlers still update `liveFinalRef` / `liveInterimRef` / `setLivePreview` (the AI still gets the full transcript on regenerate and on stop) — only the overlay's access to it goes away.
 
-- Start from `liveItemsRef.current` as the base order.
-- For each item in `filtered`, if a tile with the same `normDesc` already exists, update its `qty` and `unit_price` in place (no reorder, no description swap).
-- Append any `filtered` item whose `normDesc` isn't already present.
-- Do NOT remove tiles when the AI omits them mid-stream — only the existing tombstone path (`deletedDescsRef` via user delete) removes tiles.
-- Assign the merged array to both `setLiveItems(next)` and `liveItemsRef.current = next`.
+- Drop `livePreview` from the overlay component's props (both the JSX call site around line 1096 and the props type around line 1984).
+- Drop `liveSupported` from the overlay props too if it's only used by the removed transcript block (verify; keep if referenced elsewhere).
+- Add a short comment block above the listening cue and above `setLivePreview` in the recogniser handler explaining the invariant: "Transcript is captured internally to feed the AI on every regenerate / on stop. It must never be rendered in the overlay. If you need a live cue, use the audio-level bar below."
+- Add a dev-only assertion inside the overlay component: on mount, if `import.meta.env.DEV` and the props object contains a key named `livePreview`, `console.error` a clear message. Cheap tripwire if someone re-plumbs it.
 
-Result: new items animate in at the end, existing tiles never move.
+## 2. Accessible listening cue with audio-level bar
 
-## 2. Remove the visible transcript
+Replace the pulsing-dot cue with a small audio-level meter plus an `aria-live` announcement. Keep it scoped to the existing cue — no layout changes elsewhere.
 
-Keep all internal capture untouched: `liveFinalRef`, `liveInterimRef`, `setLivePreview`, and the Web Speech handlers continue to feed the AI exactly as today.
+### Audio-level capture
 
-In the overlay JSX (lines 2074–2095), replace the entire `livePreview`/"Hearing:" block with a quiet "listening" cue shown while `recording`:
+- In `startRecording`, after `getUserMedia` succeeds and before/after the MediaRecorder is created, set up a Web Audio `AnalyserNode` on the same `stream`:
+  - Lazily create an `AudioContext` (reuse the existing `AC = window.AudioContext || webkitAudioContext` pattern already in the file).
+  - `createMediaStreamSource(stream)` → `AnalyserNode` with `fftSize: 256`, `smoothingTimeConstant: 0.6`.
+  - Store refs: `audioCtxRef`, `analyserRef`, `levelRafRef`.
+  - Run a `requestAnimationFrame` loop that reads `getByteTimeDomainData`, computes RMS, normalises to 0–1, and writes to a new `level` state (throttled to ~30fps via rAF).
+- In `mr.onstop` and any teardown path (`stopRecording`, session reset, error exits), cancel the rAF, disconnect the analyser, close the AudioContext, and reset `level` to 0. Guard `close()` calls — they reject if already closed.
+- Skip the analyser setup entirely in clip/edit mode (matches the existing `isClipMode` branch — no live cue needed there).
 
-- A pulsing lime mic dot (reuse the existing `animate-ping` halo pattern from lines 2099–2104) at a small size, plus the label "Listening…".
-- Shown whenever `recording` is true, regardless of whether tiles exist yet.
-- No transcript text rendered anywhere in the overlay.
+### Cue UI (replaces the current dot + "Listening…")
 
-The tiles list (`showList && hasItems`) remains the primary feedback.
+- Container: `role="status" aria-live="polite" aria-atomic="true"`, announces "Listening" once when recording starts (use a small `useEffect` keyed off `recording` to set the announcement text — avoid announcing every frame).
+- Visual: a row of 5 small bars (`h-3 w-1 rounded-full bg-paper/20`), each lit (`bg-lime`) when `level` exceeds a per-bar threshold (e.g. 0.05, 0.12, 0.22, 0.35, 0.5). Scale slightly on activity (`transform scaleY`) for a subtle bouncing meter. `aria-hidden="true"` on the bars themselves — the live region carries the meaning.
+- Keep the visible label "Listening…" next to the bars, same typography as the dot version.
+- When `level` is 0 for >800ms (silence), keep the label but dim the bars — reassures the user the mic is open without flicker.
 
-## 3. Instant stop, background reconcile
+### Permission/error edge
 
-Rework `mr.onstop` (lines 731–809) for the non-clip path:
-
-- After flushing `finalInterim` into `liveFinalRef`, branch on `liveItemsRef.current.length`:
-  - **If > 0 (tiles already exist):** build the draft immediately from current tiles — same `built` object, `setDraft`, `setDesc`, customer hydration, `clearPendingItems`, success feedback, scroll — without setting `transcribing`. Then kick off `runRegenerate(sessionId)` + `waitForPendingPhraseProcessing()` in the background (no `await` blocking the UI). When they resolve, merge any genuinely new items (same normDesc merge as #1, append-only) into the draft via `setDraft`. Guard the background merge with:
-    - session still current (`sessionId === voiceSessionRef.current`, not `closeRequestedRef`),
-    - user hasn't started editing — compare `JSON.stringify(currentDraftItems)` against `originalDraftRef.current`; skip merge if changed.
-  - **If === 0:** keep today's behaviour exactly — `setTranscribing(true)`, await final regen + pending, re-check items, otherwise fall through to the Whisper fallback.
-
-Spinner / `transcribing` state is no longer entered when tiles exist on stop.
-
-## 4. Optional tuning
-
-Leave `LIVE_PAUSE_MS` at `2000` (line 216) to minimise AI calls. Stable merge already removes the visible reshuffle, so the snappier 1500ms is not needed.
+- If `AudioContext` creation throws (rare, autoplay policy), fall back silently to the static pulsing-dot version. No user-visible error — the MediaRecorder still works.
 
 ## Files touched
 
-- `src/routes/quotes.new.tsx` — `regenerateLiveQuote` merge, `mr.onstop` instant-draft branch + background reconcile, overlay transcript block replaced with mic/Listening cue.
+- `src/routes/quotes.new.tsx` — analyser refs + rAF loop in `startRecording`, teardown in `mr.onstop` / stop paths, remove `livePreview` (and possibly `liveSupported`) from overlay props, dev assertion, new audio-level cue JSX.
 
-## Out of scope (do not touch)
+## Out of scope
 
-- AI prompt construction, `generateFn`, `prefetchFn`.
-- `deletedDescsRef` / `editedItemsRef` tombstone+edit logic and the existing filter chain.
-- Whisper fallback (`runTranscribe`) and clip/edit recording paths.
-- `waitForPendingPhraseProcessing`, 60s/30s timeouts.
-- `setLivePreview` / `liveFinalRef` / `liveInterimRef` write sites in Web Speech callbacks.
+- No changes to `liveFinalRef` / `liveInterimRef` / `setLivePreview` write sites — transcript capture stays exactly as today.
+- No changes to AI prompts, `generateFn`, regenerate merge, or stop-time draft logic shipped in the previous turn.
+- No new dependencies. Web Audio is built-in.
 
 ## Acceptance
 
-- Multi-item job: each tile appears and stays put; no reshuffle; no transcript text on screen.
-- Stop with tiles present: draft appears instantly, no spinner; any late items append without reorder.
-- Stop with zero tiles: unchanged — transcribing spinner + Whisper fallback as today.
-- Generated quote content identical to current behaviour.
+- Overlay component no longer receives `livePreview`; grepping the overlay JSX for `livePreview` returns nothing.
+- Dev console errors if a `livePreview` prop is ever re-added.
+- While recording: screen-reader announces "Listening" once; visual bars react to voice volume; no transcript text anywhere on screen.
+- AI-generated quote content unchanged from current behaviour.
+- Stopping recording cleanly releases the AudioContext (no console warnings on repeat record/stop cycles).
 
-Important notes on the plan.
+1. Verify liveSupported before removing it. The plan says “drop it if only the transcript block used it.” Make sure Lovable actually greps for other usages first — if the overlay uses liveSupported anywhere else (e.g. a “voice not supported on this browser” message), removing it would break that. The plan says to verify; just confirm it did.
 
-1. Ordering on the instant-stop branch. In the tiles-present path, set originalDraftRef.current to the new draft’s items immediately after setDraft, and before the background runRegenerate is kicked off — so an untouched draft compares equal and the background merge proceeds, while a real edit makes it differ and the merge correctly skips.
+2. AudioContext on iOS needs a user gesture. Safari on iPhone/iPad requires the AudioContext to be created/resumed from a user interaction. Since you tap the mic to start recording, that’s fine — but make sure the AudioContext is created (or .resume() called) inside that tap-initiated startRecording, not in an effect that runs later, or the meter will silently sit dead on iOS. The silent fallback means it won’t error, but you’d lose the bars on the exact device Nav uses. Worth confirming.
 
-2. Background merge must re-read the latest draft, not a captured copy. When the background pass resolves, read the current draft state at that moment for both the edit-guard comparison and the append — don’t diff or merge against a stale snapshot taken before the await. Otherwise an item the user added in the gap could get lost or duplicated.
-
-3. Keep the tombstone filter applied inside the background merge too. Late items coming from the final regenerate should still be filtered through deletedDescsRef before appending, so something the user deleted mid-recording can’t reappear via the background pass.
-
-4. Don’t leave transcribing stuck on. Confirm the tiles-present branch never sets transcribing true, and the zero-tiles branch still clears it in all exit paths (success, fallback, and error) — so a failure in the background reconcile can’t leave the UI in a loading state.
-
-5. Listening cue must clear on stop. When recording ends, the “Listening…” mic cue should disappear immediately as the draft appears — make sure it’s tied to recording being false, not to a separate flag that might linger.
-
-&nbsp;
+3. Don’t leak AudioContexts across record cycles. The acceptance criterion already covers this (“no console warnings on repeat record/stop”), but specifically: reuse one AudioContext rather than creating a fresh one each recording, or you’ll accumulate them (browsers cap concurrent contexts). Reusing the lazily-created one and just reconnecting the analyser is cleaner than close-and-recreate every time.
