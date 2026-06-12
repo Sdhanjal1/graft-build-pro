@@ -63,7 +63,7 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
     useState<"certificate" | "service" | "warranty" | "other">("certificate");
   const [serviceType, setServiceType] = useState("");
   const [serviceDate, setServiceDate] = useState("");
-  const [confirm, setConfirm] = useState<ConfirmTarget | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<ConfirmTarget | null>(null);
   const canNativeShare =
     typeof navigator !== "undefined" && typeof (navigator as any).share === "function";
 
