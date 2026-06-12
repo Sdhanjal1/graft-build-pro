@@ -90,6 +90,11 @@ export const createInvoiceCheckout = createServerFn({ method: "POST" })
       profile?.stripe_connect_charges_enabled && profile?.stripe_connect_account_id
         ? profile.stripe_connect_account_id
         : null;
+    if (!connectAccountId) {
+      throw new Error(
+        "Set up payments before you can take payment — finish connecting your bank in Settings.",
+      );
+    }
 
     const params: Record<string, string | number> = {
       mode: "payment",
