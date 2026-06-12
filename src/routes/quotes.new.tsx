@@ -1215,10 +1215,11 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           onClose={handleVoiceClose}
           onTypeInstead={() => {
             handleVoiceClose();
-            requestAnimationFrame(() => {
+            setShowTyping(true);
+            setTimeout(() => {
               textareaRef.current?.focus();
               textareaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-            });
+            }, 0);
           }}
           onRetryTranscription={lastBlobRef.current ? retryTranscription : undefined}
           onUpdateItem={(index, patch) => {
