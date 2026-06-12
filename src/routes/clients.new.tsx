@@ -228,13 +228,13 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block p-3.5">
+    <label className="block p-3">
       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
         {label}
         {required && <span className="text-lime"> *</span>}
       </span>
-      <div className="mt-2">{children}</div>
-      {hint && <p className="mt-1.5 text-[11px] text-amber-700">{hint}</p>}
+      <div className="mt-1.5">{children}</div>
+      {hint && <p className="mt-1 text-[11px] text-amber-700">{hint}</p>}
     </label>
   );
 }
