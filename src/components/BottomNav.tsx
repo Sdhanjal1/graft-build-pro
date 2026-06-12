@@ -16,7 +16,12 @@ const items = [
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const hide = pathname.startsWith("/auth") || pathname.startsWith("/capture") || pathname.startsWith("/portal/");
+  const hide =
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/capture") ||
+    pathname.startsWith("/portal/") ||
+    pathname.startsWith("/onboarding") ||
+    pathname === "/quotes/new";
 
   const fetchRequests = useServerFn(getMyIncomingRequests);
   const { session } = useSession();
