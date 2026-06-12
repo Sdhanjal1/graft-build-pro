@@ -709,7 +709,18 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       });
     } catch (err) {
       console.error(err);
-      setVoiceError("Microphone permission denied. Enable it in your browser settings.");
+      // Distinguish the failure modes so the user gets actionable guidance
+      // and an obvious fall-back to typing instead of a dead screen.
+      const name = (err as DOMException | undefined)?.name ?? "";
+      let msg: string;
+      if (name === "NotAllowedError" || name === "SecurityError" || name === "PermissionDeniedError") {
+        msg = "Microphone access is blocked. Allow mic access in your browser settings, or type the job below.";
+      } else if (name === "NotFoundError" || name === "OverconstrainedError" || name === "DevicesNotFoundError") {
+        msg = "No microphone found on this device. Type the job below instead.";
+      } else {
+        msg = "Couldn't start the microphone. Try again, or type the job below.";
+      }
+      setVoiceError(msg);
       return;
     }
     streamRef.current = stream;
@@ -1189,6 +1200,13 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           onStart={handleVoiceStart}
           onStop={stopRecording}
           onClose={handleVoiceClose}
+          onTypeInstead={() => {
+            handleVoiceClose();
+            requestAnimationFrame(() => {
+              textareaRef.current?.focus();
+              textareaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+          }}
           onRetryTranscription={lastBlobRef.current ? retryTranscription : undefined}
           onUpdateItem={(index, patch) => {
             setLiveItems((prev) => {
@@ -2097,6 +2115,11 @@ function MicLevelBars({
       }
     }
 
+    // Peak-hold: when a bar lights, keep it lit for HOLD_MS so the meter
+    // doesn't strobe between syllables. Analyser already smooths at 0.6.
+    const HOLD_MS = 220;
+    const holdUntil = [0, 0, 0, 0, 0];
+
     const tick = () => {
       if (stopped) return;
       let level = 0;
@@ -2112,17 +2135,21 @@ function MicLevelBars({
         levelRef.current += (target - levelRef.current) * 0.3;
         level = levelRef.current;
       }
+      const now = performance.now();
       for (let i = 0; i < barRefs.length; i++) {
         const el = barRefs[i].current;
         if (!el) continue;
-        const lit = level >= thresholds[i];
+        const meets = level >= thresholds[i];
+        if (meets) holdUntil[i] = now + HOLD_MS;
+        const lit = meets || now < holdUntil[i];
         el.style.backgroundColor = lit ? "rgb(190 242 100)" /* lime */ : "rgba(245,245,245,0.18)";
-        const scale = lit ? 1 + Math.min(0.6, (level - thresholds[i]) * 1.6) : 0.55;
+        const scale = lit ? 1 + Math.min(0.6, (Math.max(level, thresholds[i]) - thresholds[i]) * 1.6) : 0.55;
         el.style.transform = `scaleY(${scale.toFixed(3)})`;
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
+
 
     return () => {
       stopped = true;
@@ -2170,6 +2197,7 @@ function VoiceOverlay({
   onStart,
   onStop,
   onClose,
+  onTypeInstead,
   onRetryTranscription,
   onUpdateItem,
   onDeleteItem,
@@ -2187,6 +2215,7 @@ function VoiceOverlay({
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
+  onTypeInstead?: () => void;
   onRetryTranscription?: () => void;
   onUpdateItem: (index: number, patch: Partial<LineItem>) => void;
   onDeleteItem: (index: number) => void;
@@ -2241,8 +2270,30 @@ function VoiceOverlay({
   const hasItems = liveItems.length > 0;
   const hasPending = pendingItems.length > 0;
   const showList = (recording || transcribing) && (hasItems || hasPending);
+
+  // aria-live status — announces transitions (Listening / Processing / Stopped
+  // / error) without firing on every render. Visually hidden.
+  const announcement = error
+    ? `Microphone error. ${error}`
+    : transcribing || building
+      ? "Processing your quote"
+      : recording
+        ? "Listening"
+        : "Stopped";
+
   return createPortal(
     <div className={`fixed inset-0 z-[60] bg-ink text-paper flex flex-col px-6 pt-12 pb-8 safe-top safe-bottom ${showList ? "" : "items-center justify-between"}`}>
+      {/* Visually hidden aria-live region for screen readers. Updates on
+          transitions: Listening → Processing → Stopped (or error). */}
+      <span
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {announcement}
+      </span>
+
 
       {/* PINNED TOP: meta + running total */}
       <div className={`flex flex-col items-center w-full max-w-md mx-auto ${showList ? "shrink-0" : ""}`}>
@@ -2274,9 +2325,7 @@ function VoiceOverlay({
       {recording && (
         <div
           className="w-full max-w-md mx-auto mt-3 px-2 flex items-center justify-center gap-2"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
+          aria-hidden="true"
         >
           <MicLevelBars streamRef={streamRef} active={recording} />
           <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">
@@ -2284,6 +2333,7 @@ function VoiceOverlay({
           </span>
         </div>
       )}
+
 
 
 
@@ -2503,16 +2553,27 @@ function VoiceOverlay({
         {error ? (
           <>
             <p className="text-sm text-status-overdue font-medium">{error}</p>
-            {onRetryTranscription && (
-              <button
-                type="button"
-                onClick={onRetryTranscription}
-                className="mt-2 inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-4 py-2 text-xs font-bold active:scale-[0.99]"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Retry without re-recording
-              </button>
-            )}
+            <div className="mt-2 flex items-center justify-center gap-2 flex-wrap">
+              {onRetryTranscription && (
+                <button
+                  type="button"
+                  onClick={onRetryTranscription}
+                  className="inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-4 py-2 text-xs font-bold active:scale-[0.99]"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Retry without re-recording
+                </button>
+              )}
+              {onTypeInstead && (
+                <button
+                  type="button"
+                  onClick={onTypeInstead}
+                  className="inline-flex items-center gap-1.5 bg-paper/10 text-paper rounded-full px-4 py-2 text-xs font-bold active:scale-[0.99] border border-paper/20"
+                >
+                  Type the quote instead
+                </button>
+              )}
+            </div>
           </>
         ) : transcribing ? (
           <p className="text-sm text-paper/70">Building your quote…</p>
