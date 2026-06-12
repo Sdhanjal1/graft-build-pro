@@ -1,75 +1,67 @@
-# Settings audit — fifth pass
+# Quote / invoice / portal — sixth pass
 
-Scoped to `src/routes/settings.tsx` and the two embedded sub-components it owns (`BillingSection`, `AccountingSetup`). `PushPermissionCard`, `BusinessLogo`, `ExportInvoicesButton`, `AccountingExportButton` are out of scope unless trivially adjacent.
+Scoped to `src/routes/quotes.$quoteId.tsx`, `src/routes/invoices.$quoteId.tsx`, `src/routes/portal.$token.tsx` (and the near-identical `portal.c.$code.tsx`). Visual hierarchy, density, and a handful of small UX bugs — no payment, status, or data-shape changes.
 
-Visual hierarchy, density, consistency and a few small UX bugs — no data, save, or subscription-logic changes.
+## Quote detail (`quotes.$quoteId.tsx`)
 
-## Page-level
+1. **Money summary card vs Itemised footer duplicate the same totals.** Today the page opens with a "Subtotal / VAT / Total / Deposit / Balance" card, then ~6 sections later the Itemised editor renders its own totals block. Keep the top card as the at-a-glance hero; collapse the editor's footer to just a `Total {formatGBP}` row aligned right. Deposit/balance only render in the hero.
+2. **Hero card density.** Drop `p-4 space-y-3` to `p-5` with `divide-y divide-border/60` between subtotal/total/deposit blocks — removes the manual `pt-3 border-t` repetition and matches the divided-list pattern adopted in Settings.
+3. **Status communication.** Status currently lives only in `PageHeader.right` as a `StatusBadge`. On a long page the badge scrolls out of view, leaving no signal in the sticky bar. Move a compact status pill into the hero card top-right (replacing the page header badge — `PageHeader` keeps title + ref only). When `paid`, swap the "Total" row colour to `text-status-paid` and prepend a `Check`.
+4. **"Just sent" banner.** Currently `bg-lime/15 border-lime/40`. Promote to a flush row at the top of the hero card (above Subtotal) so it shares chrome instead of stacking. Auto-dismiss logic stays.
+5. **Client card.** Already a `card-surface` link. Add `ChevronRight` on the right so it reads as navigable, and tighten avatar from `h-11 w-11` to `h-10 w-10`.
+6. **Quote intro card.** Currently `p-5` italic muted text — visually heavy for a one-line greeting. Drop the card chrome entirely: render as an italic `text-sm text-muted-foreground` paragraph with `px-6 mt-4`. Saves ~80px of vertical.
+7. **Job description + Itemised.** Merge into a single `card-surface` with `divide-y`: top sub-block "Job description", second sub-block "Itemised" (current editor). Removes the visual gap between two related cards.
+8. **Payment terms button.** The lime double-border block reads as a callout, which is right — but the "tap to change" eyebrow is redundant with the trailing `ChevronDown`. Drop "· tap to change", keep the chevron.
+9. **Materials CTA.** Today renders below payment terms only when `status === "accepted"`. Add an `Add materials` ghost row inside the Itemised sub-block (above the "Add line" CTA) for pre-acceptance quotes so the user discovers the feature earlier. Existing standalone CTA stays for accepted state where the count + open verb matters.
+10. **Footer signature block.** Currently `px-1` inside a `px-5` section — the `-1` leaks past the card boundary. Use `px-5` directly and drop the inner `px-1`. Also wrap the signature paragraph in a single line: `Signed {cursive name} · {business_name}` reads cleanly; the leading `Signed` muted label is unnecessary, switch to em-dash prefix (`— {name}`) matching the Settings preview from pass 5.
+11. **"More actions" accordion.** The four `<ul>` blocks separated by `border-t border-border/40` work but the `space-y-0.5` inside each makes the dividers feel inconsistent. Replace with a single `<ul className="divide-y divide-border/40">` and group via small uppercase headers (`<li className="px-3 pt-3 pb-1 text-[10px] uppercase tracking-widest text-muted-foreground">`) for `Share`, `Payments`, `Status`, `Danger`.
+12. **`MoreItem` row.** Add a trailing `ChevronRight` (muted) on rows that open a sheet/dialog (`Mark as paid`, `Request payment`, `Record deposit received…`, `Delete quote`); keep plain rows (`Email customer`, `Call customer`, `Download PDF`) without — communicates "this opens a step" vs "this fires now".
+13. **Sticky bottom bar gradient.** `bg-gradient-to-t from-paper via-paper to-paper/0` works on light bg but the gradient sits *above* the button, fading into the page. Move the gradient into a separate `h-6 -mb-2` strip above the button row so the button has a solid background.
+14. **Sticky bar safe-area.** Currently `bottom-20` (account for `BottomNav`) + `paddingBottom: env(safe-area-inset-bottom)`. On notched devices the bar floats too high. Switch to `bottom: calc(5rem + env(safe-area-inset-bottom))` and drop the inner padding to avoid double-counting.
+15. **Chase secondary button.** `bg-ink/5 ring-1 ring-ink/10` reads as disabled next to the lime primary. Use `bg-card border border-border` for clearer affordance, keep `MessageCircle` icon.
+16. **Confirm Delete dialog button.** Uses `bg-destructive text-destructive-foreground`; match the Settings dialog by switching to `text-paper` for token consistency.
+17. **Bottom sheets — modal scrim.** Three custom `fixed inset-0 z-50 flex items-end bg-ink/60` sheets (`timingOpen`, `askingPaid`, `requesting`, `askDeposit`, `askInvoice`) duplicate Radix's `Sheet`. Out of scope to refactor, but add `max-w-md mx-auto` to the *outer* wrapper of `askingPaid` and `requesting` for consistency (currently only some sheets have it — fixes wide-viewport centering).
+18. **`LineItemsEditor` input height.** `inputClass` uses `h-11` but `text-base`. On mobile the inputs read slightly small. Bump description input to `h-12` with `text-[15px]`. Qty/price keep `h-11`.
+19. **`LineItemsEditor` "Add line" CTA.** Currently a styled button (assumed from existing pattern below the editor). Promote to a flush row with a lime `+` icon at the top of the items list so it's visible without scrolling past long jobs.
 
-1. **Section component → use `divide-y` framing.** Each `<Section>` currently sits in its own `px-5 mt-5` block. With 7 sections the page reads as floating cards on paper rather than a structured list. Replace with a single `divide-y divide-border` container wrapping all sections, each section becoming a flush row (header pad `py-4`, content `pb-5`). Matches the treatment used on `clients.new`. Removes the 20px gaps between collapsed rows so the user can scan summaries quickly.
-2. **Section header weight.** `text-xl` on every collapsed row competes with the actual content when one is open. Drop to `text-base font-bold` for collapsed, keep `text-xl` only for the *open* section. Visual signal of "this is what you're editing".
-3. **Sticky header — Save indicator placement.** `SaveIndicator` lives in `PageHeader.right` with `text-paper/80`. When nothing is saving, the slot still reserves width — header reads as if there's an unlabelled control. Render the indicator only when `isSaving || isSaved || error` (it likely already does internally; if not, wrap conditionally). Also move the indicator to a floating chip just under the header (`sticky top-[header] mx-5 mt-2 inline-flex …`) so it doesn't fight the title.
-4. **Sticky header background.** Currently `bg-paper`. Add `border-b border-border/60` so it doesn't bleed into the first open section when scrolled.
-5. **Section summary truncation.** `gettingPaidSummary` ("HSBC ••1234 · 30% deposit · VAT") is fine, but `pricingSummary` shows "£0/hr · £0/day" before the user has set rates — reads as a finished state. Replace with "Set your hourly + day rates" when both are 0.
-6. **Default-open behaviour.** Only "Your business" defaults open. On a returning user with a fully filled profile this still pushes the actionable bits (Getting paid, Notifications) below the fold. Add an `important` flag to Section and default-open any section whose `summary` indicates *missing* data: pricing if both rates are 0, getting paid if no `bank.account_number`. Single source: an `incomplete` prop that overrides `defaultOpen` when true.
-7. **Section icons.** Each row gets a tiny leading icon (`Briefcase`, `PoundSterling`, `Landmark`, `FileText`, `Bell`, `CreditCard`, `AlertOctagon` for danger) at `h-4 w-4` left of the title. Helps scanning and matches the iconography in the action queue on Home.
+## Invoice detail (`invoices.$quoteId.tsx`)
 
-## Your business
+20. **Ink banner padding.** `px-6 pt-6 pb-5` then a second `px-6 pb-5` block — vertical rhythm is off; the hero amount feels cramped below the ref. Switch to `divide-y divide-paper/10` and `py-6` per block.
+21. **Ref typography.** `text-5xl` for `{ref}` competes with the `text-6xl` amount due below. Drop ref to `text-3xl`, keep amount at `text-6xl` — amount is the answer, ref is the label.
+22. **`QuottrLogo` placement.** Sits top-right of the ink banner at `opacity-60`. Move to a flush footer row of the banner (`px-6 py-3 border-t border-paper/10 text-[10px] uppercase tracking-widest text-paper/40`) reading "Issued via Quottr". Cleaner hierarchy: brand identity in header, infrastructure attribution in footer.
+23. **Billed-to + For + line items.** Three stacked cards with `mt-4 / mt-3`. Merge into a single divided card matching quote detail #7: sub-blocks `Billed to`, `For`, `Itemised`, `Totals`, `Payment terms`. Removes ~32px of inter-card gap.
+24. **Totals — "Less deposit paid" position.** Currently sits *below* the Total row, which makes the math read awkwardly (Total then a subtraction then Balance). Reorder: Subtotal → VAT → Total → Less deposit paid → Balance due. The `Total` row drops its `border-t pt-2` (kept only for Balance due to anchor the eye).
+25. **Send actions.** Three pills + a "Mark as paid" outline — four full-width buttons in a row is visually heavy. Group the share trio (WhatsApp / Email / PDF) into a flush divided card with icons left, label centre, chevron right; keep "Mark as paid" as the single lime CTA below. Mirrors the action-queue pattern from Home.
+26. **"Mark as paid" button.** Currently `bg-card border-2 border-lime` — reads as secondary. On the invoice page, marking paid is the *primary* state-changing action. Promote to `bg-lime text-ink` and place at the bottom (single primary).
+27. **`isPaid` state.** When paid, the four buttons collapse to a "Paid" pill — keep this. Add a `Download PDF` ghost button below the pill so users can still grab a receipt copy.
 
-8. **Logo placement.** The logo block sits below 7 fields and only after the user has scrolled. Promote to the top of the section, above the fields, so brand identity reads first. Reduce the empty-state card from `py-6` to `py-5` and remove the dashed border in favour of a solid `border border-border` on `bg-card` — dashed lime on ink feels like a debug placeholder.
-9. **Address grouping.** "Address line 1", "Address line 2", "Town / City", "Postcode" should sit in a labelled sub-group (`<fieldset>` styled as a flush card with a tiny eyebrow "Address"). Visual chunking that mirrors how the user reads it (one address, not four fields).
-10. **`EditField` `<label>` spacing.** `mt-1.5` between label and input is fine; the `space-y-3.5` between rows feels loose at 3 fields and tight at 7. Switch the inner card to `divide-y divide-border/40` with each field as `py-3` — removes the need to tune `space-y`.
+## Portal page (`portal.$token.tsx` + `portal.c.$code.tsx`)
 
-## Your pricing
-
-11. **Card density.** Two money fields + one help line is over-sized in a `p-5` card. Drop to `p-4`, the help line moves to `text-[11px] text-muted-foreground -mt-1`.
-12. **Hourly/day relationship hint.** Users frequently set one but not both. Add tiny calculated text under the grid: "Day rate ≈ 8h × hourly" if hourly set but not day, and "Hourly ≈ day / 8" the other way. Pure UI, no auto-fill.
-
-## Getting paid
-
-13. **Three sub-cards → divided list.** Bank details / Terms & deposit / VAT & registration are three `card-surface p-5` cards stacked with `space-y-3`. Replace with a single `card-surface divide-y divide-border` containing three sub-blocks. Each sub-block keeps its eyebrow heading but loses the surrounding card chrome. Cuts visual weight by ~40%.
-14. **Sort code mask.** `inputMode="numeric"` but no formatting. Add a tiny on-blur formatter that inserts dashes (`12-34-56`). Visually consistent with how UK sort codes are written.
-15. **VAT toggle position.** Toggle is mid-card; if VAT is on, the VAT number field appears below. Fine. But the registration label changes per trade — surface a `text-[11px]` hint under the field clarifying what to enter ("Required for Gas Safe-listed work" etc.) only when relevant.
-16. **`BillingSection show="connect"` placement.** Connect sits at the bottom of Getting paid, which is correct contextually, but the embedded card has its own `card-surface p-5` chrome inside a Section that's already chrome-heavy. When #13 lands, wrap Connect as a fourth flush sub-block inside the same divided list.
-
-## How quotes look
-
-17. **Two textareas → unified card.** Same divide-y treatment. Intro / Footer / Signature name / Show signature read as a sequence, not four unrelated fields.
-18. **Signature toggle should show a preview.** When `show_signature` is on, render a 1-line preview under the toggle: `— {signature_name}` in handwriting-ish italic (`font-serif italic text-muted-foreground`). Cheap; closes the loop on "what does this look like on the quote".
-19. **Textarea heights.** Both at `rows={3}`. The intro is typically 1 sentence, footer is 2-3. Drop intro to `rows={2}`, keep footer at `rows={3}`.
-
-## Notifications
-
-20. **Toggle list.** Already uses `divide-y` — leave the structure but verify it nests cleanly inside the new outer `divide-y` (no double border).
-21. **Push permission card vs toggles.** Two separate `card-surface` blocks with `space-y-3`. Combine — push card becomes the first row of the same divided list with an "Enable push" CTA on the right.
-
-## Account & billing
-
-22. **Sign out as a flush row.** Currently its own `card-surface` with a single button. Drop the chrome — sign out becomes a flush divided row under AccountingSetup.
-23. **`AccountingSetup` — collapsible codes already exist.** Good. Tighten the codes summary row: replace the `bg-secondary/60` pill with a flush divided sub-row matching #13. The collapsible details/summary at the bottom ("Need a simple paid-quotes summary instead? ›") should use the same chevron+expand pattern as Section, not the native `<details>` (whose chevron and focus ring don't match the design).
-24. **`BillingSection show="subscription"` styling.** Same shape as Connect — when #13 + #16 land, audit that subscription card lives nicely as a flush row inside this Section.
-
-## Danger zone
-
-25. **Tone.** Section title `text-status-overdue` is loud; collapsed it reads like an active warning. Soften to `text-status-overdue/80` collapsed, full saturation when open. Also add a `bg-status-overdue/5` tint to the open content area to underline "you're in a destructive section".
-26. **Delete button.** The button inside the card uses `text-status-overdue` on `bg-card` — currently the only destructive-tone button in the app that isn't on a coloured background. When open, swap to `bg-status-overdue/10` on the row with a right-aligned `ChevronRight` to communicate "this opens a confirmation step".
-
-## Delete account dialog
-
-27. **`Cancel` / `Delete account` buttons.** `<button>` with custom classes — fine, but the delete button uses `bg-status-overdue text-white`. Use `text-paper` to match the rest of the app's tokens. No visual change; consistency.
-28. **Type-DELETE input.** `autoFocus` on a destructive confirmation is a footgun — users tab past the description and start typing without reading. Remove `autoFocus`; require an explicit tap.
-
-## Sub-components in this file
-
-29. **`Section`** — accept `incomplete?: boolean` + `icon?: LucideIcon` (per #6, #7). Apply to all call sites.
-30. **`EditField` / `Input` / `MoneyField`** — three near-identical field components. Out of scope for this pass (refactor would touch every call site), but flag in `.lovable/plan.md` for a later cleanup pass: unify into a single `<Field>` with `type="text|money|select|toggle"` variants.
+28. **Header brand block.** `px-5 pt-6 pb-5 flex items-center gap-3` with logo + business name + quote ref. The ref ("Quote QT-12") is low-contrast at `text-[10px] text-paper/60`. Bump to `text-xs text-paper/80` — customers need to identify the document, not read fine print.
+29. **Payment-received card.** Already strong (`text-2xl`, `text-3xl` amount, confetti-adjacent). Add a small `Download invoice PDF` link even before `isPaid` confirms (currently gated on `isPaid`). When the polling spinner is up, users see no action — show the button as `disabled` during `confirming` with "Preparing your invoice…".
+30. **Job description card.** Same as quote detail #6: drop the card chrome, render as flowing prose under the title. Customer-side reads as a quote letter; a card around description feels app-y.
+31. **Itemised card → divided.** Same treatment as invoice #23: sub-blocks `Itemised`, `Totals`, `Payment terms`. Currently the "Payment terms" lime block sits inside `card-surface` with its own border — two borders, one row. Drop the inner `border-2 border-lime`, keep the lime tint background and a thicker top divider.
+32. **"How to pay" section header.** `text-[10px] uppercase tracking-widest text-muted-foreground font-semibold` — fine. The right-side "Preview" pill on pre-accept currently reads as the same weight as the section title, no distinction. Wrap "Preview" in a `bg-secondary px-2 py-0.5 rounded-full` chip so it reads as metadata.
+33. **Pay by card button label.** Three states: `Accept & pay deposit £X`, `Accept & pay £X`, `Pay deposit £X`. Long strings truncate on small screens. Drop the amount into a second line below the button: button reads `Accept & pay deposit`, sub-line `£X today · £Y on completion`. Two-line button (`min-h-14`, `flex-col`).
+34. **Bank transfer card.** `<dl>` with `divide-y` looks correct. Reference row uses `bg-lime/10` to draw attention to it — strong choice. But the amount row at the bottom reads as just another row. Swap to `bg-ink text-paper` for the amount row so the "what to pay" is unmistakable.
+35. **Copy details button.** `border border-border` ghost — for a primary action on the bank card, promote to `bg-ink text-paper`. Customers' #1 action here is copying, not paying via a separate tab.
+36. **Bottom action bar — Decline button.** Currently `flex-1` ghost next to `flex-[2]` lime accept. The decline button reads too prominent for a destructive secondary. Switch to `w-24` fixed-width with just the `X` icon + "No" label, freeing the accept button to take the full remainder and show its long label without truncation.
+37. **`window.confirm` on decline.** `if (response === "declined" && !confirm("Decline this quote?")) return;` — native confirm on a customer-facing page is ugly. Replace with the project's `AlertDialog` (already imported pattern elsewhere). Aligns with the Settings pass 5 anti-`window.confirm` direction.
+38. **`alert()` on errors.** Three `alert(…)` calls in handlers (`onPay`, `onRespond`, `handleDownloadInvoice`) — customer sees a native browser alert. Replace with `toast.error(…)` (sonner is already imported).
+39. **Footer.** `Powered by Quottr` at `text-[10px]` — fine. Move below the bottom bar safe area (currently can be hidden behind the sticky bar). Add `mb-28` when `showBottomBar`.
+40. **`portal.c.$code.tsx` parity.** Apply the same #28–#39 changes to the code-based portal page. The two should remain visually identical.
 
 ## Out of scope
 
-- `BillingSection.tsx` internals (already audited in pass 4 for the Stripe Connect banner placement)
-- `PushPermissionCard`, `BusinessLogo`, `ExportInvoicesButton`, `AccountingExportButton`
-- Autosave plumbing (`useAutoSave`, `SaveIndicator`)
-- Profile schema, RLS, server functions
-- Trade-aware registration label heuristics
+- Payment, status transition, webhook, or RLS logic
+- `BusinessLogo`, `WalletBadges`, `QuottrLogo` internals
+- PDF generation (`downloadPortalPdf`, `downloadOrShareQuotePdf`)
+- `SendQuoteDialog`, `MaterialListSheet`, `AssignClientDialog` internals
+- `useScrollVisible`, `useServerFn` plumbing
+- The deferred `Field` unification flagged in Settings pass 5
 
-Next pass after this: **Quote detail (`quotes.$quoteId.tsx`) + invoice detail (`invoices.$quoteId.tsx`) + portal pages**.
+## Next pass after this
+
+- `clients.$clientId.tsx` + `clients.index.tsx` (the last in-app surfaces)
+- `messages.tsx` (chase thread + composer)
+- `quotes.index.tsx` (list / filters / empty states)
