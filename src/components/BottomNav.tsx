@@ -16,7 +16,12 @@ const items = [
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const hide = pathname.startsWith("/auth") || pathname.startsWith("/capture") || pathname.startsWith("/portal/");
+  const hide =
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/capture") ||
+    pathname.startsWith("/portal/") ||
+    pathname.startsWith("/onboarding") ||
+    pathname === "/quotes/new";
 
   const fetchRequests = useServerFn(getMyIncomingRequests);
   const { session } = useSession();
@@ -52,7 +57,7 @@ export function BottomNav() {
               key={it.to}
               {...it}
               active={isActive(it.to)}
-              unread={it.to === "/messages" && unreadCount > 0}
+              unreadCount={it.to === "/messages" ? unreadCount : 0}
             />
           ))}
         </div>
@@ -66,14 +71,15 @@ function NavItem({
   label,
   icon: Icon,
   active,
-  unread = false,
+  unreadCount = 0,
 }: {
   to: string;
   label: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   active: boolean;
-  unread?: boolean;
+  unreadCount?: number;
 }) {
+  const hasUnread = unreadCount > 0;
   return (
     <Link
       to={to}
@@ -86,7 +92,7 @@ function NavItem({
     >
       <span
         className={[
-          "relative flex items-center gap-1.5 rounded-full transition-all duration-200 ease-out",
+          "relative flex items-center gap-1.5 rounded-full transition-all duration-200 ease-out min-w-0",
           active
             ? "bg-lime text-ink px-3 py-2 shadow-[0_6px_16px_-6px_rgba(200,224,74,0.7)]"
             : "text-paper/60 px-2.5 py-2 scale-95",
@@ -97,20 +103,22 @@ function NavItem({
             className={active ? "h-[18px] w-[18px]" : "h-5 w-5"}
             strokeWidth={active ? 2.75 : 2}
           />
-          {unread && (
+          {hasUnread && (
             <span
               aria-hidden
-              className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-lime ring-2 ring-ink"
+              className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-lime ring-2 ring-ink"
             />
           )}
         </span>
         {active && (
-          <span className="text-[12px] font-bold tracking-tight leading-none whitespace-nowrap">
+          <span className="text-[12px] font-bold tracking-tight leading-none whitespace-nowrap truncate min-w-0">
             {label}
           </span>
         )}
       </span>
-      <span className="sr-only">{unread ? `${label}, unread requests` : label}</span>
+      <span className="sr-only">
+        {hasUnread ? `${label}, ${unreadCount} unread` : label}
+      </span>
     </Link>
   );
 }

@@ -47,23 +47,21 @@ export function TrialBanner() {
 
   if (showExpired) {
     return (
-      <div className="mx-4 my-3 rounded-2xl bg-red-50 border border-red-200 p-4 text-sm">
+      <div className="mx-4 my-3 rounded-2xl bg-destructive/5 border border-destructive/20 p-4 text-sm">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-red-900">Your trial has ended</p>
-            <p className="text-red-800 mt-0.5">
+            <p className="font-semibold text-destructive">Your trial has ended</p>
+            <p className="text-destructive/80 mt-0.5">
               Add a card to keep using Quottr, £29/month.
             </p>
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={sub.stripe_customer_id ? manage : addCard}
-                disabled={busy}
-                className="rounded-full bg-red-600 text-white text-xs font-semibold px-4 py-2 disabled:opacity-60"
-              >
-                {busy ? "Opening…" : "Add payment method"}
-              </button>
-            </div>
+            <button
+              onClick={sub.stripe_customer_id ? manage : addCard}
+              disabled={busy}
+              className="mt-3 rounded-full bg-destructive text-destructive-foreground text-xs font-semibold px-4 py-2 disabled:opacity-60"
+            >
+              {busy ? "Opening…" : "Add payment method"}
+            </button>
           </div>
         </div>
       </div>
@@ -72,27 +70,25 @@ export function TrialBanner() {
 
   // Amber warning: last 3 days, no card
   return (
-    <div className="mx-4 my-3 rounded-2xl bg-amber-50 border border-amber-200 p-4 text-sm">
+    <div className="mx-4 my-3 rounded-2xl bg-status-pending/10 border border-status-pending/30 p-4 text-sm">
       <div className="flex items-start gap-3">
-        <Sparkles className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+        <Sparkles className="h-5 w-5 text-status-pending shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-amber-900">
+          <p className="font-semibold text-ink">
             {trialDaysLeft === 1
               ? "Trial ends tomorrow"
               : `${trialDaysLeft} days left in trial`}
           </p>
-          <p className="text-amber-800 mt-0.5">
+          <p className="text-muted-foreground mt-0.5">
             Add a card now, you won't be charged until the trial ends.
           </p>
-          <div className="mt-3">
-            <button
-              onClick={addCard}
-              disabled={busy}
-              className="rounded-full bg-ink text-paper text-xs font-semibold px-4 py-2 disabled:opacity-60"
-            >
-              {busy ? "Opening…" : "Add payment method"}
-            </button>
-          </div>
+          <button
+            onClick={addCard}
+            disabled={busy}
+            className="mt-3 rounded-full bg-ink text-paper text-xs font-semibold px-4 py-2 disabled:opacity-60"
+          >
+            {busy ? "Opening…" : "Add payment method"}
+          </button>
         </div>
       </div>
     </div>
