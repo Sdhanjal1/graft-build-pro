@@ -335,10 +335,7 @@ function PortalPage() {
 
       {quote.job_description && (
         <section className="px-5 mt-4">
-          <div className="card-surface p-5">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Job description</p>
-            <p className="text-sm mt-2 leading-relaxed whitespace-pre-line">{quote.job_description}</p>
-          </div>
+          <p className="text-sm leading-relaxed whitespace-pre-line text-ink/90">{quote.job_description}</p>
         </section>
       )}
 
