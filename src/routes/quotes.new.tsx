@@ -1283,31 +1283,57 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       >
 
         {!draft && (
-          <div className="card-surface p-4">
-            <label
-              htmlFor="quote-desc"
-              className="block text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5"
-            >
-              Describe the job
-            </label>
-            <textarea
-              id="quote-desc"
-              ref={textareaRef}
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-              rows={5}
-              className="w-full rounded-2xl bg-secondary text-ink p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-lime resize-y"
-              placeholder="e.g. Build single-storey rear extension 4m x 3m — strip foundations"
-            />
-            {!desc && <RotatingPrompts className="mt-2.5" />}
+          <div className="space-y-3">
+            {/* Voice — primary entry */}
             <button
               type="button"
               onClick={handleVoiceStart}
-              className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-ink/80 hover:text-ink"
+              className="w-full bg-lime text-ink rounded-2xl px-5 py-5 active:scale-[0.99] transition flex items-center gap-4 text-left shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)]"
             >
-              <VoiceWaveform size={14} />
-              Or speak it instead
+              <div className="h-12 w-12 rounded-full bg-ink text-lime flex items-center justify-center shrink-0">
+                <Mic className="h-6 w-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-base leading-tight">Speak the job</p>
+                <p className="text-xs text-ink/70 mt-0.5">Describe it out loud — Quottr writes the quote.</p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-ink/60 shrink-0" />
             </button>
+
+            <RotatingPrompts className="" />
+
+            {/* Type fallback — collapsed by default */}
+            {!showTyping && !desc ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTyping(true);
+                  setTimeout(() => textareaRef.current?.focus(), 0);
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground hover:text-ink py-2"
+              >
+                <Keyboard className="h-3.5 w-3.5" />
+                Or type it instead
+              </button>
+            ) : (
+              <div className="card-surface p-4">
+                <label
+                  htmlFor="quote-desc"
+                  className="block text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5"
+                >
+                  Describe the job
+                </label>
+                <textarea
+                  id="quote-desc"
+                  ref={textareaRef}
+                  value={desc}
+                  onChange={(e) => setDesc(e.target.value)}
+                  rows={5}
+                  className="w-full rounded-2xl bg-secondary text-ink p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-lime resize-y"
+                  placeholder="e.g. Build single-storey rear extension 4m x 3m — strip foundations"
+                />
+              </div>
+            )}
           </div>
         )}
 
