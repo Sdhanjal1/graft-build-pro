@@ -63,7 +63,7 @@ const QuoteSchema = z.object({
   // previous in-progress line). When false (default), line_items are appended
   // as new items.
   continues_previous: z.boolean().optional().default(false),
-  line_items: z.array(LineItemSchema).min(1).max(20),
+  line_items: z.array(LineItemSchema).min(1).max(30),
 });
 
 export type AIGeneratedQuote = z.infer<typeof QuoteSchema>;
@@ -321,7 +321,7 @@ Omit extracted_customer entirely if no customer details were mentioned. Unit pri
         },
         body: JSON.stringify({
           model: "claude-haiku-4-5-20251001",
-          max_tokens: 2048,
+          max_tokens: 4096,
           system: systemPrompt,
           messages: [{ role: "user", content: userPrompt }],
         }),
@@ -345,7 +345,11 @@ Omit extracted_customer entirely if no customer details were mentioned. Unit pri
 
     const payload = (await res.json()) as {
       content?: Array<{ type: string; text?: string }>;
+      stop_reason?: string;
     };
+    if (payload.stop_reason === "max_tokens") {
+      console.warn("[ai-quote] response truncated — consider raising max_tokens");
+    }
     const text = payload.content?.find((c) => c.type === "text")?.text ?? "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("Claude returned no JSON");
