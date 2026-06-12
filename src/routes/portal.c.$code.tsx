@@ -124,6 +124,7 @@ function ClientPortalPage() {
   const pollRef = useRef<number | null>(null);
   const [paymentResult, setPaymentResult] = useState<"paid" | "cancelled" | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [declineTargetId, setDeclineTargetId] = useState<string | null>(null);
 
 
   const load = async () => {
