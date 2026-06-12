@@ -1406,7 +1406,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
 
         {!draft && (
-          <div className="mt-2">
+          <div className="mt-auto pt-2 safe-bottom">
             <div className="mx-auto max-w-md space-y-2">
               {subBlocked && (
                 <div className="rounded-2xl bg-paper/95 backdrop-blur border border-status-overdue/40 px-3.5 py-2.5 flex items-center gap-2.5 shadow-lg">
