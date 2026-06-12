@@ -1578,79 +1578,11 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           </div>
         )}
 
-        {/* Step 4: Payment options (consistent with the detail page) */}
+        {/* Customer — gates save, surfaced before payment */}
         {draft && (
-          <div className="space-y-3">
+          <div ref={customerRef} className="space-y-3 scroll-mt-20">
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Step 4</p>
-              <h3 className="text-lg font-bold mt-0.5">How will you get paid?</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {paymentTimingLabel({ timing: paymentTiming, total, depositAmount: depositAmt, depositPercent: depositPct })}
-              </p>
-            </div>
-            <div className="card-surface p-2 space-y-1.5">
-              <PaymentMethodOption
-                active={paymentTiming === "on_completion"}
-                icon={Check}
-                label="On completion"
-                sub="Customer pays after work is done"
-                onClick={() => onPaymentTimingChange("on_completion")}
-              />
-              <PaymentMethodOption
-                active={paymentTiming === "deposit_then_balance"}
-                icon={Banknote}
-                label="Deposit then balance"
-                sub="Take a deposit up front, balance on completion"
-                onClick={() => onPaymentTimingChange("deposit_then_balance")}
-              />
-              <PaymentMethodOption
-                active={paymentTiming === "upfront"}
-                icon={Zap}
-                label="Upfront"
-                sub="Full payment before work starts"
-                onClick={() => onPaymentTimingChange("upfront")}
-              />
-            </div>
-            {paymentTiming === "deposit_then_balance" && (
-              <div className="card-surface p-4 space-y-3">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Deposit</p>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
-                    <span className="text-ink/60 font-bold">£</span>
-                    <input
-                      type="text" inputMode="decimal"
-                      value={depositAmtRaw}
-                      onChange={(e) => setDepositAmtRaw(e.target.value)}
-                      onFocus={(e) => e.currentTarget.select()}
-                      onBlur={onDepositAmtBlur}
-                      placeholder="0.00"
-                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none"
-                    />
-                  </label>
-                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
-                    <input
-                      type="text" inputMode="decimal"
-                      value={depositPctRaw}
-                      onChange={(e) => setDepositPctRaw(e.target.value)}
-                      onFocus={(e) => e.currentTarget.select()}
-                      onBlur={onDepositPctBlur}
-                      placeholder="0"
-                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none text-right"
-                    />
-                    <span className="text-ink/60 font-bold">%</span>
-                  </label>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 5: Assign customer (after draft is generated) */}
-        {draft && (
-          <div className="space-y-3">
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Step 5</p>
-              <h3 className="text-lg font-bold mt-0.5">Who's this for?</h3>
+              <h3 className="text-lg font-bold">Customer</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Assign a customer so we know where this quote is going.
               </p>
@@ -1664,7 +1596,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
                   setClientName(lastCustomer.name);
                   setClientPhone(lastCustomer.phone ?? "");
                 }}
-                className="w-full mb-3 rounded-2xl py-3 px-4 flex items-center gap-3 bg-lime/15 border border-lime/40 active:scale-[0.99] transition text-left"
+                className="w-full rounded-2xl py-3 px-4 flex items-center gap-3 bg-lime/15 border border-lime/40 active:scale-[0.99] transition text-left"
               >
                 <div className="h-9 w-9 rounded-full bg-lime/30 flex items-center justify-center text-ink font-bold text-xs shrink-0">
                   {lastCustomer.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
@@ -1673,6 +1605,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Same as last</p>
                   <p className="text-sm font-bold text-ink truncate">{lastCustomer.name}</p>
                 </div>
+                <ChevronRight className="h-4 w-4 text-ink/60 shrink-0" />
               </button>
             )}
 
@@ -1715,21 +1648,22 @@ Re-output the FULL updated list of line items for this quote, applying the chang
             )}
 
             {customerMode === "existing" && clientName && (
-              <div className="card-surface p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Customer</p>
+              <div className="card-surface overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setPickerOpen(true)}
+                  className="w-full p-4 flex items-center gap-3 text-left active:scale-[0.99] transition"
+                >
+                  <div className="h-9 w-9 rounded-full bg-lime/30 flex items-center justify-center text-ink font-bold text-xs shrink-0">
+                    {clientName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Customer · tap to change</p>
                     <p className="text-sm font-semibold truncate mt-0.5">{clientName}</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setPickerOpen(true)}
-                    className="text-xs font-bold text-ink underline underline-offset-2 shrink-0 ml-3"
-                  >
-                    Change
-                  </button>
-                </div>
-                <div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
+                <div className="px-4 pb-4 pt-1 border-t border-border">
                   <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
                     Phone number
                   </label>
@@ -1775,68 +1709,126 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           </div>
         )}
 
+        {/* Payment — after customer */}
         {draft && (
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => { void save("draft"); }}
-                onPointerDown={() => feedback("tap")}
-                disabled={!clientName.trim() || saving}
-                title={!clientName.trim() ? "Add a customer to save this quote." : undefined}
-                className="flex-1 bg-card border border-border text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {editId ? "Save changes" : "Save as draft"}
-              </button>
-              <button
-                type="button"
-                onClick={() => { void save("send"); }}
-                onPointerDown={() => feedback("tap")}
-                disabled={!clientName.trim() || saving}
-                title={!clientName.trim() ? "Add a customer to save this quote." : undefined}
-                className="flex-1 bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Save & send
-              </button>
-            </div>
-            {!clientName.trim() && (
-              <p className="text-[12px] text-center text-muted-foreground">
-                Add a customer to save this quote.
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-lg font-bold">Payment</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {paymentTimingLabel({ timing: paymentTiming, total, depositAmount: depositAmt, depositPercent: depositPct })}
               </p>
-            )}
-            {error && (
-              <div className="rounded-2xl border border-status-overdue/40 bg-status-overdue/10 p-3 space-y-2">
-                <p className="text-sm font-semibold text-status-overdue">Couldn't save quote</p>
-                <p className="text-xs text-status-overdue/90 break-words">{error}</p>
-                <div className="flex gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => { void save("draft"); }}
-                    disabled={saving}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-status-overdue text-white py-2 text-xs font-bold disabled:opacity-60"
-                  >
-                    {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                    {saving ? "Retrying…" : "Retry"}
-                  </button>
-                  {editId && (
-                    <button
-                      type="button"
-                      onClick={() => navigate({ to: "/quotes" })}
-                      className="flex-1 inline-flex items-center justify-center rounded-full border border-status-overdue/40 text-status-overdue py-2 text-xs font-bold"
-                    >
-                      Back to list
-                    </button>
-                  )}
+            </div>
+            <div className="card-surface p-2 space-y-1.5">
+              <PaymentMethodOption
+                active={paymentTiming === "on_completion"}
+                icon={Check}
+                label="On completion"
+                sub="Customer pays after work is done"
+                onClick={() => onPaymentTimingChange("on_completion")}
+              />
+              <PaymentMethodOption
+                active={paymentTiming === "deposit_then_balance"}
+                icon={Banknote}
+                label="Deposit then balance"
+                sub="Take a deposit up front, balance on completion"
+                onClick={() => onPaymentTimingChange("deposit_then_balance")}
+              />
+              <PaymentMethodOption
+                active={paymentTiming === "upfront"}
+                icon={Zap}
+                label="Upfront"
+                sub="Full payment before work starts"
+                onClick={() => onPaymentTimingChange("upfront")}
+              />
+            </div>
+            {paymentTiming === "deposit_then_balance" && (
+              <div className="card-surface p-4 space-y-2">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Deposit</p>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5 flex-1">
+                    <span className="text-ink/60 font-bold">£</span>
+                    <input
+                      type="text" inputMode="decimal"
+                      value={depositAmtRaw}
+                      onChange={(e) => setDepositAmtRaw(e.target.value)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onBlur={onDepositAmtBlur}
+                      placeholder="0.00"
+                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none"
+                    />
+                  </label>
+                  <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5 flex-1">
+                    <input
+                      type="text" inputMode="decimal"
+                      value={depositPctRaw}
+                      onChange={(e) => setDepositPctRaw(e.target.value)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onBlur={onDepositPctBlur}
+                      placeholder="0"
+                      className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none text-right"
+                    />
+                    <span className="text-ink/60 font-bold">%</span>
+                  </label>
                 </div>
+                <p className="text-[11px] text-muted-foreground">£ and % stay in sync.</p>
               </div>
             )}
           </div>
         )}
       </form>
 
-      {savedQuote && (
+      {/* Sticky save bar (draft state) */}
+      {draft && (
+        <div className="fixed bottom-20 inset-x-0 z-30 px-3 safe-bottom pointer-events-none">
+          <div className="mx-auto max-w-md pointer-events-auto space-y-2">
+            {error && (
+              <div className="rounded-2xl bg-paper/95 backdrop-blur border border-status-overdue/40 px-3.5 py-2.5 shadow-lg space-y-1.5">
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="h-4 w-4 text-status-overdue shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-ink">Couldn't save quote</p>
+                    <p className="text-[11px] text-muted-foreground break-words mt-0.5">{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-full bg-paper/95 backdrop-blur shadow-[0_12px_32px_-8px_rgba(0,0,0,0.35)] p-1.5 flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => { void save("draft"); }}
+                onPointerDown={() => feedback("tap")}
+                disabled={!clientName.trim() || saving}
+                className="px-4 py-3 rounded-full text-ink font-bold text-xs inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-ink/5 transition"
+              >
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {editId ? "Save" : "Draft"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!clientName.trim()) {
+                    customerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    return;
+                  }
+                  void save("send");
+                }}
+                onPointerDown={() => feedback("tap")}
+                disabled={saving}
+                className={`flex-1 rounded-full py-3 font-bold inline-flex items-center justify-center gap-2 text-sm transition ${
+                  !clientName.trim()
+                    ? "bg-ink/10 text-muted-foreground"
+                    : "bg-lime text-ink active:scale-[0.99]"
+                } disabled:opacity-60`}
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {!clientName.trim() ? "Add a customer ↑" : "Save & send"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
         <SendQuoteDialog
           open={sendSheetOpen}
           onClose={() => {
