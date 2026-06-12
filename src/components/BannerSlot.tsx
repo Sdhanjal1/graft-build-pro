@@ -29,7 +29,13 @@ function pwaEligible() {
 
 /**
  * Renders at most one banner at a time.
- * Priority: PWA install > Trial banner > Offline banner.
+ * Priority: SW update > PWA install > Trial > Offline.
+ *
+ * z-index map (keep in sync if banners are added):
+ *   nav (BottomNav)      = 40
+ *   sticky save bars     = 50
+ *   floating banners     = 50 (PWA, Update)
+ *   offline pill (top)   = 70
  */
 export function BannerSlot() {
   const { sub, loading, showWarn, showExpired } = useSubscription();
