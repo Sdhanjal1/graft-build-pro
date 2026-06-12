@@ -1193,7 +1193,7 @@ function QuoteDetail() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmRemoveQuote}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-status-overdue text-paper hover:bg-status-overdue/90"
             >
               Delete quote
             </AlertDialogAction>
