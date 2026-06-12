@@ -730,8 +730,11 @@ function QuoteDetail() {
       <section className="px-5 mt-5">
         <Accordion type="single" collapsible className="card-surface px-4">
           <AccordionItem value="options" className="border-b-0">
-            <AccordionTrigger className="text-sm font-semibold text-ink hover:no-underline">
-              Options
+            <AccordionTrigger className="text-sm font-semibold text-ink hover:no-underline py-4">
+              <span className="flex flex-col items-start gap-0.5">
+                <span>More actions</span>
+                <span className="text-[11px] font-normal text-muted-foreground">Share, payments, customer link</span>
+              </span>
             </AccordionTrigger>
             <AccordionContent className="space-y-3 pt-1">
               {/* Portal link status warning */}
