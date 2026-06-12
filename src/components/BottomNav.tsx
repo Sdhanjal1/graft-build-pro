@@ -57,7 +57,7 @@ export function BottomNav() {
               key={it.to}
               {...it}
               active={isActive(it.to)}
-              unread={it.to === "/messages" && unreadCount > 0}
+              unreadCount={it.to === "/messages" ? unreadCount : 0}
             />
           ))}
         </div>
