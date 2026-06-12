@@ -234,6 +234,20 @@ export function useDataVersion() {
   return v;
 }
 
+/** True once the local store has hydrated at least once.
+ *  Warm navigations return true on first render (no skeleton flash);
+ *  cold loads return false until the first version bump fires. */
+export function useHasHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(_dataVersion > 0);
+  useEffect(() => {
+    if (_dataVersion > 0) { setHydrated(true); return; }
+    const cb = () => setHydrated(true);
+    _versionListeners.add(cb);
+    return () => { _versionListeners.delete(cb); };
+  }, []);
+  return hydrated;
+}
+
 // ---------- Hydration from Lovable Cloud ----------
 type DbClient = {
   id: string;
