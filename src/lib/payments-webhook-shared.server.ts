@@ -182,6 +182,40 @@ export async function handlePaidEvent(evt: any): Promise<void> {
         paid_at: new Date().toISOString(),
       });
     }
+  } else if (paymentIntent) {
+    // No checkout session id (e.g. payment_intent.succeeded retry). Dedup
+    // on stripe_payment_intent so Stripe retries don't create multiple
+    // paid rows or trigger duplicate invoice emails.
+    const { data: existingPi } = await supabaseAdmin
+      .from("invoice_payments")
+      .select("id")
+      .eq("stripe_payment_intent", paymentIntent)
+      .maybeSingle();
+    if (existingPi) {
+      await supabaseAdmin
+        .from("invoice_payments")
+        .update({
+          status: "paid",
+          paid_at: new Date().toISOString(),
+          customer_email: customerEmail ?? null,
+        })
+        .eq("id", existingPi.id);
+      // Early return: the original session already fired email + push when
+      // it was first marked paid, so don't re-fire on retries.
+      return;
+    }
+    await supabaseAdmin.from("invoice_payments").insert({
+      user_id: userId,
+      quote_id: quoteId,
+      request_type: requestType,
+      customer_email: customerEmail ?? null,
+      amount_cents: amountCents ?? 0,
+      currency,
+      status: "paid",
+      stripe_payment_intent: paymentIntent,
+      payment_method: "card",
+      paid_at: new Date().toISOString(),
+    });
   } else {
     await supabaseAdmin.from("invoice_payments").insert({
       user_id: userId,
@@ -191,7 +225,6 @@ export async function handlePaidEvent(evt: any): Promise<void> {
       amount_cents: amountCents ?? 0,
       currency,
       status: "paid",
-      stripe_payment_intent: paymentIntent ?? null,
       payment_method: "card",
       paid_at: new Date().toISOString(),
     });

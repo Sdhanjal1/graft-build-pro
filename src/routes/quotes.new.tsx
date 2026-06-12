@@ -642,7 +642,10 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       console.warn("[voice] live regenerate failed", err);
     } finally {
       pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
-      setBuilding(false);
+      // Only clear the spinner when nothing else is in flight — otherwise
+      // the first phrase to resolve flickers it off while later phrases
+      // are still being generated.
+      if (pendingCountRef.current === 0) setBuilding(false);
     }
   };
 

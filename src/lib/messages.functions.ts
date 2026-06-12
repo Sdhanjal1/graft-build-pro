@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/lib/require-active-subscription";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
 
 // ---------- Pro: create/get portal token for a quote ----------
 export const ensurePortalToken = createServerFn({ method: "POST" })
@@ -104,6 +104,7 @@ export const getInbox = createServerFn({ method: "GET" })
 export const getPortalData = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ token: z.string().min(8).max(128) }).parse(d))
   .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: tk } = await supabaseAdmin
       .from("quote_portal_tokens")
       .select("quote_id, user_id, expires_at")
@@ -180,6 +181,7 @@ export const postPortalMessage = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: tk } = await supabaseAdmin
       .from("quote_portal_tokens")
       .select("quote_id, user_id, expires_at")
@@ -245,6 +247,7 @@ export const respondToQuoteByToken = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: tk } = await supabaseAdmin
       .from("quote_portal_tokens")
       .select("quote_id, user_id, expires_at")

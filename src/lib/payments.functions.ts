@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/lib/require-active-subscription";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // Quottr's BYOK Stripe platform key. When the pro has completed Connect
 // onboarding, client-invoice payments are routed to their connected
@@ -13,6 +12,26 @@ function getStripeEnv() {
   const sandbox = process.env.STRIPE_SANDBOX_API_KEY;
   if (!sandbox) throw new Error("Stripe is not configured");
   return { key: sandbox, env: "sandbox" as const };
+}
+
+// Origins we'll accept as success/cancel return URLs for both pro-facing
+// and customer-portal checkout flows. Prevents open-redirect via Stripe.
+const ALLOWED_RETURN_ORIGINS = new Set([
+  "https://quottr.co.uk",
+  "https://www.quottr.co.uk",
+  "https://graft-build-pro.lovable.app",
+  "https://id-preview--e4be6907-c837-4e5e-9461-63fadfdad91e.lovable.app",
+]);
+
+function assertAllowedReturnUrl(url: string) {
+  try {
+    const u = new URL(url);
+    if (!ALLOWED_RETURN_ORIGINS.has(u.origin)) {
+      throw new Error("Return URL origin not allowed");
+    }
+  } catch {
+    throw new Error("Invalid return URL");
+  }
 }
 
 function toFormBody(params: Record<string, string | number>) {
@@ -37,6 +56,11 @@ export const createInvoiceCheckout = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data, context }) => {
+    // Restrict success/cancel URLs to known Quottr origins so Stripe can't
+    // be used as an open redirect via a forged checkout request.
+    assertAllowedReturnUrl(data.successUrl);
+    assertAllowedReturnUrl(data.cancelUrl);
+
     const { key, env } = getStripeEnv();
     const amountCents = Math.round(data.amount * 100);
 
@@ -163,12 +187,6 @@ export const getQuotePaymentStatus = createServerFn({ method: "POST" })
 // Stripe-hosted Checkout. We deliberately omit `payment_method_types` so
 // Stripe surfaces every method enabled on the account, including Apple Pay
 // and Google Pay (auto-detected per browser).
-const ALLOWED_PORTAL_ORIGINS = new Set([
-  "https://quottr.co.uk",
-  "https://www.quottr.co.uk",
-  "https://graft-build-pro.lovable.app",
-  "https://id-preview--e4be6907-c837-4e5e-9461-63fadfdad91e.lovable.app",
-]);
 
 export const createPortalCheckout = createServerFn({ method: "POST" })
   .inputValidator(
@@ -179,11 +197,12 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { key, env } = getStripeEnv();
 
     // Prevent open-redirect: only trust known Quottr origins for the
     // post-checkout return URL. Anything else falls back to production.
-    const returnOrigin = ALLOWED_PORTAL_ORIGINS.has(data.returnOrigin)
+    const returnOrigin = ALLOWED_RETURN_ORIGINS.has(data.returnOrigin)
       ? data.returnOrigin
       : "https://quottr.co.uk";
 
@@ -205,6 +224,22 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
     if (!quote) throw new Error("Quote not found");
     if (quote.status === "paid") throw new Error("This quote is already paid");
 
+    // Idempotency: if there is an existing pending session for this
+    // (quote, requestType) from the last 24h, reuse it so repeat taps from
+    // the customer don't pile up orphan pending invoice_payments rows.
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: existingPending } = await supabaseAdmin
+      .from("invoice_payments")
+      .select("stripe_session_id, amount_cents, created_at")
+      .eq("quote_id", quote.id)
+      .eq("request_type", data.requestType)
+      .eq("status", "pending")
+      .not("stripe_session_id", "is", null)
+      .gte("created_at", dayAgo)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     const total = Number(quote.total) || 0;
     let amount = total;
     if (data.requestType === "deposit") {
@@ -218,6 +253,38 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
     }
     if (amount <= 0) throw new Error("Invalid payment amount");
     const amountCents = Math.round(amount * 100);
+
+    if (existingPending?.stripe_session_id && existingPending.amount_cents === amountCents) {
+      // Reuse the existing Checkout Session URL.
+      const sessionId = existingPending.stripe_session_id as string;
+      // We need the full URL — fetch it from Stripe so the client can redirect.
+      try {
+        const { data: profileForReuse } = await supabaseAdmin
+          .from("profiles")
+          .select("stripe_connect_account_id, stripe_connect_charges_enabled")
+          .eq("id", tk.user_id)
+          .maybeSingle();
+        const reuseHeaders: Record<string, string> = {
+          Authorization: `Bearer ${key}`,
+        };
+        if (
+          profileForReuse?.stripe_connect_charges_enabled &&
+          profileForReuse?.stripe_connect_account_id
+        ) {
+          reuseHeaders["Stripe-Account"] = profileForReuse.stripe_connect_account_id;
+        }
+        const sessRes = await fetch(
+          `https://api.stripe.com/v1/checkout/sessions/${sessionId}`,
+          { headers: reuseHeaders },
+        );
+        const sess = (await sessRes.json()) as { url?: string; status?: string };
+        if (sessRes.ok && sess.url && sess.status === "open") {
+          return { url: sess.url, sessionId, env, amount };
+        }
+      } catch (e) {
+        console.warn("Failed to reuse pending portal session, creating new", e);
+      }
+    }
 
     const [{ data: profile }, { data: client }] = await Promise.all([
       supabaseAdmin
@@ -310,6 +377,7 @@ export const recordManualDeposit = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: quote, error: quoteErr } = await supabase
       .from("quotes")
@@ -370,6 +438,7 @@ export const removeManualDeposit = createServerFn({ method: "POST" })
   .inputValidator(z.object({ quoteId: z.string().min(1).max(128) }))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: quote, error: quoteErr } = await supabase
       .from("quotes")
@@ -380,10 +449,14 @@ export const removeManualDeposit = createServerFn({ method: "POST" })
     if (quoteErr) throw quoteErr;
     if (!quote) throw new Error("Quote not found");
 
+    // Belt-and-braces user_id filter in addition to the ownership check above,
+    // so a stray invoice_payments row owned by another user could never be
+    // collateral damage from a manual deposit reversal.
     const { error: delErr, count } = await supabaseAdmin
       .from("invoice_payments")
       .delete({ count: "exact" })
       .eq("quote_id", quote.id)
+      .eq("user_id", context.userId)
       .eq("request_type", "deposit")
       .eq("status", "paid")
       .in("payment_method", ["cash", "bank"]);

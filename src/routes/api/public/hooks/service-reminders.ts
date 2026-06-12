@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { notifyUser } from "@/lib/push.server";
 
@@ -9,8 +10,12 @@ export const Route = createFileRoute("/api/public/hooks/service-reminders")({
     handlers: {
       POST: async ({ request }) => {
         const secret = process.env.CRON_SECRET;
-        const auth = request.headers.get("authorization");
-        if (!secret || auth !== `Bearer ${secret}`) {
+        const auth = request.headers.get("authorization") ?? "";
+        if (!secret) return new Response("Unauthorized", { status: 401 });
+        const expected = `Bearer ${secret}`;
+        const authBuf = Buffer.from(auth);
+        const expBuf = Buffer.from(expected);
+        if (authBuf.length !== expBuf.length || !timingSafeEqual(authBuf, expBuf)) {
           return new Response("Unauthorized", { status: 401 });
         }
         const now = new Date();
