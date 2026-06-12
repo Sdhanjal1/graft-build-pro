@@ -921,6 +921,9 @@ Re-output the FULL updated list of line items for this quote, applying the chang
             }
           }
           liveInterimRef.current = interim.trim();
+          // INVARIANT: livePreview captures the transcript internally so the
+          // AI can re-prompt with the full text on each regenerate / on stop.
+          // It must NEVER be rendered in the overlay — use MicLevelBars there.
           setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
         };
         rec.onerror = () => { /* silent: pipeline only */ };
