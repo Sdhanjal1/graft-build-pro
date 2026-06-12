@@ -93,7 +93,7 @@ function ClientsPage() {
               to="/clients/$clientId"
               params={{ clientId: c.id }}
               key={c.id}
-              className={`card-surface p-3.5 flex items-center gap-3 relative ${dupOf ? "border-l-2 border-l-amber-400" : ""}`}
+              className={`card-surface p-3 flex items-center gap-3 relative ${dupOf ? "border-l-2 border-l-amber-400" : ""}`}
             >
               <div className="h-10 w-10 rounded-full bg-lime/30 flex items-center justify-center text-ink text-sm font-bold shrink-0">
                 {c.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
