@@ -475,9 +475,9 @@ function PortalPage() {
                     <dd className="num font-bold text-ink">{paymentRef}</dd>
                   </div>
                 )}
-                <div className="flex items-center justify-between px-3 py-2">
-                  <dt className="text-muted-foreground">{isDepositFlow ? "Deposit due now" : "Amount"}</dt>
-                  <dd className="num font-bold text-ink">{formatGBP(payAmount)}</dd>
+                <div className="flex items-center justify-between px-3 py-3 bg-ink text-paper">
+                  <dt className="text-paper/70">{isDepositFlow ? "Deposit due now" : "Amount"}</dt>
+                  <dd className="num font-bold text-paper text-lg">{formatGBP(payAmount)}</dd>
                 </div>
               </dl>
               {isDepositFlow && (
@@ -488,7 +488,7 @@ function PortalPage() {
               <button
                 type="button"
                 onClick={handleCopyBank}
-                className="mt-3 w-full h-11 rounded-full border border-border text-ink text-sm font-semibold inline-flex items-center justify-center gap-2"
+                className="mt-3 w-full h-11 rounded-full bg-ink text-paper text-sm font-semibold inline-flex items-center justify-center gap-2"
               >
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 {copied ? "Copied!" : "Copy details"}
