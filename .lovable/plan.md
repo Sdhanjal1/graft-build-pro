@@ -1,69 +1,76 @@
-# Bug & security fixes — F2 through F13
+# Smoother voice quote flow
 
-Applies the full sweep we agreed on. **Critical guardrail (per your note):** the connect-webhook payment routing into `handlePaidEvent` / `handleFailedEvent` and the `STRIPE_CONNECT_WEBHOOK_SECRET` signature verification stay **exactly as they are**. The only change to that file is swapping the missing-secret response from `500` to `200`. After applying, I'll verify a `checkout.session.completed` still flips the quote to paid.
+Three display-only changes to `src/routes/quotes.new.tsx` and its overlay. Whole-transcript AI generation, tombstone/edit filtering, Whisper fallback, and the 60s/30s timeouts stay exactly as they are.
 
-Skipping F1 / F11 (bank fields + `stripe_connect_charges_enabled` in `getPortalData`) — those are intentional: customers need the bank details to pay by transfer and the flag to render the right payment button on the portal. Happy to revisit if you'd rather the server derive booleans.
+## 1. Stable tiles — merge instead of replace
 
-## HIGH
+In `regenerateLiveQuote` (around lines 605–610), replace the wholesale `setLiveItems(filtered) / liveItemsRef.current = filtered` with an append-only merge keyed by `normDesc(description)`:
 
-**F3 — Stripe key mismatch (`src/lib/subscription.functions.ts`)**
-Change `process.env.STRIPE_API_KEY` → `process.env.STRIPE_BYOK_SECRET_KEY` so subscription checkouts pick up the same live key as invoice + Connect flows. Without this, live subs silently route to sandbox.
+- Start from `liveItemsRef.current` as the base order.
+- For each item in `filtered`, if a tile with the same `normDesc` already exists, update its `qty` and `unit_price` in place (no reorder, no description swap).
+- Append any `filtered` item whose `normDesc` isn't already present.
+- Do NOT remove tiles when the AI omits them mid-stream — only the existing tombstone path (`deletedDescsRef` via user delete) removes tiles.
+- Assign the merged array to both `setLiveItems(next)` and `liveItemsRef.current = next`.
 
-**F2 — Module-scope `supabaseAdmin` imports in 7 `*.functions.ts` files**
-Remove the top-level `import { supabaseAdmin } from "@/integrations/supabase/client.server"` and replace with a handler-local `const { supabaseAdmin } = await import("@/integrations/supabase/client.server")` at the top of each handler that needs it. Files:
+Result: new items animate in at the end, existing tiles never move.
 
-- `account.functions.ts` · `connect.functions.ts` · `messages.functions.ts` · `payments.functions.ts` · `portal.functions.ts` · `quote-requests.functions.ts` · `subscription.functions.ts`
+## 2. Remove the visible transcript
 
-## MED
+Keep all internal capture untouched: `liveFinalRef`, `liveInterimRef`, `setLivePreview`, and the Web Speech handlers continue to feed the AI exactly as today.
 
-**F4 — PI dedup in `handlePaidEvent` (`src/lib/payments-webhook-shared.server.ts`)**
-When the event has no `cs_*` session id but has a `pi_*` payment intent, check `invoice_payments` for an existing row with that `stripe_payment_intent`. If found, `update` to `paid`; otherwise `insert`. Prevents duplicate paid rows + duplicate invoice emails on Stripe's `payment_intent.succeeded` retries.
+In the overlay JSX (lines 2074–2095), replace the entire `livePreview`/"Hearing:" block with a quiet "listening" cue shown while `recording`:
 
-**F5 — Portal checkout idempotency (`src/lib/payments.functions.ts::createPortalCheckout`)**
-Before creating a new Stripe session, query `invoice_payments` for a `pending` row matching `(quote_id, request_type, status='pending')`. If a recent one (<24h) exists with a `stripe_session_id`, return it instead of creating another. Stops orphan pending rows from repeated taps.
+- A pulsing lime mic dot (reuse the existing `animate-ping` halo pattern from lines 2099–2104) at a small size, plus the label "Listening…".
+- Shown whenever `recording` is true, regardless of whether tiles exist yet.
+- No transcript text rendered anywhere in the overlay.
 
-**F6 — Ownership filter on `markRequestRead**`
-Add `.eq("pro_user_id", context.userId)` to the update query. Defence-in-depth in case RLS UPDATE policy is missing.
+The tiles list (`showList && hasItems`) remains the primary feedback.
 
-**F7 — Connect webhook missing-secret response**
-`src/routes/api/public/payments/connect-webhook.ts` line 41: when `STRIPE_CONNECT_WEBHOOK_SECRET` is unset, return `200 "ok (not configured)"` + `console.warn` instead of 500. **Signature verification, the four payment-event handlers, and `handlePaidEvent` / `handleFailedEvent` routing remain untouched.**
+## 3. Instant stop, background reconcile
 
-**F8 — `removeManualDeposit` user_id guard**
-Add `.eq("user_id", context.userId)` to the `supabaseAdmin` delete, even though the quote ownership is already verified.
+Rework `mr.onstop` (lines 731–809) for the non-clip path:
 
-## LOW
+- After flushing `finalInterim` into `liveFinalRef`, branch on `liveItemsRef.current.length`:
+  - **If > 0 (tiles already exist):** build the draft immediately from current tiles — same `built` object, `setDraft`, `setDesc`, customer hydration, `clearPendingItems`, success feedback, scroll — without setting `transcribing`. Then kick off `runRegenerate(sessionId)` + `waitForPendingPhraseProcessing()` in the background (no `await` blocking the UI). When they resolve, merge any genuinely new items (same normDesc merge as #1, append-only) into the draft via `setDraft`. Guard the background merge with:
+    - session still current (`sessionId === voiceSessionRef.current`, not `closeRequestedRef`),
+    - user hasn't started editing — compare `JSON.stringify(currentDraftItems)` against `originalDraftRef.current`; skip merge if changed.
+  - **If === 0:** keep today's behaviour exactly — `setTranscribing(true)`, await final regen + pending, re-check items, otherwise fall through to the Whisper fallback.
 
-**F9 — Portal toggle ownership filters (`src/lib/portal.functions.ts`)**
-Add explicit `user_id` filter to:
+Spinner / `transcribing` state is no longer entered when tiles exist on stop.
 
-- `togglePortalActive` → `.eq("user_id", context.userId)` on clients
-- `toggleQuotePortalVisible` → `.eq("user_id", context.userId)` on quotes
-- `toggleDocumentPortalVisible` → `.eq("user_id", context.userId)` on client_documents
-- `regeneratePortalCode`, `deleteClientDocument`, `updateServiceReminder`, `sendProClientMessage` — same treatment for consistency.
+## 4. Optional tuning
 
-**F10 — Voice builder flicker (`src/routes/quotes.new.tsx` ~line 644)**
-In `regenerateLiveQuote` finally block, only call `setBuilding(false)` when `pendingCountRef.current === 0` after decrement. Prevents spinner flash between concurrent phrases.
+Leave `LIVE_PAUSE_MS` at `2000` (line 216) to minimise AI calls. Stable merge already removes the visible reshuffle, so the snappier 1500ms is not needed.
 
-**F12 — Restrict `createInvoiceCheckout` redirect URLs**
-Validate `successUrl` / `cancelUrl` against the same `ALLOWED_PORTAL_ORIGINS` set used by `createPortalCheckout`. Reject anything else.
+## Files touched
 
-**F13 — Timing-safe cron secret (`src/routes/api/public/hooks/service-reminders.ts`)**
-Replace `auth !== \`Bearer ${secret}`with a length-check +`crypto.timingSafeEqual`over`Buffer`s.
+- `src/routes/quotes.new.tsx` — `regenerateLiveQuote` merge, `mr.onstop` instant-draft branch + background reconcile, overlay transcript block replaced with mic/Listening cue.
 
-## Verification after apply
+## Out of scope (do not touch)
 
-1. Confirm build passes (Vite plugin + TS strict).
-2. Hit the connect-webhook locally with a sample `checkout.session.completed` event for a connected account → confirm the matching quote flips to `paid` and `invoice_payments` upserts correctly. (No regression vs current behaviour.)
-3. Smoke-check live voice quote builder still loads items and doesn't flash the spinner mid-stream.
-4. Spot-check that the subscriptions flow still opens checkout in live mode when `STRIPE_BYOK_SECRET_KEY` is present.
-  &nbsp;
+- AI prompt construction, `generateFn`, `prefetchFn`.
+- `deletedDescsRef` / `editedItemsRef` tombstone+edit logic and the existing filter chain.
+- Whisper fallback (`runTranscribe`) and clip/edit recording paths.
+- `waitForPendingPhraseProcessing`, 60s/30s timeouts.
+- `setLivePreview` / `liveFinalRef` / `liveInterimRef` write sites in Web Speech callbacks.
 
-Three watch items, in priority order:
+## Acceptance
 
-1. F3 is only half the fix — confirm the secret’s value, not just the variable name. The code change points subscriptions at STRIPE_BYOK_SECRET_KEY, but that only fixes prod if that variable actually holds your live key (sk_live_…) in the production environment. If it’s empty or holds a test key there, subscriptions stay on sandbox despite the code change. So when their verification step says “subscriptions open checkout in live mode,” make that real — eyeball that STRIPE_BYOK_SECRET_KEY in your prod secrets is the live value, and confirm a checkout actually opens in live mode. This is the single most important thing to verify in the whole sweep.
+- Multi-item job: each tile appears and stays put; no reshuffle; no transcript text on screen.
+- Stop with tiles present: draft appears instantly, no spinner; any late items append without reorder.
+- Stop with zero tiles: unchanged — transcribing spinner + Whisper fallback as today.
+- Generated quote content identical to current behaviour.
 
-2. F7 makes a missing webhook secret silent. Returning 200 + a console.warn instead of 500 is the correct security choice (you can’t safely process unverified events anyway), but it means a misconfigured STRIPE_CONNECT_WEBHOOK_SECRET in prod would silently drop real payments with only a log line. That ties straight to your manual Stripe dashboard step — make sure that secret is actually set in prod, because nothing will shout if it isn’t.
+Important notes on the plan.
 
-3. [quotes.new](http://quotes.new).tsx is getting stacked edits. F10 (the spinner-flicker fix) touches the same regenerateLiveQuote area as your Prompt B tombstone/metadata changes, and payments.functions.ts gets both F2 and F5. Both should coexist fine — F10 only touches the setBuilding finally block — but glance at the diff to confirm F10 layered on top of the Prompt B logic rather than rewriting around it. Their “build passes” check covers the rest.
+1. Ordering on the instant-stop branch. In the tiles-present path, set originalDraftRef.current to the new draft’s items immediately after setDraft, and before the background runRegenerate is kicked off — so an untouched draft compares equal and the background merge proceeds, while a real edit makes it differ and the merge correctly skips.
 
-Everything else (F4–F6, F8, F9, F12, F13) is clean defence-in-depth and real authorization tightening. Let it run.
+2. Background merge must re-read the latest draft, not a captured copy. When the background pass resolves, read the current draft state at that moment for both the edit-guard comparison and the append — don’t diff or merge against a stale snapshot taken before the await. Otherwise an item the user added in the gap could get lost or duplicated.
+
+3. Keep the tombstone filter applied inside the background merge too. Late items coming from the final regenerate should still be filtered through deletedDescsRef before appending, so something the user deleted mid-recording can’t reappear via the background pass.
+
+4. Don’t leave transcribing stuck on. Confirm the tiles-present branch never sets transcribing true, and the zero-tiles branch still clears it in all exit paths (success, fallback, and error) — so a failure in the background reconcile can’t leave the UI in a loading state.
+
+5. Listening cue must clear on stop. When recording ends, the “Listening…” mic cue should disappear immediately as the draft appears — make sure it’s tied to recording being false, not to a separate flag that might linger.
+
+&nbsp;
