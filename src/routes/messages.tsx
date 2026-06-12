@@ -18,6 +18,37 @@ export const Route = createFileRoute("/messages")({
   component: MessagesInbox,
 });
 
+// Short relative timestamp: "2m", "3h", "yesterday", "Mon", "12 Mar"
+function formatRelativeShort(iso: string): string {
+  const d = new Date(iso);
+  const diff = Date.now() - d.getTime();
+  const min = Math.round(diff / 60_000);
+  if (min < 1) return "now";
+  if (min < 60) return `${min}m`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h`;
+  const day = Math.round(hr / 24);
+  if (day === 1) return "yesterday";
+  if (day < 7) return d.toLocaleDateString([], { weekday: "short" });
+  return d.toLocaleDateString([], { day: "numeric", month: "short" });
+}
+
+function refShort(quoteId: string): string {
+  return `#${quoteId.slice(0, 4).toUpperCase()}`;
+}
+
+function SkeletonCard() {
+  return (
+    <div className="card-surface p-3.5 flex items-start gap-3 animate-pulse">
+      <div className="h-10 w-10 rounded-full bg-secondary shrink-0" />
+      <div className="flex-1 space-y-2 py-1">
+        <div className="h-3 w-1/2 rounded bg-secondary" />
+        <div className="h-3 w-4/5 rounded bg-secondary/70" />
+      </div>
+    </div>
+  );
+}
+
 function MessagesInbox() {
   const fetchInbox = useServerFn(getInbox);
   const fetchRequests = useServerFn(getMyIncomingRequests);
@@ -89,121 +120,166 @@ function MessagesInbox() {
   }, [messages]);
 
   const newRequests = requests.filter((r) => !r.read_at);
+  const unreadThreadTotal = threads.reduce((n, t) => n + (t.unread || 0), 0);
+
+  const subtitle = useMemo(() => {
+    if (loading) return "Loading…";
+    const parts: string[] = [];
+    if (requests.length) parts.push(`${requests.length} request${requests.length === 1 ? "" : "s"}`);
+    if (newRequests.length) parts.push(`${newRequests.length} new`);
+    if (threads.length) parts.push(`${threads.length} chat${threads.length === 1 ? "" : "s"}`);
+    return parts.length ? parts.join(" · ") : "All caught up";
+  }, [loading, requests.length, newRequests.length, threads.length]);
+
+  const handleMarkRead = async (id: string) => {
+    await markRead({ data: { id } }).catch(() => {});
+    void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+    void load();
+  };
 
   return (
     <AppShell>
-      <PageHeader
-        title="Inbox"
-        subtitle={
-          loading
-            ? "Requests and chats"
-            : `${requests.length} request${requests.length === 1 ? "" : "s"}${newRequests.length ? ` · ${newRequests.length} new` : ""}`
-        }
-      />
+      <PageHeader title="Inbox" subtitle={subtitle} />
 
-      {loading && <p className="px-5 text-sm text-muted-foreground">Loading…</p>}
+      {loading && (
+        <div className="px-5 mt-2 space-y-2">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      )}
 
       {!loading && requests.length > 0 && (
         <section className="px-5 mt-2">
-          <div className="flex items-center justify-between mb-2.5">
-            <h2 className="text-xl">Quote requests</h2>
-            {newRequests.length > 0 && (
-              <span className="text-[10px] font-bold bg-lime text-ink rounded-full px-2 py-0.5">
-                {newRequests.length} new
-              </span>
-            )}
+          <div className="flex items-baseline justify-between mb-2.5">
+            <h2 className="text-xl">
+              Quote requests
+              <span className="ml-1.5 text-sm font-normal text-muted-foreground">({requests.length})</span>
+            </h2>
           </div>
           <ul className="space-y-2">
-            {requests.map((r) => (
-              <li key={r.id}>
-                <button
-                  onClick={async () => {
-                    if (!r.read_at) {
-                      await markRead({ data: { id: r.id } }).catch(() => {});
-                      void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
-                    }
-                    void load();
-                  }}
-                  className={`w-full text-left card-surface p-4 flex items-start gap-3 ${!r.read_at ? "ring-1 ring-lime" : ""}`}
-                >
-                  <div className="h-10 w-10 rounded-full bg-lime/40 flex items-center justify-center shrink-0">
-                    {r.source === "voice" ? <VoiceWaveform size={16} className="text-ink" /> : <FileText className="h-4 w-4 text-ink" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold truncate">
-                        New request {r.customer_name ? `from ${r.customer_name}` : ""}
+            {requests.map((r) => {
+              const unread = !r.read_at;
+              return (
+                <li key={r.id}>
+                  <div
+                    className={`relative card-surface p-3.5 flex items-start gap-3 ${unread ? "before:absolute before:left-0 before:top-3 before:bottom-3 before:w-0.5 before:bg-lime before:rounded-full" : ""}`}
+                  >
+                    <div className="h-10 w-10 rounded-full bg-lime/40 flex items-center justify-center shrink-0">
+                      {r.source === "voice" ? <VoiceWaveform size={16} className="text-ink" /> : <FileText className="h-4 w-4 text-ink" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground inline-flex items-center gap-1.5">
+                          {unread && <span className="h-1.5 w-1.5 rounded-full bg-lime" />}
+                          New request
+                        </p>
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {formatRelativeShort(r.created_at)}
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-ink truncate mt-0.5">
+                        {r.customer_name || "Unknown caller"}
+                        {r.customer_phone && (
+                          <span className="font-normal text-muted-foreground"> · {r.customer_phone}</span>
+                        )}
                       </p>
-                      <span className="text-[10px] text-muted-foreground shrink-0">
-                        {new Date(r.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{r.body}</p>
-                    {r.customer_phone && (
-                      <p className="text-[11px] text-muted-foreground mt-1">{r.customer_phone}</p>
-                    )}
-                    <div className="mt-2 flex gap-2">
-                      <Link
-                        to="/quotes/new"
-                        search={{ prefill: r.body }}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold bg-ink text-paper rounded-full px-3 py-1.5"
-                      >
-                        <Sparkles className="h-3 w-3" />
-                        Create quote
-                      </Link>
+                      <p className="text-[13px] text-muted-foreground mt-1 line-clamp-2">{r.body}</p>
+                      <div className="mt-2.5 flex gap-2">
+                        <Link
+                          to="/quotes/new"
+                          search={{ prefill: r.body }}
+                          onClick={() => { if (unread) void handleMarkRead(r.id); }}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold bg-lime text-ink rounded-full px-3 py-1.5"
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          Create quote
+                        </Link>
+                        {unread && (
+                          <button
+                            type="button"
+                            onClick={() => void handleMarkRead(r.id)}
+                            className="inline-flex items-center text-[11px] font-semibold text-muted-foreground rounded-full px-3 py-1.5 hover:bg-secondary"
+                          >
+                            Mark as read
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </button>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
 
-      <section className="px-5 mt-5">
-        <h2 className="text-xl mb-2.5">Messages</h2>
-        {!loading && threads.length === 0 && requests.length === 0 && (
+      {!loading && threads.length === 0 && requests.length === 0 && (
+        <section className="px-5 mt-5">
           <EmptyState
             icon={Inbox}
             title="Quiet out there"
             body="Share your QR code and let customers come to you while you're on the tools."
             cta={{ label: "Get your QR code", to: "/settings" }}
           />
-        )}
+        </section>
+      )}
 
-        <ul className="space-y-2 pb-24">
-          {threads.map((t) => (
-            <li key={t.quote_id}>
-              <Link
-                to="/quotes/$quoteId"
-                params={{ quoteId: t.quote_id }}
-                search={{ tab: "messages" }}
-                className="card-surface p-4 flex items-start gap-3"
-              >
-                <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                  <MessageSquare className="h-4 w-4 text-ink" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold truncate">
-                      {t.last.sender === "customer" ? "Customer" : t.last.sender === "system" ? "Auto-reply" : "You"}
-                    </p>
-                    <span className="text-[10px] text-muted-foreground shrink-0">
-                      {new Date(t.last.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">{t.last.body}</p>
-                </div>
-                {t.unread > 0 && (
-                  <span className="ml-2 text-[10px] font-bold bg-lime text-ink rounded-full px-2 py-0.5">
-                    {t.unread}
-                  </span>
-                )}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {!loading && threads.length > 0 && (
+        <section className="px-5 mt-5">
+          <div className="flex items-baseline justify-between mb-2.5">
+            <h2 className="text-xl">Messages</h2>
+            {unreadThreadTotal > 0 && (
+              <span className="text-xs text-muted-foreground">{unreadThreadTotal} unread</span>
+            )}
+          </div>
+
+          <ul className="space-y-2 pb-24">
+            {threads.map((t) => {
+              const unread = t.unread > 0;
+              const isSystem = t.last.sender === "system";
+              return (
+                <li key={t.quote_id}>
+                  <Link
+                    to="/quotes/$quoteId"
+                    params={{ quoteId: t.quote_id }}
+                    search={{ tab: "messages" }}
+                    className={`relative card-surface p-3.5 flex items-start gap-3 ${unread ? "before:absolute before:left-0 before:top-3 before:bottom-3 before:w-0.5 before:bg-lime before:rounded-full" : ""}`}
+                  >
+                    <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                      <MessageSquare className="h-4 w-4 text-ink" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-ink truncate inline-flex items-center gap-1.5">
+                          {unread && <span className="h-1.5 w-1.5 rounded-full bg-lime shrink-0" />}
+                          <span className="text-muted-foreground font-normal">{refShort(t.quote_id)}</span>
+                          <span>·</span>
+                          <span className="truncate">
+                            {t.last.sender === "customer" ? "Customer" : isSystem ? "Auto-reply" : "You"}
+                          </span>
+                          {t.unread > 1 && (
+                            <span className="text-[10px] font-bold text-muted-foreground">+{t.unread}</span>
+                          )}
+                        </p>
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {formatRelativeShort(t.last.created_at)}
+                        </span>
+                      </div>
+                      <p className="text-[13px] text-muted-foreground truncate mt-0.5">
+                        {isSystem && (
+                          <span className="inline-block text-[9px] font-bold uppercase tracking-wide bg-secondary text-ink rounded px-1 py-0.5 mr-1.5 align-middle">Auto</span>
+                        )}
+                        {t.last.body}
+                      </p>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
     </AppShell>
   );
 }
