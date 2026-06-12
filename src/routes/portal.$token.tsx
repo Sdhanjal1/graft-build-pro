@@ -10,6 +10,16 @@ import { Loader2, Check, X, Download, Copy, Landmark, CreditCard } from "lucide-
 import { acceptButtonLabel, paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
 import { feedback } from "@/lib/feedback";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/portal/$token")({
   component: PortalPage,
@@ -39,6 +49,7 @@ function PortalPage() {
   const [paymentResult, setPaymentResult] = useState<"paid" | "cancelled" | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [declineOpen, setDeclineOpen] = useState(false);
 
   const load = async () => {
     try {
@@ -107,13 +118,20 @@ function PortalPage() {
       const r = await startCheckout({ data: { token, requestType, returnOrigin: origin } });
       window.location.href = r.url;
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not start payment");
+      toast.error(e instanceof Error ? e.message : "Could not start payment");
       setPaying(false);
     }
   };
 
   const onRespond = async (response: "accepted" | "declined") => {
-    if (response === "declined" && !confirm("Decline this quote?")) return;
+    if (response === "declined") {
+      setDeclineOpen(true);
+      return;
+    }
+    await performRespond(response);
+  };
+
+  const performRespond = async (response: "accepted" | "declined") => {
     setResponding(true);
     try {
       const r = await respond({ data: { token, response } });
@@ -140,7 +158,7 @@ function PortalPage() {
         }
       }
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not update quote");
+      toast.error(e instanceof Error ? e.message : "Could not update quote");
     } finally {
       setResponding(false);
     }
@@ -257,7 +275,7 @@ function PortalPage() {
         "invoice",
       );
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not generate PDF");
+      toast.error(e instanceof Error ? e.message : "Could not generate PDF");
     }
   };
 
@@ -317,10 +335,7 @@ function PortalPage() {
 
       {quote.job_description && (
         <section className="px-5 mt-4">
-          <div className="card-surface p-5">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Job description</p>
-            <p className="text-sm mt-2 leading-relaxed whitespace-pre-line">{quote.job_description}</p>
-          </div>
+          <p className="text-sm leading-relaxed whitespace-pre-line text-ink/90">{quote.job_description}</p>
         </section>
       )}
 
@@ -394,7 +409,7 @@ function PortalPage() {
           <div className="flex items-center justify-between">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">How to pay</p>
             {isPreAccept && (
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Preview</p>
+              <span className="text-[10px] uppercase tracking-widest font-semibold bg-secondary text-muted-foreground px-2 py-0.5 rounded-full">Preview</span>
             )}
           </div>
 
@@ -460,9 +475,9 @@ function PortalPage() {
                     <dd className="num font-bold text-ink">{paymentRef}</dd>
                   </div>
                 )}
-                <div className="flex items-center justify-between px-3 py-2">
-                  <dt className="text-muted-foreground">{isDepositFlow ? "Deposit due now" : "Amount"}</dt>
-                  <dd className="num font-bold text-ink">{formatGBP(payAmount)}</dd>
+                <div className="flex items-center justify-between px-3 py-3 bg-ink text-paper">
+                  <dt className="text-paper/70">{isDepositFlow ? "Deposit due now" : "Amount"}</dt>
+                  <dd className="num font-bold text-paper text-lg">{formatGBP(payAmount)}</dd>
                 </div>
               </dl>
               {isDepositFlow && (
@@ -473,7 +488,7 @@ function PortalPage() {
               <button
                 type="button"
                 onClick={handleCopyBank}
-                className="mt-3 w-full h-11 rounded-full border border-border text-ink text-sm font-semibold inline-flex items-center justify-center gap-2"
+                className="mt-3 w-full h-11 rounded-full bg-ink text-paper text-sm font-semibold inline-flex items-center justify-center gap-2"
               >
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 {copied ? "Copied!" : "Copy details"}
@@ -515,7 +530,7 @@ function PortalPage() {
       )}
 
 
-      <footer className="text-center mt-8 mb-4 text-[10px] text-muted-foreground">
+      <footer className={`text-center mt-8 text-[10px] text-muted-foreground ${showBottomBar ? "mb-28" : "mb-4"}`}>
         <a href="https://quottr.co.uk" className="hover:underline">
           Powered by <span className="text-lime">Quottr</span>
         </a>
@@ -529,15 +544,16 @@ function PortalPage() {
                 <button
                   onClick={() => onRespond("declined")}
                   disabled={responding}
-                  className="flex-1 h-12 rounded-full border border-border text-ink text-sm font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  aria-label="Decline quote"
+                  className="w-24 h-12 rounded-full border border-border text-ink text-sm font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 shrink-0"
                 >
-                  <X className="h-4 w-4" /> Decline
+                  <X className="h-4 w-4" /> No
                 </button>
                 <button
                   onClick={() => onRespond("accepted")}
                   onPointerDown={() => feedback("tap")}
                   disabled={responding}
-                  className="flex-[2] h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3"
+                  className="flex-1 h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3"
                 >
                   {responding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   <span className="truncate">
@@ -559,7 +575,6 @@ function PortalPage() {
               <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
                 <Check className="h-4 w-4" /> Accepted
               </div>
-
             ) : (
               <div className="h-12 rounded-full bg-muted text-muted-foreground text-sm font-semibold inline-flex items-center justify-center gap-1.5 w-full">
                 Declined
@@ -568,6 +583,26 @@ function PortalPage() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={declineOpen} onOpenChange={setDeclineOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Decline this quote?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your tradesperson will be notified that you've declined.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { setDeclineOpen(false); void performRespond("declined"); }}
+              className="bg-status-overdue text-paper hover:bg-status-overdue/90"
+            >
+              Decline quote
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
