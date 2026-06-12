@@ -2045,8 +2045,8 @@ function VoiceOverlay({
   seconds,
   error,
   lastTranscript,
-  livePreview,
-  liveSupported,
+  // livePreview / liveSupported intentionally removed — see invariant note below.
+
   liveItems,
   transcript,
   pendingItems,
