@@ -709,7 +709,18 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       });
     } catch (err) {
       console.error(err);
-      setVoiceError("Microphone permission denied. Enable it in your browser settings.");
+      // Distinguish the failure modes so the user gets actionable guidance
+      // and an obvious fall-back to typing instead of a dead screen.
+      const name = (err as DOMException | undefined)?.name ?? "";
+      let msg: string;
+      if (name === "NotAllowedError" || name === "SecurityError" || name === "PermissionDeniedError") {
+        msg = "Microphone access is blocked. Allow mic access in your browser settings, or type the job below.";
+      } else if (name === "NotFoundError" || name === "OverconstrainedError" || name === "DevicesNotFoundError") {
+        msg = "No microphone found on this device. Type the job below instead.";
+      } else {
+        msg = "Couldn't start the microphone. Try again, or type the job below.";
+      }
+      setVoiceError(msg);
       return;
     }
     streamRef.current = stream;
