@@ -344,8 +344,9 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not duplicate quote");
     }
   };
-  const removeQuote = async () => {
-    if (typeof window !== "undefined" && !window.confirm("Delete this quote? This cannot be undone.")) return;
+  const removeQuote = () => setConfirmDelete(true);
+  const confirmRemoveQuote = async () => {
+    setConfirmDelete(false);
     try {
       await deleteQuote(quote.id);
       feedback("success"); toast.success("Quote deleted");
@@ -354,6 +355,7 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not delete quote");
     }
   };
+
   const viewAsCustomer = () => {
     if (portalStatus?.portal_code) {
       navigate({ to: "/portal/c/$code", params: { code: portalStatus.portal_code } });
