@@ -49,6 +49,7 @@ function PortalPage() {
   const [paymentResult, setPaymentResult] = useState<"paid" | "cancelled" | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [declineOpen, setDeclineOpen] = useState(false);
 
   const load = async () => {
     try {
