@@ -2264,17 +2264,24 @@ function VoiceOverlay({
         )}
       </div>
 
-      {/* Listening cue — quiet pulsing mic dot + label. Replaces the visible
-          transcript; capture continues internally and still feeds the AI. */}
+      {/* Listening cue — audio-level bars + aria-live label.
+          INVARIANT: the live transcript is captured internally to feed the AI
+          on every regenerate / on stop. It must NEVER be rendered here. If
+          you need a visual signal, this audio-level meter is the answer. */}
       {recording && (
-        <div className="w-full max-w-md mx-auto mt-3 px-2 flex items-center justify-center gap-2" aria-live="polite">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="absolute inline-flex h-full w-full rounded-full bg-lime opacity-60 animate-ping" />
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-lime" />
+        <div
+          className="w-full max-w-md mx-auto mt-3 px-2 flex items-center justify-center gap-2"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <MicLevelBars streamRef={streamRef} active={recording} />
+          <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">
+            Listening…
           </span>
-          <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">Listening…</span>
         </div>
       )}
+
 
 
       {(transcribing || building) && !hasItems && (
