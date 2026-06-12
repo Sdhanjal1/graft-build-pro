@@ -66,7 +66,14 @@ function ClientsPage() {
       </div>
 
       <div className="px-5 mt-4 space-y-2">
-        {filtered.length === 0 && (
+        {!hydrated && (
+          <>
+            <Skeleton className="h-16 w-full rounded-2xl bg-ink/5" />
+            <Skeleton className="h-16 w-full rounded-2xl bg-ink/5" />
+            <Skeleton className="h-16 w-full rounded-2xl bg-ink/5" />
+          </>
+        )}
+        {hydrated && filtered.length === 0 && (
           userClients.length === 0 ? (
             <EmptyState
               icon={Users}
