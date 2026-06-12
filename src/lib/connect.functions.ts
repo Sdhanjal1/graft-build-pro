@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 /**
  * Quottr uses a single platform Stripe account (BYOK secret key) with
@@ -100,6 +99,7 @@ export const startConnectOnboarding = createServerFn({ method: "POST" })
         "metadata[user_id]": userId,
       });
       accountId = account.id as string;
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await supabaseAdmin
         .from("profiles")
         .update({ stripe_connect_account_id: accountId })
@@ -150,6 +150,7 @@ export const refreshConnectStatus = createServerFn({ method: "POST" })
     const chargesEnabled = !!account.charges_enabled;
     const payoutsEnabled = !!account.payouts_enabled;
 
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin
       .from("profiles")
       .update({
