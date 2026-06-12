@@ -126,7 +126,7 @@ function ClientDetail() {
 
       {/* Contact block */}
       <section className="px-5 mt-4">
-        <div className="card-surface p-5 space-y-3">
+        <div className="card-surface p-4 space-y-2.5">
           <EditableRow
             icon={User}
             label="Name"
@@ -159,26 +159,33 @@ function ClientDetail() {
             href={client.address ? `https://maps.google.com/?q=${encodeURIComponent(client.address)}` : undefined}
           />
           <Row icon={Home} label="Property" value={client.property_type} />
-          {client.notes && (
-            <div className="pt-3 border-t border-border">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Notes</p>
-              <p className="text-sm mt-1">{client.notes}</p>
-            </div>
-          )}
         </div>
       </section>
 
+      {/* Notes — promoted to its own card */}
+      {client.notes && (
+        <section className="px-5 mt-3">
+          <div className="card-surface p-4">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Notes</p>
+            <p className="text-sm mt-1 whitespace-pre-line">{client.notes}</p>
+          </div>
+        </section>
+      )}
+
       {/* Job history — promoted above portal */}
       <section className="mt-6">
-        <div className="px-5 flex items-center justify-between mb-2.5">
-          <h2 className="text-xl">{jobNoun === "service" ? "Service" : "Job"} history</h2>
+        <div className="px-5 flex items-start justify-between gap-3 mb-2.5">
+          <div className="min-w-0">
+            <h2 className="text-xl">{jobNoun === "service" ? "Service" : "Job"} history</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">For {firstName}</p>
+          </div>
           <Link
             to="/quotes/new"
             search={{ clientId }}
-            className="inline-flex items-center gap-1.5 rounded-full bg-lime text-ink px-3.5 py-2 text-xs font-bold active:scale-[0.98] transition"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-lime text-ink px-3.5 py-2 text-xs font-bold active:scale-[0.98] transition"
           >
             <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-            New quote for {firstName}
+            New quote
           </Link>
         </div>
         <div className="px-5 space-y-2.5">
@@ -194,6 +201,7 @@ function ClientDetail() {
           {sortedQuotes.map((q) => {
             const dateIso = q.completed_at ?? q.created_at;
             const dateLabel = q.completed_at ? `Completed ${formatShortDate(q.completed_at)}` : formatShortDate(q.created_at);
+            const certs = certsByQuote.get(q.id) ?? [];
             return (
               <Link
                 to="/quotes/$quoteId"
@@ -202,17 +210,19 @@ function ClientDetail() {
                 className="card-surface p-4 flex items-center gap-3"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
                     <StatusBadge status={q.status} />
-                    {(certsByQuote.get(q.id) ?? []).map((c) => (
-                      <span key={c.key} className="inline-flex items-center gap-1 rounded-full bg-lime/30 text-ink text-[10px] font-bold px-2 py-0.5">
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                    <p className="font-semibold text-sm truncate min-w-0">{q.title}</p>
+                    {certs.map((c) => (
+                      <span key={c.key} className="inline-flex items-center gap-1 rounded-full bg-lime/30 text-ink text-[10px] font-bold px-2 py-0.5 shrink-0">
                         <ShieldCheck className="h-2.5 w-2.5" strokeWidth={3} />
                         {c.label}
                       </span>
                     ))}
                   </div>
-                  <p className="font-semibold text-sm mt-1 truncate">{q.title}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     <span>{dateLabel}</span>
