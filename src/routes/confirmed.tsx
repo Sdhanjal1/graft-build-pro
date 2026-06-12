@@ -51,7 +51,7 @@ function ConfirmedPage() {
       />
       <div className="relative text-center max-w-sm flex flex-col items-center">
         <h1
-          className="text-lime leading-[0.8] tracking-tight mb-10"
+          className="text-lime leading-[0.8] tracking-tight mb-6"
           style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3rem, 14vw, 4.5rem)" }}
         >
           Quottr.
@@ -60,7 +60,7 @@ function ConfirmedPage() {
           <Check className="w-10 h-10 text-ink" strokeWidth={3} />
         </div>
         <h2 className="text-2xl font-bold mb-2">Email confirmed</h2>
-        <p className="text-sm text-paper/60 mb-8">
+        <p className="text-sm text-paper/60 mb-5">
           You're all set. Let's get your account ready.
         </p>
         <button
