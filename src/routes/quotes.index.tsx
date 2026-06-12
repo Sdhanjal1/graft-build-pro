@@ -116,6 +116,18 @@ function QuotesPage() {
           >
             <CountUpGBP value={pipelineTotal} />
           </p>
+          {(() => {
+            const awaiting = tiles.find((t) => t.key === "awaiting")!;
+            const parts: string[] = [];
+            if (awaiting.count > 0) parts.push(`${formatGBP(awaiting.total)} awaiting payment`);
+            if (overdueTile.count > 0) parts.push(`${formatGBP(overdueTile.total)} overdue`);
+            if (parts.length === 0) return null;
+            return (
+              <p className="mt-2 text-xs font-semibold text-ink/75 tabular-nums">
+                {parts.join(" · ")}
+              </p>
+            );
+          })()}
         </div>
       </div>
 
@@ -125,21 +137,21 @@ function QuotesPage() {
           <button
             onClick={() => setTile(tile === "overdue" ? null : "overdue")}
             aria-pressed={tile === "overdue"}
-            className={`w-full text-left rounded-2xl px-5 py-4 border-2 transition motion-safe:animate-pulse-soft ${
+            className={`w-full text-left rounded-2xl px-4 py-3 border-2 transition motion-safe:animate-pulse-soft ${
               tile === "overdue" ? "bg-ink text-paper border-ink" : "bg-card text-ink border-status-overdue/40"
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className={`text-[10px] uppercase tracking-[0.2em] font-bold ${tile === "overdue" ? "text-status-overdue" : "text-status-overdue"}`}>
+              <span className="text-[10px] uppercase tracking-widest font-bold text-status-overdue">
                 Overdue · action needed
               </span>
-              <span className={`text-xs font-bold tabular-nums ${tile === "overdue" ? "text-paper" : "text-status-overdue"}`}>
+              <span className={`text-[10px] font-bold tabular-nums ${tile === "overdue" ? "text-paper" : "text-ink/60"}`}>
                 {overdueTile.count}
               </span>
             </div>
             <p
-              className={`mt-1 leading-none tabular-nums ${tile === "overdue" ? "text-lime" : "text-ink"}`}
-              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(2.25rem, 9vw, 3rem)" }}
+              className={`mt-1.5 leading-none tabular-nums ${tile === "overdue" ? "text-lime" : "text-ink"}`}
+              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.875rem" }}
             >
               <CountUpGBP value={overdueTile.total} />
             </p>
@@ -155,7 +167,7 @@ function QuotesPage() {
             <button
               key={t.key}
               onClick={() => setTile(active ? null : t.key)}
-              className={`text-left rounded-2xl px-3 py-3 border transition ${
+              className={`text-left rounded-2xl px-4 py-3 border transition ${
                 active
                   ? "bg-ink text-paper border-ink"
                   : "bg-card text-ink border-border hover:border-ink/30"
@@ -163,7 +175,7 @@ function QuotesPage() {
               aria-pressed={active}
             >
               <div className="flex items-center justify-between">
-                <span className={`text-[9px] uppercase tracking-widest font-bold ${active ? "text-paper/70" : "text-muted-foreground"}`}>
+                <span className={`text-[10px] uppercase tracking-widest font-bold ${active ? "text-paper/70" : "text-muted-foreground"}`}>
                   {TILE_LABEL[t.key]}
                 </span>
                 <span className={`text-[10px] font-bold tabular-nums ${active ? "text-paper" : "text-ink/60"}`}>
@@ -172,7 +184,7 @@ function QuotesPage() {
               </div>
               <span
                 className={`mt-1.5 block leading-none tabular-nums ${active ? "text-lime" : "text-ink"}`}
-                style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.5rem" }}
+                style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.875rem" }}
               >
                 <CountUpGBP value={t.total} />
               </span>
@@ -182,8 +194,8 @@ function QuotesPage() {
       </div>
 
 
-      <div className="px-5 mt-4">
-        <div className="card-surface flex items-center gap-2 px-4 py-3">
+      <div className="px-5 mt-4 flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 rounded-full bg-card border border-border px-3.5 py-2">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input
             value={q}
@@ -192,18 +204,18 @@ function QuotesPage() {
             className="bg-transparent flex-1 outline-none text-sm placeholder:text-muted-foreground"
           />
         </div>
-      </div>
-
-      {tile && (
-        <div className="px-5 mt-3">
+        {tile && (
           <button
             onClick={() => setTile(null)}
-            className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground hover:text-ink"
+            className="shrink-0 inline-flex items-center gap-1 rounded-full bg-ink text-paper px-3 py-2 text-[11px] font-bold uppercase tracking-wider"
+            aria-label={`Clear ${TILE_LABEL[tile]} filter`}
           >
-            Showing {TILE_LABEL[tile]} · Clear filter
+            {TILE_LABEL[tile]}
+            <span aria-hidden className="text-paper/70 text-sm leading-none">×</span>
           </button>
-        </div>
-      )}
+        )}
+      </div>
+
 
 
 
