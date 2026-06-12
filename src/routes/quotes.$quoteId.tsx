@@ -138,6 +138,9 @@ function QuoteDetail() {
   // (schedule defaults removed)
 
   const createCheckout = useServerFn(createInvoiceCheckout);
+  const connect = useConnectStatus();
+  const canTakePayment = connect.chargesEnabled;
+  const paymentsBlocked = !connect.loading && !canTakePayment;
   const fetchPortalStatus = useServerFn(getPortalLinkStatusForQuote);
   const regeneratePortalCodeFn = useServerFn(regeneratePortalCode);
   const recordDepositFn = useServerFn(recordManualDeposit);
