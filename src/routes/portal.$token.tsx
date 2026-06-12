@@ -409,7 +409,7 @@ function PortalPage() {
           <div className="flex items-center justify-between">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">How to pay</p>
             {isPreAccept && (
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Preview</p>
+              <span className="text-[10px] uppercase tracking-widest font-semibold bg-secondary text-muted-foreground px-2 py-0.5 rounded-full">Preview</span>
             )}
           </div>
 
