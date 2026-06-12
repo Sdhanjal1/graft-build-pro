@@ -1262,8 +1262,8 @@ function PaidButton({ icon: Icon, label, onClick }: { icon: React.ComponentType<
 }
 
 function MoreItem({
-  icon: Icon, label, onClick, danger,
-}: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void; danger?: boolean }) {
+  icon: Icon, label, onClick, danger, chevron,
+}: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void; danger?: boolean; chevron?: boolean }) {
   return (
     <li>
       <button
@@ -1271,8 +1271,17 @@ function MoreItem({
         className={`w-full flex items-center gap-3 px-3 py-3.5 rounded-2xl hover:bg-secondary text-left ${danger ? "text-status-overdue" : "text-ink"}`}
       >
         <Icon className="h-5 w-5 shrink-0" />
-        <span className="text-sm font-semibold">{label}</span>
+        <span className="text-sm font-semibold flex-1 min-w-0">{label}</span>
+        {chevron && <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
       </button>
+    </li>
+  );
+}
+
+function MoreGroup({ label }: { label: string }) {
+  return (
+    <li className="px-3 pt-3 pb-1 text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+      {label}
     </li>
   );
 }
