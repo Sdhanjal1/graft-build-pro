@@ -1163,6 +1163,57 @@ function QuoteDetail() {
           </div>
         </div>
       )}
+
+      {/* Confirm dialogs — replace native window.confirm for parity with Settings */}
+      <AlertDialog open={confirmRemoveDeposit} onOpenChange={setConfirmRemoveDeposit}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove the recorded deposit?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The balance will go back to the full amount.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemoveRecordedDeposit}>Remove deposit</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmMarkUnpaid} onOpenChange={setConfirmMarkUnpaid}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark this quote as unpaid?</AlertDialogTitle>
+            <AlertDialogDescription>
+              It will go back to awaiting payment.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmMarkUnpaidAction}>Mark unpaid</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this quote?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRemoveQuote}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete quote
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
