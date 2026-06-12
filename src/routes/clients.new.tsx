@@ -7,6 +7,9 @@ import { Save } from "lucide-react";
 
 export const Route = createFileRoute("/clients/new")({
   component: NewClientPage,
+  validateSearch: (s: Record<string, unknown>): { name?: string } => ({
+    name: typeof s.name === "string" ? s.name : undefined,
+  }),
 });
 
 const PROPERTY_PRIMARY = ["Homeowner", "Landlord", "Commercial", "Letting agent"] as const;
