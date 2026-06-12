@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { userClients, quotesForClient, formatGBP } from "@/lib/user-data";
-import { Search, ArrowRight, UserPlus, Users, Inbox } from "lucide-react";
+import { Search, ArrowRight, UserPlus, Users, Inbox, AlertTriangle } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useState } from "react";
 
@@ -58,12 +58,12 @@ function ClientsPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search customers"
-            className="w-full h-11 pl-10 pr-3 rounded-full bg-card border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:border-ink/30 transition-colors"
+            className="w-full h-11 pl-10 pr-3 rounded-full bg-card border border-border text-[15px] placeholder:text-muted-foreground focus:outline-none focus:border-ink/30 transition-colors"
           />
         </div>
       </div>
 
-      <div className="px-5 mt-4 space-y-2.5">
+      <div className="px-5 mt-4 space-y-2">
         {filtered.length === 0 && (
           userClients.length === 0 ? (
             <EmptyState
@@ -73,21 +73,29 @@ function ClientsPage() {
               cta={{ label: "Add your first customer", to: "/clients/new" }}
             />
           ) : (
-            <EmptyState icon={Inbox} title="No matches" body={`No customers match "${q}".`} />
+            <EmptyState
+              icon={Inbox}
+              title="No matches"
+              body={`No customers match "${q}".`}
+              cta={{ label: `Add "${q}" as new customer`, to: "/clients/new", search: { name: q } }}
+            />
           )
         )}
         {filtered.map((c) => {
           const cQuotes = quotesForClient(c.id);
           const total = cQuotes.reduce((s, x) => s + x.total, 0);
+          const paidTotal = cQuotes
+            .filter((x) => x.status === "paid")
+            .reduce((s, x) => s + x.total, 0);
           const dupOf = duplicates.get(c.id);
           return (
             <Link
               to="/clients/$clientId"
               params={{ clientId: c.id }}
               key={c.id}
-              className={`card-surface p-4 flex items-center gap-3 relative ${dupOf ? "border-l-2 border-l-amber-400" : ""}`}
+              className={`card-surface p-3.5 flex items-center gap-3 relative ${dupOf ? "border-l-2 border-l-amber-400" : ""}`}
             >
-              <div className="h-12 w-12 rounded-full bg-lime/30 flex items-center justify-center text-ink font-bold shrink-0">
+              <div className="h-10 w-10 rounded-full bg-lime/30 flex items-center justify-center text-ink text-sm font-bold shrink-0">
                 {c.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
               </div>
               <div className="flex-1 min-w-0">
@@ -96,16 +104,33 @@ function ClientsPage() {
                   <p className="text-xs text-muted-foreground truncate mt-0.5">{c.address}</p>
                 )}
                 {dupOf && (
-                  <p className="text-[11px] text-amber-700 truncate mt-0.5">
-                    Looks similar to <span className="font-medium">{dupOf}</span> — review
-                  </p>
+                  <span
+                    className="inline-flex items-center gap-1 mt-1 rounded-full bg-amber-400/15 text-amber-700 px-1.5 py-0.5 text-[10px] font-semibold max-w-full"
+                    title={`Looks similar to ${dupOf}`}
+                  >
+                    <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                    <span className="truncate">Possible duplicate</span>
+                  </span>
                 )}
               </div>
               <div className="text-right shrink-0">
-                <p className="num text-sm text-ink tabular-nums">{formatGBP(total)}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {cQuotes.length} {cQuotes.length === 1 ? "quote" : "quotes"}
-                </p>
+                {total > 0 ? (
+                  <>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Quoted</p>
+                    <p className="num text-sm text-ink tabular-nums leading-tight">{formatGBP(total)}</p>
+                    {paidTotal > 0 ? (
+                      <p className="text-[11px] text-status-accepted mt-0.5 tabular-nums">
+                        {formatGBP(paidTotal)} paid
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {cQuotes.length} {cQuotes.length === 1 ? "quote" : "quotes"}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">No quotes</p>
+                )}
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground/60 ml-1 shrink-0" />
             </Link>

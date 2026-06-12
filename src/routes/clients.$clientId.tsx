@@ -4,7 +4,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { getClient, quotesForClient, formatGBP, userProfile, useDataVersion, updateClientFields } from "@/lib/user-data";
 import { resolveTrade, detectCertifications, type Certification } from "@/lib/trades";
-import { Phone, Mail, MapPin, Home, FileText, Plus, CheckCircle2, Calendar, ShieldCheck, BellRing, User, Pencil } from "lucide-react";
+import { Phone, Mail, MapPin, Home, FileText, Plus, CheckCircle2, Calendar, ShieldCheck, BellRing, User } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { CustomerPortalPanel } from "@/components/CustomerPortalPanel";
 import { ClientDetailSkeleton } from "@/components/Skeletons";
@@ -78,8 +78,11 @@ function ClientDetail() {
       {/* Combined money summary — one outcome card */}
       <section className="px-5 mt-5">
         <div className="card-surface p-5">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Paid to date</p>
-          <p className="num text-4xl mt-1 text-status-accepted tabular-nums leading-none">{formatGBP(totalPaid)}</p>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-status-accepted" />
+            Paid to date
+          </p>
+          <p className="num text-4xl mt-1 text-ink tabular-nums leading-none">{formatGBP(totalPaid)}</p>
           <p className="text-xs text-muted-foreground mt-2 tabular-nums">
             of {formatGBP(totalQuoted)} quoted across {quotes.length} {quotes.length === 1 ? jobNoun : jobPlural}
           </p>
@@ -105,7 +108,7 @@ function ClientDetail() {
           </div>
           {trade.defaultServiceType && (
             <div className="flex items-center gap-3 pt-3">
-              <div className="h-9 w-9 rounded-full bg-lime/30 flex items-center justify-center shrink-0">
+              <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
                 <BellRing className="h-4 w-4" />
               </div>
               <div className="flex-1 min-w-0 text-sm">
@@ -123,7 +126,7 @@ function ClientDetail() {
 
       {/* Contact block */}
       <section className="px-5 mt-4">
-        <div className="card-surface p-5 space-y-3">
+        <div className="card-surface p-4 space-y-2.5">
           <EditableRow
             icon={User}
             label="Name"
@@ -156,26 +159,33 @@ function ClientDetail() {
             href={client.address ? `https://maps.google.com/?q=${encodeURIComponent(client.address)}` : undefined}
           />
           <Row icon={Home} label="Property" value={client.property_type} />
-          {client.notes && (
-            <div className="pt-3 border-t border-border">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Notes</p>
-              <p className="text-sm mt-1">{client.notes}</p>
-            </div>
-          )}
         </div>
       </section>
 
+      {/* Notes — promoted to its own card */}
+      {client.notes && (
+        <section className="px-5 mt-3">
+          <div className="card-surface p-4">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Notes</p>
+            <p className="text-sm mt-1 whitespace-pre-line">{client.notes}</p>
+          </div>
+        </section>
+      )}
+
       {/* Job history — promoted above portal */}
       <section className="mt-6">
-        <div className="px-5 flex items-center justify-between mb-2.5">
-          <h2 className="text-xl">{jobNoun === "service" ? "Service" : "Job"} history</h2>
+        <div className="px-5 flex items-start justify-between gap-3 mb-2.5">
+          <div className="min-w-0">
+            <h2 className="text-xl">{jobNoun === "service" ? "Service" : "Job"} history</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">For {firstName}</p>
+          </div>
           <Link
             to="/quotes/new"
             search={{ clientId }}
-            className="inline-flex items-center gap-1.5 rounded-full bg-lime text-ink px-3.5 py-2 text-xs font-bold active:scale-[0.98] transition"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-lime text-ink px-3.5 py-2 text-xs font-bold active:scale-[0.98] transition"
           >
             <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-            New quote for {firstName}
+            New quote
           </Link>
         </div>
         <div className="px-5 space-y-2.5">
@@ -191,6 +201,7 @@ function ClientDetail() {
           {sortedQuotes.map((q) => {
             const dateIso = q.completed_at ?? q.created_at;
             const dateLabel = q.completed_at ? `Completed ${formatShortDate(q.completed_at)}` : formatShortDate(q.created_at);
+            const certs = certsByQuote.get(q.id) ?? [];
             return (
               <Link
                 to="/quotes/$quoteId"
@@ -199,17 +210,19 @@ function ClientDetail() {
                 className="card-surface p-4 flex items-center gap-3"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
                     <StatusBadge status={q.status} />
-                    {(certsByQuote.get(q.id) ?? []).map((c) => (
-                      <span key={c.key} className="inline-flex items-center gap-1 rounded-full bg-lime/30 text-ink text-[10px] font-bold px-2 py-0.5">
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                    <p className="font-semibold text-sm truncate min-w-0">{q.title}</p>
+                    {certs.map((c) => (
+                      <span key={c.key} className="inline-flex items-center gap-1 rounded-full bg-lime/30 text-ink text-[10px] font-bold px-2 py-0.5 shrink-0">
                         <ShieldCheck className="h-2.5 w-2.5" strokeWidth={3} />
                         {c.label}
                       </span>
                     ))}
                   </div>
-                  <p className="font-semibold text-sm mt-1 truncate">{q.title}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     <span>{dateLabel}</span>
@@ -246,8 +259,8 @@ function Row({
 }) {
   const content = (
     <div className="flex items-start gap-3">
-      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
-        <Icon className="h-4 w-4" />
+      <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+        <Icon className="h-3.5 w-3.5" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</p>
@@ -289,41 +302,40 @@ function EditableRow({
   });
 
   return (
-    <div className="flex items-start gap-3 group">
-      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
-        <Icon className="h-4 w-4" />
+    <div className="flex items-start gap-3">
+      <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+        <Icon className="h-3.5 w-3.5" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold inline-flex items-center gap-1.5">
-            {label}
-            {href && value && !focused && (
-              <a
-                href={href}
-                onClick={(e) => e.stopPropagation()}
-                className="text-ink/60 hover:text-ink normal-case tracking-normal text-[11px] font-medium underline-offset-2 hover:underline"
-              >
-                {type === "tel" ? "Call" : type === "email" ? "Email" : "Open"}
-              </a>
-            )}
-          </p>
-          <div className="flex items-center gap-1.5">
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold inline-flex items-center gap-1.5">
+          {label}
+          {href && value && !focused && (
+            <a
+              href={href}
+              onClick={(e) => e.stopPropagation()}
+              className="text-ink/60 hover:text-ink normal-case tracking-normal text-[11px] font-medium underline-offset-2 hover:underline"
+            >
+              {type === "tel" ? "Call" : type === "email" ? "Email" : "Open"}
+            </a>
+          )}
+        </p>
+        <div className="relative">
+          <input
+            type={type}
+            value={value}
+            placeholder={placeholder}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onChange={(e) => {
+              setValue(e.target.value);
+              handleChange(e.target.value);
+            }}
+            className="mt-0.5 w-full bg-transparent border-0 border-b border-dashed border-border focus:border-solid focus:border-ink/40 px-0 py-1 pr-7 text-sm font-medium outline-none transition-colors placeholder:text-muted-foreground/60"
+          />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none">
             <SaveIndicator isSaving={isSaving} isSaved={isSaved} error={error} />
-            <Pencil className="h-3 w-3 text-muted-foreground/50 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity" />
           </div>
         </div>
-        <input
-          type={type}
-          value={value}
-          placeholder={placeholder}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onChange={(e) => {
-            setValue(e.target.value);
-            handleChange(e.target.value);
-          }}
-          className="mt-0.5 w-full bg-transparent border-0 border-b border-dashed border-border focus:border-solid focus:border-ink/40 px-0 py-1 text-sm font-medium outline-none transition-colors placeholder:text-muted-foreground/60"
-        />
       </div>
     </div>
   );

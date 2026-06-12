@@ -7,6 +7,9 @@ import { Save } from "lucide-react";
 
 export const Route = createFileRoute("/clients/new")({
   component: NewClientPage,
+  validateSearch: (s: Record<string, unknown>): { name?: string } => ({
+    name: typeof s.name === "string" ? s.name : undefined,
+  }),
 });
 
 const PROPERTY_PRIMARY = ["Homeowner", "Landlord", "Commercial", "Letting agent"] as const;
@@ -23,7 +26,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function NewClientPage() {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
+  const { name: presetName } = Route.useSearch();
+  const [name, setName] = useState(presetName ?? "");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
@@ -147,28 +151,30 @@ function NewClientPage() {
                 );
               })}
             </div>
-            {primaryGroup === "Homeowner" && (
-              <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto pb-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {HOMEOWNER_SUBTYPES.map((p) => {
-                  const active = propertyType === p;
-                  const label = p === "Homeowner" ? "Any" : p.replace("Homeowner, ", "");
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPropertyType(p)}
-                      className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium border transition ${
-                        active
-                          ? "bg-lime/40 text-ink border-lime"
-                          : "bg-transparent text-muted-foreground border-border hover:border-ink/30"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <div className="min-h-[2.25rem]">
+              {primaryGroup === "Homeowner" && (
+                <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto pb-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {HOMEOWNER_SUBTYPES.map((p) => {
+                    const active = propertyType === p;
+                    const label = p === "Homeowner" ? "Any" : p.replace("Homeowner, ", "");
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setPropertyType(p)}
+                        className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium border transition ${
+                          active
+                            ? "bg-lime/40 text-ink border-lime"
+                            : "bg-transparent text-muted-foreground border-border hover:border-ink/30"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </Field>
 
           <Field label="Notes">
@@ -188,16 +194,22 @@ function NewClientPage() {
       </form>
 
       {/* Sticky save bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none">
-        <div className="mx-auto max-w-md px-5 pb-5 pt-3 pointer-events-auto bg-gradient-to-t from-paper via-paper/95 to-transparent">
-          <button
-            type="button"
-            onClick={(e) => save(e as unknown as React.FormEvent)}
-            disabled={!name.trim() || saving}
-            className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.99] transition shadow-lg shadow-ink/10"
-          >
-            <Save className="h-5 w-5" /> {saving ? "Saving…" : "Save customer"}
-          </button>
+      <div
+        className="fixed left-0 right-0 z-30 pointer-events-none"
+        style={{ bottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="mx-auto max-w-md">
+          <div className="h-6 -mb-2 bg-gradient-to-t from-paper to-transparent pointer-events-none" />
+          <div className="px-5 pb-5 pt-2 pointer-events-auto bg-paper">
+            <button
+              type="button"
+              onClick={(e) => save(e as unknown as React.FormEvent)}
+              disabled={!name.trim() || saving}
+              className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.99] transition shadow-lg shadow-ink/10"
+            >
+              <Save className="h-5 w-5" /> {saving ? "Saving…" : "Save customer"}
+            </button>
+          </div>
         </div>
       </div>
     </AppShell>
@@ -216,13 +228,13 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block p-4">
+    <label className="block p-3.5">
       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
         {label}
         {required && <span className="text-lime"> *</span>}
       </span>
       <div className="mt-2">{children}</div>
-      {hint && <p className="mt-1.5 text-[11px] text-destructive">{hint}</p>}
+      {hint && <p className="mt-1.5 text-[11px] text-amber-700">{hint}</p>}
     </label>
   );
 }

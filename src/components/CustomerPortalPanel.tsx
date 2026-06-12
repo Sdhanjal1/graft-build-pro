@@ -21,8 +21,24 @@ import {
   Trash2,
   FileText,
   Loader2,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+type ConfirmTarget =
+  | { type: "regen" }
+  | { type: "delete-doc"; id: string; title: string };
 
 const isUuid = (s: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
@@ -43,10 +59,13 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
   const [docs, setDocs] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadKind, setUploadKind] =
+  const [uploadKind] =
     useState<"certificate" | "service" | "warranty" | "other">("certificate");
   const [serviceType, setServiceType] = useState("");
   const [serviceDate, setServiceDate] = useState("");
+  const [pendingConfirm, setPendingConfirm] = useState<ConfirmTarget | null>(null);
+  const canNativeShare =
+    typeof navigator !== "undefined" && typeof (navigator as any).share === "function";
 
   useEffect(() => {
     if (!isUuid(clientId)) {
@@ -121,11 +140,14 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
     }
   };
 
-  const onRegen = async () => {
-    if (!confirm("Generate a new portal link? The old link will stop working.")) return;
-    const r = await regen({ data: { clientId } });
-    setInfo({ ...info, portal_code: r.portal_code });
-    toast.success("Portal link regenerated");
+  const performRegen = async () => {
+    try {
+      const r = await regen({ data: { clientId } });
+      setInfo({ ...info, portal_code: r.portal_code });
+      toast.success("Portal link regenerated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not regenerate link");
+    }
   };
 
   const onToggleActive = async (active: boolean) => {
@@ -166,10 +188,14 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
     }
   };
 
-  const onDelete = async (id: string) => {
-    if (!confirm("Remove this document?")) return;
-    await delDoc({ data: { documentId: id } });
-    setDocs(docs.filter((d) => d.id !== id));
+  const performDelete = async (id: string) => {
+    try {
+      await delDoc({ data: { documentId: id } });
+      setDocs(docs.filter((d) => d.id !== id));
+      toast.success("Document removed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not delete");
+    }
   };
 
   const onToggleVis = async (id: string, visible: boolean) => {
@@ -201,47 +227,46 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
         <div className="bg-secondary rounded-xl px-3 py-2.5 text-xs font-mono break-all">
           {url}
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        {canNativeShare ? (
+          <button
+            onClick={share}
+            className="w-full rounded-full bg-lime text-ink py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            Share link
+          </button>
+        ) : (
           <button
             onClick={copy}
-            className="rounded-full bg-ink text-paper py-2.5 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
+            className="w-full rounded-full bg-lime text-ink py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5"
           >
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? "Copied" : "Copy link"}
           </button>
-          <button
-            onClick={share}
-            className="rounded-full bg-lime text-ink py-2.5 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-            Share
-          </button>
-        </div>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <a
             href={url}
             target="_blank"
             rel="noreferrer"
-            className="rounded-full border border-border py-2.5 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
+            className="rounded-full border border-border bg-card py-2.5 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
           >
-            <ExternalLink className="h-3.5 w-3.5" /> Preview portal
+            <ExternalLink className="h-3.5 w-3.5" /> Preview
           </a>
           <button
-            onClick={onRegen}
-            className="rounded-full border border-border py-2.5 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
+            onClick={() => setPendingConfirm({ type: "regen" })}
+            className="rounded-full border border-border bg-card py-2.5 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
           >
             <RefreshCcw className="h-3.5 w-3.5" /> Regenerate
           </button>
         </div>
-        <label className="flex items-center justify-between pt-2 border-t border-border">
+        <div className="flex items-center justify-between pt-2 border-t border-border">
           <span className="text-sm font-medium">Portal active</span>
-          <input
-            type="checkbox"
-            checked={info.portal_active}
-            onChange={(e) => onToggleActive(e.target.checked)}
-            className="h-5 w-5 accent-lime"
+          <Switch
+            checked={!!info.portal_active}
+            onCheckedChange={(v) => void onToggleActive(v)}
           />
-        </label>
+        </div>
       </div>
 
       {/* Service reminder */}
@@ -265,7 +290,7 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
         </div>
         <button
           onClick={onSaveReminder}
-          className="w-full rounded-full bg-ink text-paper py-2.5 text-xs font-semibold"
+          className="w-full rounded-full bg-lime text-ink py-2.5 text-xs font-bold"
         >
           Save reminder
         </button>
@@ -277,43 +302,31 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
             Documents in portal
           </p>
-          <div className="flex items-center gap-2">
-            <select
-              value={uploadKind}
-              onChange={(e) => setUploadKind(e.target.value as typeof uploadKind)}
-              className="bg-secondary rounded-full px-2.5 py-1.5 text-xs font-semibold outline-none"
-            >
-              <option value="certificate">Certificate</option>
-              <option value="service">Service report</option>
-              <option value="warranty">Warranty</option>
-              <option value="other">Other</option>
-            </select>
-            <label className="rounded-full bg-lime text-ink px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer">
-              {uploading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Upload className="h-3.5 w-3.5" />
-              )}
-              Upload
-              <input
-                type="file"
-                className="hidden"
-                accept="application/pdf,image/*"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void onUpload(f);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-          </div>
+          <label className="rounded-full bg-lime text-ink px-3 py-1.5 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer">
+            {uploading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Upload className="h-3.5 w-3.5" />
+            )}
+            Upload
+            <input
+              type="file"
+              className="hidden"
+              accept="application/pdf,image/*"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void onUpload(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
         </div>
         {docs.length === 0 ? (
           <p className="text-xs text-muted-foreground py-3 text-center">No documents yet.</p>
         ) : (
           <ul className="divide-y divide-border">
             {docs.map((d) => (
-              <li key={d.id} className="py-2.5 flex items-center gap-2">
+              <li key={d.id} className="py-2.5 flex items-center gap-2.5">
                 <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                 <a
                   href={d.file_url}
@@ -323,17 +336,19 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
                 >
                   {d.title}
                 </a>
-                <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold inline-flex items-center gap-1.5">
-                  <input
-                    type="checkbox"
-                    checked={d.portal_visible}
-                    onChange={(e) => onToggleVis(d.id, e.target.checked)}
-                    className="h-4 w-4 accent-lime"
+                <div className="inline-flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                    Visible
+                  </span>
+                  <Switch
+                    checked={!!d.portal_visible}
+                    onCheckedChange={(v) => void onToggleVis(d.id, v)}
                   />
-                  Visible
-                </label>
+                </div>
                 <button
-                  onClick={() => onDelete(d.id)}
+                  onClick={() =>
+                    setPendingConfirm({ type: "delete-doc", id: d.id, title: d.title })
+                  }
                   className="text-muted-foreground p-1.5"
                   aria-label="Delete"
                 >
@@ -344,6 +359,43 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
           </ul>
         )}
       </div>
+
+      <AlertDialog
+        open={!!pendingConfirm}
+        onOpenChange={(o) => { if (!o) setPendingConfirm(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingConfirm?.type === "regen"
+                ? "Generate a new portal link?"
+                : "Remove this document?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingConfirm?.type === "regen"
+                ? "The old link will stop working immediately. Anyone using the old link won't be able to access the portal."
+                : pendingConfirm?.type === "delete-doc"
+                  ? `"${pendingConfirm.title}" will be deleted from this customer's portal.`
+                  : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const c = pendingConfirm;
+                setPendingConfirm(null);
+                if (!c) return;
+                if (c.type === "regen") void performRegen();
+                else if (c.type === "delete-doc") void performDelete(c.id);
+              }}
+              className="bg-status-overdue text-paper hover:bg-status-overdue/90"
+            >
+              {pendingConfirm?.type === "regen" ? "Regenerate link" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
