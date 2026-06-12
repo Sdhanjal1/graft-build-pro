@@ -321,7 +321,7 @@ function QuoteCard({
 
   const isDraft = quote.status === "pending";
 
-  const className = `rounded-2xl py-5 px-4 flex items-center gap-4 transition active:scale-[0.99] ${
+  const className = `rounded-2xl py-4 px-4 flex items-start gap-3 transition active:scale-[0.99] ${
     quote.status === "overdue"
       ? "bg-ink text-paper border-l-4 border-status-overdue"
       : quote.status === "paid"
@@ -339,43 +339,53 @@ function QuoteCard({
     }
   };
 
+  const isOverdue = quote.status === "overdue";
+  const hasClient = clientName && clientName.toLowerCase() !== "new client";
+  const acceptedMaterials = quote.status === "accepted" ? materialsForQuote(quote).length : 0;
+
   const inner = (
     <>
       <div className="flex-1 min-w-0">
-        <p
-          className={`leading-none tabular-nums ${quote.status === "overdue" ? "text-lime" : "text-ink"}`}
-          style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "2.5rem", letterSpacing: "0.01em" }}
-        >
-          {formatGBP(quote.total)}
-        </p>
-        <p className={`text-sm mt-2 truncate font-medium ${quote.status === "overdue" ? "text-paper" : "text-ink"}`}>
-          {clientName && clientName.toLowerCase() !== "new client"
+        {/* Primary: client name (what you scan for) */}
+        <p className={`text-sm font-semibold truncate ${isOverdue ? "text-paper" : "text-ink"}`}>
+          {hasClient
             ? clientName
             : <span className="text-status-pending">Tap to assign client</span>}
         </p>
-        <p className={`text-[11px] truncate mt-0.5 ${quote.status === "overdue" ? "text-paper/60" : "text-muted-foreground"}`}>{quote.title}</p>
-        {isDraft && (
-          <p className="text-[10px] uppercase tracking-widest font-bold text-ink/60 mt-1.5">
-            Draft · tap to continue
-          </p>
-        )}
-        {quote.status === "accepted" && (() => {
-          const n = materialsForQuote(quote).length;
-          return n > 0 ? (
-            <p className="mt-1.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-widest font-semibold text-ink/70">
+        {/* Secondary: job title */}
+        <p className={`text-[12px] truncate mt-0.5 ${isOverdue ? "text-paper/70" : "text-muted-foreground"}`}>
+          {quote.title}
+        </p>
+        {/* Status / hint chip row */}
+        <div className="mt-2 flex items-center gap-2 flex-wrap">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold ${STATUS_PILL[quote.status]}`}>
+            {STATUS_LABEL[quote.status]}
+          </span>
+          {isDraft && (
+            <span className="text-[10px] uppercase tracking-widest font-bold text-ink/55">
+              Tap to continue
+            </span>
+          )}
+          {acceptedMaterials > 0 && (
+            <span className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-widest font-semibold ${isOverdue ? "text-paper/70" : "text-ink/70"}`}>
               <ShoppingCart className="h-3 w-3" />
-              {n} material{n === 1 ? "" : "s"}
-            </p>
-          ) : null;
-        })()}
+              {acceptedMaterials} material{acceptedMaterials === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
       </div>
-      <div className="shrink-0">
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider font-bold ${STATUS_PILL[quote.status]}`}>
-          {STATUS_LABEL[quote.status]}
-        </span>
+      {/* Right: amount, tabular, right-aligned */}
+      <div className="shrink-0 text-right">
+        <p
+          className={`leading-none tabular-nums ${isOverdue ? "text-lime" : "text-ink"}`}
+          style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.75rem", letterSpacing: "0.01em" }}
+        >
+          {formatGBP(quote.total)}
+        </p>
       </div>
     </>
   );
+
 
   const sharedProps = {
     className,
