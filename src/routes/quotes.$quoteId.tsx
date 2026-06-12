@@ -861,18 +861,19 @@ function QuoteDetail() {
       {/* Sticky bottom action bar — single primary action.
           Hides on downscroll, returns on upscroll / near bottom (Plan 1). */}
       <div
-        className={`fixed bottom-20 inset-x-0 z-40 pointer-events-none transition-transform duration-200 ${barVisible ? "translate-y-0" : "translate-y-[140%]"}`}
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        className={`fixed inset-x-0 z-40 pointer-events-none transition-transform duration-200 ${barVisible ? "translate-y-0" : "translate-y-[140%]"}`}
+        style={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }}
       >
-        <div className="mx-auto max-w-md px-4 pt-3 pointer-events-auto bg-gradient-to-t from-paper via-paper to-paper/0">
-          <div className="flex items-center gap-2">
+        <div className="mx-auto max-w-md px-4 pointer-events-auto">
+          <div className="h-6 -mb-2 bg-gradient-to-t from-paper via-paper/80 to-paper/0" aria-hidden />
+          <div className="bg-paper pt-2 pb-1 flex items-center gap-2">
             {showChaseSecondary && waHref && (
               <a
                 href={waHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 onPointerDown={() => feedback("tap")}
-                className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-ink/5 ring-1 ring-ink/10 text-ink px-4 py-3.5 text-xs font-bold active:scale-[0.98]"
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-card border border-border text-ink px-4 py-3.5 text-xs font-bold active:scale-[0.98]"
                 aria-label="Send chaser on WhatsApp"
               >
                 <MessageCircle className="h-4 w-4" />
