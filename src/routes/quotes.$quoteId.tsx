@@ -296,8 +296,9 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
     }
   };
-  const removeRecordedDeposit = async () => {
-    if (!window.confirm("Remove the recorded deposit? The balance will go back to the full amount.")) return;
+  const removeRecordedDeposit = () => setConfirmRemoveDeposit(true);
+  const confirmRemoveRecordedDeposit = async () => {
+    setConfirmRemoveDeposit(false);
     try {
       await removeDepositFn({ data: { quoteId: quote.id } });
       setDepositPaid(0);
@@ -307,8 +308,9 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not remove deposit");
     }
   };
-  const markUnpaid = async () => {
-    if (!window.confirm("Mark this quote as unpaid? It will go back to awaiting payment.")) return;
+  const markUnpaid = () => setConfirmMarkUnpaid(true);
+  const confirmMarkUnpaidAction = async () => {
+    setConfirmMarkUnpaid(false);
     try {
       await setQuoteStatus(quote.id, "completed");
       setStatusState("completed");
@@ -317,6 +319,7 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
     }
   };
+
   // (confirmSchedule removed)
   const markPaid = async (m: PaymentMethod) => {
     try {
