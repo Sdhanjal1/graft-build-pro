@@ -275,7 +275,7 @@ function PortalPage() {
         "invoice",
       );
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not generate PDF");
+      toast.error(e instanceof Error ? e.message : "Could not generate PDF");
     }
   };
 
