@@ -530,7 +530,7 @@ function PortalPage() {
       )}
 
 
-      <footer className="text-center mt-8 mb-4 text-[10px] text-muted-foreground">
+      <footer className={`text-center mt-8 text-[10px] text-muted-foreground ${showBottomBar ? "mb-28" : "mb-4"}`}>
         <a href="https://quottr.co.uk" className="hover:underline">
           Powered by <span className="text-lime">Quottr</span>
         </a>
@@ -544,15 +544,16 @@ function PortalPage() {
                 <button
                   onClick={() => onRespond("declined")}
                   disabled={responding}
-                  className="flex-1 h-12 rounded-full border border-border text-ink text-sm font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  aria-label="Decline quote"
+                  className="w-24 h-12 rounded-full border border-border text-ink text-sm font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 shrink-0"
                 >
-                  <X className="h-4 w-4" /> Decline
+                  <X className="h-4 w-4" /> No
                 </button>
                 <button
                   onClick={() => onRespond("accepted")}
                   onPointerDown={() => feedback("tap")}
                   disabled={responding}
-                  className="flex-[2] h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3"
+                  className="flex-1 h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3"
                 >
                   {responding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   <span className="truncate">
@@ -574,7 +575,6 @@ function PortalPage() {
               <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
                 <Check className="h-4 w-4" /> Accepted
               </div>
-
             ) : (
               <div className="h-12 rounded-full bg-muted text-muted-foreground text-sm font-semibold inline-flex items-center justify-center gap-1.5 w-full">
                 Declined
@@ -583,6 +583,26 @@ function PortalPage() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={declineOpen} onOpenChange={setDeclineOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Decline this quote?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your tradesperson will be notified that you've declined.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { setDeclineOpen(false); void performRespond("declined"); }}
+              className="bg-status-overdue text-paper hover:bg-status-overdue/90"
+            >
+              Decline quote
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
