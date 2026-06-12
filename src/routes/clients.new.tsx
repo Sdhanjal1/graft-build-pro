@@ -151,28 +151,30 @@ function NewClientPage() {
                 );
               })}
             </div>
-            {primaryGroup === "Homeowner" && (
-              <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto pb-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {HOMEOWNER_SUBTYPES.map((p) => {
-                  const active = propertyType === p;
-                  const label = p === "Homeowner" ? "Any" : p.replace("Homeowner, ", "");
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPropertyType(p)}
-                      className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium border transition ${
-                        active
-                          ? "bg-lime/40 text-ink border-lime"
-                          : "bg-transparent text-muted-foreground border-border hover:border-ink/30"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <div className="min-h-[2.25rem]">
+              {primaryGroup === "Homeowner" && (
+                <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto pb-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {HOMEOWNER_SUBTYPES.map((p) => {
+                    const active = propertyType === p;
+                    const label = p === "Homeowner" ? "Any" : p.replace("Homeowner, ", "");
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setPropertyType(p)}
+                        className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium border transition ${
+                          active
+                            ? "bg-lime/40 text-ink border-lime"
+                            : "bg-transparent text-muted-foreground border-border hover:border-ink/30"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </Field>
 
           <Field label="Notes">
