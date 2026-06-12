@@ -259,6 +259,14 @@ function NewQuotePage() {
     };
   }, []);
 
+  // When arriving via "Or type instead", focus the textarea immediately.
+  useEffect(() => {
+    if (typeParam) {
+      const t = setTimeout(() => textareaRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [typeParam]);
+
   // ?voice=1 means "show the overlay in idle, waiting for the user gesture".
   // iOS Safari requires getUserMedia to be invoked from a real user gesture,
   // so the user taps the lime mic in the overlay to start. Derived from the
