@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const SRC = readFileSync(
-  resolve(import.meta.dir, "..", "quotes.new.tsx"),
+  resolve(import.meta.dir, "..", "src", "routes", "quotes.new.tsx"),
   "utf8",
 );
 
