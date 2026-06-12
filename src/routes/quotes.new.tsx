@@ -86,6 +86,7 @@ async function blobToBase64(blob: Blob): Promise<string> {
 
 type QuotesNewSearch = {
   voice?: 1;
+  type?: 1;
   clientId?: string;
   edit?: string;
   prefill?: string;
@@ -95,6 +96,7 @@ export const Route = createFileRoute("/quotes/new")({
   component: NewQuotePage,
   validateSearch: (s: Record<string, unknown>): QuotesNewSearch => ({
     ...(s.voice === 1 || s.voice === "1" ? { voice: 1 as const } : {}),
+    ...(s.type === 1 || s.type === "1" || s.type === true || s.type === "true" ? { type: 1 as const } : {}),
     ...(typeof s.clientId === "string" ? { clientId: s.clientId } : {}),
     ...(typeof s.edit === "string" ? { edit: s.edit } : {}),
     ...(typeof s.prefill === "string" && s.prefill ? { prefill: s.prefill } : {}),
@@ -110,7 +112,7 @@ type PendingItem = { id: string; text: string };
 function NewQuotePage() {
   const navigate = useNavigate();
   const router = useRouter();
-  const { voice: voiceParam, clientId, edit: editId, prefill } = Route.useSearch();
+  const { voice: voiceParam, type: typeParam, clientId, edit: editId, prefill } = Route.useSearch();
   const prefillAppliedRef = useRef(false);
   const [editLoading, setEditLoading] = useState<boolean>(() => !!editId && !getQuote(editId));
   const [editError, setEditError] = useState<string | null>(null);
@@ -172,7 +174,7 @@ function NewQuotePage() {
   const lastBlobRef = useRef<{ blob: Blob; mimeType: string } | null>(null);
   const draftRef = useRef<HTMLDivElement | null>(null);
   const customerRef = useRef<HTMLDivElement | null>(null);
-  const [showTyping, setShowTyping] = useState(false);
+  const [showTyping, setShowTyping] = useState(!!typeParam);
   const [confirmTrashIdx, setConfirmTrashIdx] = useState<number | null>(null);
   const originalDraftRef = useRef<string>("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -256,6 +258,14 @@ function NewQuotePage() {
       streamRef.current = null;
     };
   }, []);
+
+  // When arriving via "Or type instead", focus the textarea immediately.
+  useEffect(() => {
+    if (typeParam) {
+      const t = setTimeout(() => textareaRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [typeParam]);
 
   // ?voice=1 means "show the overlay in idle, waiting for the user gesture".
   // iOS Safari requires getUserMedia to be invoked from a real user gesture,
@@ -1269,7 +1279,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
         <form
         id="new-quote-form"
-        className="px-5 mt-4 space-y-4 pb-40"
+        className={`px-5 mt-4 space-y-4 ${draft ? "pb-40" : "pb-8"}`}
         onSubmit={(e) => {
           e.preventDefault();
           if (draft) {
@@ -1284,55 +1294,90 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
         {!draft && (
           <div className="space-y-3">
-            {/* Voice — primary entry */}
-            <button
-              type="button"
-              onClick={handleVoiceStart}
-              className="w-full bg-lime text-ink rounded-2xl px-5 py-5 active:scale-[0.99] transition flex items-center gap-4 text-left shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)]"
-            >
-              <div className="h-12 w-12 rounded-full bg-ink text-lime flex items-center justify-center shrink-0">
-                <Mic className="h-6 w-6" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-base leading-tight">Speak the job</p>
-                <p className="text-xs text-ink/70 mt-0.5">Describe it out loud — Quottr writes the quote.</p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-ink/60 shrink-0" />
-            </button>
+            {typeParam ? (
+              <>
+                {/* Type — primary entry */}
+                <div className="card-surface p-4">
+                  <label
+                    htmlFor="quote-desc"
+                    className="block text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5"
+                  >
+                    Describe the job
+                  </label>
+                  <textarea
+                    id="quote-desc"
+                    ref={textareaRef}
+                    value={desc}
+                    onChange={(e) => setDesc(e.target.value)}
+                    rows={5}
+                    className="w-full rounded-2xl bg-secondary text-ink p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-lime resize-y"
+                    placeholder="e.g. Build single-storey rear extension 4m x 3m — strip foundations"
+                  />
+                </div>
 
-            <RotatingPrompts className="" />
-
-            {/* Type fallback — collapsed by default */}
-            {!showTyping && !desc ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setShowTyping(true);
-                  setTimeout(() => textareaRef.current?.focus(), 0);
-                }}
-                className="w-full inline-flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground hover:text-ink py-2"
-              >
-                <Keyboard className="h-3.5 w-3.5" />
-                Or type it instead
-              </button>
-            ) : (
-              <div className="card-surface p-4">
-                <label
-                  htmlFor="quote-desc"
-                  className="block text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5"
+                {/* Voice — secondary */}
+                <button
+                  type="button"
+                  onClick={handleVoiceStart}
+                  className="w-full inline-flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground hover:text-ink py-2"
                 >
-                  Describe the job
-                </label>
-                <textarea
-                  id="quote-desc"
-                  ref={textareaRef}
-                  value={desc}
-                  onChange={(e) => setDesc(e.target.value)}
-                  rows={5}
-                  className="w-full rounded-2xl bg-secondary text-ink p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-lime resize-y"
-                  placeholder="e.g. Build single-storey rear extension 4m x 3m — strip foundations"
-                />
-              </div>
+                  <Mic className="h-3.5 w-3.5" />
+                  Or speak it instead
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Voice — primary entry */}
+                <button
+                  type="button"
+                  onClick={handleVoiceStart}
+                  className="w-full bg-lime text-ink rounded-2xl px-5 py-5 active:scale-[0.99] transition flex items-center gap-4 text-left shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)]"
+                >
+                  <div className="h-12 w-12 rounded-full bg-ink text-lime flex items-center justify-center shrink-0">
+                    <Mic className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-base leading-tight">Speak the job</p>
+                    <p className="text-xs text-ink/70 mt-0.5">Describe it out loud — Quottr writes the quote.</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-ink/60 shrink-0" />
+                </button>
+
+                <RotatingPrompts className="" />
+
+                {/* Type fallback — collapsed by default */}
+                {!showTyping && !desc ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowTyping(true);
+                      setTimeout(() => textareaRef.current?.focus(), 0);
+                    }}
+                    className="w-full inline-flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground hover:text-ink py-2"
+                  >
+                    <Keyboard className="h-3.5 w-3.5" />
+                    Or type it instead
+                  </button>
+                ) : (
+                  <div className="card-surface p-4">
+                    <label
+                      htmlFor="quote-desc"
+                      className="block text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5"
+                    >
+                      Describe the job
+                    </label>
+                    <textarea
+                      id="quote-desc"
+                      ref={textareaRef}
+                      value={desc}
+                      onChange={(e) => setDesc(e.target.value)}
+                      rows={5}
+                      className="w-full rounded-2xl bg-secondary text-ink p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-lime resize-y"
+                      placeholder="e.g. Build single-storey rear extension 4m x 3m — strip foundations"
+                    />
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -1359,8 +1404,8 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
 
         {!draft && (
-          <div className="fixed bottom-20 inset-x-0 z-30 px-3 safe-bottom pointer-events-none">
-            <div className="mx-auto max-w-md pointer-events-auto space-y-2">
+          <div className="mt-2">
+            <div className="mx-auto max-w-md space-y-2">
               {subBlocked && (
                 <div className="rounded-2xl bg-paper/95 backdrop-blur border border-status-overdue/40 px-3.5 py-2.5 flex items-center gap-2.5 shadow-lg">
                   <AlertCircle className="h-4 w-4 text-status-overdue shrink-0" />

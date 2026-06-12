@@ -300,6 +300,7 @@ function AppHomePage() {
               <RotatingPrompts className="mt-1 text-sm text-paper/85 leading-snug" />
               <Link
                 to="/quotes/new"
+                search={{ type: 1 }}
                 className="inline-block mt-3 text-xs text-paper/60 hover:text-lime underline underline-offset-4 decoration-paper/30"
               >
                 Or type instead
