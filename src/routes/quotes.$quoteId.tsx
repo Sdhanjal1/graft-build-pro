@@ -665,7 +665,7 @@ function QuoteDetail() {
 
 
       {userProfile.quote_intro && (
-        <section className="px-5 mt-6">
+        <section className="px-5 mt-5">
           <div className="card-surface p-5">
             <p className="text-sm leading-relaxed italic text-muted-foreground">{userProfile.quote_intro}</p>
           </div>
