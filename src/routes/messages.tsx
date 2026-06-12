@@ -163,7 +163,7 @@ function MessagesInbox() {
               return (
                 <li key={r.id}>
                   <div
-                    className={`relative card-surface p-3.5 flex items-start gap-3 ${unread ? "before:absolute before:left-0 before:top-3 before:bottom-3 before:w-0.5 before:bg-lime before:rounded-full" : ""}`}
+                    className={`relative card-surface p-3 flex items-start gap-3 ${unread ? "before:absolute before:left-0 before:top-3 before:bottom-3 before:w-0.5 before:bg-lime before:rounded-full" : ""}`}
                   >
                     <div className="h-10 w-10 rounded-full bg-lime/40 flex items-center justify-center shrink-0">
                       {r.source === "voice" ? <VoiceWaveform size={16} className="text-ink" /> : <FileText className="h-4 w-4 text-ink" />}
