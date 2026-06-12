@@ -1,13 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { notifyUser } from "@/lib/push.server";
 
 // Public, fetch a pro's basic info from their id (used on the request page before auth)
 export const getProPublicInfo = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ proId: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: profile, error } = await supabaseAdmin
       .from("profiles")
       .select("id, business_name, full_name, trade_type, town")
@@ -32,6 +32,7 @@ export const createQuoteRequest = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabaseAdmin
       .from("quote_requests")
       .insert({
@@ -73,11 +74,12 @@ export const markRequestRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
     const { error } = await supabase
       .from("quote_requests")
       .update({ read_at: new Date().toISOString(), status: "seen" })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("pro_user_id", userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

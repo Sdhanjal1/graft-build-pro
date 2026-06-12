@@ -38,7 +38,14 @@ export const Route = createFileRoute("/api/public/payments/connect-webhook")({
     handlers: {
       POST: async ({ request }) => {
         const secret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
-        if (!secret) return new Response("Server not configured", { status: 500 });
+        if (!secret) {
+          // Return 200 (not 500) so Stripe doesn't retry for 3 days when
+          // the secret hasn't been configured yet. Mirrors the platform
+          // webhook. Signature verification + payment-event routing below
+          // remain intact when the secret IS configured.
+          console.warn("[connect-webhook] STRIPE_CONNECT_WEBHOOK_SECRET not set; ignoring event");
+          return new Response("ok (not configured)", { status: 200 });
+        }
 
         const rawBody = await request.text();
         const sig = request.headers.get("stripe-signature");

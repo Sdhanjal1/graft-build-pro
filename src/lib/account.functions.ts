@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 /**
  * Permanently delete the signed-in user's account and all associated data.
@@ -14,6 +13,8 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { userId } = context as { userId: string };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
 
     // Tables with a user_id column, wipe before deleting the auth user.
     const tables = [

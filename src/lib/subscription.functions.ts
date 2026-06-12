@@ -1,12 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-// Reuse the same env-picking logic as invoice checkout: prefer live key
-// when claimed, otherwise sandbox.
+// Reuse the same env-picking logic as invoice checkout: prefer the live
+// BYOK key when claimed, otherwise sandbox. Must match the env-var name
+// used by payments.functions.ts / connect.functions.ts — using a
+// different var here silently routes live subs to sandbox.
 function getStripeEnv() {
-  const liveKey = process.env.STRIPE_API_KEY;
+  const liveKey = process.env.STRIPE_BYOK_SECRET_KEY;
   if (liveKey) return { key: liveKey, env: "live" as const };
   const sandboxKey = process.env.STRIPE_SANDBOX_API_KEY;
   if (!sandboxKey) throw new Error("Stripe is not configured");
@@ -136,6 +137,7 @@ export const startSubscriptionCheckout = createServerFn({ method: "POST" })
 
     // Stash the customer id eagerly so we can open the portal even before
     // the first webhook lands.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin
       .from("subscriptions")
       .update({ stripe_customer_id: customerId, environment: env })
