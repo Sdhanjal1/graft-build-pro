@@ -1269,7 +1269,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
         <form
         id="new-quote-form"
-        className="px-5 mt-4 space-y-4 pb-64"
+        className="px-5 mt-4 space-y-4 pb-40"
         onSubmit={(e) => {
           e.preventDefault();
           if (draft) {
