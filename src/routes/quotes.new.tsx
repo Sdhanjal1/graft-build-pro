@@ -2039,6 +2039,118 @@ function MicLevelRings({
   );
 }
 
+/**
+ * MicLevelBars — 5-bar volume meter driven by the recording stream's RMS.
+ * Used as the "Listening…" cue. Visual only — the parent's aria-live region
+ * carries the announcement; bars are aria-hidden.
+ *
+ * On iOS, AudioContext must be created/resumed inside a user gesture. The
+ * parent's startRecording is gesture-initiated, so the stream is already
+ * primed by the time this mounts.
+ */
+function MicLevelBars({
+  streamRef,
+  active,
+}: {
+  streamRef?: React.RefObject<MediaStream | null>;
+  active: boolean;
+}) {
+  const barRefs = [
+    useRef<HTMLSpanElement | null>(null),
+    useRef<HTMLSpanElement | null>(null),
+    useRef<HTMLSpanElement | null>(null),
+    useRef<HTMLSpanElement | null>(null),
+    useRef<HTMLSpanElement | null>(null),
+  ];
+  const levelRef = useRef(0);
+  const thresholds = [0.05, 0.12, 0.22, 0.35, 0.5];
+
+  useEffect(() => {
+    if (!active) return;
+    const stream = streamRef?.current;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const AC: typeof AudioContext | undefined = (window as any).AudioContext || (window as any).webkitAudioContext;
+    let ctx: AudioContext | null = null;
+    let analyser: AnalyserNode | null = null;
+    let source: MediaStreamAudioSourceNode | null = null;
+    let data: Uint8Array | null = null;
+    let raf = 0;
+    let stopped = false;
+
+    if (stream && AC) {
+      try {
+        ctx = new AC();
+        // iOS sometimes starts contexts suspended even from a gesture chain.
+        if (ctx.state === "suspended") { void ctx.resume().catch(() => { /* noop */ }); }
+        source = ctx.createMediaStreamSource(stream);
+        analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.6;
+        source.connect(analyser);
+        data = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount));
+      } catch {
+        ctx = null;
+        analyser = null;
+      }
+    }
+
+    const tick = () => {
+      if (stopped) return;
+      let level = 0;
+      if (analyser && data) {
+        analyser.getByteTimeDomainData(data as Uint8Array<ArrayBuffer>);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = (data[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / data.length);
+        const target = Math.min(1, rms * 4);
+        levelRef.current += (target - levelRef.current) * 0.3;
+        level = levelRef.current;
+      }
+      for (let i = 0; i < barRefs.length; i++) {
+        const el = barRefs[i].current;
+        if (!el) continue;
+        const lit = level >= thresholds[i];
+        el.style.backgroundColor = lit ? "rgb(190 242 100)" /* lime */ : "rgba(245,245,245,0.18)";
+        const scale = lit ? 1 + Math.min(0.6, (level - thresholds[i]) * 1.6) : 0.55;
+        el.style.transform = `scaleY(${scale.toFixed(3)})`;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+
+    return () => {
+      stopped = true;
+      cancelAnimationFrame(raf);
+      try { source?.disconnect(); } catch { /* noop */ }
+      try { analyser?.disconnect(); } catch { /* noop */ }
+      try { ctx?.close(); } catch { /* noop */ }
+      for (const r of barRefs) {
+        if (r.current) {
+          r.current.style.backgroundColor = "rgba(245,245,245,0.18)";
+          r.current.style.transform = "scaleY(0.55)";
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, streamRef]);
+
+  return (
+    <span className="inline-flex items-end gap-[3px] h-3" aria-hidden="true">
+      {barRefs.map((ref, i) => (
+        <span
+          key={i}
+          ref={ref}
+          className="block w-[3px] h-3 rounded-full origin-bottom transition-colors duration-100 will-change-transform"
+          style={{ backgroundColor: "rgba(245,245,245,0.18)", transform: "scaleY(0.55)" }}
+        />
+      ))}
+    </span>
+  );
+}
+
 function VoiceOverlay({
   recording,
   transcribing,
