@@ -57,15 +57,16 @@ const tileMatches = (tile: TileKey, q: Quote): boolean => {
   return false;
 };
 
+// Three visual states only: neutral, positive, danger.
+// Status meaning is carried by the label text + the card's left border colour.
 const STATUS_PILL: Record<QuoteStatus, string> = {
-  pending: "bg-ink/10 text-ink",
-  sent: "bg-ink/10 text-ink",
-  accepted: "bg-lime/25 text-ink border border-lime",
-  declined: "bg-ink/10 text-muted-foreground line-through",
-  completed: "bg-ink/10 text-ink",
+  pending: "bg-ink/8 text-muted-foreground",
+  sent: "bg-ink/8 text-muted-foreground",
+  accepted: "bg-lime/30 text-ink",
+  declined: "bg-ink/8 text-muted-foreground line-through",
+  completed: "bg-ink/8 text-muted-foreground",
   paid: "bg-lime text-ink",
   overdue: "bg-status-overdue text-white",
-
 };
 
 
