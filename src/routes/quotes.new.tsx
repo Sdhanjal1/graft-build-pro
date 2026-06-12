@@ -1200,6 +1200,13 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           onStart={handleVoiceStart}
           onStop={stopRecording}
           onClose={handleVoiceClose}
+          onTypeInstead={() => {
+            handleVoiceClose();
+            requestAnimationFrame(() => {
+              textareaRef.current?.focus();
+              textareaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+          }}
           onRetryTranscription={lastBlobRef.current ? retryTranscription : undefined}
           onUpdateItem={(index, patch) => {
             setLiveItems((prev) => {
