@@ -1,11 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { notifyUser } from "@/lib/push.server";
 
 const CLIENT_DOCS_BUCKET = "client-docs";
 const SIGNED_URL_TTL = 60 * 60; // 1 hour
+
+// Lazily resolve the admin client so client.server.ts never ends up in the
+// client module graph at build time.
+async function getAdmin() {
+  const mod = await import("@/integrations/supabase/client.server");
+  return mod.supabaseAdmin;
+}
 
 // Convert a stored file_url (either a storage path or a legacy public URL)
 // into a short-lived signed download URL. Returns null on failure.
@@ -21,7 +27,8 @@ function storagePathFromStored(stored: string): string | null {
 async function signClientDoc(stored: string): Promise<string> {
   const path = storagePathFromStored(stored);
   if (!path) return stored;
-  const { data, error } = await supabaseAdmin.storage
+  const admin = await getAdmin();
+  const { data, error } = await admin.storage
     .from(CLIENT_DOCS_BUCKET)
     .createSignedUrl(path, SIGNED_URL_TTL);
   if (error || !data) return "";
@@ -47,6 +54,7 @@ function assertPortalNotExpired(portal_issued_at: string | null | undefined) {
 export const getClientPortalData = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ code: z.string().min(8).max(64) }).parse(d))
   .handler(async ({ data }) => {
+    const supabaseAdmin = await getAdmin();
     const { data: client, error } = await supabaseAdmin
       .from("clients")
       .select("id, user_id, name, address, portal_code, portal_active, portal_issued_at, service_due_date, service_type")
@@ -107,6 +115,7 @@ export const postClientPortalMessage = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data }) => {
+    const supabaseAdmin = await getAdmin();
     const { data: client } = await supabaseAdmin
       .from("clients")
       .select("id, user_id, portal_active, portal_issued_at")
@@ -157,6 +166,7 @@ export const respondQuoteFromPortal = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data }) => {
+    const supabaseAdmin = await getAdmin();
     const { data: client } = await supabaseAdmin
       .from("clients")
       .select("id, user_id, name, portal_active, portal_issued_at")
@@ -219,7 +229,8 @@ export const regeneratePortalCode = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("clients")
       .update({ portal_code: code, portal_issued_at: new Date().toISOString() })
-      .eq("id", data.clientId);
+      .eq("id", data.clientId)
+      .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
     return { portal_code: code };
   });
@@ -234,7 +245,8 @@ export const togglePortalActive = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("clients")
       .update({ portal_active: data.active })
-      .eq("id", data.clientId);
+      .eq("id", data.clientId)
+      .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -249,7 +261,8 @@ export const toggleQuotePortalVisible = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("quotes")
       .update({ portal_visible: data.visible })
-      .eq("id", data.quoteId);
+      .eq("id", data.quoteId)
+      .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -264,7 +277,8 @@ export const toggleDocumentPortalVisible = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("client_documents")
       .update({ portal_visible: data.visible })
-      .eq("id", data.documentId);
+      .eq("id", data.documentId)
+      .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -326,7 +340,8 @@ export const deleteClientDocument = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("client_documents")
       .delete()
-      .eq("id", data.documentId);
+      .eq("id", data.documentId)
+      .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -362,7 +377,8 @@ export const updateServiceReminder = createServerFn({ method: "POST" })
         service_type: data.service_type,
         service_due_date: data.service_due_date,
       })
-      .eq("id", data.clientId);
+      .eq("id", data.clientId)
+      .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -388,6 +404,16 @@ export const sendProClientMessage = createServerFn({ method: "POST" })
     z.object({ clientId: z.string().uuid(), body: z.string().min(1).max(4000) }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    // Verify the client belongs to the authenticated pro before inserting,
+    // so a forged clientId can't be used to post into someone else's thread.
+    const { data: owned } = await context.supabase
+      .from("clients")
+      .select("id")
+      .eq("id", data.clientId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (!owned) throw new Error("Client not found");
+
     const { data: row, error } = await context.supabase
       .from("client_portal_messages")
       .insert({
