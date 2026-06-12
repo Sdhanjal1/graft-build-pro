@@ -620,7 +620,7 @@ function QuoteDetail() {
 
 
 
-      {wasJustSent && (
+      {showSentBanner && (
         <section className="px-5 mt-3">
           <div className="rounded-2xl bg-lime/15 border border-lime/40 px-4 py-3 flex items-center gap-3">
             <span className="h-8 w-8 rounded-full bg-lime/30 flex items-center justify-center shrink-0">
