@@ -119,7 +119,7 @@ function OnboardingWizard() {
         </header>
       )}
 
-      <main className="flex-1 px-5 pt-8 pb-10 flex flex-col">
+      <main className="flex-1 px-5 pt-6 pb-8 flex flex-col">
         {step === 1 && (
           <StepShell>
             <h1 className="text-4xl leading-tight">7 quick questions. Then quote in seconds.</h1>
