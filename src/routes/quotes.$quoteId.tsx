@@ -584,46 +584,13 @@ function QuoteDetail() {
 
   return (
     <AppShell>
-      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" compact right={<StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />} />
+      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" compact />
 
-      {/* Money summary card — glance-level total at the top */}
-      <div className="mx-5 mt-4 p-4 rounded-2xl bg-card border border-border space-y-3">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Subtotal</p>
-            <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP(quote.subtotal || 0)}</p>
-          </div>
-          {userProfile.vat_registered && (
-            <div>
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">VAT (20%)</p>
-              <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP((quote.subtotal || 0) * 0.2)}</p>
-            </div>
-          )}
-        </div>
-        <div className="pt-3 border-t border-border flex items-center justify-between">
-          <p className="text-sm font-semibold text-ink">Total</p>
-          <p className="text-2xl font-bold text-ink num">{formatGBP(quote.total || 0)}</p>
-        </div>
-        {timing === "deposit_then_balance" && configuredDeposit > 0 && (
-          <div className="pt-3 space-y-2 border-t border-border">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Deposit due</span>
-              <span className="font-bold text-status-pending num">{formatGBP(configuredDeposit)}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Balance</span>
-              <span className="font-bold text-ink num">{formatGBP((quote.total || 0) - configuredDeposit)}</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-
-
-      {showSentBanner && (
-        <section className="px-5 mt-3">
-          <div className="rounded-2xl bg-lime/15 border border-lime/40 px-4 py-3 flex items-center gap-3">
-            <span className="h-8 w-8 rounded-full bg-lime/30 flex items-center justify-center shrink-0">
+      {/* Money summary card — glance-level total + status at the top */}
+      <div className="mx-5 mt-4 rounded-2xl bg-card border border-border overflow-hidden">
+        {showSentBanner && (
+          <div className="bg-lime/15 px-4 py-3 flex items-center gap-3 border-b border-border/60">
+            <span className="h-8 w-8 rounded-full bg-lime/40 flex items-center justify-center shrink-0">
               <Check className="h-4 w-4 text-ink" strokeWidth={3} />
             </span>
             <div className="min-w-0">
@@ -631,11 +598,46 @@ function QuoteDetail() {
               <p className="text-[11px] text-muted-foreground">We'll let you know when they open it.</p>
             </div>
           </div>
-        </section>
-      )}
-
-
-
+        )}
+        <div className="p-5 divide-y divide-border/60">
+          <div className="pb-4 flex items-start justify-between gap-3">
+            <div className="grid grid-cols-2 gap-4 flex-1 min-w-0">
+              <div>
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Subtotal</p>
+                <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP(quote.subtotal || 0)}</p>
+              </div>
+              {userProfile.vat_registered && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">VAT (20%)</p>
+                  <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP((quote.subtotal || 0) * 0.2)}</p>
+                </div>
+              )}
+            </div>
+            <StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />
+          </div>
+          <div className="py-4 flex items-center justify-between">
+            <p className="text-sm font-semibold text-ink inline-flex items-center gap-1.5">
+              {status === "paid" && <Check className="h-4 w-4 text-status-paid" strokeWidth={3} />}
+              Total
+            </p>
+            <p className={`text-2xl font-bold num ${status === "paid" ? "text-status-paid" : "text-ink"}`}>
+              {formatGBP(quote.total || 0)}
+            </p>
+          </div>
+          {timing === "deposit_then_balance" && configuredDeposit > 0 && (
+            <div className="pt-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Deposit due</span>
+                <span className="font-bold text-status-pending num">{formatGBP(configuredDeposit)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Balance</span>
+                <span className="font-bold text-ink num">{formatGBP((quote.total || 0) - configuredDeposit)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {status === "declined" && (
         <section className="px-5 mt-5">
@@ -648,51 +650,44 @@ function QuoteDetail() {
       {client && (
         <section className="px-5 mt-5">
           <Link to="/clients/$clientId" params={{ clientId: client.id }} className="card-surface p-4 flex items-center gap-3">
-            <div className="h-11 w-11 rounded-full bg-lime/30 flex items-center justify-center text-ink font-bold">
+            <div className="h-10 w-10 rounded-full bg-lime/30 flex items-center justify-center text-ink font-bold">
               {client.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm">{client.name}</p>
               <p className="text-xs text-muted-foreground truncate">{client.address}</p>
             </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
           </Link>
         </section>
       )}
 
-
-
-
-
-
       {userProfile.quote_intro && (
-        <section className="px-5 mt-5">
-          <div className="card-surface p-5">
-            <p className="text-sm leading-relaxed italic text-muted-foreground">{userProfile.quote_intro}</p>
-          </div>
-        </section>
+        <p className="px-6 mt-5 text-sm leading-relaxed italic text-muted-foreground">
+          {userProfile.quote_intro}
+        </p>
       )}
 
+      {/* Job description + Itemised — single divided card */}
       <section className="px-5 mt-5">
-        <div className="card-surface p-5">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Job description</p>
-          <p className="text-sm mt-2 leading-relaxed">{quote.job_description}</p>
-        </div>
-      </section>
-
-      <section className="px-5 mt-5">
-        <div className="card-surface overflow-hidden">
-          <div className="px-5 pt-4 pb-2">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Itemised</p>
+        <div className="card-surface overflow-hidden divide-y divide-border">
+          <div className="p-5">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Job description</p>
+            <p className="text-sm mt-2 leading-relaxed">{quote.job_description}</p>
           </div>
-          <LineItemsEditor
-            quote={quote}
-            vatRegistered={userProfile.vat_registered}
-            depositPaid={status !== "paid" ? depositPaid : 0}
-            onChange={(items) => {
-              quote.line_items = items;
-            }}
-          />
-
+          <div>
+            <div className="px-5 pt-4 pb-2">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Itemised</p>
+            </div>
+            <LineItemsEditor
+              quote={quote}
+              vatRegistered={userProfile.vat_registered}
+              depositPaid={status !== "paid" ? depositPaid : 0}
+              onChange={(items) => {
+                quote.line_items = items;
+              }}
+            />
+          </div>
         </div>
       </section>
 
@@ -705,7 +700,7 @@ function QuoteDetail() {
           aria-label="Change payment terms"
         >
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms · tap to change</p>
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
             <p className="text-sm font-bold text-ink leading-tight">
               {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
             </p>
@@ -742,21 +737,18 @@ function QuoteDetail() {
       )}
 
       {(userProfile.quote_footer || (userProfile.show_signature && (userProfile.signature_name || userProfile.full_name))) && (
-        <section className="px-5 mt-5">
-          <div className="px-1 space-y-2">
-            {userProfile.quote_footer && (
-              <p className="text-[11px] text-muted-foreground leading-relaxed">{userProfile.quote_footer}</p>
-            )}
-            {userProfile.show_signature && (userProfile.signature_name || userProfile.full_name) && (
-              <p className="text-[11px] text-muted-foreground">
-                Signed{" "}
-                <span className="text-sm text-ink" style={{ fontFamily: "'Caveat', 'Bradley Hand', cursive" }}>
-                  {userProfile.signature_name || userProfile.full_name}
-                </span>
-                {" · "}{userProfile.business_name}
-              </p>
-            )}
-          </div>
+        <section className="px-5 mt-5 space-y-2">
+          {userProfile.quote_footer && (
+            <p className="text-[11px] text-muted-foreground leading-relaxed">{userProfile.quote_footer}</p>
+          )}
+          {userProfile.show_signature && (userProfile.signature_name || userProfile.full_name) && (
+            <p className="text-[11px] text-muted-foreground">
+              <span className="text-sm text-ink" style={{ fontFamily: "'Caveat', 'Bradley Hand', cursive" }}>
+                — {userProfile.signature_name || userProfile.full_name}
+              </span>
+              {" · "}{userProfile.business_name}
+            </p>
+          )}
         </section>
       )}
 
