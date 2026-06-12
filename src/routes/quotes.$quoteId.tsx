@@ -1629,27 +1629,13 @@ function LineItemsEditor({
 
 
 
-      <div className="px-5 py-4 border-t border-border bg-secondary/40 space-y-1.5">
-        <Row label="Subtotal" value={formatGBP(subtotal)} />
-        {vatRegistered && <Row label="VAT (20%)" value={formatGBP(vat)} />}
-        <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
-          <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
-          <span className="num text-3xl text-ink">{formatGBP(total)}</span>
-        </div>
-        {depositPaid > 0 && (
-          <>
-            <Row label="Less deposit paid" value={`−${formatGBP(depositPaid)}`} />
-            <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
-              <span className="text-sm uppercase tracking-widest font-semibold">Balance due</span>
-              <span className="num text-2xl text-ink">{formatGBP(Math.max(0, total - depositPaid))}</span>
-            </div>
-          </>
-        )}
-
-        {saving && (
-          <p className="text-[10px] text-muted-foreground pt-1">Saving…</p>
-        )}
+      <div className="px-5 py-3 border-t border-border bg-secondary/40 flex items-center justify-between">
+        <span className="text-sm font-semibold text-ink">Total</span>
+        <span className="num text-lg font-bold text-ink">{formatGBP(total)}</span>
       </div>
+      {saving && (
+        <p className="px-5 py-1 text-[10px] text-muted-foreground border-t border-border bg-secondary/20">Saving…</p>
+      )}
     </>
   );
 }
