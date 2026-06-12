@@ -2316,9 +2316,7 @@ function VoiceOverlay({
       {recording && (
         <div
           className="w-full max-w-md mx-auto mt-3 px-2 flex items-center justify-center gap-2"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
+          aria-hidden="true"
         >
           <MicLevelBars streamRef={streamRef} active={recording} />
           <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">
@@ -2326,6 +2324,7 @@ function VoiceOverlay({
           </span>
         </div>
       )}
+
 
 
 
