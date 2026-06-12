@@ -215,7 +215,7 @@ function MessagesInbox() {
       )}
 
       {!loading && threads.length === 0 && requests.length === 0 && (
-        <section className="px-5 mt-5">
+        <section className="px-5 mt-4">
           <EmptyState
             icon={Inbox}
             title="Quiet out there"
@@ -226,7 +226,7 @@ function MessagesInbox() {
       )}
 
       {!loading && threads.length > 0 && (
-        <section className="px-5 mt-5">
+        <section className="px-5 mt-4">
           <div className="flex items-baseline justify-between mb-2.5">
             <h2 className="text-xl">Messages</h2>
             {unreadThreadTotal > 0 && (
@@ -234,7 +234,7 @@ function MessagesInbox() {
             )}
           </div>
 
-          <ul className="space-y-2 pb-24">
+          <ul className="space-y-2 pb-2">
             {threads.map((t) => {
               const unread = t.unread > 0;
               const isSystem = t.last.sender === "system";
@@ -244,7 +244,7 @@ function MessagesInbox() {
                     to="/quotes/$quoteId"
                     params={{ quoteId: t.quote_id }}
                     search={{ tab: "messages" }}
-                    className={`relative card-surface p-3.5 flex items-start gap-3 ${unread ? "before:absolute before:left-0 before:top-3 before:bottom-3 before:w-0.5 before:bg-lime before:rounded-full" : ""}`}
+                    className={`relative card-surface p-3 flex items-start gap-3 ${unread ? "before:absolute before:left-0 before:top-3 before:bottom-3 before:w-0.5 before:bg-lime before:rounded-full" : ""}`}
                   >
                     <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
                       <MessageSquare className="h-4 w-4 text-ink" />
