@@ -124,7 +124,14 @@ function PortalPage() {
   };
 
   const onRespond = async (response: "accepted" | "declined") => {
-    if (response === "declined" && !confirm("Decline this quote?")) return;
+    if (response === "declined") {
+      setDeclineOpen(true);
+      return;
+    }
+    await performRespond(response);
+  };
+
+  const performRespond = async (response: "accepted" | "declined") => {
     setResponding(true);
     try {
       const r = await respond({ data: { token, response } });
