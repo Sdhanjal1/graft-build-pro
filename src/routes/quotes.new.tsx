@@ -143,6 +143,7 @@ function NewQuotePage() {
   const [transcribing, setTranscribing] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [voiceOpening, setVoiceOpening] = useState(false);
+  useEffect(() => { if (recording) setVoiceOpening(false); }, [recording]);
   const [lastTranscript, setLastTranscript] = useState<string | null>(null);
   const [livePreview, setLivePreview] = useState<string>("");
   const [liveSupported, setLiveSupported] = useState<boolean>(true);
