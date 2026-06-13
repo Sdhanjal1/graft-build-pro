@@ -441,6 +441,7 @@ function NewQuotePage() {
     setBuilding(false);
     setTranscribing(false);
     setVoiceError(null);
+    setVoiceOpening(false);
     setLastTranscript(null);
     setLivePreview("");
     liveFinalRef.current = "";
