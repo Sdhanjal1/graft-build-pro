@@ -239,7 +239,7 @@ function SettingsPage() {
         ref={fileInputRef}
         type="file"
         accept="image/png,image/jpeg"
-        capture="environment"
+        
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
@@ -494,7 +494,7 @@ function SettingsPage() {
         </Section>
 
         {/* 7. DANGER ZONE */}
-        <Section title="Danger zone" icon={AlertOctagon} tone="danger" summary="Permanent account deletion">
+        <Section title="Account" icon={AlertOctagon} tone="danger" summary="Permanent account deletion">
           <div className="rounded-2xl bg-status-overdue/5 border border-status-overdue/20">
             <button
               onClick={() => {
@@ -914,14 +914,14 @@ function MoneyField({
   onChange: (v: number) => void;
   placeholder?: string;
 }) {
-  const [text, setText] = useState<string>(value ? String(value) : "");
+  const [text, setText] = useState<string>(String(value ?? 0));
   useEffect(() => {
-    setText(value ? String(value) : "");
+    setText(String(value ?? 0));
   }, [value]);
   const commit = () => {
     const n = Math.max(0, Number(text) || 0);
     onChange(n);
-    setText(n ? String(n) : "");
+    setText(String(n));
   };
   return (
     <label className="block">
@@ -936,6 +936,7 @@ function MoneyField({
           value={text}
           placeholder={placeholder}
           onChange={(e) => setText(e.target.value)}
+          onFocus={(e) => e.currentTarget.select()}
           onBlur={commit}
           className="w-full h-11 bg-card border border-border rounded-2xl pl-8 pr-4 text-sm font-semibold num outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
         />
