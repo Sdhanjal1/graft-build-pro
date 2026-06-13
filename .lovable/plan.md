@@ -1,51 +1,26 @@
-# Show recording screen before mic permission prompt
+## Fix broken `position: fixed` caused by PullToRefresh transform
 
-Goal: tapping "Speak the job" renders the dark voice overlay instantly so the iOS mic permission prompt appears over it (in context), and recording auto-starts on Allow.
+**File:** `src/components/PullToRefresh.tsx` (~line 104–106)
 
-## Changes (all in `src/routes/quotes.new.tsx`)
+**Problem:** The content wrapper always sets `transform: translateY(${pull}px)`. Even at rest (`pull === 0`), that's still a transform value, which creates a CSS containing block. Any `position: fixed` descendant (the quote-draft Save/Send bar) then anchors to this wrapper — only as tall as the page content — instead of the viewport. On short drafts, the bar floats mid-screen with a gap below it.
 
-1. **New state** near other voice state (around line 1109 area):
-  ```ts
-   const [voiceOpening, setVoiceOpening] = useState(false);
-  ```
-2. `**handleVoiceStart` (~line 387)** — set the flag synchronously before `startRecording()` so the overlay mounts during the same user gesture, and clear it on failure:
-  ```ts
-   setVoiceOpening(true);
-   …existing resets…
-   if (voiceParam === 1) navigate(…);
-   try {
-     await startRecording();
-   } catch (e) {
-     setVoiceOpening(false);
-     throw e;
-   }
-  ```
-   No `await` is added before `getUserMedia` inside `startRecording`, preserving the iOS user-gesture chain.
-3. `**handleEditByVoice` (~line 398)** — same treatment (set/clear `voiceOpening`) so the edit-voice entry also shows the overlay immediately.
-4. **Overlay visibility (~line 1197)** — include `voiceOpening`:
-  ```tsx
-   {(editVoiceOpen || !draft) && (recording || transcribing || voicePending || voiceError || voiceOpening) && (
-  ```
-5. **Auto-clear once recording begins**:
-  ```ts
-   useEffect(() => { if (recording) setVoiceOpening(false); }, [recording]);
-  ```
-   Also clear inside `handleVoiceClose` and in the permission-denied / catch path in `startRecording` (alongside the existing `setVoiceError` for denied).
-6. **Denied / Cancel path** — when `getUserMedia` rejects (NotAllowedError or user-cancel), clear `voiceOpening` and let the existing mic-permission-denied fallback (the inline "mic's off — type instead" state) render, rather than leaving an idle overlay.
+**Change:** Only apply the transform during an active pull or refresh:
 
-## Out of scope
+```ts
+transform: pull > 0 || refreshing ? `translateY(${pull}px)` : "none",
+```
 
-Recording logic, AI generation, typed flow.
+Keep the existing `transition` line as-is.
 
-## Acceptance
+**Why this works:** At rest, `transform: none` removes the containing block, so `fixed bottom-0` once again anchors to the viewport. The pull gesture and refresh state still animate normally because the transform reappears the moment `pull > 0` or `refreshing` is true.
 
-- First tap of "Speak the job" → dark recording overlay shows immediately with iOS mic prompt over it.
-- Allow → recording starts with no extra tap.
-- Cancel/Deny → mic-denied fallback shows; no stuck idle overlay.
-- Returning users (permission already granted) → straight to recording, unchanged.
+**Out of scope:**
+- The draft form's `pb-28` content reserve (fixed bar still overlays content — keep the reserve).
+- The no-draft flex-column layout (already correct).
+- Voice / AI / recording logic.
+- The full-screen voice overlay (`fixed inset-0`) — unaffected, or slightly more correct.
 
-Two small things to verify in the diff, neither a blocker:
-
-1. The voiceOpening-true, not-yet-recording window shows the idle overlay — which displays the “tap to start” mic UI behind the iOS prompt. That’s fine functionally (the modal blocks interaction, and recording auto-starts on Allow), but glance at it on the device: if the idle copy (“New voice quote / tap to start”) flashes oddly behind the prompt, you might later want it to read “Starting…” while voiceOpening. Not needed now — just check it doesn’t look broken.
-
-2. Confirm the denied path actually reaches the fallback. The plan assumes the mic-permission-denied state exists and renders. If that earlier fallback hasn’t actually landed yet, the Cancel path will clear voiceOpening and drop the user back to the card page with a voiceError — which is acceptable (not stuck), but verify it’s not a blank or confusing state. If the denied fallback isn’t in yet, that’s the one to prioritise over this, since Cancel is a real path a first-time user will hit.
+**Acceptance:**
+- Quote-draft Save/Send bar sits flush at the bottom of the viewport on short and long drafts, with and without a customer.
+- Pull-to-refresh on Home and list screens still works (indicator appears, content translates down, refresh fires).
+- Voice overlay still covers the full screen.
