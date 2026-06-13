@@ -723,6 +723,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     editedItemsRef.current = new Map();
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
+      setVoiceOpening(false);
       return;
     }
     let stream: MediaStream;
@@ -748,6 +749,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
         msg = "Couldn't start the microphone. Try again, or type the job below.";
       }
       setVoiceError(msg);
+      setVoiceOpening(false);
       return;
     }
     streamRef.current = stream;
