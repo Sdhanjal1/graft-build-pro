@@ -1210,7 +1210,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
   return (
     <AppShell>
-      {(editVoiceOpen || !draft) && (recording || transcribing || voicePending || voiceError) && (
+      {(editVoiceOpen || !draft) && (recording || transcribing || voicePending || voiceError || voiceOpening) && (
         <VoiceOverlay
           recording={recording}
           transcribing={transcribing}
