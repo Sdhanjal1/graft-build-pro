@@ -18,6 +18,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { PushPermissionCard } from "@/components/CustomerQRCard";
 import { BusinessLogo } from "@/components/BusinessLogo";
+import { formatGBP } from "@/lib/user-data";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BillingSection } from "@/components/BillingSection";
@@ -429,7 +430,13 @@ function SettingsPage() {
 
         {/* 4. HOW QUOTES LOOK */}
         <Section title="How quotes look" icon={FileSignature} summary={quoteLookSummary}>
-          <div className="card-surface divide-y divide-border/60">
+          <QuoteLookPreview
+            profile={profile}
+            vatRegistered={vatRegistered}
+            labourDay={labourDay}
+            terms={terms}
+          />
+          <div className="card-surface divide-y divide-border/60 mt-3">
             <div className="p-4">
               <label className="block">
                 <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
