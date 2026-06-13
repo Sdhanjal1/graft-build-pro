@@ -142,6 +142,8 @@ function NewQuotePage() {
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [transcribing, setTranscribing] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [voiceOpening, setVoiceOpening] = useState(false);
+  useEffect(() => { if (recording) setVoiceOpening(false); }, [recording]);
   const [lastTranscript, setLastTranscript] = useState<string | null>(null);
   const [livePreview, setLivePreview] = useState<string>("");
   const [liveSupported, setLiveSupported] = useState<boolean>(true);
@@ -392,8 +394,14 @@ function NewQuotePage() {
     setLivePreview("");
     liveFinalRef.current = "";
     liveInterimRef.current = "";
+    setVoiceOpening(true);
     if (voiceParam === 1) navigate({ to: "/quotes/new", search: {}, replace: true });
-    await startRecording();
+    try {
+      await startRecording();
+    } catch (e) {
+      setVoiceOpening(false);
+      throw e;
+    }
   };
   const handleEditByVoice = async () => {
     if (saving || recording || transcribing) return;
@@ -406,7 +414,13 @@ function NewQuotePage() {
     setLivePreview("");
     liveFinalRef.current = "";
     liveInterimRef.current = "";
-    await startRecording();
+    setVoiceOpening(true);
+    try {
+      await startRecording();
+    } catch (e) {
+      setVoiceOpening(false);
+      throw e;
+    }
   };
   const handleVoiceClose = () => {
     closeRequestedRef.current = true;
@@ -428,6 +442,7 @@ function NewQuotePage() {
     setBuilding(false);
     setTranscribing(false);
     setVoiceError(null);
+    setVoiceOpening(false);
     setLastTranscript(null);
     setLivePreview("");
     liveFinalRef.current = "";
@@ -709,6 +724,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     editedItemsRef.current = new Map();
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
+      setVoiceOpening(false);
       return;
     }
     let stream: MediaStream;
@@ -734,6 +750,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
         msg = "Couldn't start the microphone. Try again, or type the job below.";
       }
       setVoiceError(msg);
+      setVoiceOpening(false);
       return;
     }
     streamRef.current = stream;
@@ -1194,7 +1211,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
 
   return (
     <AppShell>
-      {(editVoiceOpen || !draft) && (recording || transcribing || voicePending || voiceError) && (
+      {(editVoiceOpen || !draft) && (recording || transcribing || voicePending || voiceError || voiceOpening) && (
         <VoiceOverlay
           recording={recording}
           transcribing={transcribing}

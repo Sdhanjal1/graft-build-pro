@@ -1,50 +1,51 @@
-## Block empty / £0 quotes from being saved or sent
+# Show recording screen before mic permission prompt
 
-Scoped guard so blank or zero-total quotes can't reach a customer, plus a tiny backend safety net for sub-30p payment requests. Out of scope: AI generation, connected-account charge path, payment-gating from the previous round.
+Goal: tapping "Speak the job" renders the dark voice overlay instantly so the iOS mic permission prompt appears over it (in context), and recording auto-starts on Allow.
 
-### 1. `src/routes/quotes.new.tsx` — disable Save/Send when empty
+## Changes (all in `src/routes/quotes.new.tsx`)
 
-Just above the action bar (near line 1797), derive:
+1. **New state** near other voice state (around line 1109 area):
+  ```ts
+   const [voiceOpening, setVoiceOpening] = useState(false);
+  ```
+2. `**handleVoiceStart` (~line 387)** — set the flag synchronously before `startRecording()` so the overlay mounts during the same user gesture, and clear it on failure:
+  ```ts
+   setVoiceOpening(true);
+   …existing resets…
+   if (voiceParam === 1) navigate(…);
+   try {
+     await startRecording();
+   } catch (e) {
+     setVoiceOpening(false);
+     throw e;
+   }
+  ```
+   No `await` is added before `getUserMedia` inside `startRecording`, preserving the iOS user-gesture chain.
+3. `**handleEditByVoice` (~line 398)** — same treatment (set/clear `voiceOpening`) so the edit-voice entry also shows the overlay immediately.
+4. **Overlay visibility (~line 1197)** — include `voiceOpening`:
+  ```tsx
+   {(editVoiceOpen || !draft) && (recording || transcribing || voicePending || voiceError || voiceOpening) && (
+  ```
+5. **Auto-clear once recording begins**:
+  ```ts
+   useEffect(() => { if (recording) setVoiceOpening(false); }, [recording]);
+  ```
+   Also clear inside `handleVoiceClose` and in the permission-denied / catch path in `startRecording` (alongside the existing `setVoiceError` for denied).
+6. **Denied / Cancel path** — when `getUserMedia` rejects (NotAllowedError or user-cancel), clear `voiceOpening` and let the existing mic-permission-denied fallback (the inline "mic's off — type instead" state) render, rather than leaving an idle overlay.
 
-```ts
-const hasItems = (draft?.line_items.length ?? 0) > 0;
-const hasTotal = total > 0;
-const canSend = clientName.trim() && hasItems && hasTotal && !saving;
-const blockedReason =
-  !clientName.trim() ? "client"
-  : !hasItems || !hasTotal ? "items"
-  : null;
-```
+## Out of scope
 
-Wire both buttons:
+Recording logic, AI generation, typed flow.
 
-- Draft button (line 1802): `disabled={!clientName.trim() || !hasItems || !hasTotal || saving}`.
-- Send button (line 1818): `disabled={!canSend}`. In its onClick, before the `clientName` early-return, add an items/total guard that scrolls to the line-items section (reuse an existing ref if available; otherwise fall back to a no-op return, since the button is already disabled).
-- Send button label/colour (lines 1820–1826): extend the existing ternary so the "needs items" state shows `"Add an item ↓"` with the same muted styling already used for `!clientName.trim()`. Three states: missing client → "Add a customer ↑", missing items/total → "Add an item ↓", else "Save & send".
+## Acceptance
 
-### 2. Inline hint above the action bar
+- First tap of "Speak the job" → dark recording overlay shows immediately with iOS mic prompt over it.
+- Allow → recording starts with no extra tap.
+- Cancel/Deny → mic-denied fallback shows; no stuck idle overlay.
+- Returning users (permission already granted) → straight to recording, unchanged.
 
-Reuse the existing error-pill styling pattern at lines 1788–1795 (rounded card, `text-xs font-semibold text-ink` + muted subtext). Render conditionally when `blockedReason === "items"` only (the client-name case is already handled by the inline button label, so we don't double up):
+Two small things to verify in the diff, neither a blocker:
 
-```
-Add at least one item before sending.
-```
+1. The voiceOpening-true, not-yet-recording window shows the idle overlay — which displays the “tap to start” mic UI behind the iOS prompt. That’s fine functionally (the modal blocks interaction, and recording auto-starts on Allow), but glance at it on the device: if the idle copy (“New voice quote / tap to start”) flashes oddly behind the prompt, you might later want it to read “Starting…” while voiceOpening. Not needed now — just check it doesn’t look broken.
 
-Keep it visually distinct from the red "Couldn't save quote" error — neutral paper background, no red accent.
-
-### 3. `src/lib/payments.functions.ts` — Stripe 30p minimum guard
-
-- `createInvoiceCheckout` handler (~line 73, right after `amountCents` is computed): if `amountCents < 30`, throw `"Quote total is too low to request payment (minimum 30p)."` before any Stripe call.
-- `createPortalCheckout` handler (~line 254, where `if (amount <= 0)` already throws): change the condition to `if (amountCents < 30)` with the same message wording, so the existing zero check and the new minimum are one branch. Compute `amountCents` just before the check (already happens at line 256).
-
-No changes to the connected-account routing, fees, idempotency, or webhooks.
-
-### Acceptance
-
-- Save and Send are disabled with an inline "Add at least one item before sending." hint when there are zero line items or total is £0.
-- A normal quote with a client + items + non-zero total saves and sends exactly as today.
-- A payment request for a sub-30p total throws a clear "too low" error instead of a raw Stripe 400.
-
-createPortalCheckout ordering: in the actual code, the existing if (amount <= 0) check is at line 259, but amountCents isn’t computed until line 260 — after the check. So if Lovable replaces line 259 with if (amountCents < 30) as written, it’ll reference amountCents before it’s declared, which is a build error (TDZ on the const). Tell Lovable to move the amountCents computation above the guard (or just guard on amount < 0.30 in pounds instead). The plan’s note says amountCents “already happens at line 256” — that’s slightly off; it’s at 260, below the check, so the declaration genuinely needs to move up. createInvoiceCheckout doesn’t have this problem — there amountCents is at line 65, already above where the guard goes.
-
-Everything else lines up: the UI logic is sound (the three button states with directional arrows are a nice touch), the inline hint is kept distinct from the red error, and the connect routing/fees/webhooks are correctly left untouched.
+2. Confirm the denied path actually reaches the fallback. The plan assumes the mic-permission-denied state exists and renders. If that earlier fallback hasn’t actually landed yet, the Cancel path will clear voiceOpening and drop the user back to the card page with a voiceError — which is acceptable (not stuck), but verify it’s not a blank or confusing state. If the denied fallback isn’t in yet, that’s the one to prioritise over this, since Cancel is a real path a first-time user will hit.
