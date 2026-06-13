@@ -18,6 +18,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { PushPermissionCard } from "@/components/CustomerQRCard";
 import { BusinessLogo } from "@/components/BusinessLogo";
+import { formatGBP } from "@/lib/user-data";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BillingSection } from "@/components/BillingSection";
@@ -429,7 +430,13 @@ function SettingsPage() {
 
         {/* 4. HOW QUOTES LOOK */}
         <Section title="How quotes look" icon={FileSignature} summary={quoteLookSummary}>
-          <div className="card-surface divide-y divide-border/60">
+          <QuoteLookPreview
+            profile={profile}
+            vatRegistered={vatRegistered}
+            labourDay={labourDay}
+            terms={terms}
+          />
+          <div className="card-surface divide-y divide-border/60 mt-3">
             <div className="p-4">
               <label className="block">
                 <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
@@ -942,5 +949,146 @@ function MoneyField({
         />
       </div>
     </label>
+  );
+}
+
+function QuoteLookPreview({
+  profile,
+  vatRegistered,
+  labourDay,
+  terms,
+}: {
+  profile: {
+    business_name: string;
+    logo_url: string;
+    address_line_1: string;
+    address_line_2: string;
+    town: string;
+    postcode: string;
+    quote_intro: string;
+    quote_footer: string;
+    signature_name: string;
+    full_name: string;
+    show_signature: boolean;
+  };
+  vatRegistered: boolean;
+  labourDay: number;
+  terms: string;
+}) {
+  const businessName = profile.business_name?.trim() || "Your Business Name";
+  const addressLine =
+    [profile.address_line_1, profile.address_line_2, profile.town, profile.postcode]
+      .map((s) => (s || "").trim())
+      .filter(Boolean)
+      .join(", ") || "Your business address";
+  const signatureName =
+    profile.signature_name?.trim() || profile.full_name?.trim() || "Your name";
+
+  const labourPrice = labourDay > 0 ? labourDay : 280;
+  const materialsPrice = 120;
+  const subtotal = labourPrice + materialsPrice;
+  const vat = vatRegistered ? Math.round(subtotal * 0.2 * 100) / 100 : 0;
+  const total = subtotal + vat;
+
+  return (
+    <div className="card-surface overflow-hidden">
+      <div className="px-3 pt-2 pb-2 bg-secondary/40 border-b border-border/60 flex items-center justify-between">
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+          Live preview
+        </span>
+        <span className="text-[10px] text-muted-foreground">As your customer sees it</span>
+      </div>
+
+      <div className="bg-paper text-ink">
+        <header className="bg-ink text-paper px-4 pt-4 pb-3 flex items-center gap-3">
+          <BusinessLogo logoUrl={profile.logo_url} businessName={businessName} size="md" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold truncate">{businessName}</p>
+            <p className="text-[10px] text-paper/60 truncate">Quote Q-0001</p>
+          </div>
+        </header>
+
+        <section className="px-4 pt-3">
+          <h3 className="text-base leading-tight font-semibold">Kitchen tap replacement</h3>
+          <p className="text-[11px] text-muted-foreground mt-0.5">For Sample Customer</p>
+        </section>
+
+        {profile.quote_intro?.trim() && (
+          <section className="px-4 mt-2">
+            <p className="text-[12px] leading-relaxed whitespace-pre-line text-ink/90">
+              {profile.quote_intro}
+            </p>
+          </section>
+        )}
+
+        <section className="px-4 mt-3">
+          <div className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 pt-2 pb-1">
+              <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold">
+                Itemised
+              </p>
+            </div>
+            <ul>
+              <li className="px-3 py-2 flex items-start gap-2 border-t border-border">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-medium">Labour — 1 day</p>
+                </div>
+                <p className="num text-[12px]">{formatGBP(labourPrice)}</p>
+              </li>
+              <li className="px-3 py-2 flex items-start gap-2 border-t border-border">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-medium">Materials</p>
+                  <p className="text-[10px] text-muted-foreground">1 × {formatGBP(materialsPrice)}</p>
+                </div>
+                <p className="num text-[12px]">{formatGBP(materialsPrice)}</p>
+              </li>
+            </ul>
+            <div className="px-3 py-2 border-t border-border bg-secondary/40 space-y-1">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="num">{formatGBP(subtotal)}</span>
+              </div>
+              {vatRegistered && (
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground">VAT (20%)</span>
+                  <span className="num">{formatGBP(vat)}</span>
+                </div>
+              )}
+              <div className="flex items-baseline justify-between pt-1.5 mt-1 border-t border-border">
+                <span className="text-[10px] uppercase tracking-widest font-semibold">Total</span>
+                <span className="num text-xl text-ink">{formatGBP(total)}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {(terms?.trim() || profile.quote_footer?.trim()) && (
+          <section className="px-4 mt-3 space-y-2">
+            {terms?.trim() && (
+              <div>
+                <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold mb-0.5">
+                  Payment terms
+                </p>
+                <p className="text-[11px] text-ink/80 whitespace-pre-line leading-snug">{terms}</p>
+              </div>
+            )}
+            {profile.quote_footer?.trim() && (
+              <p className="text-[11px] text-muted-foreground whitespace-pre-line leading-snug">
+                {profile.quote_footer}
+              </p>
+            )}
+          </section>
+        )}
+
+        {profile.show_signature && (
+          <section className="px-4 mt-3 pb-4">
+            <p className="font-serif italic text-muted-foreground text-[12px]">
+              — {signatureName}
+            </p>
+          </section>
+        )}
+        {!profile.show_signature && <div className="pb-3" />}
+      </div>
+    </div>
   );
 }
