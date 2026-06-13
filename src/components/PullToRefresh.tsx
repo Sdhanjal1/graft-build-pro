@@ -102,7 +102,7 @@ export function PullToRefresh({
       </div>
       <div
         style={{
-          transform: `translateY(${pull}px)`,
+          transform: pull > 0 || refreshing ? `translateY(${pull}px)` : "none",
           transition: refreshing || pull === 0 ? "transform 200ms ease" : "none",
         }}
       >
