@@ -393,8 +393,14 @@ function NewQuotePage() {
     setLivePreview("");
     liveFinalRef.current = "";
     liveInterimRef.current = "";
+    setVoiceOpening(true);
     if (voiceParam === 1) navigate({ to: "/quotes/new", search: {}, replace: true });
-    await startRecording();
+    try {
+      await startRecording();
+    } catch (e) {
+      setVoiceOpening(false);
+      throw e;
+    }
   };
   const handleEditByVoice = async () => {
     if (saving || recording || transcribing) return;
@@ -407,7 +413,13 @@ function NewQuotePage() {
     setLivePreview("");
     liveFinalRef.current = "";
     liveInterimRef.current = "";
-    await startRecording();
+    setVoiceOpening(true);
+    try {
+      await startRecording();
+    } catch (e) {
+      setVoiceOpening(false);
+      throw e;
+    }
   };
   const handleVoiceClose = () => {
     closeRequestedRef.current = true;
