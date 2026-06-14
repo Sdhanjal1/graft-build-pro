@@ -1,86 +1,58 @@
-# Visual polish pass — 12 items
+## Problem
 
-Grouped so related edits happen in one file at a time. No business-logic changes; presentation-only.
+`AppShell` sets `pb-24` (96px) on the scroll container, but `BottomNav` is a fixed glass pill ≈ 84px tall **plus** iOS's home-indicator safe-area inset (≈ 34px). On iPhone the nav becomes ~118px, so the final section of each page — most visibly the "Take card payments" Stripe banner on `/app` — sits under the nav.
 
-## 1. Status chips — single source of truth
-- Audit `src/routes/quotes.index.tsx`, `src/routes/chaser.tsx`, `src/routes/clients.$clientId.tsx`, `src/routes/invoices.$quoteId.tsx`, `src/routes/quotes.$quoteId.tsx` for inline badges built from `bg-status-*` + text.
-- Replace each with `<StatusBadge status={...} />` so casing, radius, and tonal weight match.
-- Where a one-off chip is needed (e.g. "Awaiting reply" count), extract a small `Chip` variant inside `StatusBadge.tsx` rather than re-rolling per screen.
+The fix is one structural change (replace `pb-24` with a clearance that includes the safe-area inset) and a sweep of every other fixed/sticky bottom element to make sure it sits **above** the nav, not behind it.
 
-## 2. Money typography
-- Add `.num` (Bebas, tabular tracking) to every £ amount in list rows: quote cards (`quotes.index`), owed totals + chaser cards, invoice line items, client lifetime totals, settings preview.
-- Keep `money-hero` only on the home `HeroNumber`.
+## Changes
 
-## 3. Skeletons over spinners
-- Replace full-screen `Loader2` blocks on `app.tsx`, `quotes.index.tsx`, `chaser.tsx`, `clients.index.tsx`, `messages.tsx` with shapes from `src/components/Skeletons.tsx`.
-- Add a `QuoteCardSkeleton` and `OwedCardSkeleton` to `Skeletons.tsx` if missing.
+### 1. `src/styles.css` — introduce a nav-clearance token
 
-## 4. Empty states sweep
-- Find any remaining plain "No X yet" text in `quotes.index`, `clients.index`, `messages`, `invoices` list views.
-- Replace with `<EmptyState>` (icon + body + optional CTA). Use `celebrate` tone where appropriate (e.g. "All caught up").
+Add a CSS variable that always equals `nav height + safe-area inset + breathing room`:
 
-## 5. Card hierarchy — one focal per screen
-- Demote everything currently using `card-focal` to `card-surface` by default.
-- Promote exactly one element per screen back to `card-focal`:
-  - `app.tsx` → hero number card
-  - `chaser.tsx` → "You are owed" card
-  - `quotes.$quoteId.tsx` → total/summary card
-  - `clients.$clientId.tsx` → lifetime value card
+```css
+:root {
+  --bottom-nav-clearance: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+```
 
-## 6. Section headings rhythm
-- Add small uppercase Bebas `h2`s above logical groups, matching the chaser pattern:
-  - `quotes.index.tsx` → "Drafts", "Sent", "Paid"
-  - `settings.tsx` → existing sections get a consistent heading style (already partially there; normalise sizing + tracking)
-  - `clients.$clientId.tsx` → "Recent quotes", "Notes"
-- Shared style: `text-xs uppercase tracking-[0.08em] text-muted-foreground` + Bebas via `font-display`.
+And a utility:
 
-## 7. Lime accent restraint
-- Keep lime for: primary CTAs, `status-paid`, the home header blob, focus rings.
-- Audit inner-page headers (`PageHeader` non-compact) and any decorative blurs on `settings`, `chaser`, `quotes.*`, `clients.*` — swap the lime blur to a soft paper/ink tint (`bg-ink/5` blob) so only home reads lime-forward.
+```css
+.pb-nav { padding-bottom: var(--bottom-nav-clearance); }
+.bottom-nav { bottom: var(--bottom-nav-clearance); }
+```
 
-## 8. Press feedback on rows
-- Add `active:scale-[0.98] transition-transform` to interactive list rows:
-  - Quote cards, chaser cards, client rows, invoice rows, message rows.
-- Pair with `touch-manipulation` to keep taps snappy on iOS.
+### 2. `src/components/AppShell.tsx`
 
-## 9. Row-rise on list mount
-- Apply existing `.row-rise` utility to mapped list items in `quotes.index` and `chaser` (and `clients.index`).
-- Stagger via `style={{ animationDelay: ``${i * 30}ms`` }}` capped at ~8 items so it doesn't drag.
+Replace `pb-24 safe-bottom` on the main container with `pb-nav` (the new utility already accounts for the safe-area inset, so the duplicate `safe-bottom` can go).
 
-## 10. Toast theming
-- Check `src/components/ui/sonner.tsx` — set defaults to ink/paper with lime accent for success, status-overdue for error, matching the rest of the app.
-- Verify position (`top-center` on mobile likely best given bottom nav).
+### 3. Audit every fixed/sticky bottom element
 
-## 11. Safe-area on bottom CTAs
-- Sweep for sticky bottom bars / FABs / fixed CTAs across `quotes.new`, `quotes.$quoteId`, `invoices.$quoteId`, `portal.*`, `request.$proId`.
-- Ensure each wrapping container uses `safe-bottom` (or `pb-[env(safe-area-inset-bottom)]`) so nothing collides with the iOS home indicator.
+| File | Current | Fix |
+|---|---|---|
+| `src/routes/quotes.new.tsx` | `fixed inset-x-0 bottom-0 … safe-bottom` — nav is hidden on this route, so already fine | leave as is |
+| `src/routes/request.$proId.tsx` | `fixed bottom-0 … safe-bottom` action bar; no `BottomNav` on this route (unauth) | leave as is |
+| `src/routes/portal.$token.tsx` | `fixed bottom-0 … safe-bottom`; portal route — `BottomNav` hidden | leave as is |
+| `src/components/PWAInstallBanner.tsx` | `fixed bottom-24` (96px hard-coded) | change to `bottom-nav` utility so it sits above the nav on iOS too |
+| `src/components/UpdateBanner.tsx` | `fixed bottom-24` | same — switch to `bottom-nav` |
+| `src/components/CookieBanner.tsx` | `fixed bottom-0` on marketing pages (no `BottomNav`) | leave as is |
+| `src/components/ui/sonner.tsx` | now `top-center` | leave as is |
 
-## 12. Header right-slot truncation
-- Apply the responsive grid pattern to any header where business name + cog (or other widgets) co-exist:
-  - Wrapper: `grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3`
-  - Text container: `min-w-0`
-  - Heading/business name: `truncate`
-  - Icon button: `shrink-0`
-- Specifically: `app.tsx` identity row (just rebuilt — verify), and any other `PageHeader` `right` slot usages with long titles.
+### 4. Verify on every in-app route
 
----
+After the change, visit each `BottomNav`-visible route and confirm the last element clears the nav on a 390×844 (iPhone) viewport:
 
-## Order of execution
-
-1. Shared primitives first: `StatusBadge.tsx`, `Skeletons.tsx`, `sonner.tsx`, `EmptyState.tsx` (verify), and `card-focal`/`card-surface` usage rule documented in `styles.css` as a comment.
-2. Per-screen passes in this order: `app.tsx` → `chaser.tsx` → `quotes.index.tsx` → `quotes.$quoteId.tsx` → `clients.*` → `invoices.$quoteId.tsx` → `settings.tsx` → `messages.tsx` → portal/request public pages.
-3. Final sweep: safe-area + lime restraint audit across all of the above.
+- `/app` — Stripe "Take card payments" banner (the original report)
+- `/quotes` — last paid quote card in the list
+- `/messages` — last message row
+- `/chaser` — Auto-chase queue tail
+- `/settings` — final "Sign out" / billing row
+- `/clients` — final client row
+- `/clients/$id`, `/quotes/$id`, `/invoices/$id` — bottom action / footer
 
 ## Out of scope
-- Dark mode
-- Framer Motion additions
-- Any business logic, data shape, or route changes
-- Marketing pages (`index.tsx`, `features`, `pricing`, `faqs`, `trades.*`) unless they share a touched component
 
-## Acceptance
-- Status chips look identical across every screen
-- Every list/skeleton path shows shapes, not spinners
-- Each screen has one focal card; the rest are flat surfaces
-- Lime appears only on actions + paid status + home header
-- No header text overlaps its right-slot widget at 320px width
-- Bottom CTAs sit above the iOS home indicator on all forms
+- No visual restyle of the nav itself.
+- No layout changes to portal / marketing / auth routes (they don't render `BottomNav`).
+- No content changes to the Stripe banner — only its clearance.
