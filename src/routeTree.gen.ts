@@ -18,6 +18,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MessagesRouteImport } from './routes/messages'
+import { Route as MerchRouteImport } from './routes/merch'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as FaqsRouteImport } from './routes/faqs'
@@ -87,6 +88,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const MessagesRoute = MessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MerchRoute = MerchRouteImport.update({
+  id: '/merch',
+  path: '/merch',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -228,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/merch': typeof MerchRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
@@ -264,6 +271,7 @@ export interface FileRoutesByTo {
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/merch': typeof MerchRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
@@ -301,6 +309,7 @@ export interface FileRoutesById {
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/merch': typeof MerchRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
@@ -339,6 +348,7 @@ export interface FileRouteTypes {
     | '/faqs'
     | '/features'
     | '/forgot-password'
+    | '/merch'
     | '/messages'
     | '/onboarding'
     | '/pricing'
@@ -375,6 +385,7 @@ export interface FileRouteTypes {
     | '/faqs'
     | '/features'
     | '/forgot-password'
+    | '/merch'
     | '/messages'
     | '/onboarding'
     | '/pricing'
@@ -411,6 +422,7 @@ export interface FileRouteTypes {
     | '/faqs'
     | '/features'
     | '/forgot-password'
+    | '/merch'
     | '/messages'
     | '/onboarding'
     | '/pricing'
@@ -448,6 +460,7 @@ export interface RootRouteChildren {
   FaqsRoute: typeof FaqsRoute
   FeaturesRoute: typeof FeaturesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  MerchRoute: typeof MerchRoute
   MessagesRoute: typeof MessagesRoute
   OnboardingRoute: typeof OnboardingRoute
   PricingRoute: typeof PricingRoute
@@ -537,6 +550,13 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/messages'
       preLoaderRoute: typeof MessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/merch': {
+      id: '/merch'
+      path: '/merch'
+      fullPath: '/merch'
+      preLoaderRoute: typeof MerchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -738,6 +758,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaqsRoute: FaqsRoute,
   FeaturesRoute: FeaturesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  MerchRoute: MerchRoute,
   MessagesRoute: MessagesRoute,
   OnboardingRoute: OnboardingRoute,
   PricingRoute: PricingRoute,
