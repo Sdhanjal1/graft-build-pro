@@ -74,42 +74,33 @@ function HomePage() {
 
 
       {/* HOW IT WORKS */}
-      <section id="how" className="mx-auto max-w-5xl px-5 py-20 md:py-28 text-center">
-        <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">How it works</p>
-        <h2 className="mt-3 text-5xl md:text-7xl leading-[0.95]">
-          From <span className="text-lime-ink bg-lime px-2">van to paid</span>, in seconds.
+      <section id="how" className="mx-auto max-w-5xl px-5 md:px-8 py-20 md:py-28">
+        <h2 className="text-5xl md:text-7xl leading-[0.95] max-w-3xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+          From <span className="text-ink bg-lime px-2 box-decoration-clone">van to paid</span>, in seconds.
         </h2>
-        <ol className="mt-14 grid gap-8 md:grid-cols-3 text-left">
+
+        <ol className="mt-12 md:mt-16 max-w-3xl">
           {[
-            {
-              n: "01",
-              t: "Speak the job",
-              b: "One voice note from the van. No typing. No forms. Just talk.",
-            },
-            {
-              n: "02",
-              t: "Quote ready",
-              b: "Claude AI generates a fully itemised professional quote with 2026 UK trade pricing. Branded with your logo.",
-            },
-            {
-              n: "03",
-              t: "WhatsApp it",
-              b: "Customer gets a link. They view, approve, and pay the deposit. You get a notification. Money in before you start.",
-            },
-          ].map((s) => (
-            <li key={s.n} className="rounded-2xl border border-ink/10 bg-card p-7">
-              <div className="text-lime text-sm font-semibold tracking-widest">{s.n}</div>
-              <h3 className="mt-3 text-2xl md:text-3xl leading-tight" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{s.t}</h3>
-              <p className="mt-3 text-sm text-ink/70 leading-relaxed">{s.b}</p>
+            { n: "01", t: "Speak the job", b: "One voice note from the van. No typing, no forms, just talk." },
+            { n: "02", t: "Quote's ready", b: "Quottr writes a fully itemised, professional quote with up-to-date UK trade pricing, branded with your logo." },
+            { n: "03", t: "Send and get paid", b: "Your customer gets a WhatsApp link, approves the job, and pays on the spot. You get a notification. Money in before you start." },
+          ].map((s, i, arr) => (
+            <li key={s.n} className="relative grid grid-cols-[auto_1fr] gap-5 md:gap-8 pb-10 last:pb-0">
+              <div className="flex flex-col items-center">
+                <span className="text-lime leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(2.75rem, 7vw, 4.5rem)" }}>{s.n}</span>
+                {i < arr.length - 1 && <span className="mt-2 w-px flex-1 bg-lime/30" />}
+              </div>
+              <div className="pt-1 md:pt-2">
+                <h3 className="text-2xl md:text-3xl leading-tight" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{s.t}</h3>
+                <p className="mt-2 text-base md:text-lg text-ink/70 leading-relaxed max-w-md">{s.b}</p>
+              </div>
             </li>
           ))}
         </ol>
+
         <div className="mt-12">
-          <Link
-            to="/auth"
-            className="inline-flex items-center gap-2 bg-ink text-paper font-semibold px-7 py-4 rounded-full hover:bg-ink/90 transition"
-          >
-            Start for free <ArrowRight className="h-4 w-4" />
+          <Link to="/auth" className="inline-flex items-center gap-2 bg-ink text-paper font-bold px-7 py-4 rounded-full hover:bg-ink/90 transition">
+            Start quoting free <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </section>
