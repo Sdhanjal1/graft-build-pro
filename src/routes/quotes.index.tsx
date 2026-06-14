@@ -42,12 +42,21 @@ const tileMatches = (tile: TileKey, q: Quote): boolean => {
 
 // Sectioned editorial rhythm — order = visual priority (urgent → done).
 type SectionKey = TileKey | "paid";
+
+const GROUP_LABEL: Record<SectionKey, string> = {
+  overdue: "Overdue",
+  awaiting: "Awaiting payment",
+  accepted: "Booked",
+  pending: "Drafts & sent",
+  paid: "Paid",
+};
+
 const SECTIONS: { key: SectionKey; label: string; match: (q: Quote) => boolean }[] = [
-  { key: "overdue", label: "Overdue", match: (q) => tileMatches("overdue", q) },
-  { key: "awaiting", label: "Awaiting payment", match: (q) => tileMatches("awaiting", q) },
-  { key: "accepted", label: "Booked & in progress", match: (q) => tileMatches("accepted", q) },
-  { key: "pending", label: "Drafts & sent", match: (q) => tileMatches("pending", q) },
-  { key: "paid", label: "Paid", match: (q) => q.status === "paid" },
+  { key: "overdue", label: GROUP_LABEL.overdue, match: (q) => tileMatches("overdue", q) },
+  { key: "awaiting", label: GROUP_LABEL.awaiting, match: (q) => tileMatches("awaiting", q) },
+  { key: "accepted", label: GROUP_LABEL.accepted, match: (q) => tileMatches("accepted", q) },
+  { key: "pending", label: GROUP_LABEL.pending, match: (q) => tileMatches("pending", q) },
+  { key: "paid", label: GROUP_LABEL.paid, match: (q) => q.status === "paid" },
 ];
 
 
