@@ -330,6 +330,7 @@ function QuotesPage() {
           // smoothly across section boundaries.
           let renderedIdx = 0;
           return SECTIONS.map((section) => {
+            if (sectionFilter && section.key !== sectionFilter) return null;
             const items = filtered.filter(section.match);
             if (items.length === 0) return null;
             return (
