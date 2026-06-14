@@ -10,7 +10,9 @@ import {
 import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, ThumbsUp, Pause, Play } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatusLegend } from "@/components/StatusLegend";
 import { feedback } from "@/lib/feedback";
+
 
 /** Tone label + colour for an escalation step. */
 function chaseTone(offset: number, offsets: number[]) {
@@ -70,6 +72,22 @@ function ChaserPage() {
   return (
     <AppShell>
       <PageHeader title="Chaser" subtitle="Replies & payments" back="/" />
+
+      {(hasReplies || hasPayments) && (
+        <div className="px-5 mt-3">
+          <StatusLegend
+            storageKey="quottr.statusLegend.chaser.open"
+            items={[
+              { key: "sent", hint: "Sent · waiting on reply" },
+              { key: "completed", hint: "Job done · awaiting payment" },
+              { key: "overdue", hint: "Past due date" },
+              { key: "paid", hint: "Money in" },
+            ]}
+          />
+        </div>
+      )}
+
+
 
       {!hasReplies && !hasPayments && (
         <section className="px-5 mt-5">

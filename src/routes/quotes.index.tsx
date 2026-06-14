@@ -10,6 +10,8 @@ import { resolveTrade } from "@/lib/trades";
 import { Search, FileText, Inbox, ShoppingCart, X } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { QuotesListSkeleton } from "@/components/Skeletons";
+import { StatusLegend } from "@/components/StatusLegend";
+import { feedback } from "@/lib/feedback";
 import { useSession } from "@/lib/auth";
 import { useLongPress } from "@/hooks/useLongPress";
 import { QuoteQuickActionsSheet } from "@/components/QuoteQuickActionsSheet";
@@ -242,10 +244,12 @@ function QuotesPage() {
         )}
       </div>
 
+      <div className="px-5 mt-3">
+        <StatusLegend />
+      </div>
 
+      <div className="px-5 mt-4 space-y-2.5">
 
-
-      <div className="px-5 mt-5 space-y-2.5">
         {filtered.length === 0 && (
           mockQuotes.length === 0 ? (() => {
             const trade = resolveTrade(userProfile.trade_type);
@@ -387,7 +391,15 @@ function QuoteCard({
   const isOverdue = quote.status === "overdue";
   const isPaid = quote.status === "paid";
 
-  const className = `rounded-2xl py-4 px-4 flex items-start gap-3 transition-transform duration-150 active:scale-[0.99] touch-manipulation ${
+  // Active states use a soft lime/paper tint that mirrors the success palette,
+  // plus a tiny ring on press so the touch reads like a button, not a link.
+  const activeTint = isOverdue
+    ? "active:bg-status-overdue/90"
+    : isPaid
+    ? "active:bg-lime/20"
+    : "active:bg-lime/15";
+
+  const className = `rounded-2xl py-4 px-4 flex items-start gap-3 transition-all duration-150 active:scale-[0.985] active:shadow-[0_0_0_3px_color-mix(in_oklab,var(--lime,#c8ff3e)_25%,transparent)] touch-manipulation ${activeTint} ${
     isOverdue
       ? "bg-ink text-paper border-l-4 border-status-overdue"
       : isPaid
@@ -402,8 +414,13 @@ function QuoteCard({
       e.preventDefault();
       e.stopPropagation();
       resetLongPress();
+      return;
     }
+    // Haptic-like tap (where supported) — keeps the lime accent feeling tactile.
+    feedback("tap");
   };
+
+
 
   const hasClient = clientName && clientName.toLowerCase() !== "new client";
   const acceptedMaterials = quote.status === "accepted" ? materialsForQuote(quote).length : 0;
