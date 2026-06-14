@@ -237,7 +237,7 @@ function ChaserPage() {
       )}
 
       <section className="px-5 mt-5 space-y-3">
-        {overdue.map((q) => {
+        {overdue.map((q, i) => {
           const c = getClient(q.client_id);
           const firstName = c?.name.split(" ")[0] ?? "there";
           const chase = buildChaserMessage(q, firstName);
@@ -251,7 +251,11 @@ function ChaserPage() {
           const toneBg = isOverdue ? "bg-status-overdue/15 text-status-overdue" : "bg-status-completed/15 text-status-completed";
           const paused = q.auto_chase_enabled === false;
           return (
-            <div key={q.id} className="card-surface p-4">
+            <div
+              key={q.id}
+              className="card-surface p-4 row-rise active:scale-[0.99] transition-transform touch-manipulation"
+              style={{ animationDelay: `${Math.min(i, 6) * 25}ms` }}
+            >
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -270,22 +274,23 @@ function ChaserPage() {
                     {c?.name} · {isOverdue ? `due ${q.due_date}` : "job complete"}
                   </p>
                 </div>
-                <p className={`num text-2xl ${toneText}`}>{formatGBP(q.total)}</p>
+                <p className={`num text-2xl tabular-nums ${toneText}`}>{formatGBP(q.total)}</p>
               </div>
               <div className="grid grid-cols-3 gap-2 mt-4">
-                <a href={wa} target="_blank" rel="noreferrer" className="bg-lime text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5">
+                <a href={wa} target="_blank" rel="noreferrer" className="bg-lime text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition">
                   <MessageCircle className="h-3.5 w-3.5" />
                   WhatsApp
                 </a>
-                <a href={`tel:${c?.phone}`} className="bg-ink text-paper rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5">
+                <a href={`tel:${c?.phone}`} className="bg-ink text-paper rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition">
                   <Phone className="h-3.5 w-3.5" />
                   Call
                 </a>
-                <a href={mail} className="bg-card border border-border text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5">
+                <a href={mail} className="bg-card border border-border text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition">
                   <Mail className="h-3.5 w-3.5" />
                   Email
                 </a>
               </div>
+
               <button
                 onClick={() => { feedback("tap"); setQuoteAutoChase(q.id, paused); force((n) => n + 1); }}
                 className="mt-2 w-full bg-card border border-border text-muted-foreground rounded-full py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5 hover:text-ink"
