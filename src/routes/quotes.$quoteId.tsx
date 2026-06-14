@@ -601,7 +601,7 @@ function QuoteDetail() {
 
   return (
     <AppShell>
-      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" compact />
+      <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" crumbs={["Quotes", quote.ref]} />
 
       {/* Money summary card — glance-level total + status at the top */}
       <div className="mx-5 mt-4 rounded-2xl bg-card border border-border overflow-hidden">

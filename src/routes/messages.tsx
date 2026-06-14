@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { getInbox } from "@/lib/messages.functions";
 import { getMyIncomingRequests, markRequestRead } from "@/lib/quote-requests.functions";
@@ -139,7 +140,14 @@ function MessagesInbox() {
 
   return (
     <AppShell>
-      <PageHeader title="Inbox" subtitle={subtitle} />
+      <PageHeader
+        title="Inbox"
+        subtitle={subtitle}
+        action={{
+          label: "Filter",
+          onClick: () => toast.info("Filters coming soon"),
+        }}
+      />
 
       {loading && (
         <div className="px-5 mt-2 space-y-2">

@@ -106,7 +106,12 @@ function QuotesPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Quotes" subtitle={subtitle} />
+      <PageHeader
+        title="Quotes"
+        subtitle={subtitle}
+        urgent={overdueTile.count > 0}
+        action={{ to: "/quotes/new", label: "+ New" }}
+      />
 
       {/* HERO PIPELINE STRIP */}
       <div className="px-5 mt-5">
