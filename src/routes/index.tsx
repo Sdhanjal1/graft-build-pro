@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/MarketingShell";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -166,30 +166,23 @@ function HomePage() {
 
 
       {/* FINAL CTA */}
-      <section className="mx-auto max-w-6xl px-5 py-20 md:py-28">
-        <div className="rounded-3xl bg-lime text-ink p-10 md:p-16 relative overflow-hidden text-center">
-          <h2
-            className="text-5xl md:text-8xl leading-[0.9]"
-            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-          >
-            Stop quoting in the evenings.
+      <section className="bg-lime text-ink">
+        <div className="mx-auto max-w-6xl px-5 md:px-8 py-20 md:py-28">
+          <h2 className="leading-[0.85] max-w-4xl" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.5rem, 11vw, 9rem)" }}>
+            Stop quoting<br />in the evenings.
           </h2>
-          <p className="mt-4 text-ink/80 text-lg md:text-xl max-w-2xl mx-auto">
-            Try Quottr free for 14 days. No card, no contract, no hassle.
+          <p className="mt-6 text-ink/75 text-lg md:text-xl max-w-xl">
+            Talk through the job, send the quote, get paid. Quottr does the rest.
           </p>
-          <div className="mt-7 flex flex-wrap gap-3 justify-center">
-            <Link to="/auth" className="inline-flex items-center gap-2 bg-ink text-paper font-semibold px-7 py-4 rounded-full hover:bg-ink/90 transition">
-              Get Quottr <ArrowRight className="h-4 w-4" />
+          <div className="mt-8 flex items-center gap-5 flex-wrap">
+            <Link
+              to="/auth"
+              className="inline-flex items-center gap-2 bg-ink text-paper font-bold px-8 py-4 rounded-full hover:bg-ink/90 transition text-base"
+            >
+              Start quoting free <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link to="/pricing" className="inline-flex items-center bg-paper/40 text-ink font-medium px-7 py-4 rounded-full hover:bg-paper/60 transition">
-              See pricing
-            </Link>
+            <span className="text-sm font-medium text-ink/70">14-day trial · no card · cancel any time</span>
           </div>
-          <ul className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink/80 justify-center">
-            {["Free 14-day trial", "No card required", "Cancel any time"].map((p) => (
-              <li key={p} className="inline-flex items-center gap-2"><Check className="h-4 w-4" />{p}</li>
-            ))}
-          </ul>
         </div>
       </section>
     </MarketingShell>
