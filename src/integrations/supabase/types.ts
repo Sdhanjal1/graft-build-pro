@@ -188,6 +188,30 @@ export type Database = {
         }
         Relationships: []
       }
+      merch_interest: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          product_slug: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          product_slug?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          product_slug?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           account_number: string | null
