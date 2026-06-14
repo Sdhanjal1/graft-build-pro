@@ -198,10 +198,10 @@ function QuotesPage() {
               }`}
               aria-pressed={active}
             >
-              <div className="flex items-center justify-between gap-1">
-                <span className="text-[10px] tracking-wide uppercase font-bold text-muted-foreground inline-flex items-center gap-1 min-w-0">
-                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${TILE_DOT[t.key]}`} />
-                  <span className="truncate">{TILE_LABEL[t.key]}</span>
+              <div className="flex items-start justify-between gap-1">
+                <span className="text-[10px] tracking-wide uppercase font-bold text-muted-foreground inline-flex items-start gap-1 min-w-0">
+                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 mt-1 ${TILE_DOT[t.key]}`} />
+                  <span className="leading-tight">{GROUP_LABEL[t.key]}</span>
                 </span>
                 <span className={`text-[10px] font-bold tabular-nums shrink-0 ${active ? "bg-ink text-paper rounded-full px-1.5 min-w-[18px] text-center" : "text-ink/60"}`}>
                   {t.count}
