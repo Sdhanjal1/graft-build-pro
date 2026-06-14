@@ -1,67 +1,86 @@
-## Unified chaser (B1) — Awaiting a reply
+# Visual polish pass — 12 items
 
-Add a manual "Awaiting a reply" section to the chaser, above the existing payment chasing. No new automation.
+Grouped so related edits happen in one file at a time. No business-logic changes; presentation-only.
 
-### Part 1 — `src/lib/user-data.ts`
+## 1. Status chips — single source of truth
+- Audit `src/routes/quotes.index.tsx`, `src/routes/chaser.tsx`, `src/routes/clients.$clientId.tsx`, `src/routes/invoices.$quoteId.tsx`, `src/routes/quotes.$quoteId.tsx` for inline badges built from `bg-status-*` + text.
+- Replace each with `<StatusBadge status={...} />` so casing, radius, and tonal weight match.
+- Where a one-off chip is needed (e.g. "Awaiting reply" count), extract a small `Chip` variant inside `StatusBadge.tsx` rather than re-rolling per screen.
 
-Insert after `buildChaserMessage` (line 789), before `stats` (line 791):
+## 2. Money typography
+- Add `.num` (Bebas, tabular tracking) to every £ amount in list rows: quote cards (`quotes.index`), owed totals + chaser cards, invoice line items, client lifetime totals, settings preview.
+- Keep `money-hero` only on the home `HeroNumber`.
 
-```ts
-export const buildQuoteReplyNudge = (quote: Quote, clientFirstName: string) => {
-  const first = clientFirstName || "there";
-  const amount = formatGBP(quote.total);
-  const signOff = `Thanks, ${userProfile.full_name.split(" ")[0]}`;
-  const footer = "\n\nSent via Quottr.";
-  return (
-    [
-      `Hi ${first}, just following up on the quote I sent over for ${quote.title} (${amount}).`,
-      `No rush — just wanted to check it reached you and see if you had any questions. Happy to go through anything.`,
-      signOff,
-    ].join("\n") + footer
-  );
-};
-```
+## 3. Skeletons over spinners
+- Replace full-screen `Loader2` blocks on `app.tsx`, `quotes.index.tsx`, `chaser.tsx`, `clients.index.tsx`, `messages.tsx` with shapes from `src/components/Skeletons.tsx`.
+- Add a `QuoteCardSkeleton` and `OwedCardSkeleton` to `Skeletons.tsx` if missing.
 
-### Part 2 — `src/routes/chaser.tsx`
+## 4. Empty states sweep
+- Find any remaining plain "No X yet" text in `quotes.index`, `clients.index`, `messages`, `invoices` list views.
+- Replace with `<EmptyState>` (icon + body + optional CTA). Use `celebrate` tone where appropriate (e.g. "All caught up").
 
-- Add `buildQuoteReplyNudge` to the existing `@/lib/user-data` import.
-- Add `daysSince(iso?)` helper next to `daysOverdue`.
-- Near the existing derived data, add:
-  ```ts
-  const awaitingReply = mockQuotes.filter((q) => q.status === "sent");
-  const replyTotal = awaitingReply.reduce((s, q) => s + q.total, 0);
-  const hasReplies = awaitingReply.length > 0;
-  const hasPayments = overdue.length > 0 || due.length > 0 || upcoming.length > 0;
-  ```
-- Update both `PageHeader` instances (hydrating + main): `title="Chaser"`, `subtitle="Replies & payments"`.
+## 5. Card hierarchy — one focal per screen
+- Demote everything currently using `card-focal` to `card-surface` by default.
+- Promote exactly one element per screen back to `card-focal`:
+  - `app.tsx` → hero number card
+  - `chaser.tsx` → "You are owed" card
+  - `quotes.$quoteId.tsx` → total/summary card
+  - `clients.$clientId.tsx` → lifetime value card
 
-**Body branches:**
+## 6. Section headings rhythm
+- Add small uppercase Bebas `h2`s above logical groups, matching the chaser pattern:
+  - `quotes.index.tsx` → "Drafts", "Sent", "Paid"
+  - `settings.tsx` → existing sections get a consistent heading style (already partially there; normalise sizing + tracking)
+  - `clients.$clientId.tsx` → "Recent quotes", "Notes"
+- Shared style: `text-xs uppercase tracking-[0.08em] text-muted-foreground` + Bebas via `font-display`.
 
-1. **Both empty** (`!hasReplies && !hasPayments`): render only the existing `EmptyState` (icon ThumbsUp, celebrate tone). Title "Nothing to chase", body "No quotes waiting on a reply, and nothing owed. Nice work." Remove the old inline `{overdue.length === 0 && <EmptyState…>}` at the bottom of the payment list.
-2. **Awaiting a reply** (`hasReplies`): new section placed first (after PageHeader). Header row: `h2 "Awaiting a reply"` + muted count/total. For each sent quote, a `card-surface` mirroring the overdue card but: neutral `text-ink` amount (not red), `bg-status-sent/15 text-status-sent` chip showing "Sent today" / "Sent X days ago" from `daysSince(q.updated_at ?? q.created_at)`, and three actions: Nudge (WhatsApp via `buildQuoteReplyNudge` + `waLink`), Call (`tel:`), Email (`mailto:` with subject `Quote {ref}, {business_name}`). No pause-auto-chase button.
-3. **Awaiting payment** (`hasPayments`): wrap the existing "You are owed" card, Auto-chase queue, and `overdue.map` cards in `{hasPayments && (...)}` unchanged. Optionally add `<h2 className="text-lg px-5">Awaiting payment</h2>` above the owed card for symmetry.
+## 7. Lime accent restraint
+- Keep lime for: primary CTAs, `status-paid`, the home header blob, focus rings.
+- Audit inner-page headers (`PageHeader` non-compact) and any decorative blurs on `settings`, `chaser`, `quotes.*`, `clients.*` — swap the lime blur to a soft paper/ink tint (`bg-ink/5` blob) so only home reads lime-forward.
 
-### Notes
+## 8. Press feedback on rows
+- Add `active:scale-[0.98] transition-transform` to interactive list rows:
+  - Quote cards, chaser cards, client rows, invoice rows, message rows.
+- Pair with `touch-manipulation` to keep taps snappy on iOS.
 
-- `MessageCircle` / `Phone` / `Mail` already imported.
-- `bg-status-sent` token already exists (used on quotes list).
-- "Chase up" home tile now lands on a populated screen.
-- `updated_at` may make a freshly-edited quote show "Sent today" — acceptable.
+## 9. Row-rise on list mount
+- Apply existing `.row-rise` utility to mapped list items in `quotes.index` and `chaser` (and `clients.index`).
+- Stagger via `style={{ animationDelay: ``${i * 30}ms`` }}` capped at ~8 items so it doesn't drag.
 
-### Out of scope
+## 10. Toast theming
+- Check `src/components/ui/sonner.tsx` — set defaults to ink/paper with lime accent for success, status-overdue for error, matching the rest of the app.
+- Verify position (`top-center` on mobile likely best given bottom nav).
 
-Automation for reply nudges, schema changes, settings, quote-preview work.
+## 11. Safe-area on bottom CTAs
+- Sweep for sticky bottom bars / FABs / fixed CTAs across `quotes.new`, `quotes.$quoteId`, `invoices.$quoteId`, `portal.*`, `request.$proId`.
+- Ensure each wrapping container uses `safe-bottom` (or `pb-[env(safe-area-inset-bottom)]`) so nothing collides with the iOS home indicator.
 
-### Acceptance
+## 12. Header right-slot truncation
+- Apply the responsive grid pattern to any header where business name + cog (or other widgets) co-exist:
+  - Wrapper: `grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3`
+  - Text container: `min-w-0`
+  - Heading/business name: `truncate`
+  - Icon button: `shrink-0`
+- Specifically: `app.tsx` identity row (just rebuilt — verify), and any other `PageHeader` `right` slot usages with long titles.
 
-- Chaser shows "Awaiting a reply" (sent quotes with Nudge/Call/Email) above "Awaiting payment" (unchanged).
-- When both empty, one clean "Nothing to chase" screen.
-- Reply totals render in neutral ink, payment totals stay red.
+---
 
-Three quick things to eyeball:
+## Order of execution
 
-	∙	“Awaiting a reply” renders above “Awaiting payment”, not below.
+1. Shared primitives first: `StatusBadge.tsx`, `Skeletons.tsx`, `sonner.tsx`, `EmptyState.tsx` (verify), and `card-focal`/`card-surface` usage rule documented in `styles.css` as a comment.
+2. Per-screen passes in this order: `app.tsx` → `chaser.tsx` → `quotes.index.tsx` → `quotes.$quoteId.tsx` → `clients.*` → `invoices.$quoteId.tsx` → `settings.tsx` → `messages.tsx` → portal/request public pages.
+3. Final sweep: safe-area + lime restraint audit across all of the above.
 
-	∙	Sent-quote amounts are neutral ink, invoice amounts stay red — easy to confirm at a glance.
+## Out of scope
+- Dark mode
+- Framer Motion additions
+- Any business logic, data shape, or route changes
+- Marketing pages (`index.tsx`, `features`, `pricing`, `faqs`, `trades.*`) unless they share a touched component
 
-	∙	With your current data (2 sent, no unpaid invoices) you should see the reply section populated and no payment section and no empty state — that’s the exact case that was broken before.
+## Acceptance
+- Status chips look identical across every screen
+- Every list/skeleton path shows shapes, not spinners
+- Each screen has one focal card; the rest are flat surfaces
+- Lime appears only on actions + paid status + home header
+- No header text overlaps its right-slot widget at 320px width
+- Bottom CTAs sit above the iOS home indicator on all forms

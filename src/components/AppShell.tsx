@@ -14,12 +14,13 @@ export function AppShell({
   const handleRefresh = onRefresh ?? (() => router.invalidate());
   return (
     <div className="min-h-screen bg-paper">
-      <div className="mx-auto max-w-md min-h-screen pb-24">
+      <div className="mx-auto max-w-md min-h-screen pb-24 safe-bottom">
         <PullToRefresh onRefresh={handleRefresh}>{children}</PullToRefresh>
       </div>
     </div>
   );
 }
+
 
 export function PageHeader({
   title,
@@ -41,8 +42,9 @@ export function PageHeader({
   if (compact) {
     return (
       <header className="bg-surface text-paper rounded-b-[1.5rem] px-5 pt-5 pb-4 relative overflow-hidden">
-        <span aria-hidden className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-lime/15 blur-3xl pointer-events-none" />
-        <span aria-hidden className="absolute left-0 top-0 h-full w-1.5 bg-lime" />
+        <span aria-hidden className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-paper/5 blur-3xl pointer-events-none" />
+        <span aria-hidden className="absolute left-0 top-0 h-full w-1.5 bg-paper/20" />
+
         <div className="relative flex items-start gap-3">
           {showBack && (
             <Link
@@ -73,8 +75,9 @@ export function PageHeader({
 
   return (
     <header className="bg-surface text-paper rounded-b-[1.5rem] px-5 pt-5 pb-4 relative overflow-hidden">
-      <span aria-hidden className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-lime/15 blur-3xl pointer-events-none" />
-      <span aria-hidden className="absolute left-0 top-0 h-full w-1.5 bg-lime" />
+      <span aria-hidden className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-paper/5 blur-3xl pointer-events-none" />
+      <span aria-hidden className="absolute left-0 top-0 h-full w-1.5 bg-paper/20" />
+
 
       {/* Brand bar — QUOTTR is the anchor */}
       <div className="relative flex items-end justify-between">

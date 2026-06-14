@@ -84,11 +84,13 @@ function ChaserPage() {
 
       {hasReplies && (
         <section className="px-5 mt-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg">Awaiting a reply</h2>
-            <span className="text-xs text-muted-foreground">{awaitingReply.length} · {formatGBP(replyTotal)}</span>
+          <div className="flex items-end justify-between">
+            <h2 className="font-display uppercase tracking-[0.06em] text-ink text-xl leading-none">Awaiting a reply</h2>
+            <span className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground tabular-nums">
+              {awaitingReply.length} · <span className="num text-ink">{formatGBP(replyTotal)}</span>
+            </span>
           </div>
-          {awaitingReply.map((q) => {
+          {awaitingReply.map((q, i) => {
             const c = getClient(q.client_id);
             const firstName = c?.name.split(" ")[0] ?? "there";
             const msg = buildQuoteReplyNudge(q, firstName);
@@ -97,7 +99,11 @@ function ChaserPage() {
             const mail = `mailto:${c?.email}?subject=${subject}&body=${encodeURIComponent(msg)}`;
             const days = daysSince(q.updated_at ?? q.created_at);
             return (
-              <div key={q.id} className="card-surface p-4">
+              <div
+                key={q.id}
+                className="card-surface p-4 row-rise active:scale-[0.99] transition-transform touch-manipulation"
+                style={{ animationDelay: `${Math.min(i, 6) * 25}ms` }}
+              >
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -109,16 +115,16 @@ function ChaserPage() {
                     <p className="font-semibold text-sm mt-0.5 truncate">{q.title}</p>
                     <p className="text-xs text-muted-foreground truncate">{c?.name}</p>
                   </div>
-                  <p className="num text-2xl text-ink">{formatGBP(q.total)}</p>
+                  <p className="num text-2xl text-ink tabular-nums">{formatGBP(q.total)}</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2 mt-4">
-                  <a href={wa} target="_blank" rel="noreferrer" className="bg-lime text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5">
+                  <a href={wa} target="_blank" rel="noreferrer" className="bg-lime text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition">
                     <MessageCircle className="h-3.5 w-3.5" /> Nudge
                   </a>
-                  <a href={`tel:${c?.phone}`} className="bg-ink text-paper rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5">
+                  <a href={`tel:${c?.phone}`} className="bg-ink text-paper rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition">
                     <Phone className="h-3.5 w-3.5" /> Call
                   </a>
-                  <a href={mail} className="bg-card border border-border text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5">
+                  <a href={mail} className="bg-card border border-border text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition">
                     <Mail className="h-3.5 w-3.5" /> Email
                   </a>
                 </div>
@@ -128,18 +134,19 @@ function ChaserPage() {
         </section>
       )}
 
+
       {hasPayments && (
         <>
-          <h2 className="text-lg px-5 mt-5">Awaiting payment</h2>
+          <h2 className="font-display uppercase tracking-[0.06em] text-ink text-xl leading-none px-5 mt-6">Awaiting payment</h2>
 
 
 
 
-      <section className="px-5">
-        <div className="rounded-2xl bg-status-overdue/10 border border-status-overdue/30 p-5">
-          <p className="text-xs uppercase tracking-widest text-status-overdue font-semibold">You are owed</p>
-          <p className="num text-4xl mt-1 text-status-overdue">{formatGBP(total)}</p>
-          <p className="text-xs text-muted-foreground mt-1">
+      <section className="px-5 mt-3">
+        <div className="card-focal bg-status-overdue/10 border border-status-overdue/30 p-5">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-status-overdue font-bold">You are owed</p>
+          <p className="num text-5xl mt-1 text-status-overdue tabular-nums leading-[0.9]">{formatGBP(total)}</p>
+          <p className="text-xs text-muted-foreground mt-1.5">
             {overdue.length} {overdue.length === 1 ? "invoice" : "invoices"} awaiting payment
           </p>
         </div>
@@ -150,8 +157,9 @@ function ChaserPage() {
         <section className="px-5 mt-5">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="h-4 w-4 text-ink" />
-            <h2 className="text-lg">Auto-chase queue</h2>
+            <h2 className="font-display uppercase tracking-[0.06em] text-ink text-base leading-none">Auto-chase queue</h2>
           </div>
+
 
           {due.length > 0 && (
             <div className="space-y-2 mb-3">
@@ -229,7 +237,7 @@ function ChaserPage() {
       )}
 
       <section className="px-5 mt-5 space-y-3">
-        {overdue.map((q) => {
+        {overdue.map((q, i) => {
           const c = getClient(q.client_id);
           const firstName = c?.name.split(" ")[0] ?? "there";
           const chase = buildChaserMessage(q, firstName);
@@ -243,7 +251,11 @@ function ChaserPage() {
           const toneBg = isOverdue ? "bg-status-overdue/15 text-status-overdue" : "bg-status-completed/15 text-status-completed";
           const paused = q.auto_chase_enabled === false;
           return (
-            <div key={q.id} className="card-surface p-4">
+            <div
+              key={q.id}
+              className="card-surface p-4 row-rise active:scale-[0.99] transition-transform touch-manipulation"
+              style={{ animationDelay: `${Math.min(i, 6) * 25}ms` }}
+            >
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -262,22 +274,23 @@ function ChaserPage() {
                     {c?.name} · {isOverdue ? `due ${q.due_date}` : "job complete"}
                   </p>
                 </div>
-                <p className={`num text-2xl ${toneText}`}>{formatGBP(q.total)}</p>
+                <p className={`num text-2xl tabular-nums ${toneText}`}>{formatGBP(q.total)}</p>
               </div>
               <div className="grid grid-cols-3 gap-2 mt-4">
-                <a href={wa} target="_blank" rel="noreferrer" className="bg-lime text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5">
+                <a href={wa} target="_blank" rel="noreferrer" className="bg-lime text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition">
                   <MessageCircle className="h-3.5 w-3.5" />
                   WhatsApp
                 </a>
-                <a href={`tel:${c?.phone}`} className="bg-ink text-paper rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5">
+                <a href={`tel:${c?.phone}`} className="bg-ink text-paper rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition">
                   <Phone className="h-3.5 w-3.5" />
                   Call
                 </a>
-                <a href={mail} className="bg-card border border-border text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5">
+                <a href={mail} className="bg-card border border-border text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition">
                   <Mail className="h-3.5 w-3.5" />
                   Email
                 </a>
               </div>
+
               <button
                 onClick={() => { feedback("tap"); setQuoteAutoChase(q.id, paused); force((n) => n + 1); }}
                 className="mt-2 w-full bg-card border border-border text-muted-foreground rounded-full py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5 hover:text-ink"
