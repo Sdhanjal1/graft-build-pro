@@ -11,7 +11,7 @@ import { ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, Credi
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 
 
-import { QuottrWordmark } from "@/components/QuottrLogo";
+import { BusinessLogo } from "@/components/BusinessLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
 import { HomeSkeleton } from "@/components/Skeletons";
@@ -175,20 +175,24 @@ function AppHomePage() {
         {/* Ink header: greeting + hero £ */}
         <header className="bg-surface text-paper rounded-b-[1.5rem] px-5 pt-6 pb-7 relative overflow-hidden">
           <span aria-hidden className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-lime/15 blur-2xl pointer-events-none" />
-          <div className="relative flex items-center justify-between">
-            <QuottrWordmark className="text-[2.5rem] leading-none" />
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <BusinessLogo logoUrl={userProfile.logo_url} businessName={userProfile.business_name} size="md" />
+              <div className="min-w-0">
+                <p className="text-lg font-semibold text-paper leading-tight truncate">{greeting}, {firstName}</p>
+                <p className="mt-0.5 text-[11px] uppercase tracking-[0.16em] font-bold text-paper/55 truncate">
+                  {userProfile.business_name || "Set up your business"}
+                </p>
+              </div>
+            </div>
             <Link
               to="/settings"
-              className="flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] font-bold text-paper/60 hover:text-lime transition max-w-[55%]"
+              aria-label="Open settings"
+              className="h-10 w-10 shrink-0 grid place-items-center rounded-full bg-paper/10 ring-1 ring-paper/15 text-paper/80 hover:text-lime hover:bg-paper/15 active:text-lime transition"
             >
-              <span className="truncate">{userProfile.business_name || "Set up"}</span>
-              <Settings className="h-3.5 w-3.5 shrink-0" />
+              <Settings className="h-5 w-5" />
             </Link>
           </div>
-
-          <p className="relative mt-6 text-sm text-paper/70 font-medium">
-            {greeting}, {firstName}
-          </p>
 
           {hero && <HeroNumber {...hero} />}
         </header>
