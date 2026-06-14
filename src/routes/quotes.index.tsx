@@ -390,7 +390,15 @@ function QuoteCard({
   const isOverdue = quote.status === "overdue";
   const isPaid = quote.status === "paid";
 
-  const className = `rounded-2xl py-4 px-4 flex items-start gap-3 transition-transform duration-150 active:scale-[0.99] touch-manipulation ${
+  // Active states use a soft lime/paper tint that mirrors the success palette,
+  // plus a tiny ring on press so the touch reads like a button, not a link.
+  const activeTint = isOverdue
+    ? "active:bg-status-overdue/90"
+    : isPaid
+    ? "active:bg-lime/20"
+    : "active:bg-lime/15";
+
+  const className = `rounded-2xl py-4 px-4 flex items-start gap-3 transition-all duration-150 active:scale-[0.985] active:shadow-[0_0_0_3px_color-mix(in_oklab,var(--lime,#c8ff3e)_25%,transparent)] touch-manipulation ${activeTint} ${
     isOverdue
       ? "bg-ink text-paper border-l-4 border-status-overdue"
       : isPaid
@@ -405,8 +413,13 @@ function QuoteCard({
       e.preventDefault();
       e.stopPropagation();
       resetLongPress();
+      return;
     }
+    // Haptic-like tap (where supported) — keeps the lime accent feeling tactile.
+    feedback("tap");
   };
+
+
 
   const hasClient = clientName && clientName.toLowerCase() !== "new client";
   const acceptedMaterials = quote.status === "accepted" ? materialsForQuote(quote).length : 0;
