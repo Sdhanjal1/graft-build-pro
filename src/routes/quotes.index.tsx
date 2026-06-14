@@ -149,7 +149,7 @@ function QuotesPage() {
 
 
       {/* Secondary tiles */}
-      <div className="px-5 mt-3 grid grid-cols-3 gap-2">
+      <div className="px-5 mt-3 grid grid-cols-2 gap-2">
         {secondaryTiles.map((t) => {
           const active = tile === t.key;
           return (
