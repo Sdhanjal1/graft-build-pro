@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { feedback, playSample } from "@/lib/feedback";
 import { getMyIncomingRequests } from "@/lib/quote-requests.functions";
 import { useSession } from "@/lib/auth";
+import { useKeyboardOpen } from "@/hooks/useKeyboardOpen";
 
 const items = [
   { to: "/app", label: "Home", icon: Home },
@@ -16,7 +17,9 @@ const items = [
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const keyboardOpen = useKeyboardOpen();
   const hide =
+    keyboardOpen ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/capture") ||
     pathname.startsWith("/portal/") ||
