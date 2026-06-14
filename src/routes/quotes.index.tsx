@@ -423,7 +423,7 @@ function QuoteCard({
         </p>
         {/* Status / hint chip row */}
         <div className="mt-2 flex items-center gap-2 flex-wrap">
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold ${STATUS_PILL[quote.status]}`}>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold ${STATUS_CHIP[quote.status]}`}>
             {STATUS_LABEL[quote.status]}
           </span>
           {acceptedMaterials > 0 && (
