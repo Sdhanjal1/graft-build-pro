@@ -91,7 +91,12 @@ function InvoicePage() {
 
   return (
     <AppShell>
-      <PageHeader title="Final invoice" subtitle={ref} back={`/quotes/${quote.id}`} />
+      <PageHeader
+        title="Final invoice"
+        subtitle={ref}
+        back={`/quotes/${quote.id}`}
+        crumbs={["Quotes", ref, "Invoice"]}
+      />
 
       {/* Bold INVOICE banner */}
       <section className="px-5">
