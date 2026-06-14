@@ -168,6 +168,14 @@ function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  const withTimeout = <T,>(p: Promise<T>, ms = 20000): Promise<T> =>
+    Promise.race([
+      p,
+      new Promise<never>((_, rej) =>
+        setTimeout(() => rej(new Error("Upload timed out")), ms),
+      ),
+    ]);
+
   const handleLogoFile = async (file: File) => {
     if (!file) return;
     if (!/^image\/(png|jpeg|jpg)$/i.test(file.type)) {
@@ -178,23 +186,34 @@ function SettingsPage() {
       toast.error("Logo must be 5MB or smaller");
       return;
     }
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      toast.error("You're offline — connect to upload your logo");
+      return;
+    }
     setUploading(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not signed in");
       const ext = file.name.split(".").pop()?.toLowerCase() || "png";
       const path = `${userData.user.id}/logo-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("branding").upload(path, file, {
-        upsert: true,
-        contentType: file.type,
-      });
+      const { error: upErr } = await withTimeout(
+        supabase.storage.from("branding").upload(path, file, {
+          upsert: true,
+          contentType: file.type,
+        }),
+      );
       if (upErr) throw upErr;
       const { data: pub } = supabase.storage.from("branding").getPublicUrl(path);
       saveProfile({ logo_url: pub.publicUrl });
       toast.success("Logo updated");
     } catch (e) {
       console.error(e);
-      toast.error("Couldn't upload logo");
+      const msg = e instanceof Error ? e.message : "";
+      if (/timed out/i.test(msg)) {
+        toast.error("Upload timed out — check your connection");
+      } else {
+        toast.error("Couldn't upload logo");
+      }
     } finally {
       setUploading(false);
     }
