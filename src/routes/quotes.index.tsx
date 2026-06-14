@@ -253,6 +253,10 @@ function QuotesPage() {
       </div>
 
       {/* Quick section chips — jump straight to a standardized status group. */}
+      {(() => {
+        const nonEmptySections = SECTIONS.filter((s) => mockQuotes.some(s.match));
+        if (nonEmptySections.length < 2) return null;
+        return (
       <div className="px-5 mt-3 -mx-1 overflow-x-auto no-scrollbar">
         <div className="flex items-center gap-1.5 px-1 pb-0.5">
           {SECTIONS.map((s) => {
