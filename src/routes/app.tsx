@@ -11,7 +11,7 @@ import { ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, Credi
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 
 
-import { QuottrWordmark } from "@/components/QuottrLogo";
+import { BusinessLogo } from "@/components/BusinessLogo";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
 import { HomeSkeleton } from "@/components/Skeletons";
