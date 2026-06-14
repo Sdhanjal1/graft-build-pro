@@ -100,9 +100,9 @@ function QuotesPage() {
   });
 
   const emptyMessage = (() => {
-    if (q && tile) return `No ${TILE_LABEL[tile].toLowerCase()} quotes match "${q}".`;
+    if (q && tile) return `No ${GROUP_LABEL[tile].toLowerCase()} quotes match "${q}".`;
     if (q) return `No quotes match "${q}".`;
-    if (tile) return `No ${TILE_LABEL[tile].toLowerCase()} quotes right now.`;
+    if (tile) return `No ${GROUP_LABEL[tile].toLowerCase()} quotes right now.`;
     return "No quotes right now.";
   })();
 
