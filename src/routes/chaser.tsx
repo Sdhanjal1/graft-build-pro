@@ -248,7 +248,8 @@ function ChaserPage() {
           const mail = `mailto:${c?.email}?subject=${subject}&body=${encodeURIComponent(chase)}`;
           const days = daysOverdue(q.due_date);
           const toneText = isOverdue ? "text-status-overdue" : "text-status-completed";
-          const toneBg = isOverdue ? "bg-status-overdue/15 text-status-overdue" : "bg-status-completed/15 text-status-completed";
+          const toneBg = isOverdue ? "bg-status-overdue text-white" : "bg-lime/20 text-ink";
+
           const paused = q.auto_chase_enabled === false;
           return (
             <div

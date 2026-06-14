@@ -5,6 +5,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 
 import { SwipeRow } from "@/components/SwipeRow";
 import { mockQuotes, getClient, formatGBP, deleteQuote, duplicateQuote, setQuoteStatus, useDataVersion, buildChaserMessage, waLink, materialsForQuote, userProfile, markOverdueQuotes, type Quote, type QuoteStatus } from "@/lib/user-data";
+import { STATUS_LABEL, STATUS_CHIP } from "@/lib/status-styles";
 import { resolveTrade } from "@/lib/trades";
 import { Search, FileText, Inbox, ShoppingCart, X } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
@@ -12,16 +13,6 @@ import { QuotesListSkeleton } from "@/components/Skeletons";
 import { useSession } from "@/lib/auth";
 import { useLongPress } from "@/hooks/useLongPress";
 import { QuoteQuickActionsSheet } from "@/components/QuoteQuickActionsSheet";
-
-const STATUS_LABEL: Record<QuoteStatus, string> = {
-  pending: "Draft",
-  sent: "Sent",
-  accepted: "Accepted",
-  declined: "Declined",
-  completed: "Completed",
-  paid: "Paid",
-  overdue: "Overdue",
-};
 
 type TileKey = "pending" | "accepted" | "awaiting" | "overdue";
 
@@ -54,16 +45,16 @@ const tileMatches = (tile: TileKey, q: Quote): boolean => {
   return false;
 };
 
-// Three visual states only: neutral, positive, danger.
-const STATUS_PILL: Record<QuoteStatus, string> = {
-  pending: "bg-ink/8 text-muted-foreground",
-  sent: "bg-ink/8 text-muted-foreground",
-  accepted: "bg-lime/30 text-ink",
-  declined: "bg-ink/8 text-muted-foreground line-through",
-  completed: "bg-ink/8 text-muted-foreground",
-  paid: "bg-lime text-ink",
-  overdue: "bg-status-overdue text-white",
-};
+// Sectioned editorial rhythm — order = visual priority (urgent → done).
+type SectionKey = TileKey | "paid";
+const SECTIONS: { key: SectionKey; label: string; match: (q: Quote) => boolean }[] = [
+  { key: "overdue", label: "Overdue", match: (q) => tileMatches("overdue", q) },
+  { key: "awaiting", label: "Awaiting payment", match: (q) => tileMatches("awaiting", q) },
+  { key: "accepted", label: "Booked & in progress", match: (q) => tileMatches("accepted", q) },
+  { key: "pending", label: "Drafts & sent", match: (q) => tileMatches("pending", q) },
+  { key: "paid", label: "Paid", match: (q) => q.status === "paid" },
+];
+
 
 
 function QuotesPage() {
@@ -286,47 +277,72 @@ function QuotesPage() {
             </div>
           )
         )}
-        {filtered.map((quote, i) => {
-          const c = getClient(quote.client_id);
-          const isUnpaid = UNPAID.includes(quote.status);
-          const chaseHandler = isUnpaid && c?.phone
-            ? () => {
-                const first = c.name?.split(" ")[0] ?? "there";
-                const msg = buildChaserMessage(quote, first);
-                window.open(waLink(c.phone, msg), "_blank");
-                toast.success("Chaser opened in WhatsApp");
-              }
-            : undefined;
-          return (
-            <div
-              key={quote.id}
-              className="row-rise"
-              style={{ animationDelay: `${Math.min(i, 6) * 25}ms` }}
-            >
-              <SwipeRow
-                onDelete={async () => {
-                  try {
-                    await deleteQuote(quote.id);
-                    toast.success("Quote deleted");
-                  } catch (e) {
-                    toast.error("Couldn't delete quote");
-                    throw e;
-                  }
-                }}
-                onChase={chaseHandler}
-                chaseLabel="Chase"
-              >
-                <QuoteCard
-                  quote={quote}
-                  clientName={c?.name}
-                  onOpenQuickActions={() => setActionsFor(quote)}
-                />
-              </SwipeRow>
-            </div>
-          );
-        })}
+        {(() => {
+          // Group the filtered list by section so each bucket gets its own
+          // editorial heading. Index is continuous so row-rise stagger flows
+          // smoothly across section boundaries.
+          let renderedIdx = 0;
+          return SECTIONS.map((section) => {
+            const items = filtered.filter(section.match);
+            if (items.length === 0) return null;
+            return (
+              <section key={section.key} className="space-y-2.5">
+                <div className="flex items-center justify-between pt-1">
+                  <h2 className="font-display uppercase tracking-[0.08em] text-ink text-xs leading-none inline-flex items-center gap-1.5">
+                    <span className={`h-1.5 w-1.5 rounded-full ${section.key === "paid" ? "bg-lime" : TILE_DOT[section.key]}`} />
+                    {section.label}
+                  </h2>
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground tabular-nums">
+                    {items.length}
+                  </span>
+                </div>
+                {items.map((quote) => {
+                  const i = renderedIdx++;
+                  const c = getClient(quote.client_id);
+                  const isUnpaid = UNPAID.includes(quote.status);
+                  const chaseHandler = isUnpaid && c?.phone
+                    ? () => {
+                        const first = c.name?.split(" ")[0] ?? "there";
+                        const msg = buildChaserMessage(quote, first);
+                        window.open(waLink(c.phone, msg), "_blank");
+                        toast.success("Chaser opened in WhatsApp");
+                      }
+                    : undefined;
+                  return (
+                    <div
+                      key={quote.id}
+                      className="row-rise"
+                      style={{ animationDelay: `${Math.min(i, 8) * 25}ms` }}
+                    >
+                      <SwipeRow
+                        onDelete={async () => {
+                          try {
+                            await deleteQuote(quote.id);
+                            toast.success("Quote deleted");
+                          } catch (e) {
+                            toast.error("Couldn't delete quote");
+                            throw e;
+                          }
+                        }}
+                        onChase={chaseHandler}
+                        chaseLabel="Chase"
+                      >
+                        <QuoteCard
+                          quote={quote}
+                          clientName={c?.name}
+                          onOpenQuickActions={() => setActionsFor(quote)}
+                        />
+                      </SwipeRow>
+                    </div>
+                  );
+                })}
+              </section>
+            );
+          });
+        })()}
 
       </div>
+
 
       <QuoteQuickActionsSheet
         open={actionsFor !== null}
@@ -371,7 +387,7 @@ function QuoteCard({
   const isOverdue = quote.status === "overdue";
   const isPaid = quote.status === "paid";
 
-  const className = `rounded-2xl py-4 px-4 flex items-start gap-3 transition active:scale-[0.99] ${
+  const className = `rounded-2xl py-4 px-4 flex items-start gap-3 transition-transform duration-150 active:scale-[0.99] touch-manipulation ${
     isOverdue
       ? "bg-ink text-paper border-l-4 border-status-overdue"
       : isPaid
@@ -407,7 +423,7 @@ function QuoteCard({
         </p>
         {/* Status / hint chip row */}
         <div className="mt-2 flex items-center gap-2 flex-wrap">
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold ${STATUS_PILL[quote.status]}`}>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold ${STATUS_CHIP[quote.status]}`}>
             {STATUS_LABEL[quote.status]}
           </span>
           {acceptedMaterials > 0 && (
