@@ -1,58 +1,66 @@
-## Problem
+## Goal
 
-`AppShell` sets `pb-24` (96px) on the scroll container, but `BottomNav` is a fixed glass pill ≈ 84px tall **plus** iOS's home-indicator safe-area inset (≈ 34px). On iPhone the nav becomes ~118px, so the final section of each page — most visibly the "Take card payments" Stripe banner on `/app` — sits under the nav.
+Lift every inner-page header above the bar set by Home, without breaking layout on `/app`. One refactor in `AppShell.tsx`, one new sticky behaviour, and a sweep of the six route call-sites.
 
-The fix is one structural change (replace `pb-24` with a clearance that includes the safe-area inset) and a sweep of every other fixed/sticky bottom element to make sure it sits **above** the nav, not behind it.
+## 1. `src/components/AppShell.tsx` — rebuild `PageHeader`
 
-## Changes
+Collapse the two variants into one and drive behaviour through props:
 
-### 1. `src/styles.css` — introduce a nav-clearance token
-
-Add a CSS variable that always equals `nav height + safe-area inset + breathing room`:
-
-```css
-:root {
-  --bottom-nav-clearance: calc(96px + env(safe-area-inset-bottom, 0px));
-}
+```tsx
+<PageHeader
+  title="Quotes"
+  subtitle="3 pending · 2 overdue"
+  back="/quotes"            // string | true | false
+  crumbs={["Quotes"]}        // optional breadcrumb trail
+  action={{ to:"/quotes/new", label:"+ New quote" }}  // optional primary chip
+  urgent                     // optional — turns subtitle dot red
+/>
 ```
 
-And a utility:
+Key changes:
+- **Drop the `Quottr.` wordmark from this component entirely.** The Home screen already paints its own brand bar inside `/app`; no other route needs it.
+- Default size = current `compact` (Bebas 1.9rem, 1-line subtitle).
+- Back chip stays a `ChevronLeft` for top-level routes, becomes a `crumbs.join(" / ")` text link for detail pages.
+- Subtitle gains a leading `<span>` dot — neutral `bg-paper/30` by default, `bg-status-overdue` when `urgent`.
+- Right-slot is now an explicit `action` prop that renders a standard pill (`bg-lime text-ink rounded-full px-3 py-1.5 text-[11px] uppercase tracking-wide font-bold active:scale-95`) — components can still pass `right` for custom nodes (Clients already does).
 
-```css
-.pb-nav { padding-bottom: var(--bottom-nav-clearance); }
-.bottom-nav { bottom: var(--bottom-nav-clearance); }
-```
+## 2. Sticky condensed bar on scroll
 
-### 2. `src/components/AppShell.tsx`
+Inside `PageHeader`:
+- Wrap the existing header in a `position: sticky; top: 0; z-10` container.
+- Use an `IntersectionObserver` on a 1px sentinel placed just below the hero. When the sentinel leaves the viewport, swap to a 44px condensed strip (`back + title` only, `backdrop-blur-md bg-surface/85 supports-[backdrop-filter]:bg-surface/70`).
+- Transition `height`, `font-size`, `padding` over 180ms.
+- Reduce-motion: skip the height tween, just swap classes.
 
-Replace `pb-24 safe-bottom` on the main container with `pb-nav` (the new utility already accounts for the safe-area inset, so the duplicate `safe-bottom` can go).
+## 3. Route call-site sweep
 
-### 3. Audit every fixed/sticky bottom element
+| Route | Header call after refactor |
+|---|---|
+| `/app` (Home) | unchanged — uses its own custom header, no `PageHeader` |
+| `/quotes` | `title="Quotes" subtitle={subtitle} urgent={overdueTile.count>0} action={{to:"/quotes/new", label:"+ New"}}` |
+| `/clients` | keep current `right={newCustomerPill}` (custom node) |
+| `/messages` | add `action={{ label:"Filter", onClick: openFilter }}` (stub handler if no existing filter — opens a no-op dialog placeholder is out of scope; ship the chip without the dialog) |
+| `/chaser` | `urgent={hasOverdue}` |
+| `/settings` | unchanged props (no action chip) |
+| `/quotes/$id` | `crumbs={["Quotes", quote.ref]} back="/quotes"` |
+| `/invoices/$id` | `crumbs={["Quotes", quote.ref, "Invoice"]} back={\`/quotes/${quote.id}\`}` |
+| `/clients/$id` | `crumbs={["Customers", client.name]} back="/clients"` |
+| `/clients/new`, `/quotes/new` | keep as-is (back chip + plain title) |
 
-| File | Current | Fix |
-|---|---|---|
-| `src/routes/quotes.new.tsx` | `fixed inset-x-0 bottom-0 … safe-bottom` — nav is hidden on this route, so already fine | leave as is |
-| `src/routes/request.$proId.tsx` | `fixed bottom-0 … safe-bottom` action bar; no `BottomNav` on this route (unauth) | leave as is |
-| `src/routes/portal.$token.tsx` | `fixed bottom-0 … safe-bottom`; portal route — `BottomNav` hidden | leave as is |
-| `src/components/PWAInstallBanner.tsx` | `fixed bottom-24` (96px hard-coded) | change to `bottom-nav` utility so it sits above the nav on iOS too |
-| `src/components/UpdateBanner.tsx` | `fixed bottom-24` | same — switch to `bottom-nav` |
-| `src/components/CookieBanner.tsx` | `fixed bottom-0` on marketing pages (no `BottomNav`) | leave as is |
-| `src/components/ui/sonner.tsx` | now `top-center` | leave as is |
+For `/messages` I'll leave the Filter chip's `onClick` as a `toast.info("Filters coming soon")` stub — adding the actual filter UI is a separate request.
 
-### 4. Verify on every in-app route
+## 4. Lime audit on inner headers
 
-After the change, visit each `BottomNav`-visible route and confirm the last element clears the nav on a 390×844 (iPhone) viewport:
+Search the codebase for stray `text-lime` / `bg-lime` inside any `PageHeader` consumer and remove. Brand-lime stays Home-only; inner pages re-introduce lime through their *own* hero strip (e.g. Quotes pipeline card), which keeps the accent meaningful.
 
-- `/app` — Stripe "Take card payments" banner (the original report)
-- `/quotes` — last paid quote card in the list
-- `/messages` — last message row
-- `/chaser` — Auto-chase queue tail
-- `/settings` — final "Sign out" / billing row
-- `/clients` — final client row
-- `/clients/$id`, `/quotes/$id`, `/invoices/$id` — bottom action / footer
+## 5. Verify
+
+- `bunx tsc --noEmit`
+- Mobile preview at 390×844: confirm each route's first paint shows the screen title (not the wordmark), the back chip lands where expected, and the sticky bar engages once the hero scrolls out.
+- Spot-check `/quotes/$id` and `/invoices/$id` breadcrumb wraps cleanly when `quote.ref` is long (truncate after 18 chars).
 
 ## Out of scope
 
-- No visual restyle of the nav itself.
-- No layout changes to portal / marketing / auth routes (they don't render `BottomNav`).
-- No content changes to the Stripe banner — only its clearance.
+- Building a real filter dialog for Inbox.
+- Restyling Home's bespoke header.
+- Changing the bottom-nav, sheets, or any non-header surface.
