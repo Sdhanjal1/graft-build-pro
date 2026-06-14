@@ -5,6 +5,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 
 import { SwipeRow } from "@/components/SwipeRow";
 import { mockQuotes, getClient, formatGBP, deleteQuote, duplicateQuote, setQuoteStatus, useDataVersion, buildChaserMessage, waLink, materialsForQuote, userProfile, markOverdueQuotes, type Quote, type QuoteStatus } from "@/lib/user-data";
+import { STATUS_LABEL, STATUS_CHIP } from "@/lib/status-styles";
 import { resolveTrade } from "@/lib/trades";
 import { Search, FileText, Inbox, ShoppingCart, X } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
@@ -12,16 +13,6 @@ import { QuotesListSkeleton } from "@/components/Skeletons";
 import { useSession } from "@/lib/auth";
 import { useLongPress } from "@/hooks/useLongPress";
 import { QuoteQuickActionsSheet } from "@/components/QuoteQuickActionsSheet";
-
-const STATUS_LABEL: Record<QuoteStatus, string> = {
-  pending: "Draft",
-  sent: "Sent",
-  accepted: "Accepted",
-  declined: "Declined",
-  completed: "Completed",
-  paid: "Paid",
-  overdue: "Overdue",
-};
 
 type TileKey = "pending" | "accepted" | "awaiting" | "overdue";
 
@@ -54,16 +45,16 @@ const tileMatches = (tile: TileKey, q: Quote): boolean => {
   return false;
 };
 
-// Three visual states only: neutral, positive, danger.
-const STATUS_PILL: Record<QuoteStatus, string> = {
-  pending: "bg-ink/8 text-muted-foreground",
-  sent: "bg-ink/8 text-muted-foreground",
-  accepted: "bg-lime/30 text-ink",
-  declined: "bg-ink/8 text-muted-foreground line-through",
-  completed: "bg-ink/8 text-muted-foreground",
-  paid: "bg-lime text-ink",
-  overdue: "bg-status-overdue text-white",
-};
+// Sectioned editorial rhythm — order = visual priority (urgent → done).
+type SectionKey = TileKey | "paid";
+const SECTIONS: { key: SectionKey; label: string; match: (q: Quote) => boolean }[] = [
+  { key: "overdue", label: "Overdue", match: (q) => tileMatches("overdue", q) },
+  { key: "awaiting", label: "Awaiting payment", match: (q) => tileMatches("awaiting", q) },
+  { key: "accepted", label: "Booked & in progress", match: (q) => tileMatches("accepted", q) },
+  { key: "pending", label: "Drafts & sent", match: (q) => tileMatches("pending", q) },
+  { key: "paid", label: "Paid", match: (q) => q.status === "paid" },
+];
+
 
 
 function QuotesPage() {
