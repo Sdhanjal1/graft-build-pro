@@ -10,7 +10,7 @@ import { resolveTrade } from "@/lib/trades";
 import { Search, FileText, Inbox, ShoppingCart, X } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { QuotesListSkeleton } from "@/components/Skeletons";
-import { StatusLegend } from "@/components/StatusLegend";
+
 import { feedback } from "@/lib/feedback";
 import { useSession } from "@/lib/auth";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -286,9 +286,6 @@ function QuotesPage() {
         </div>
       </div>
 
-      <div className="px-5 mt-3">
-        <StatusLegend />
-      </div>
 
 
       <div className="px-5 mt-4 space-y-2.5">
