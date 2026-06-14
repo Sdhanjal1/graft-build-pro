@@ -114,7 +114,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const path = router.state.location.pathname;
-  const MARKETING_PATHS = new Set(["/", "/welcome", "/pricing", "/about", "/features", "/faqs", "/trades"]);
+  const MARKETING_PATHS = new Set(["/", "/welcome", "/pricing", "/about", "/features", "/faqs", "/trades", "/merch"]);
   const isMarketing = MARKETING_PATHS.has(path);
   const isAuth = path === "/auth";
   const isPortal = path.startsWith("/portal/") || path.startsWith("/request/");
