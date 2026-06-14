@@ -10,7 +10,7 @@ import {
 import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, ThumbsUp, Pause, Play } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { StatusLegend } from "@/components/StatusLegend";
+
 import { feedback } from "@/lib/feedback";
 
 
