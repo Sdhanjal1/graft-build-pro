@@ -286,9 +286,6 @@ function QuotesPage() {
         </div>
       </div>
 
-      <div className="px-5 mt-3">
-        <StatusLegend />
-      </div>
 
 
       <div className="px-5 mt-4 space-y-2.5">
