@@ -73,7 +73,12 @@ function ClientDetail() {
 
   return (
     <AppShell>
-      <PageHeader title={client.name} subtitle="Customer" back="/clients" />
+      <PageHeader
+        title={client.name}
+        subtitle="Customer"
+        back="/clients"
+        crumbs={["Customers", client.name]}
+      />
 
       {/* Combined money summary — one outcome card */}
       <section className="px-5 mt-5">
