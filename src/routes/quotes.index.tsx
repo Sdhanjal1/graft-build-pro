@@ -18,13 +18,6 @@ import { QuoteQuickActionsSheet } from "@/components/QuoteQuickActionsSheet";
 
 type TileKey = "pending" | "accepted" | "awaiting" | "overdue";
 
-const TILE_LABEL: Record<TileKey, string> = {
-  pending: "Pending",
-  accepted: "Accepted",
-  awaiting: "Awaiting payment",
-  overdue: "Overdue",
-};
-
 const TILE_DOT: Record<TileKey, string> = {
   pending: "bg-status-pending",
   accepted: "bg-lime",
@@ -49,12 +42,21 @@ const tileMatches = (tile: TileKey, q: Quote): boolean => {
 
 // Sectioned editorial rhythm — order = visual priority (urgent → done).
 type SectionKey = TileKey | "paid";
+
+const GROUP_LABEL: Record<SectionKey, string> = {
+  overdue: "Overdue",
+  awaiting: "Awaiting payment",
+  accepted: "Booked",
+  pending: "Drafts & sent",
+  paid: "Paid",
+};
+
 const SECTIONS: { key: SectionKey; label: string; match: (q: Quote) => boolean }[] = [
-  { key: "overdue", label: "Overdue", match: (q) => tileMatches("overdue", q) },
-  { key: "awaiting", label: "Awaiting payment", match: (q) => tileMatches("awaiting", q) },
-  { key: "accepted", label: "Booked & in progress", match: (q) => tileMatches("accepted", q) },
-  { key: "pending", label: "Drafts & sent", match: (q) => tileMatches("pending", q) },
-  { key: "paid", label: "Paid", match: (q) => q.status === "paid" },
+  { key: "overdue", label: GROUP_LABEL.overdue, match: (q) => tileMatches("overdue", q) },
+  { key: "awaiting", label: GROUP_LABEL.awaiting, match: (q) => tileMatches("awaiting", q) },
+  { key: "accepted", label: GROUP_LABEL.accepted, match: (q) => tileMatches("accepted", q) },
+  { key: "pending", label: GROUP_LABEL.pending, match: (q) => tileMatches("pending", q) },
+  { key: "paid", label: GROUP_LABEL.paid, match: (q) => q.status === "paid" },
 ];
 
 
@@ -98,9 +100,9 @@ function QuotesPage() {
   });
 
   const emptyMessage = (() => {
-    if (q && tile) return `No ${TILE_LABEL[tile].toLowerCase()} quotes match "${q}".`;
+    if (q && tile) return `No ${GROUP_LABEL[tile].toLowerCase()} quotes match "${q}".`;
     if (q) return `No quotes match "${q}".`;
-    if (tile) return `No ${TILE_LABEL[tile].toLowerCase()} quotes right now.`;
+    if (tile) return `No ${GROUP_LABEL[tile].toLowerCase()} quotes right now.`;
     return "No quotes right now.";
   })();
 
@@ -196,10 +198,10 @@ function QuotesPage() {
               }`}
               aria-pressed={active}
             >
-              <div className="flex items-center justify-between gap-1">
-                <span className="text-[10px] tracking-wide uppercase font-bold text-muted-foreground inline-flex items-center gap-1 min-w-0">
-                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${TILE_DOT[t.key]}`} />
-                  <span className="truncate">{TILE_LABEL[t.key]}</span>
+              <div className="flex items-start justify-between gap-1">
+                <span className="text-[10px] tracking-wide uppercase font-bold text-muted-foreground inline-flex items-start gap-1 min-w-0">
+                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 mt-1 ${TILE_DOT[t.key]}`} />
+                  <span className="leading-tight">{GROUP_LABEL[t.key]}</span>
                 </span>
                 <span className={`text-[10px] font-bold tabular-nums shrink-0 ${active ? "bg-ink text-paper rounded-full px-1.5 min-w-[18px] text-center" : "text-ink/60"}`}>
                   {t.count}
@@ -241,16 +243,20 @@ function QuotesPage() {
           <button
             onClick={() => setTile(null)}
             className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-secondary text-ink px-3 py-2 text-[11px] font-bold uppercase tracking-wide"
-            aria-label={`Clear ${TILE_LABEL[tile]} filter`}
+            aria-label={`Clear ${GROUP_LABEL[tile]} filter`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${TILE_DOT[tile]}`} />
-            {TILE_LABEL[tile]}
+            {GROUP_LABEL[tile]}
             <span aria-hidden className="text-muted-foreground text-sm leading-none">×</span>
           </button>
         )}
       </div>
 
       {/* Quick section chips — jump straight to a standardized status group. */}
+      {(() => {
+        const nonEmptySections = SECTIONS.filter((s) => mockQuotes.some(s.match));
+        if (nonEmptySections.length < 2) return null;
+        return (
       <div className="px-5 mt-3 -mx-1 overflow-x-auto no-scrollbar">
         <div className="flex items-center gap-1.5 px-1 pb-0.5">
           {SECTIONS.map((s) => {
@@ -290,6 +296,9 @@ function QuotesPage() {
           )}
         </div>
       </div>
+        );
+      })()}
+
 
 
 
