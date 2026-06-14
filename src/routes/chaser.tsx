@@ -287,15 +287,10 @@ function ChaserPage() {
             </div>
           );
         })}
-        {overdue.length === 0 && (
-          <EmptyState
-            icon={ThumbsUp}
-            tone="celebrate"
-            title="Nothing to chase"
-            body="Nice work."
-          />
-        )}
       </section>
+        </>
+      )}
     </AppShell>
   );
+
 }
