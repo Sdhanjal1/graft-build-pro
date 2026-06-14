@@ -277,47 +277,72 @@ function QuotesPage() {
             </div>
           )
         )}
-        {filtered.map((quote, i) => {
-          const c = getClient(quote.client_id);
-          const isUnpaid = UNPAID.includes(quote.status);
-          const chaseHandler = isUnpaid && c?.phone
-            ? () => {
-                const first = c.name?.split(" ")[0] ?? "there";
-                const msg = buildChaserMessage(quote, first);
-                window.open(waLink(c.phone, msg), "_blank");
-                toast.success("Chaser opened in WhatsApp");
-              }
-            : undefined;
-          return (
-            <div
-              key={quote.id}
-              className="row-rise"
-              style={{ animationDelay: `${Math.min(i, 6) * 25}ms` }}
-            >
-              <SwipeRow
-                onDelete={async () => {
-                  try {
-                    await deleteQuote(quote.id);
-                    toast.success("Quote deleted");
-                  } catch (e) {
-                    toast.error("Couldn't delete quote");
-                    throw e;
-                  }
-                }}
-                onChase={chaseHandler}
-                chaseLabel="Chase"
-              >
-                <QuoteCard
-                  quote={quote}
-                  clientName={c?.name}
-                  onOpenQuickActions={() => setActionsFor(quote)}
-                />
-              </SwipeRow>
-            </div>
-          );
-        })}
+        {(() => {
+          // Group the filtered list by section so each bucket gets its own
+          // editorial heading. Index is continuous so row-rise stagger flows
+          // smoothly across section boundaries.
+          let renderedIdx = 0;
+          return SECTIONS.map((section) => {
+            const items = filtered.filter(section.match);
+            if (items.length === 0) return null;
+            return (
+              <section key={section.key} className="space-y-2.5">
+                <div className="flex items-center justify-between pt-1">
+                  <h2 className="font-display uppercase tracking-[0.08em] text-ink text-xs leading-none inline-flex items-center gap-1.5">
+                    <span className={`h-1.5 w-1.5 rounded-full ${section.key === "paid" ? "bg-lime" : TILE_DOT[section.key]}`} />
+                    {section.label}
+                  </h2>
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground tabular-nums">
+                    {items.length}
+                  </span>
+                </div>
+                {items.map((quote) => {
+                  const i = renderedIdx++;
+                  const c = getClient(quote.client_id);
+                  const isUnpaid = UNPAID.includes(quote.status);
+                  const chaseHandler = isUnpaid && c?.phone
+                    ? () => {
+                        const first = c.name?.split(" ")[0] ?? "there";
+                        const msg = buildChaserMessage(quote, first);
+                        window.open(waLink(c.phone, msg), "_blank");
+                        toast.success("Chaser opened in WhatsApp");
+                      }
+                    : undefined;
+                  return (
+                    <div
+                      key={quote.id}
+                      className="row-rise"
+                      style={{ animationDelay: `${Math.min(i, 8) * 25}ms` }}
+                    >
+                      <SwipeRow
+                        onDelete={async () => {
+                          try {
+                            await deleteQuote(quote.id);
+                            toast.success("Quote deleted");
+                          } catch (e) {
+                            toast.error("Couldn't delete quote");
+                            throw e;
+                          }
+                        }}
+                        onChase={chaseHandler}
+                        chaseLabel="Chase"
+                      >
+                        <QuoteCard
+                          quote={quote}
+                          clientName={c?.name}
+                          onOpenQuickActions={() => setActionsFor(quote)}
+                        />
+                      </SwipeRow>
+                    </div>
+                  );
+                })}
+              </section>
+            );
+          });
+        })()}
 
       </div>
+
 
       <QuoteQuickActionsSheet
         open={actionsFor !== null}
