@@ -131,7 +131,8 @@ function ChaserPage() {
       {hasPayments && (
         <>
           <h2 className="text-lg px-5 mt-5">Awaiting payment</h2>
-          <section className="px-5 mt-2">
+
+
 
 
       <section className="px-5">
