@@ -19,16 +19,11 @@ export const Route = createFileRoute("/pricing")({
 const features = [
   "Unlimited quotes and invoices",
   "Voice to quote",
-  "Site capture mode",
   "WhatsApp send",
-  "Branded PDFs with your logo",
+  "Branded quotes with your logo",
   "Customer portal",
   "Auto invoice chasers",
-  "Annual service reminders",
-  "Card and bank payments",
-  "Job diary",
-  "Google review requests",
-  "Offline mode",
+  "Card, bank transfer and Apple Pay",
 ];
 
 function PricingPage() {
