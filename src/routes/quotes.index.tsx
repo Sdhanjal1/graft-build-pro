@@ -7,7 +7,7 @@ import { SwipeRow } from "@/components/SwipeRow";
 import { mockQuotes, getClient, formatGBP, deleteQuote, duplicateQuote, setQuoteStatus, useDataVersion, buildChaserMessage, waLink, materialsForQuote, userProfile, markOverdueQuotes, type Quote, type QuoteStatus } from "@/lib/user-data";
 import { STATUS_LABEL, STATUS_CHIP } from "@/lib/status-styles";
 import { resolveTrade } from "@/lib/trades";
-import { Search, FileText, Inbox, ShoppingCart, X } from "lucide-react";
+import { Search, FileText, Inbox, ShoppingCart, X, ArrowRight } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { QuotesListSkeleton } from "@/components/Skeletons";
 
@@ -78,18 +78,21 @@ function QuotesPage() {
     return { key: k, total: items.reduce((s, x) => s + (x.total || 0), 0), count: items.length };
   });
 
-  const pipelineTotal = tiles.reduce((s, t) => s + t.total, 0);
-  const pipelineCount = tiles.reduce((s, t) => s + t.count, 0);
+  const pipelineTiles = tiles.filter((t) => t.key === "pending" || t.key === "accepted");
+  const pipelineTotal = pipelineTiles.reduce((s, t) => s + t.total, 0);
+  const pipelineCount = pipelineTiles.reduce((s, t) => s + t.count, 0);
   const overdueTile = tiles.find((t) => t.key === "overdue")!;
   const awaitingTile = tiles.find((t) => t.key === "awaiting")!;
   const pendingTile = tiles.find((t) => t.key === "pending")!;
-  const secondaryTiles = tiles.filter((t) => t.key !== "overdue");
+  const bookedTile = tiles.find((t) => t.key === "accepted")!;
+  const secondaryTiles = tiles.filter((t) => t.key === "pending" || t.key === "accepted");
+  const toCollectTotal = awaitingTile.total + overdueTile.total;
+  const toCollectCount = awaitingTile.count + overdueTile.count;
 
   const subtitle = (() => {
     const parts: string[] = [];
     if (pendingTile.count) parts.push(`${pendingTile.count} pending`);
-    if (awaitingTile.count) parts.push(`${awaitingTile.count} awaiting`);
-    if (overdueTile.count) parts.push(`${overdueTile.count} overdue`);
+    if (bookedTile.count) parts.push(`${bookedTile.count} booked`);
     return parts.length ? parts.join(" · ") : "All clear";
   })();
 
@@ -111,7 +114,6 @@ function QuotesPage() {
       <PageHeader
         title="Quotes"
         subtitle={subtitle}
-        urgent={overdueTile.count > 0}
         action={{ to: "/quotes/new", search: { voice: 1 }, label: "+ New" }}
       />
 
@@ -133,58 +135,21 @@ function QuotesPage() {
           <p className="text-[10px] uppercase tracking-widest font-bold text-ink/55 mt-0.5">
             Active pipeline value
           </p>
-          {(awaitingTile.count > 0 || overdueTile.count > 0) && (
-            <div className="mt-3 space-y-1">
-              {awaitingTile.count > 0 && (
-                <p className="text-[11px] font-semibold text-ink/80 tabular-nums inline-flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-status-sent" />
-                  {formatGBP(awaitingTile.total)} awaiting payment
-                </p>
-              )}
-              {overdueTile.count > 0 && (
-                <p className="text-[11px] font-semibold text-ink/80 tabular-nums flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-status-overdue" />
-                  {formatGBP(overdueTile.total)} overdue
-                </p>
-              )}
-            </div>
+          {toCollectCount > 0 && (
+            <Link
+              to="/chaser"
+              className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold text-ink/70 hover:text-ink"
+            >
+              {formatGBP(toCollectTotal)} to collect
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           )}
         </div>
       </div>
 
-      {/* Overdue dominant tile */}
-      {overdueTile.count > 0 && (
-        <div className="px-5 mt-3 row-rise">
-          <button
-            onClick={() => setTile(tile === "overdue" ? null : "overdue")}
-            aria-pressed={tile === "overdue"}
-            className={`w-full text-left rounded-2xl px-4 py-3 border-2 transition ${
-              tile === "overdue"
-                ? "bg-status-overdue/10 border-status-overdue"
-                : "bg-card border-status-overdue/40"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] tracking-wide uppercase font-bold text-status-overdue inline-flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-status-overdue" />
-                Overdue · action needed
-              </span>
-              <span className="text-[10px] font-bold tabular-nums bg-status-overdue text-white rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
-                {overdueTile.count}
-              </span>
-            </div>
-            <p
-              className="mt-1.5 leading-none tabular-nums text-ink"
-              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.875rem" }}
-            >
-              <CountUpGBP value={overdueTile.total} />
-            </p>
-          </button>
-        </div>
-      )}
 
       {/* Secondary tiles */}
-      <div className="px-5 mt-3 grid grid-cols-3 gap-2">
+      <div className="px-5 mt-3 grid grid-cols-2 gap-2">
         {secondaryTiles.map((t) => {
           const active = tile === t.key;
           return (
