@@ -294,6 +294,7 @@ function QuotesPage() {
               Clear
             </button>
           )}
+        </div>
       </div>
         );
       })()}
