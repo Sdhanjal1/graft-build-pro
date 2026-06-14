@@ -47,7 +47,7 @@ export function PWAInstallBanner() {
 
   return (
     <>
-      <div className="fixed inset-x-0 bottom-24 z-50 px-3 safe-bottom pointer-events-none">
+      <div className="fixed inset-x-0 bottom-nav z-50 px-3 pointer-events-none">
         <div className="mx-auto max-w-md pointer-events-auto">
           <div className="rounded-2xl bg-ink text-paper p-4 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.4)] flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-lime flex items-center justify-center shrink-0">
