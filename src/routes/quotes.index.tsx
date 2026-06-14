@@ -387,7 +387,7 @@ function QuoteCard({
   const isOverdue = quote.status === "overdue";
   const isPaid = quote.status === "paid";
 
-  const className = `rounded-2xl py-4 px-4 flex items-start gap-3 transition active:scale-[0.99] ${
+  const className = `rounded-2xl py-4 px-4 flex items-start gap-3 transition-transform duration-150 active:scale-[0.99] touch-manipulation ${
     isOverdue
       ? "bg-ink text-paper border-l-4 border-status-overdue"
       : isPaid
