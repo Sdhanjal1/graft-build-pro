@@ -30,6 +30,12 @@ function daysOverdue(due?: string) {
   return Math.max(0, Math.floor(ms / 86400000));
 }
 
+function daysSince(iso?: string) {
+  if (!iso) return 0;
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
+}
+
+
 function ChaserPage() {
   // Include both completed (job done, awaiting payment) and overdue invoices —
   // these are the unpaid jobs the trader is waiting on.
