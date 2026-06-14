@@ -81,22 +81,28 @@ function MessagesInbox() {
   useEffect(() => {
     cancelledRef.current = false;
     void load();
-    const ch = supabase
-      .channel("inbox-all")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "quote_messages" }, () => void load())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "quote_requests" }, (payload: { new: QuoteRequest }) => {
-        const row = payload.new;
-        if (!knownReqIds.current.has(row.id)) {
-          knownReqIds.current.add(row.id);
-          notifyNewRequest(row);
-        }
-        void load();
-        void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
-      })
-      .subscribe();
+    let cleanup: (() => void) | undefined;
+    void (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelledRef.current) return;
+      const ch = supabase
+        .channel(`inbox-${user.id}`)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "quote_messages", filter: `user_id=eq.${user.id}` }, () => void load())
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "quote_requests", filter: `pro_id=eq.${user.id}` }, (payload: { new: QuoteRequest }) => {
+          const row = payload.new;
+          if (!knownReqIds.current.has(row.id)) {
+            knownReqIds.current.add(row.id);
+            notifyNewRequest(row);
+          }
+          void load();
+          void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+        })
+        .subscribe();
+      cleanup = () => { void supabase.removeChannel(ch); };
+    })();
     return () => {
       cancelledRef.current = true;
-      void supabase.removeChannel(ch);
+      cleanup?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
