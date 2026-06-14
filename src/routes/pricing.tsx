@@ -62,7 +62,10 @@ function PricingPage() {
               <span className="text-2xl md:text-3xl text-ink/60 ml-2">/ month</span>
             </div>
             <p className="mt-3 text-sm text-ink/60">
-              Free for 14 days. Then £29/month. Cancel anytime.
+              Free for 14 days. Then £29/month. Cancel any time.
+            </p>
+            <p className="mt-2 text-xs text-ink/55">
+              Plus 0.5% on payments taken through Quottr (50p minimum, £25 cap), only when a customer pays you.
             </p>
           </div>
 
