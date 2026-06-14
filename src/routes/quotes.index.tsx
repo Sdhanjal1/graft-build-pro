@@ -63,6 +63,7 @@ function QuotesPage() {
   useDataVersion();
   const { loading } = useSession();
   const [tile, setTile] = useState<TileKey | null>(null);
+  const [sectionFilter, setSectionFilter] = useState<SectionKey | null>(null);
   const [q, setQ] = useState("");
   const [actionsFor, setActionsFor] = useState<Quote | null>(null);
 
