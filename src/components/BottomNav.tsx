@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { feedback, playSample } from "@/lib/feedback";
 import { getMyIncomingRequests } from "@/lib/quote-requests.functions";
 import { useSession } from "@/lib/auth";
+import { useKeyboardOpen } from "@/hooks/useKeyboardOpen";
 
 const items = [
   { to: "/app", label: "Home", icon: Home },
