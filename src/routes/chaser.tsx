@@ -56,7 +56,7 @@ function ChaserPage() {
   if (!hydrated) {
     return (
       <AppShell>
-        <PageHeader title="Chaser" subtitle="Replies & payments" back="/" />
+        <PageHeader title="Chaser" subtitle="Replies & payments" back="/" urgent={overdue.length > 0} />
         <section className="px-5">
           <Skeleton className="h-28 w-full rounded-2xl bg-ink/5" />
         </section>
