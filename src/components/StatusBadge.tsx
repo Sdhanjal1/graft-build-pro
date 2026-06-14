@@ -16,8 +16,8 @@ const styles: Record<Variant, string> = {
 
 
 const labels: Record<Variant, string> = {
-  pending: "pending",
-  sent: "sent",
+  pending: "draft",
+  sent: "awaiting",
   accepted: "booked",
   declined: "declined",
   invoiced: "invoiced",
@@ -25,6 +25,7 @@ const labels: Record<Variant, string> = {
   paid: "paid",
   overdue: "overdue",
 };
+
 
 // Steady coloured dot for booked/completed; pulsing lime dot for pending/sent (awaiting action).
 function StatusDot({ status }: { status: Variant }) {
