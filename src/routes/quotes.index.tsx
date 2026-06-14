@@ -110,7 +110,7 @@ function QuotesPage() {
         title="Quotes"
         subtitle={subtitle}
         urgent={overdueTile.count > 0}
-        action={{ to: "/quotes/new", label: "+ New" }}
+        action={{ to: "/quotes/new", search: { voice: 1 }, label: "+ New" }}
       />
 
       {/* HERO PIPELINE STRIP */}
