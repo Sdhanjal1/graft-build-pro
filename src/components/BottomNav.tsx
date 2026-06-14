@@ -17,7 +17,9 @@ const items = [
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const keyboardOpen = useKeyboardOpen();
   const hide =
+    keyboardOpen ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/capture") ||
     pathname.startsWith("/portal/") ||
