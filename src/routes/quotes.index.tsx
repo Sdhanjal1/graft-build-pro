@@ -78,18 +78,21 @@ function QuotesPage() {
     return { key: k, total: items.reduce((s, x) => s + (x.total || 0), 0), count: items.length };
   });
 
-  const pipelineTotal = tiles.reduce((s, t) => s + t.total, 0);
-  const pipelineCount = tiles.reduce((s, t) => s + t.count, 0);
+  const pipelineTiles = tiles.filter((t) => t.key === "pending" || t.key === "accepted");
+  const pipelineTotal = pipelineTiles.reduce((s, t) => s + t.total, 0);
+  const pipelineCount = pipelineTiles.reduce((s, t) => s + t.count, 0);
   const overdueTile = tiles.find((t) => t.key === "overdue")!;
   const awaitingTile = tiles.find((t) => t.key === "awaiting")!;
   const pendingTile = tiles.find((t) => t.key === "pending")!;
-  const secondaryTiles = tiles.filter((t) => t.key !== "overdue");
+  const bookedTile = tiles.find((t) => t.key === "accepted")!;
+  const secondaryTiles = tiles.filter((t) => t.key === "pending" || t.key === "accepted");
+  const toCollectTotal = awaitingTile.total + overdueTile.total;
+  const toCollectCount = awaitingTile.count + overdueTile.count;
 
   const subtitle = (() => {
     const parts: string[] = [];
     if (pendingTile.count) parts.push(`${pendingTile.count} pending`);
-    if (awaitingTile.count) parts.push(`${awaitingTile.count} awaiting`);
-    if (overdueTile.count) parts.push(`${overdueTile.count} overdue`);
+    if (bookedTile.count) parts.push(`${bookedTile.count} booked`);
     return parts.length ? parts.join(" · ") : "All clear";
   })();
 
