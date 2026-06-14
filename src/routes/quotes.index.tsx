@@ -7,7 +7,7 @@ import { SwipeRow } from "@/components/SwipeRow";
 import { mockQuotes, getClient, formatGBP, deleteQuote, duplicateQuote, setQuoteStatus, useDataVersion, buildChaserMessage, waLink, materialsForQuote, userProfile, markOverdueQuotes, type Quote, type QuoteStatus } from "@/lib/user-data";
 import { STATUS_LABEL, STATUS_CHIP } from "@/lib/status-styles";
 import { resolveTrade } from "@/lib/trades";
-import { Search, FileText, Inbox, ShoppingCart, X } from "lucide-react";
+import { Search, FileText, Inbox, ShoppingCart, X, ArrowRight } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { QuotesListSkeleton } from "@/components/Skeletons";
 
