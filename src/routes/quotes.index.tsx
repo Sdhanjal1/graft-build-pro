@@ -18,13 +18,6 @@ import { QuoteQuickActionsSheet } from "@/components/QuoteQuickActionsSheet";
 
 type TileKey = "pending" | "accepted" | "awaiting" | "overdue";
 
-const TILE_LABEL: Record<TileKey, string> = {
-  pending: "Pending",
-  accepted: "Accepted",
-  awaiting: "Awaiting payment",
-  overdue: "Overdue",
-};
-
 const TILE_DOT: Record<TileKey, string> = {
   pending: "bg-status-pending",
   accepted: "bg-lime",
