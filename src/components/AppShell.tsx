@@ -1,5 +1,6 @@
 import { Link, useRouter } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { PullToRefresh } from "@/components/PullToRefresh";
 
@@ -21,103 +22,157 @@ export function AppShell({
   );
 }
 
+type HeaderAction =
+  | { label: string; to: string; onClick?: never }
+  | { label: string; onClick: () => void; to?: never };
 
 export function PageHeader({
   title,
   subtitle,
   back,
   right,
-  compact = false,
+  action,
+  crumbs,
+  urgent = false,
 }: {
   title: string;
   subtitle?: string;
   back?: string | boolean;
   right?: React.ReactNode;
+  action?: HeaderAction;
+  crumbs?: string[];
+  urgent?: boolean;
+  /** legacy — accepted but no longer differentiates */
   compact?: boolean;
 }) {
-  
   const showBack = back !== undefined && back !== false;
   const backTo = typeof back === "string" ? back : "/";
 
-  if (compact) {
-    return (
-      <header className="bg-surface text-paper rounded-b-[1.5rem] px-5 pt-5 pb-4 relative overflow-hidden">
-        <span aria-hidden className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-paper/5 blur-3xl pointer-events-none" />
-        <span aria-hidden className="absolute left-0 top-0 h-full w-1.5 bg-paper/20" />
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const [condensed, setCondensed] = useState(false);
 
-        <div className="relative flex items-start gap-3">
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      ([entry]) => setCondensed(!entry.isIntersecting),
+      { threshold: 0, rootMargin: "0px 0px 0px 0px" },
+    );
+    io.observe(node);
+    return () => io.disconnect();
+  }, []);
+
+  // Render crumb trail: last segment is the active title, earlier ones are muted.
+  const trail = crumbs && crumbs.length > 0 ? crumbs : null;
+
+  const ActionPill = action ? (
+    action.to ? (
+      <Link
+        to={action.to}
+        className="shrink-0 h-8 px-3 rounded-full bg-lime text-ink inline-flex items-center font-bold text-[11px] uppercase tracking-wide active:scale-95 transition"
+      >
+        {action.label}
+      </Link>
+    ) : (
+      <button
+        type="button"
+        onClick={action.onClick}
+        className="shrink-0 h-8 px-3 rounded-full bg-lime text-ink inline-flex items-center font-bold text-[11px] uppercase tracking-wide active:scale-95 transition"
+      >
+        {action.label}
+      </button>
+    )
+  ) : null;
+
+  return (
+    <>
+      <header
+        className={[
+          "sticky top-0 z-30 bg-surface text-paper relative overflow-hidden transition-[padding,border-radius] duration-200 motion-reduce:transition-none",
+          condensed
+            ? "rounded-b-[1rem] px-4 pt-2 pb-2"
+            : "rounded-b-[1.5rem] px-5 pt-5 pb-4",
+        ].join(" ")}
+      >
+        {!condensed && (
+          <>
+            <span
+              aria-hidden
+              className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-paper/5 blur-3xl pointer-events-none"
+            />
+            <span
+              aria-hidden
+              className="absolute left-0 top-0 h-full w-1.5 bg-paper/20"
+            />
+          </>
+        )}
+
+        <div className="relative flex items-center gap-3">
           {showBack && (
             <Link
               to={backTo}
-              className="h-8 w-8 mt-0.5 -ml-0.5 shrink-0 rounded-full bg-paper/10 border border-paper/15 flex items-center justify-center"
+              className={[
+                "shrink-0 rounded-full bg-paper/10 border border-paper/15 flex items-center justify-center transition-[height,width] duration-200 motion-reduce:transition-none",
+                condensed ? "h-7 w-7" : "h-8 w-8",
+              ].join(" ")}
               aria-label="Back"
             >
               <ChevronLeft className="h-4 w-4 text-paper" />
             </Link>
           )}
+
           <div className="flex-1 min-w-0">
+            {trail && !condensed && (
+              <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-paper/45 truncate">
+                {trail.slice(0, -1).map((c, i) => (
+                  <span key={i}>
+                    {truncate(c, 18)}
+                    <span aria-hidden className="mx-1.5 text-paper/30">/</span>
+                  </span>
+                ))}
+                <span className="text-paper/70">
+                  {truncate(trail[trail.length - 1], 18)}
+                </span>
+              </p>
+            )}
             <h1
-              className="text-paper uppercase leading-[0.95] tracking-[0.04em]"
-              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.9rem" }}
+              className={[
+                "text-paper uppercase leading-[0.95] tracking-[0.04em] truncate transition-[font-size] duration-200 motion-reduce:transition-none",
+              ].join(" ")}
+              style={{
+                fontFamily: "'Bebas Neue', sans-serif",
+                fontSize: condensed ? "1.1rem" : "1.9rem",
+              }}
             >
               {title}
             </h1>
-            {subtitle && (
-              <span className="block mt-1 text-[11px] text-paper/55 font-medium">{subtitle}</span>
+            {subtitle && !condensed && (
+              <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-paper/55 font-medium truncate">
+                <span
+                  aria-hidden
+                  className={[
+                    "h-1.5 w-1.5 rounded-full shrink-0",
+                    urgent ? "bg-status-overdue" : "bg-paper/30",
+                  ].join(" ")}
+                />
+                <span className="truncate">{subtitle}</span>
+              </span>
             )}
           </div>
-          {right && <div className="shrink-0 pt-0.5">{right}</div>}
+
+          {!condensed && (right ?? ActionPill) && (
+            <div className="shrink-0 self-center">{right ?? ActionPill}</div>
+          )}
         </div>
       </header>
-    );
-  }
 
-
-  return (
-    <header className="bg-surface text-paper rounded-b-[1.5rem] px-5 pt-5 pb-4 relative overflow-hidden">
-      <span aria-hidden className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-paper/5 blur-3xl pointer-events-none" />
-      <span aria-hidden className="absolute left-0 top-0 h-full w-1.5 bg-paper/20" />
-
-
-      {/* Brand bar — QUOTTR is the anchor */}
-      <div className="relative flex items-end justify-between">
-        <span
-          className="text-lime leading-[0.8] tracking-tight"
-          style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.5rem, 16vw, 5rem)" }}
-        >
-          Quottr.
-        </span>
-        {right && <div className="pb-2">{right}</div>}
-      </div>
-
-      {/* Hairline divider */}
-      <div className="relative mt-3 h-px bg-paper/10" />
-
-      {/* Secondary: screen title */}
-      <div className="relative mt-2 flex items-center gap-3">
-        {showBack && (
-          <Link
-            to={backTo}
-            className="h-8 w-8 -ml-0.5 rounded-full bg-paper/10 border border-paper/15 flex items-center justify-center"
-            aria-label="Back"
-          >
-            <ChevronLeft className="h-4 w-4 text-paper" />
-          </Link>
-        )}
-        <h1
-          className="text-paper/85 uppercase leading-none tracking-[0.08em]"
-          style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.5rem" }}
-        >
-          {title}
-        </h1>
-        {subtitle && (
-          <>
-            <span aria-hidden className="h-1 w-1 rounded-full bg-paper/30" />
-            <span className="text-[11px] text-paper/55 font-medium truncate">{subtitle}</span>
-          </>
-        )}
-      </div>
-    </header>
+      {/* Sentinel just below the header — when it scrolls out, condense. */}
+      <div ref={sentinelRef} aria-hidden className="h-px w-full" />
+    </>
   );
 }
 
+function truncate(value: string, max: number) {
+  if (!value) return value;
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
