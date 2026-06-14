@@ -10,7 +10,9 @@ import {
 import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, ThumbsUp, Pause, Play } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatusLegend } from "@/components/StatusLegend";
 import { feedback } from "@/lib/feedback";
+
 
 /** Tone label + colour for an escalation step. */
 function chaseTone(offset: number, offsets: number[]) {
