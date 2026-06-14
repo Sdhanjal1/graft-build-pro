@@ -7,7 +7,7 @@ export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
       { title: "Pricing, Quottr" },
-      { name: "description", content: "One simple plan. £29/month after a 14-day free trial. No card required to start. Cancel anytime." },
+      { name: "description", content: "One simple plan. £29/month after a 14-day free trial. No card required to start. Cancel any time." },
       { property: "og:title", content: "Pricing, Quottr" },
       { property: "og:description", content: "One price. Everything included. No contracts." },
       { property: "og:url", content: "https://www.quottr.co.uk/pricing" },
@@ -19,16 +19,11 @@ export const Route = createFileRoute("/pricing")({
 const features = [
   "Unlimited quotes and invoices",
   "Voice to quote",
-  "Site capture mode",
   "WhatsApp send",
-  "Branded PDFs with your logo",
+  "Branded quotes with your logo",
   "Customer portal",
   "Auto invoice chasers",
-  "Annual service reminders",
-  "Card and bank payments",
-  "Job diary",
-  "Google review requests",
-  "Offline mode",
+  "Card, bank transfer and Apple Pay",
 ];
 
 function PricingPage() {
@@ -36,7 +31,7 @@ function PricingPage() {
     <MarketingShell>
       <section className="bg-ink text-paper">
         <div className="mx-auto max-w-6xl px-5 py-20 md:py-28 text-center">
-          <p className="text-[11px] uppercase tracking-widest text-paper/60 font-semibold">Pricing</p>
+          
           <h1
             className="mt-4 text-5xl md:text-7xl leading-[0.9] text-paper"
             style={{ fontFamily: "'Bebas Neue', sans-serif" }}
@@ -67,7 +62,10 @@ function PricingPage() {
               <span className="text-2xl md:text-3xl text-ink/60 ml-2">/ month</span>
             </div>
             <p className="mt-3 text-sm text-ink/60">
-              Free for 14 days. Then £29/month. Cancel anytime.
+              Free for 14 days. Then £29/month. Cancel any time.
+            </p>
+            <p className="mt-2 text-xs text-ink/55">
+              Plus 0.5% on payments taken through Quottr (50p minimum, £25 cap), only when a customer pays you.
             </p>
           </div>
 
@@ -96,7 +94,7 @@ function PricingPage() {
         </div>
 
         <p className="mt-5 text-center text-xs text-ink/55 max-w-md mx-auto leading-relaxed">
-          After your 14 day trial, £29/month. Cancel anytime. No contracts. No per-quote fees. No hidden charges.
+          After your 14-day trial, £29/month. Cancel any time. No contracts, no per-quote fees, no setup costs.
         </p>
       </section>
 
