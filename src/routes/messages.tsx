@@ -88,7 +88,7 @@ function MessagesInbox() {
       const ch = supabase
         .channel(`inbox-${user.id}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "quote_messages", filter: `user_id=eq.${user.id}` }, () => void load())
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: "quote_requests", filter: `pro_id=eq.${user.id}` }, (payload: { new: QuoteRequest }) => {
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "quote_requests", filter: `pro_user_id=eq.${user.id}` }, (payload: { new: QuoteRequest }) => {
           const row = payload.new;
           if (!knownReqIds.current.has(row.id)) {
             knownReqIds.current.add(row.id);
