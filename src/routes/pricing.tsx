@@ -31,7 +31,7 @@ function PricingPage() {
     <MarketingShell>
       <section className="bg-ink text-paper">
         <div className="mx-auto max-w-6xl px-5 py-20 md:py-28 text-center">
-          <p className="text-[11px] uppercase tracking-widest text-paper/60 font-semibold">Pricing</p>
+          
           <h1
             className="mt-4 text-5xl md:text-7xl leading-[0.9] text-paper"
             style={{ fontFamily: "'Bebas Neue', sans-serif" }}
