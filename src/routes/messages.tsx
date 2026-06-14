@@ -140,7 +140,14 @@ function MessagesInbox() {
 
   return (
     <AppShell>
-      <PageHeader title="Inbox" subtitle={subtitle} />
+      <PageHeader
+        title="Inbox"
+        subtitle={subtitle}
+        action={{
+          label: "Filter",
+          onClick: () => toast.info("Filters coming soon"),
+        }}
+      />
 
       {loading && (
         <div className="px-5 mt-2 space-y-2">
