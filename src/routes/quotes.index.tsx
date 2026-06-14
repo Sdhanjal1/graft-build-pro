@@ -10,6 +10,7 @@ import { resolveTrade } from "@/lib/trades";
 import { Search, FileText, Inbox, ShoppingCart, X } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { QuotesListSkeleton } from "@/components/Skeletons";
+import { StatusLegend } from "@/components/StatusLegend";
 import { useSession } from "@/lib/auth";
 import { useLongPress } from "@/hooks/useLongPress";
 import { QuoteQuickActionsSheet } from "@/components/QuoteQuickActionsSheet";
