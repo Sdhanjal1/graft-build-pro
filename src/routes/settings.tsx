@@ -240,20 +240,18 @@ function SettingsPage() {
 
   return (
     <AppShell>
-      <div className="sticky top-0 z-30 bg-paper border-b border-border/60">
-        <PageHeader
-          title="Settings"
-          subtitle="Configuration"
-          right={
-            <SaveIndicator
-              isSaving={profileSaving}
-              isSaved={profileSaved}
-              error={profileError}
-              className="text-paper/80"
-            />
-          }
-        />
-      </div>
+      <PageHeader
+        title="Settings"
+        subtitle="Configuration"
+        right={
+          <SaveIndicator
+            isSaving={profileSaving}
+            isSaved={profileSaved}
+            error={profileError}
+            className="text-paper/80"
+          />
+        }
+      />
 
       <input
         ref={fileInputRef}
