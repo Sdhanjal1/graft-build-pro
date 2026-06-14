@@ -23,8 +23,8 @@ export function AppShell({
 }
 
 type HeaderAction =
-  | { label: string; to: string; onClick?: never }
-  | { label: string; onClick: () => void; to?: never };
+  | { label: string; to: string; search?: Record<string, unknown>; onClick?: never }
+  | { label: string; onClick: () => void; to?: never; search?: never };
 
 export function PageHeader({
   title,
