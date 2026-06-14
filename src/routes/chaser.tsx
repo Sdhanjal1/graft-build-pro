@@ -73,19 +73,6 @@ function ChaserPage() {
     <AppShell>
       <PageHeader title="Chaser" subtitle="Replies & payments" back="/" />
 
-      {(hasReplies || hasPayments) && (
-        <div className="px-5 mt-3">
-          <StatusLegend
-            storageKey="quottr.statusLegend.chaser.open"
-            items={[
-              { key: "sent", hint: "Sent · waiting on reply" },
-              { key: "completed", hint: "Job done · awaiting payment" },
-              { key: "overdue", hint: "Past due date" },
-              { key: "paid", hint: "Money in" },
-            ]}
-          />
-        </div>
-      )}
 
 
 
