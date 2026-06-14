@@ -788,6 +788,26 @@ export const buildChaserMessage = (quote: Quote, clientFirstName: string) => {
   );
 };
 
+/**
+ * Friendly nudge for a quote the customer hasn't replied to yet.
+ * Separate from buildChaserMessage, which chases unpaid invoices.
+ */
+export const buildQuoteReplyNudge = (quote: Quote, clientFirstName: string) => {
+  const first = clientFirstName || "there";
+  const amount = formatGBP(quote.total);
+  const signOff = `Thanks, ${userProfile.full_name.split(" ")[0]}`;
+  const footer = "\n\nSent via Quottr.";
+  return (
+    [
+      `Hi ${first}, just following up on the quote I sent over for ${quote.title} (${amount}).`,
+      `No rush — just wanted to check it reached you and see if you had any questions. Happy to go through anything.`,
+      signOff,
+    ].join("\n") + footer
+  );
+};
+
+
+
 export const stats = () => {
   const totalQuoted = mockQuotes.reduce((s, q) => s + q.total, 0);
   const overdue = mockQuotes.filter((q) => q.status === "overdue");

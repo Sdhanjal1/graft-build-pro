@@ -4,8 +4,9 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   mockQuotes, getClient, userProfile, formatGBP, buildChaserMessage,
   buildChaseMessageForOffset, chasesDueNow, upcomingChases, markChaseSent, skipChase,
-  setQuoteAutoChase, waLink, markOverdueQuotes, useHasHydrated,
+  setQuoteAutoChase, waLink, markOverdueQuotes, useHasHydrated, buildQuoteReplyNudge,
 } from "@/lib/user-data";
+
 import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, ThumbsUp, Pause, Play } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,6 +30,12 @@ function daysOverdue(due?: string) {
   return Math.max(0, Math.floor(ms / 86400000));
 }
 
+function daysSince(iso?: string) {
+  if (!iso) return 0;
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
+}
+
+
 function ChaserPage() {
   // Include both completed (job done, awaiting payment) and overdue invoices —
   // these are the unpaid jobs the trader is waiting on.
@@ -39,11 +46,15 @@ function ChaserPage() {
   useEffect(() => { void markOverdueQuotes().then((n) => { if (n > 0) force((x) => x + 1); }); }, []);
   const due = chasesDueNow();
   const upcoming = upcomingChases().slice(0, 4);
+  const awaitingReply = mockQuotes.filter((q) => q.status === "sent");
+  const replyTotal = awaitingReply.reduce((s, q) => s + q.total, 0);
+  const hasReplies = awaitingReply.length > 0;
+  const hasPayments = overdue.length > 0 || due.length > 0 || upcoming.length > 0;
 
   if (!hydrated) {
     return (
       <AppShell>
-        <PageHeader title="Invoice chaser" subtitle="Awaiting payment" back="/" />
+        <PageHeader title="Chaser" subtitle="Replies & payments" back="/" />
         <section className="px-5">
           <Skeleton className="h-28 w-full rounded-2xl bg-ink/5" />
         </section>
@@ -58,7 +69,71 @@ function ChaserPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Invoice chaser" subtitle="Awaiting payment" back="/" />
+      <PageHeader title="Chaser" subtitle="Replies & payments" back="/" />
+
+      {!hasReplies && !hasPayments && (
+        <section className="px-5 mt-5">
+          <EmptyState
+            icon={ThumbsUp}
+            tone="celebrate"
+            title="Nothing to chase"
+            body="No quotes waiting on a reply, and nothing owed. Nice work."
+          />
+        </section>
+      )}
+
+      {hasReplies && (
+        <section className="px-5 mt-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg">Awaiting a reply</h2>
+            <span className="text-xs text-muted-foreground">{awaitingReply.length} · {formatGBP(replyTotal)}</span>
+          </div>
+          {awaitingReply.map((q) => {
+            const c = getClient(q.client_id);
+            const firstName = c?.name.split(" ")[0] ?? "there";
+            const msg = buildQuoteReplyNudge(q, firstName);
+            const wa = waLink(c?.phone, msg);
+            const subject = encodeURIComponent(`Quote ${q.ref}, ${userProfile.business_name}`);
+            const mail = `mailto:${c?.email}?subject=${subject}&body=${encodeURIComponent(msg)}`;
+            const days = daysSince(q.updated_at ?? q.created_at);
+            return (
+              <div key={q.id} className="card-surface p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
+                      <span className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full bg-status-sent/15 text-status-sent">
+                        {days <= 0 ? "Sent today" : `Sent ${days} day${days === 1 ? "" : "s"} ago`}
+                      </span>
+                    </div>
+                    <p className="font-semibold text-sm mt-0.5 truncate">{q.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{c?.name}</p>
+                  </div>
+                  <p className="num text-2xl text-ink">{formatGBP(q.total)}</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mt-4">
+                  <a href={wa} target="_blank" rel="noreferrer" className="bg-lime text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5">
+                    <MessageCircle className="h-3.5 w-3.5" /> Nudge
+                  </a>
+                  <a href={`tel:${c?.phone}`} className="bg-ink text-paper rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5" /> Call
+                  </a>
+                  <a href={mail} className="bg-card border border-border text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5" /> Email
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      )}
+
+      {hasPayments && (
+        <>
+          <h2 className="text-lg px-5 mt-5">Awaiting payment</h2>
+
+
+
 
       <section className="px-5">
         <div className="rounded-2xl bg-status-overdue/10 border border-status-overdue/30 p-5">
@@ -212,15 +287,10 @@ function ChaserPage() {
             </div>
           );
         })}
-        {overdue.length === 0 && (
-          <EmptyState
-            icon={ThumbsUp}
-            tone="celebrate"
-            title="Nothing to chase"
-            body="Nice work."
-          />
-        )}
       </section>
+        </>
+      )}
     </AppShell>
   );
+
 }
