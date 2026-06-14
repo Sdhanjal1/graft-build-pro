@@ -7,7 +7,7 @@ export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
       { title: "Pricing, Quottr" },
-      { name: "description", content: "One simple plan. £29/month after a 14-day free trial. No card required to start. Cancel anytime." },
+      { name: "description", content: "One simple plan. £29/month after a 14-day free trial. No card required to start. Cancel any time." },
       { property: "og:title", content: "Pricing, Quottr" },
       { property: "og:description", content: "One price. Everything included. No contracts." },
       { property: "og:url", content: "https://www.quottr.co.uk/pricing" },
