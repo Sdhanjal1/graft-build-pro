@@ -243,10 +243,10 @@ function QuotesPage() {
           <button
             onClick={() => setTile(null)}
             className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-secondary text-ink px-3 py-2 text-[11px] font-bold uppercase tracking-wide"
-            aria-label={`Clear ${TILE_LABEL[tile]} filter`}
+            aria-label={`Clear ${GROUP_LABEL[tile]} filter`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${TILE_DOT[tile]}`} />
-            {TILE_LABEL[tile]}
+            {GROUP_LABEL[tile]}
             <span aria-hidden className="text-muted-foreground text-sm leading-none">×</span>
           </button>
         )}
