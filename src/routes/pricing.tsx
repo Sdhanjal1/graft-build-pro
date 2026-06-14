@@ -94,7 +94,7 @@ function PricingPage() {
         </div>
 
         <p className="mt-5 text-center text-xs text-ink/55 max-w-md mx-auto leading-relaxed">
-          After your 14 day trial, £29/month. Cancel anytime. No contracts. No per-quote fees. No hidden charges.
+          After your 14-day trial, £29/month. Cancel any time. No contracts, no per-quote fees, no setup costs.
         </p>
       </section>
 
