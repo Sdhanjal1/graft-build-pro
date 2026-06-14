@@ -242,10 +242,12 @@ function QuotesPage() {
         )}
       </div>
 
+      <div className="px-5 mt-3">
+        <StatusLegend />
+      </div>
 
+      <div className="px-5 mt-4 space-y-2.5">
 
-
-      <div className="px-5 mt-5 space-y-2.5">
         {filtered.length === 0 && (
           mockQuotes.length === 0 ? (() => {
             const trade = resolveTrade(userProfile.trade_type);
