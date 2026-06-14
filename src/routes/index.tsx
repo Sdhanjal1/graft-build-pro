@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/MarketingShell";
-import { ArrowRight, Check, Mic, FileCheck, Bell, MapPin } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -105,44 +105,40 @@ function HomePage() {
         </div>
       </section>
 
-      {/* FEATURE CARDS */}
+      {/* WHAT IT DOES */}
       <section className="bg-ink text-paper">
-        <div className="mx-auto max-w-6xl px-5 py-20 md:py-28">
-          <div className="max-w-3xl">
-            <p className="text-[11px] uppercase tracking-widest text-paper/50 font-semibold">Built for the trades, not the office</p>
-            <h2 className="mt-3 text-4xl md:text-6xl leading-[0.95] text-paper">
-              Quottr does the bits <span className="text-lime">other software won't.</span>
-            </h2>
-          </div>
-          <div className="mt-14 grid gap-6 md:grid-cols-2">
+        <div className="mx-auto max-w-6xl px-5 md:px-8 py-20 md:py-28">
+          <h2 className="text-4xl md:text-6xl leading-[0.95] text-paper max-w-3xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+            Quottr does the bits <span className="text-lime">other software won't.</span>
+          </h2>
+
+          <div className="mt-14 grid gap-px bg-paper/10 md:grid-cols-2 rounded-3xl overflow-hidden">
             {[
               {
-                icon: Mic,
+                kicker: "Voice",
                 title: "Built for dirty hands",
                 body: "One voice note from a muddy van, a dusty loft, or under a sink. Quottr turns it into a professional quote while you drive to the next job.",
               },
               {
-                icon: FileCheck,
-                title: "Your customer gets a portal",
-                body: "Every customer gets a private link. They see every quote, every invoice, every Gas Safe cert. They approve jobs and pay deposits without you making a single call.",
+                kicker: "Customer portal",
+                title: "Every customer gets a portal",
+                body: "A private link where they see every quote, every invoice, every certificate. They approve jobs and pay without you making a single call.",
               },
               {
-                icon: Bell,
+                kicker: "Auto-chase",
                 title: "Chases money while you sleep",
-                body: "Unpaid invoice? Quottr sends polite escalating reminders at 7, 14 and 21 days. Automatically. You stay on the tools. The money comes to you.",
+                body: "Unpaid invoice? Quottr sends polite, escalating reminders at 7, 14 and 21 days. Automatically. You stay on the tools, the money comes to you.",
               },
               {
-                icon: MapPin,
-                title: "Site capture mode",
-                body: "Walk around a property tapping items as you find them. Boiler. Radiators. Pipework. Get back to the van and generate one complete quote from everything you captured.",
+                kicker: "Payments",
+                title: "Get paid on the spot",
+                body: "Take card payments on site with tap-to-pay, or let customers pay the second they approve the quote. Money in your account, no awkward calls.",
               },
-            ].map((p) => (
-              <div key={p.title} className="rounded-2xl border border-paper/10 bg-paper/[0.03] p-7 hover:bg-paper/[0.06] transition">
-                <div className="h-11 w-11 rounded-xl bg-lime flex items-center justify-center">
-                  <p.icon className="h-5 w-5 text-ink" />
-                </div>
-                <h3 className="mt-5 text-2xl md:text-3xl text-paper uppercase" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{p.title}</h3>
-                <p className="mt-3 text-sm text-paper/70 leading-relaxed">{p.body}</p>
+            ].map((f) => (
+              <div key={f.title} className="bg-ink p-8 md:p-10">
+                <span className="text-[11px] uppercase tracking-[0.2em] font-bold text-lime">{f.kicker}</span>
+                <h3 className="mt-4 text-3xl md:text-4xl text-paper leading-[0.95]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{f.title}</h3>
+                <p className="mt-3 text-paper/70 leading-relaxed max-w-md">{f.body}</p>
               </div>
             ))}
           </div>
