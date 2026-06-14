@@ -15,13 +15,14 @@ import type { QuoteStatus } from "@/lib/user-data";
 
 export const STATUS_LABEL: Record<QuoteStatus, string> = {
   pending: "Draft",
-  sent: "Sent",
-  accepted: "Accepted",
+  sent: "Awaiting",
+  accepted: "Booked",
   declined: "Declined",
   completed: "Completed",
   paid: "Paid",
   overdue: "Overdue",
 };
+
 
 export const STATUS_CHIP: Record<QuoteStatus, string> = {
   pending: "bg-ink/8 text-muted-foreground",
