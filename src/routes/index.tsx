@@ -22,75 +22,56 @@ function HomePage() {
     <MarketingShell>
       {/* HERO */}
       <section className="bg-ink text-paper relative overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-40 pointer-events-none"
-          style={{ background: "radial-gradient(circle at 50% 0%, color-mix(in oklab, var(--lime) 35%, transparent), transparent 55%)" }}
-        />
-        <div className="mx-auto max-w-7xl px-5 pt-16 md:pt-24 pb-12 md:pb-16 relative text-center">
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-paper/10 border border-paper/15 text-[11px] uppercase tracking-widest font-semibold text-paper/80">
-            <span className="h-1.5 w-1.5 rounded-full bg-lime" /> Voice-first for trades
-          </span>
+        {/* off-centre glow, not the templated centred radial */}
+        <div className="absolute -top-40 -left-40 h-[30rem] w-[30rem] rounded-full bg-lime/15 blur-[130px] pointer-events-none" />
 
-          <h1
-            className="mt-8 text-lime leading-[0.8] tracking-tight"
-            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(5rem, 22vw, 18rem)" }}
-          >
-            Quottr.
-          </h1>
+        <div className="mx-auto max-w-7xl px-5 md:px-8 pt-14 md:pt-24 pb-14 md:pb-20 relative">
+          <div className="grid md:grid-cols-[1.05fr_0.95fr] gap-10 md:gap-14 items-center">
 
-          <h2
-            className="mt-6 text-paper text-4xl md:text-6xl leading-[0.95] max-w-4xl mx-auto"
-            style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.01em" }}
-          >
-            Speak it. <span className="text-lime">Quote it.</span> Send it. <span className="text-lime">Get paid.</span>
-          </h2>
+            {/* LEFT — thesis, left-aligned, no eyebrow pill */}
+            <div className="max-w-xl">
+              <h1
+                className="text-paper leading-[0.82]"
+                style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.25rem, 8.5vw, 7rem)", letterSpacing: "0.005em" }}
+              >
+                Speak it. <span className="text-lime">Quote it.</span><br />
+                Send it. <span className="text-lime">Get paid.</span>
+              </h1>
 
-          <p className="mt-6 text-base md:text-lg text-paper/75 max-w-2xl mx-auto">
-            Voice to professional quote in seconds. Sent via WhatsApp. Customer can accept and pay on the spot.
-          </p>
+              <p className="mt-5 text-lg md:text-xl text-paper/75 leading-snug max-w-md">
+                Talk through the job on site. Quottr writes the quote, sends it on WhatsApp, and takes the payment. No more quoting in the evenings.
+              </p>
 
-          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              to="/auth"
-              className="inline-flex items-center justify-center gap-2 bg-lime text-ink font-semibold px-7 py-4 rounded-full hover:brightness-95 transition text-base"
-            >
-              Create free account <ArrowRight className="h-4 w-4" />
-            </Link>
-            <a
-              href="#how"
-              className="inline-flex items-center justify-center bg-paper/10 border border-paper/15 text-paper font-medium px-7 py-4 rounded-full hover:bg-paper/15 transition text-base"
-            >
-              See how it works
-            </a>
-          </div>
-
-          <div className="mt-6 flex items-center gap-4 text-xs text-paper/55 justify-center flex-wrap">
-            <span>No card required</span>
-            <span className="h-1 w-1 rounded-full bg-paper/30" />
-            <span>14-day free trial</span>
-            <span className="h-1 w-1 rounded-full bg-paper/30" />
-            <span>Cancel any time</span>
-          </div>
-
-          <div className="mt-12 md:mt-16 mx-auto max-w-4xl">
-            <div className="rounded-2xl md:rounded-3xl overflow-hidden border border-paper/10 bg-ink shadow-2xl ring-1 ring-lime/20">
-              <video
-                src="/quottr-how-it-works.mp4"
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                className="w-full h-auto block"
-                aria-label="One tap. Money in. Voice to quote to paid in seconds."
-              />
+              <div className="mt-8 flex items-center gap-4 flex-wrap">
+                <Link
+                  to="/auth"
+                  className="inline-flex items-center justify-center gap-2 bg-lime text-ink font-bold px-7 py-4 rounded-full hover:brightness-95 transition text-base"
+                >
+                  Start quoting free <ArrowRight className="h-4 w-4" />
+                </Link>
+                <span className="text-sm text-paper/55">14-day trial · no card</span>
+              </div>
             </div>
-            <p className="mt-3 text-xs text-paper/50 uppercase tracking-widest font-semibold">
-              Voice → Quote → Paid · in seconds
-            </p>
+
+            {/* RIGHT — the real product moment, promoted to co-hero */}
+            <div className="relative">
+              <div className="relative mx-auto max-w-sm md:max-w-none rounded-[2rem] overflow-hidden border border-paper/10 bg-ink shadow-2xl ring-1 ring-lime/25">
+                <video
+                  src="/quottr-how-it-works.mp4"
+                  autoPlay muted loop playsInline preload="metadata"
+                  className="w-full h-auto block"
+                  aria-label="Voice to quote to paid in seconds"
+                />
+              </div>
+              <p className="mt-3 text-center md:text-left text-[11px] text-paper/50 uppercase tracking-widest font-semibold">
+                From voice to paid, in seconds
+              </p>
+            </div>
+
           </div>
         </div>
       </section>
+
 
       {/* HOW IT WORKS */}
       <section id="how" className="mx-auto max-w-5xl px-5 py-20 md:py-28 text-center">
