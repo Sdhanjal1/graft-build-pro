@@ -123,7 +123,9 @@ function AboutPage() {
 
       {/* WON'T DO */}
       <section className="mx-auto max-w-5xl px-5 py-20 md:py-24">
-        <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">What we'll never do</p>
+        <h2 className="text-4xl md:text-6xl leading-[0.95] max-w-3xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+          What we'll <span className="text-lime">never do.</span>
+        </h2>
         <ul className="mt-8 divide-y divide-ink/10 border-y border-ink/10">
           {[
             "Charge you per quote.",
