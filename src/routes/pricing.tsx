@@ -24,6 +24,8 @@ const features = [
   "Customer portal",
   "Auto invoice chasers",
   "Card, bank transfer and Apple Pay",
+  "Accounting export (Xero, QuickBooks, FreeAgent, Sage)",
+
 ];
 
 function PricingPage() {
