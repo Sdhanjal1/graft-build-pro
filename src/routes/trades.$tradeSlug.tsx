@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/MarketingShell";
-import { ArrowRight, Mic, Check } from "lucide-react";
+import { ArrowRight, Mic } from "lucide-react";
 import { getTradeBySlug, trades, type Trade } from "@/lib/trades-data";
 
 export const Route = createFileRoute("/trades/$tradeSlug")({
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/trades/$tradeSlug")({
   notFoundComponent: () => (
     <MarketingShell>
       <section className="mx-auto max-w-3xl px-5 py-24 text-center">
-        <h1 className="text-5xl">Trade not found</h1>
+        <h1 className="text-5xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>Trade not found</h1>
         <p className="mt-4 text-ink/70">We don't have a page for that trade yet.</p>
         <Link to="/trades" className="mt-6 inline-flex items-center gap-2 bg-ink text-paper font-semibold px-6 py-3 rounded-full">
           All trades
@@ -43,7 +43,7 @@ export const Route = createFileRoute("/trades/$tradeSlug")({
   errorComponent: ({ error }) => (
     <MarketingShell>
       <section className="mx-auto max-w-3xl px-5 py-24 text-center">
-        <h1 className="text-3xl">Something went wrong</h1>
+        <h1 className="text-3xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>Something went wrong</h1>
         <p className="mt-3 text-ink/70">{error.message}</p>
       </section>
     </MarketingShell>
@@ -52,67 +52,58 @@ export const Route = createFileRoute("/trades/$tradeSlug")({
 
 function TradeDetailPage() {
   const { trade } = Route.useLoaderData() as { trade: Trade };
-
   const others = trades.filter((t) => t.slug !== trade.slug).slice(0, 4);
 
   return (
     <MarketingShell>
-      <section className="bg-ink text-paper">
-        <div className="mx-auto max-w-5xl px-5 py-20 md:py-28">
-          <p className="text-[11px] uppercase tracking-widest text-paper/50 font-semibold">For {trade.name.toLowerCase()}</p>
-          <h1 className="mt-3 text-5xl md:text-7xl leading-[0.95] text-paper max-w-4xl">
-            {trade.headline.replace(/\.$/, "")} <span className="text-lime">.</span>
+      {/* HERO */}
+      <section className="bg-ink text-paper relative overflow-hidden">
+        <div className="absolute -top-40 -left-40 h-[30rem] w-[30rem] rounded-full bg-lime/15 blur-[130px] pointer-events-none" />
+        <div className="mx-auto max-w-5xl px-5 py-20 md:py-28 relative">
+          <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-lime">For {trade.name.toLowerCase()}</p>
+          <h1 className="mt-4 text-paper leading-[0.85] tracking-tight max-w-4xl" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3rem, 9vw, 7rem)" }}>
+            {trade.headline.replace(/\.$/, "")}<span className="text-lime">.</span>
           </h1>
-          <p className="mt-6 text-lg md:text-xl text-paper/75 max-w-2xl">{trade.intro}</p>
-
+          <p className="mt-6 text-lg md:text-xl text-paper/75 max-w-2xl leading-relaxed">{trade.intro}</p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
-            <Link
-              to="/auth"
-              className="inline-flex items-center justify-center gap-2 bg-lime text-ink font-semibold px-7 py-4 rounded-full hover:brightness-95 transition"
-            >
-              Start free trial <ArrowRight className="h-4 w-4" />
+            <Link to="/auth" className="inline-flex items-center justify-center gap-2 bg-lime text-ink font-semibold px-7 py-4 rounded-full hover:brightness-95 transition">
+              Start quoting free <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link
-              to="/trades"
-              className="inline-flex items-center justify-center bg-paper/10 border border-paper/15 text-paper font-medium px-7 py-4 rounded-full hover:bg-paper/15 transition"
-            >
+            <Link to="/trades" className="inline-flex items-center justify-center bg-paper/10 border border-paper/15 text-paper font-medium px-7 py-4 rounded-full hover:bg-paper/15 transition">
               All trades
             </Link>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-5 py-20">
-        <h2 className="text-3xl md:text-5xl leading-tight max-w-3xl">
-          How Quottr helps <span className="text-lime-ink bg-lime px-2">{trade.name.toLowerCase()}</span>.
+      {/* HOW IT HELPS */}
+      <section className="mx-auto max-w-5xl px-5 py-20 md:py-24">
+        <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-lime">On the tools</p>
+        <h2 className="mt-3 text-4xl md:text-6xl leading-[0.95] max-w-3xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+          How Quottr helps <span className="text-ink bg-lime px-2 box-decoration-clone">{trade.name.toLowerCase()}</span>.
         </h2>
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
+        <div className="mt-12 grid gap-px bg-ink/10 md:grid-cols-3 rounded-3xl overflow-hidden">
           {trade.bullets.map((b) => (
-            <div key={b.title} className="rounded-2xl border border-ink/10 bg-card p-7">
-              <div className="h-10 w-10 rounded-xl bg-lime flex items-center justify-center">
-                <Check className="h-5 w-5 text-ink" />
-              </div>
-              <h3 className="mt-5 text-xl md:text-2xl leading-tight">{b.title}</h3>
-              <p className="mt-3 text-sm text-ink/70 leading-relaxed">{b.body}</p>
+            <div key={b.title} className="bg-paper p-7 md:p-8">
+              <h3 className="text-xl md:text-2xl text-ink leading-tight" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{b.title}</h3>
+              <p className="mt-3 text-[15px] text-ink/70 leading-relaxed">{b.body}</p>
             </div>
           ))}
         </div>
       </section>
 
+      {/* VOICE PROMPTS */}
       <section className="bg-ink text-paper">
-        <div className="mx-auto max-w-5xl px-5 py-20">
-          <p className="text-[11px] uppercase tracking-widest text-paper/50 font-semibold">Try saying this</p>
-          <h2 className="mt-3 text-3xl md:text-5xl leading-tight text-paper">
+        <div className="mx-auto max-w-5xl px-5 py-20 md:py-24">
+          <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-lime">Try saying this</p>
+          <h2 className="mt-3 text-4xl md:text-6xl leading-[0.95] text-paper max-w-3xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
             Real voice prompts for {trade.name.toLowerCase()}.
           </h2>
-          <ul className="mt-10 space-y-4">
+          <ul className="mt-10 grid gap-px bg-paper/10 rounded-3xl overflow-hidden">
             {trade.prompts.map((p, i) => (
-              <li
-                key={i}
-                className="flex items-start gap-4 rounded-2xl border border-paper/10 bg-paper/[0.04] p-5"
-              >
-                <span className="h-10 w-10 rounded-full bg-lime flex items-center justify-center shrink-0">
-                  <Mic className="h-5 w-5 text-ink" />
+              <li key={i} className="flex items-start gap-4 bg-ink p-6">
+                <span className="h-9 w-9 rounded-full bg-lime flex items-center justify-center shrink-0">
+                  <Mic className="h-4 w-4 text-ink" />
                 </span>
                 <p className="text-base md:text-lg text-paper/85 italic leading-relaxed">"{p}"</p>
               </li>
@@ -121,33 +112,34 @@ function TradeDetailPage() {
         </div>
       </section>
 
+      {/* CTA */}
       <section className="mx-auto max-w-5xl px-5 py-20 md:py-24">
-        <div className="rounded-3xl bg-lime text-ink p-10 md:p-14 text-center">
-          <h2 className="text-4xl md:text-6xl leading-[0.95]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+        <div className="rounded-3xl bg-lime text-ink p-10 md:p-14">
+          <h2 className="text-5xl md:text-7xl leading-[0.9]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
             Stop quoting in the evenings.
           </h2>
-          <p className="mt-3 text-ink/80 text-lg max-w-xl mx-auto">
+          <p className="mt-4 text-ink/80 text-lg max-w-xl">
             Try Quottr free for 14 days. No card. Cancel any time.
           </p>
-          <div className="mt-6">
-            <Link to="/auth" className="inline-flex items-center gap-2 bg-ink text-paper font-semibold px-7 py-4 rounded-full hover:bg-ink/90 transition">
-              Start free trial <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
+          <Link to="/auth" className="mt-8 inline-flex items-center gap-2 bg-ink text-paper font-semibold px-7 py-4 rounded-full hover:bg-ink/90 transition">
+            Start quoting free <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </section>
 
+      {/* OTHER TRADES */}
       <section className="mx-auto max-w-5xl px-5 pb-24">
-        <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">Other trades</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-4">
+        <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-lime">Other trades</p>
+        <div className="mt-4 grid gap-px bg-ink/10 md:grid-cols-4 rounded-3xl overflow-hidden">
           {others.map((o) => (
             <Link
               key={o.slug}
               to="/trades/$tradeSlug"
               params={{ tradeSlug: o.slug }}
-              className="rounded-2xl border border-ink/10 bg-card p-5 hover:border-ink/30 transition"
+              className="group bg-paper p-6 hover:bg-card transition flex items-center justify-between gap-2"
             >
-              <h3 className="text-xl">{o.name}</h3>
+              <h3 className="text-xl md:text-2xl text-ink leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{o.name}</h3>
+              <ArrowRight className="h-4 w-4 text-ink/30 group-hover:text-ink group-hover:translate-x-0.5 transition shrink-0" />
             </Link>
           ))}
         </div>
