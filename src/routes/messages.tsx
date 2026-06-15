@@ -149,10 +149,7 @@ function MessagesInbox() {
       <PageHeader
         title="Inbox"
         subtitle={subtitle}
-        action={{
-          label: "Filter",
-          onClick: () => toast.info("Filters coming soon"),
-        }}
+        slim
       />
 
       {loading && (
