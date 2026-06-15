@@ -184,6 +184,12 @@ function NewQuotePage() {
   const liveFinalRef = useRef<string>("");
   const liveInterimRef = useRef<string>("");
   const firstItemsLandedRef = useRef<boolean>(false);
+  // Set true when a voice finalise wants the page to scroll to the freshly
+  // committed draft. The scroll runs in an effect that watches `draft` so it
+  // fires AFTER React has painted the draft surface into the DOM, not before.
+  const pendingScrollToDraftRef = useRef<boolean>(false);
+
+
   
 
   // LIVE per-phrase pipeline: each recognised final phrase fires a parallel
