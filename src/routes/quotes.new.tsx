@@ -605,20 +605,25 @@ function NewQuotePage() {
 
   const applyVoiceEdit = async (transcript: string) => {
     if (!draft || !transcript.trim()) return;
-    const existingItems = draft.line_items
-      .map((li, idx) => `${idx + 1}. ${li.description} — qty ${li.qty}, £${li.unit_price} each`)
-      .join("\n");
-    const editPrompt = `EXISTING QUOTE — these are the items currently on this quote:
-${existingItems}
-
-CHANGE REQUEST FROM THE TRADESPERSON: ${transcript}
-
-Re-output the FULL updated list of line items for this quote, applying the change above. Keep unchanged items exactly as written (same description, qty, unit_price). Add, remove, or modify only what the change request asks for.`;
     try {
-      const g = await generateFn({ data: { description: editPrompt, trade, vatRegistered: vat } });
-      if (g.line_items?.length) {
-        setDraft({ title: draft.title, line_items: g.line_items });
-        originalDraftRef.current = JSON.stringify(g.line_items);
+      // Generate from the new transcript ALONE — same shape as a fresh quote.
+      // The model never sees existing items, so it cannot rewrite or re-price them.
+      const g = await generateFn({ data: { description: transcript, trade, vatRegistered: vat } });
+
+      const existing = draft.line_items;
+      const existingKeys = new Set(existing.map((li) => normDesc(li.description)));
+
+      const newOnes = (g.line_items ?? []).filter((li) => {
+        const key = normDesc(li.description);
+        if (existingKeys.has(key)) return false;            // dedupe vs current draft
+        if (deletedDescsRef.current.has(key)) return false; // respect user deletions
+        return true;
+      });
+
+      if (newOnes.length) {
+        const merged = [...existing, ...newOnes];
+        setDraft({ title: draft.title, line_items: merged });
+        originalDraftRef.current = JSON.stringify(merged);
         // Let the seeding effect re-derive payment timing from the new total
         // (only for fresh quotes — don't auto-flip a saved quote's timing).
         if (!editId) paymentSeededRef.current = false;
