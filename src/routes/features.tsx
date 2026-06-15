@@ -41,7 +41,7 @@ function FeaturesPage() {
 
           <div className="mt-14 grid gap-px bg-paper/10 md:grid-cols-3 rounded-3xl overflow-hidden">
             {features.map((f) => (
-              <div key={f.title} className="bg-ink p-8">
+              <div key={f.title} className={`bg-ink p-8 ${f.wide ? "md:col-span-3" : ""}`}>
                 <span className="text-[11px] uppercase tracking-[0.2em] font-bold text-lime">{f.kicker}</span>
                 <h3 className="mt-4 text-2xl md:text-3xl text-paper leading-[0.95]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{f.title}</h3>
                 <p className="mt-3 text-paper/70 leading-relaxed">{f.body}</p>
