@@ -184,6 +184,12 @@ function NewQuotePage() {
   const liveFinalRef = useRef<string>("");
   const liveInterimRef = useRef<string>("");
   const firstItemsLandedRef = useRef<boolean>(false);
+  // Set true when a voice finalise wants the page to scroll to the freshly
+  // committed draft. The scroll runs in an effect that watches `draft` so it
+  // fires AFTER React has painted the draft surface into the DOM, not before.
+  const pendingScrollToDraftRef = useRef<boolean>(false);
+
+
   
 
   // LIVE per-phrase pipeline: each recognised final phrase fires a parallel
@@ -565,6 +571,9 @@ function NewQuotePage() {
       const g = await generateFn({ data: { description: transcript, trade, vatRegistered: vat } });
       if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
 
+      // Arm the scroll BEFORE setDraft so the effect that watches `draft`
+      // fires on the very next render and scrolls once the surface is mounted.
+      pendingScrollToDraftRef.current = true;
       setDraft({ title: g.title, line_items: g.line_items });
       originalDraftRef.current = JSON.stringify(g.line_items);
       setDesc(g.clean_description || transcript);
@@ -582,9 +591,6 @@ function NewQuotePage() {
 
       feedback("success");
       playSample("ding");
-      requestAnimationFrame(() => {
-        draftRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
     } catch (err) {
       console.error(err);
       const msg = err instanceof Error
@@ -1033,6 +1039,21 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     }
     paymentSeededRef.current = true;
   }, [draft, editId, subtotal, total]);
+
+  // After a successful voice finalise, scroll the freshly committed draft into
+  // view. Runs in a layout-after-paint effect so the draft surface is already
+  // mounted; double-rAF guards against the voice overlay reflow.
+  useEffect(() => {
+    if (!draft || !pendingScrollToDraftRef.current) return;
+    pendingScrollToDraftRef.current = false;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        draftRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }, [draft]);
+
+
 
   // Keep deposit amount in sync with subtotal when timing is deposit (user-edited
   // values are preserved — we only recompute from the stored percent).
