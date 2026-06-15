@@ -23,7 +23,9 @@ const features = [
   { kicker: "Branding", title: "Quotes that look the part", body: "Your logo, your colours, every time. Looks like you spent two grand on a brand designer." },
   { kicker: "Payments", title: "Get paid in the app", body: "Card, bank transfer or Apple Pay. The money lands in your account, not next month." },
   { kicker: "Auto-chase", title: "Chases the money for you", body: "Polite reminders go out at day 7, 14 and 21, automatically. You never have to ask twice." },
+  { kicker: "Accounting", title: "Your books, already sorted", body: "Export paid invoices as a CSV formatted for Xero, QuickBooks, FreeAgent or Sage, with the right VAT codes. No re-typing.", wide: true },
 ];
+
 
 function FeaturesPage() {
   return (
@@ -39,7 +41,7 @@ function FeaturesPage() {
 
           <div className="mt-14 grid gap-px bg-paper/10 md:grid-cols-3 rounded-3xl overflow-hidden">
             {features.map((f) => (
-              <div key={f.title} className="bg-ink p-8">
+              <div key={f.title} className={`bg-ink p-8 ${f.wide ? "md:col-span-3" : ""}`}>
                 <span className="text-[11px] uppercase tracking-[0.2em] font-bold text-lime">{f.kicker}</span>
                 <h3 className="mt-4 text-2xl md:text-3xl text-paper leading-[0.95]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{f.title}</h3>
                 <p className="mt-3 text-paper/70 leading-relaxed">{f.body}</p>

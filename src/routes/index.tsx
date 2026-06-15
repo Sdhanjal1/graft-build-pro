@@ -145,24 +145,27 @@ function HomePage() {
         </div>
       </section>
 
-      {/* ACCOUNTING / MTD */}
-      <section className="mx-auto max-w-6xl px-5 py-20 md:py-24">
-        <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">Accounting, sorted</p>
-        <h2 className="mt-3 text-4xl md:text-6xl leading-[1.0] max-w-4xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-          Making Tax Digital ready.
-        </h2>
-        <p className="mt-5 text-lg text-ink/70 max-w-3xl">
-          Export your records to Xero, QuickBooks, FreeAgent and Sage — formatted to import cleanly. No double entry. No spreadsheets. HMRC happy.
-        </p>
-        <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
-          {["Xero", "QuickBooks", "FreeAgent", "Sage"].map((name) => (
-            <div key={name} className="h-24 rounded-2xl border border-ink/10 bg-card flex flex-col items-center justify-center">
-              <span className="text-xl font-semibold text-ink/75">{name}</span>
-              <span className="mt-1 text-[10px] uppercase tracking-widest text-ink/45 font-semibold">CSV export</span>
-            </div>
-          ))}
+      {/* ACCOUNTING */}
+      <section className="bg-paper text-ink">
+        <div className="mx-auto max-w-6xl px-5 md:px-8 py-20 md:py-28">
+          <div className="max-w-3xl">
+            <h2 className="text-4xl md:text-6xl leading-[0.95]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+              Your books, <span className="text-ink bg-lime px-2 box-decoration-clone">already sorted.</span>
+            </h2>
+            <p className="mt-5 text-lg text-ink/70 max-w-xl">
+              Export your paid invoices as a CSV formatted to import cleanly, with the right columns and VAT codes already in place. No re-typing, no double entry.
+            </p>
+          </div>
+          <div className="mt-10 flex flex-wrap gap-3">
+            {["Xero", "QuickBooks", "FreeAgent", "Sage"].map((name) => (
+              <span key={name} className="inline-flex items-center rounded-full border border-ink/15 bg-card px-5 py-2.5 text-sm font-bold text-ink">
+                {name}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
+
 
 
       {/* FINAL CTA */}

@@ -1,31 +1,24 @@
-# Quotes page → sales pipeline only
+## Restore accounting export across marketing site
 
-Edit `src/routes/quotes.index.tsx` so the hero + tiles surface only sales-stage work (drafts, sent, booked). Money owed (awaiting payment + overdue) collapses to a single "£X to collect →" link into the Chaser. The list below is untouched — every quote (invoiced, overdue, paid) remains findable via the existing section chips and groups.
+Three surgical edits, copy/markup only, no logic changes.
 
-## Changes (all in `src/routes/quotes.index.tsx`)
+### 1. `src/routes/index.tsx`
+- Replace the existing `{/* ACCOUNTING / MTD */}` section (the one with the "Accounting, sorted" eyebrow, "Making Tax Digital ready." headline, and 4-card grid) with the new `{/* ACCOUNTING */}` section: lime-highlighted "Your books, already sorted." headline, accurate body copy (CSV export, VAT codes, no re-typing), and four pill-style platform tags (Xero, QuickBooks, FreeAgent, Sage).
+- Position: between `{/* WHAT IT DOES */}` and `{/* FINAL CTA */}` (which is where the old MTD section already sits).
+- Net effect: removes the "MTD ready / HMRC happy" overclaim.
 
-1. **Pipeline math** (~lines 79–80): sum only `pending` + `accepted` tiles for `pipelineTotal` / `pipelineCount`.
+### 2. `src/routes/features.tsx`
+- Add a 7th item to the `features` array with `wide: true`:
+  `{ kicker: "Accounting", title: "Your books, already sorted", body: "Export paid invoices as a CSV formatted for Xero, QuickBooks, FreeAgent or Sage, with the right VAT codes. No re-typing.", wide: true }`
+- Update the cell className in the map to span all 3 columns when `f.wide`:
+  `className={\`bg-ink p-8 ${f.wide ? "md:col-span-3" : ""}\`}`
+- Result: 2 rows of 3 + a full-width accounting card.
 
-2. **Secondary tiles** (~line 84): filter to `pending` + `accepted` only; change the tiles grid from `grid-cols-3` to `grid-cols-2` (~line 185).
+### 3. `src/routes/pricing.tsx`
+- Append `"Accounting export (Xero, QuickBooks, FreeAgent, Sage)"` to the `features` array (becomes 8 included items).
 
-3. **Hero money sub-lines** (~lines 134–149): replace the awaiting/overdue dot list with a single `<Link to="/chaser">` showing `formatGBP(awaitingTile.total + overdueTile.total)` + "to collect" + `ArrowRight` icon. Only render when `awaitingTile.count + overdueTile.count > 0`.
-
-4. **Delete the Overdue dominant tile** (~lines 153–182) entirely. Overdue still appears in the list's Overdue section.
-
-5. **Subtitle** (~lines 88–90): drop awaiting/overdue parts. Keep pending; add booked count.
-
-6. **PageHeader** (~line 112): remove `urgent={overdueTile.count > 0}` — urgency belongs to the Chaser.
-
-7. **Imports**: add `ArrowRight` to the existing `lucide-react` import. `Link` is already imported.
-
-## Acceptance
-
-- Hero "Pipeline" total = drafts + sent + booked only.
-- Two secondary tiles: Drafts & sent, Booked.
-- No Awaiting-payment or Overdue tiles in the summary.
-- Single "£X to collect →" link into `/chaser` when money is owed.
-- List below unchanged — Awaiting/Overdue/Paid sections + chips still present, every quote findable.
-
-## Out of scope
-
-No changes to `/chaser`, the data layer, the list rendering, the SwipeRow chase action, or the quick-actions sheet.
+### Acceptance
+- Home: new accounting section, no MTD/HMRC claims, four platform pills, no eyebrow pill, no icon-tiles.
+- Features: 7th card spans full width on desktop.
+- Pricing: accounting export listed.
+- No em/en-dashes introduced.
