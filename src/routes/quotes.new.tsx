@@ -863,119 +863,20 @@ Re-output the FULL updated list of line items for this quote, applying the chang
         return;
       }
 
-      const finalInterim = liveInterimRef.current.trim();
-      if (finalInterim) {
-        liveFinalRef.current = `${liveFinalRef.current} ${finalInterim}`.trim();
-      }
       if (liveDebounceRef.current) { clearTimeout(liveDebounceRef.current); liveDebounceRef.current = null; }
 
-      // INSTANT-STOP BRANCH: if we already have tiles, build the draft right
-      // now from what's visible — no spinner. Then reconcile in the background
-      // (final regenerate + pending phrases) and merge any genuinely new items
-      // append-only, only if the user hasn't started editing.
-      if (liveItemsRef.current.length > 0) {
-        const items = liveItemsRef.current;
-        const transcript = liveFinalRef.current.trim();
-        const meta = lastLiveGenRef.current;
-        const built = {
-          title: meta?.title?.trim() || deriveTitle(items),
-          line_items: items,
-        };
-        setDraft(built);
-        // Set the baseline BEFORE kicking off background work so an untouched
-        // draft compares equal and the background merge proceeds.
-        originalDraftRef.current = JSON.stringify(built.line_items);
-        setDesc(meta?.clean_description?.trim() || transcript);
-        const ec = meta?.extracted_customer;
-        if (ec?.name && !clientName.trim()) setClientName(ec.name);
-        if (ec?.phone && !clientPhone.trim()) setClientPhone(ec.phone);
-        clearPendingItems();
-        setLivePreview("");
-        liveFinalRef.current = "";
-        liveInterimRef.current = "";
-        feedback("success");
-        playSample("ding");
-        requestAnimationFrame(() => {
-          draftRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-
-        // Background reconcile — never blocks UI, never sets transcribing.
-        void (async () => {
-          try {
-            await runRegenerate(sessionId);
-            await waitForPendingPhraseProcessing();
-          } catch { /* swallowed */ }
-          if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
-          const lateItems = liveItemsRef.current;
-          if (!lateItems.length) return;
-          setDraft((prev) => {
-            if (!prev) return prev;
-            // Skip merge if the user has started editing the draft.
-            if (JSON.stringify(prev.line_items) !== originalDraftRef.current) return prev;
-            const indexByKey = new Map<string, number>();
-            prev.line_items.forEach((it, i) => indexByKey.set(normDesc(it.description), i));
-            const next = prev.line_items.slice();
-            let appended = false;
-            for (const li of lateItems) {
-              const key = normDesc(li.description);
-              if (deletedDescsRef.current.has(key)) continue;
-              if (indexByKey.has(key)) continue;
-              indexByKey.set(key, next.length);
-              next.push(li);
-              appended = true;
-            }
-            if (!appended) return prev;
-            const merged = { ...prev, line_items: next };
-            originalDraftRef.current = JSON.stringify(merged.line_items);
-            return merged;
-          });
-        })();
-        return;
-      }
-
-      // ZERO-TILES BRANCH: unchanged — spinner + Whisper fallback.
-      const finalRegen = runRegenerate(sessionId);
-      setTranscribing(true);
-      try { await finalRegen; } catch { /* swallowed inside regenerateLiveQuote */ }
-      try { await waitForPendingPhraseProcessing(); } catch { /* noop */ }
-      setTranscribing(false);
-
-      const items = liveItemsRef.current;
-      if (items.length > 0) {
-        const transcript = liveFinalRef.current.trim();
-        const meta = lastLiveGenRef.current;
-        const built = {
-          title: meta?.title?.trim() || deriveTitle(items),
-          line_items: items,
-        };
-        setDraft(built);
-        originalDraftRef.current = JSON.stringify(items);
-        setDesc(meta?.clean_description?.trim() || transcript);
-        const ec = meta?.extracted_customer;
-        if (ec?.name && !clientName.trim()) setClientName(ec.name);
-        if (ec?.phone && !clientPhone.trim()) setClientPhone(ec.phone);
-        clearPendingItems();
-        setLivePreview("");
-        liveFinalRef.current = "";
-        liveInterimRef.current = "";
-        feedback("success");
-        playSample("ding");
-        requestAnimationFrame(() => {
-          draftRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-        return;
-      }
-
-      // FALLBACK: Web Speech produced nothing usable → single Whisper pass.
+      // Single authoritative path: Whisper transcribes the recorded audio and
+      // rebuilds the draft. Live tiles were preview only and are discarded.
       clearPendingItems();
       if (blob.size < 1000) {
         setLivePreview("");
         liveFinalRef.current = "";
+        liveInterimRef.current = "";
         setVoiceError("We didn't catch any speech. Tap the mic and describe the job out loud.");
         return;
       }
       lastBlobRef.current = { blob, mimeType: blobType };
-      await runTranscribe(blob, blobType);
+      await finaliseFromAudio(blob, blobType, sessionId);
     };
 
     // Web Speech API: drives live preview AND per-phrase processing.
