@@ -9,9 +9,9 @@ export const Route = createFileRoute("/trades")({
   head: () => ({
     meta: [
       { title: "Trades, Quottr" },
-      { name: "description", content: "Built for plumbers, gas engineers, electricians, joiners, roofers, decorators and every trade in between." },
+      { name: "description", content: "Quottr is built for UK tradespeople: plumbers, gas engineers, electricians, builders, joiners, roofers, tilers and decorators. See how it works on your jobs." },
       { property: "og:title", content: "Trades, Quottr" },
-      { property: "og:description", content: "Quottr is built for tradespeople. See which trades use it day-to-day." },
+      { property: "og:description", content: "Built for tradespeople. See which trades use Quottr day to day." },
       { property: "og:url", content: "https://www.quottr.co.uk/trades" },
     ],
     links: [{ rel: "canonical", href: "https://www.quottr.co.uk/trades" }],
@@ -21,55 +21,58 @@ export const Route = createFileRoute("/trades")({
 function TradesPage() {
   return (
     <MarketingShell>
-      <section className="bg-ink text-paper">
-        <div className="mx-auto max-w-6xl px-5 py-20 md:py-28 grid gap-12 md:grid-cols-2 md:items-center">
+      {/* HERO */}
+      <section className="bg-ink text-paper relative overflow-hidden">
+        <div className="absolute -top-40 -left-40 h-[30rem] w-[30rem] rounded-full bg-lime/15 blur-[130px] pointer-events-none" />
+        <div className="mx-auto max-w-6xl px-5 py-20 md:py-28 grid gap-12 md:grid-cols-2 md:items-center relative">
           <div>
-            <p className="text-[11px] uppercase tracking-widest text-paper/50 font-semibold">Trades</p>
-            <h1 className="mt-3 text-5xl md:text-7xl leading-[0.95] text-paper">
-              Built by trades. <span className="text-lime">For trades.</span>
+            <h1 className="text-paper leading-[0.85] tracking-tight" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3rem, 9vw, 7rem)" }}>
+              Built for the trades.<br /><span className="text-lime">Whatever you fit, fix or build.</span>
             </h1>
-            <p className="mt-5 text-lg text-paper/75 max-w-xl">
-              If you wear boots, lift tools, or quote on the doorstep, Quottr was built for you.
+            <p className="mt-6 text-lg md:text-xl text-paper/75 max-w-xl leading-relaxed">
+              If you wear boots, lift tools and quote on the doorstep, Quottr was built for you. Pick your trade and see how it works on the jobs you do every day.
             </p>
           </div>
           <div className="relative">
-            <div className="absolute -inset-6 rounded-3xl bg-lime/20 blur-2xl pointer-events-none" aria-hidden="true" />
             <img
               src={tradespersonApp}
-              alt="Tradesperson holding a phone running the Quottr app"
+              alt="Tradesperson using Quottr on a phone"
               width={1024}
               height={1024}
-              className="relative rounded-3xl border border-paper/10 shadow-2xl w-full h-auto object-cover ring-1 ring-lime/20"
+              className="rounded-[1.75rem] w-full h-auto object-cover ring-1 ring-paper/15"
             />
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 py-20">
-        <div className="grid gap-5 md:grid-cols-2">
+      {/* TRADE GRID */}
+      <section className="mx-auto max-w-6xl px-5 py-20 md:py-24">
+        <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-lime">Pick your trade</p>
+        <h2 className="mt-3 text-4xl md:text-6xl leading-[0.95] max-w-2xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+          Eight trades. <span className="text-ink/40">One way to quote.</span>
+        </h2>
+
+        <div className="mt-12 grid gap-px bg-ink/10 md:grid-cols-2 rounded-3xl overflow-hidden">
           {trades.map((t) => (
             <Link
               key={t.slug}
               to="/trades/$tradeSlug"
               params={{ tradeSlug: t.slug }}
-              className="group rounded-2xl border border-ink/10 bg-card p-7 hover:border-ink/30 hover:bg-paper transition block"
+              className="group bg-paper p-7 md:p-8 hover:bg-card transition block"
             >
-              <h3 className="text-3xl flex items-center justify-between">
-                <span>{t.name}</span>
-                <ArrowRight className="h-5 w-5 text-ink/40 group-hover:text-lime-ink group-hover:translate-x-1 transition" />
-              </h3>
-              <p className="mt-2 text-base text-ink/70 leading-relaxed">{t.shortBody}</p>
+              <div className="flex items-center justify-between gap-4">
+                <h3 className="text-3xl md:text-4xl text-ink leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{t.name}</h3>
+                <ArrowRight className="h-5 w-5 text-ink/30 group-hover:text-ink group-hover:translate-x-1 transition shrink-0" />
+              </div>
+              <p className="mt-3 text-[15px] text-ink/70 leading-relaxed">{t.shortBody}</p>
             </Link>
           ))}
         </div>
 
-        <div className="mt-16 text-center">
-          <p className="text-ink/60 mb-4">Your trade not listed? Quottr works for any trade that sends quotes.</p>
-          <Link
-            to="/auth"
-            className="inline-flex items-center gap-2 bg-ink text-paper font-semibold px-7 py-4 rounded-full hover:bg-ink/90 transition"
-          >
-            Try it free <ArrowRight className="h-4 w-4" />
+        <div className="mt-12 flex flex-col sm:flex-row sm:items-center gap-4">
+          <p className="text-ink/60 text-lg">Your trade not listed? Quottr works for any trade that sends quotes.</p>
+          <Link to="/auth" className="inline-flex items-center gap-2 bg-ink text-paper font-semibold px-7 py-4 rounded-full hover:bg-ink/90 transition shrink-0">
+            Start quoting free <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </section>
