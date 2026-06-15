@@ -613,8 +613,6 @@ function NewQuotePage() {
     };
     mr.onstop = async () => {
       if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
-      try { recognitionRef.current?.stop?.(); } catch { /* noop */ }
-      recognitionRef.current = null;
       setRecording(false);
       sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
       sharedStreamRef.current = null;
@@ -638,75 +636,15 @@ function NewQuotePage() {
         return;
       }
 
-      if (liveDebounceRef.current) { clearTimeout(liveDebounceRef.current); liveDebounceRef.current = null; }
-
       // Single authoritative path: Whisper transcribes the recorded audio and
-      // rebuilds the draft. Live tiles were preview only and are discarded.
-      clearPendingItems();
+      // rebuilds the draft.
       if (blob.size < 1000) {
-        setLivePreview("");
-        liveFinalRef.current = "";
-        liveInterimRef.current = "";
         setVoiceError("We didn't catch any speech. Tap the mic and describe the job out loud.");
         return;
       }
       lastBlobRef.current = { blob, mimeType: blobType };
       await finaliseFromAudio(blob, blobType, sessionId);
     };
-
-    // Web Speech API: drives live preview AND per-phrase processing.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR: any =
-      typeof window !== "undefined"
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-        : null;
-    if (SR && !isClipMode) {
-      setLiveSupported(true);
-      try {
-        const rec = new SR();
-        rec.continuous = true;
-        rec.interimResults = true;
-        rec.lang = "en-GB";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        rec.onresult = (event: any) => {
-          let interim = "";
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const res = event.results[i];
-            const txt = res[0]?.transcript ?? "";
-            if (res.isFinal) {
-              if (i > lastFinalIdxRef.current) {
-                lastFinalIdxRef.current = i;
-                liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
-                if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current);
-                const sid = sessionId;
-                liveDebounceRef.current = setTimeout(() => { void regenerateLiveQuote(sid); }, LIVE_PAUSE_MS);
-              }
-            } else {
-              interim += txt;
-            }
-          }
-          liveInterimRef.current = interim.trim();
-          // INVARIANT: livePreview captures the transcript internally so the
-          // AI can re-prompt with the full text on each regenerate / on stop.
-          // It must NEVER be rendered in the overlay — use MicLevelBars there.
-          setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
-        };
-        rec.onerror = () => { /* silent: pipeline only */ };
-        rec.onend = () => {
-          if (!stopRequestedRef.current && mediaRecorderRef.current?.state === "recording") {
-            lastFinalIdxRef.current = -1; // new session, fresh result indices
-            try { rec.start(); } catch { /* noop */ }
-          }
-        };
-        recognitionRef.current = rec;
-        try { rec.start(); } catch { /* noop */ }
-      } catch {
-        recognitionRef.current = null;
-      }
-    } else if (!SR) {
-      setLiveSupported(false);
-    }
 
     recordStartRef.current = Date.now();
     mr.start(1000);
