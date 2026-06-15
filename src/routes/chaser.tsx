@@ -71,7 +71,7 @@ function ChaserPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Chaser" subtitle="Replies & payments" urgent={overdue.length > 0} />
+      <PageHeader title="Chaser" subtitle="Replies & payments" urgent={overdue.length > 0} slim />
 
 
 
