@@ -21,21 +21,17 @@ function AboutPage() {
     <MarketingShell>
       {/* HERO */}
       <section className="bg-ink text-paper relative overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-40 pointer-events-none"
-          style={{ background: "radial-gradient(circle at 20% 0%, color-mix(in oklab, var(--lime) 35%, transparent), transparent 55%)" }}
-        />
+        <div className="absolute -top-40 -left-40 h-[30rem] w-[30rem] rounded-full bg-lime/15 blur-[130px] pointer-events-none" />
         <div className="mx-auto max-w-6xl px-5 py-24 md:py-32 relative">
-          <p className="text-[11px] uppercase tracking-widest text-paper/60 font-semibold">Our story</p>
           <h1
-            className="mt-4 text-paper leading-[0.82] tracking-tight"
+            className="text-paper leading-[0.82] tracking-tight"
             style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.5rem, 12vw, 11rem)" }}
           >
             Built in a van. <br />
             <span className="text-lime">Not a boardroom.</span>
           </h1>
           <p className="mt-8 max-w-2xl text-lg md:text-xl text-paper/75 leading-relaxed">
-            Quottr exists because the trades deserve software that respects their time -
+            Quottr exists because the trades deserve software that respects their time,
             not another platform designed in an office by people who've never held a spanner.
           </p>
         </div>
