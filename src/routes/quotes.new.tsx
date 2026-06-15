@@ -1040,6 +1040,21 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     paymentSeededRef.current = true;
   }, [draft, editId, subtotal, total]);
 
+  // After a successful voice finalise, scroll the freshly committed draft into
+  // view. Runs in a layout-after-paint effect so the draft surface is already
+  // mounted; double-rAF guards against the voice overlay reflow.
+  useEffect(() => {
+    if (!draft || !pendingScrollToDraftRef.current) return;
+    pendingScrollToDraftRef.current = false;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        draftRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }, [draft]);
+
+
+
   // Keep deposit amount in sync with subtotal when timing is deposit (user-edited
   // values are preserved — we only recompute from the stored percent).
   useEffect(() => {
