@@ -34,6 +34,7 @@ export function PageHeader({
   action,
   crumbs,
   urgent = false,
+  slim = false,
 }: {
   title: string;
   subtitle?: string;
@@ -42,6 +43,13 @@ export function PageHeader({
   action?: HeaderAction;
   crumbs?: string[];
   urgent?: boolean;
+  /**
+   * Lighter visual variant for top-level tab pages so the title doesn't
+   * compete with the bottom-nav's active pill. Drops the decorative glow
+   * blob + left accent bar, tightens vertical padding, and reduces the
+   * expanded title size. Detail-page headers keep the default.
+   */
+  slim?: boolean;
   /** legacy — accepted but no longer differentiates */
   compact?: boolean;
 }) {
@@ -92,10 +100,12 @@ export function PageHeader({
           "sticky top-0 z-30 bg-surface text-paper relative overflow-hidden transition-[padding,border-radius] duration-200 motion-reduce:transition-none",
           condensed
             ? "rounded-b-[1rem] px-4 pt-2 pb-2"
-            : "rounded-b-[1.5rem] px-5 pt-5 pb-4",
+            : slim
+              ? "rounded-b-[1.25rem] px-5 pt-4 pb-3"
+              : "rounded-b-[1.5rem] px-5 pt-5 pb-4",
         ].join(" ")}
       >
-        {!condensed && (
+        {!condensed && !slim && (
           <>
             <span
               aria-hidden
@@ -142,7 +152,7 @@ export function PageHeader({
               ].join(" ")}
               style={{
                 fontFamily: "'Bebas Neue', sans-serif",
-                fontSize: condensed ? "1.1rem" : "1.9rem",
+                fontSize: condensed ? "1.1rem" : slim ? "1.4rem" : "1.9rem",
               }}
             >
               {title}
