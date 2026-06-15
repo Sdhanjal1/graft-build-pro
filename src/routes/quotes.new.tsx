@@ -2321,71 +2321,30 @@ function VoiceOverlay({
   onUpdateItem: (index: number, patch: Partial<LineItem>) => void;
   onDeleteItem: (index: number) => void;
 }) {
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editDesc, setEditDesc] = useState("");
-  const [editPrice, setEditPrice] = useState("");
-  const prevCountRef = useRef(0);
-  const justLandedFrom = prevCountRef.current;
-  useEffect(() => {
-    prevCountRef.current = liveItems.length;
-  }, [liveItems.length]);
-  const liveTotal = liveItems.reduce((s, li) => s + li.qty * li.unit_price, 0);
-
-  // Independent list scroll with sticky auto-pin to bottom.
-  const listRef = useRef<HTMLUListElement | null>(null);
-  const pinnedRef = useRef(true);
-  const onListScroll = () => {
-    const el = listRef.current;
-    if (!el) return;
-    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
-    pinnedRef.current = distance < 80;
-  };
-  useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    if (pinnedRef.current) {
-      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-    }
-  }, [liveItems.length, pendingItems.length]);
-
-
-  function beginEdit(i: number, li: LineItem) {
-    setEditingIndex(i);
-    setEditDesc(li.description);
-    setEditPrice(String(li.qty * li.unit_price));
-  }
-  function commitEdit(i: number, li: LineItem) {
-    const total = parseFloat(editPrice);
-    const safeTotal = isFinite(total) && total >= 0 ? total : li.qty * li.unit_price;
-    const qty = li.qty || 1;
-    onUpdateItem(i, {
-      description: editDesc.trim() || li.description,
-      unit_price: +(safeTotal / qty).toFixed(2),
-    });
-    setEditingIndex(null);
-    feedback("success");
-  }
+  // Mark intentionally-unused props (call site is unchanged; cleanup is a follow-up).
+  void liveItems;
+  void pendingItems;
+  void transcript;
+  void onUpdateItem;
+  void onDeleteItem;
 
   if (typeof document === "undefined") return null;
   const idle = !recording && !transcribing;
-  const hasItems = liveItems.length > 0;
-  const hasPending = pendingItems.length > 0;
-  const showList = (recording || transcribing) && (hasItems || hasPending);
+  const isBuilding = transcribing || building;
 
   // aria-live status — announces transitions (Listening / Processing / Stopped
   // / error) without firing on every render. Visually hidden.
   const announcement = error
     ? `Microphone error. ${error}`
-    : transcribing || building
+    : isBuilding
       ? "Processing your quote"
       : recording
         ? "Listening"
         : "Stopped";
 
   return createPortal(
-    <div className={`fixed inset-0 z-[60] bg-ink text-paper flex flex-col px-6 pt-12 pb-8 safe-top safe-bottom ${showList ? "" : "items-center justify-between"}`}>
-      {/* Visually hidden aria-live region for screen readers. Updates on
-          transitions: Listening → Processing → Stopped (or error). */}
+    <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col px-6 pt-12 pb-8 safe-top safe-bottom items-center justify-between overflow-hidden">
+      {/* Visually hidden aria-live region for screen readers. */}
       <span
         className="sr-only"
         role="status"
@@ -2395,262 +2354,111 @@ function VoiceOverlay({
         {announcement}
       </span>
 
+      {/* Off-centre breathing lime glow blob — depth behind the dark surface. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-32 -right-24 h-[420px] w-[420px] rounded-full bg-lime/15 blur-[130px] animate-[pulse_4s_ease-in-out_infinite]"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-40 -left-20 h-[360px] w-[360px] rounded-full bg-lime/10 blur-[130px] animate-[pulse_5s_ease-in-out_infinite]"
+      />
 
-      {/* PINNED TOP: meta + running total */}
-      <div className={`flex flex-col items-center w-full max-w-md mx-auto ${showList ? "shrink-0" : ""}`}>
-        <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-          {transcribing ? "Building your quote" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
+      {/* TOP KICKER */}
+      <div className="relative flex flex-col items-center w-full max-w-md mx-auto">
+        <p className="text-[10px] uppercase tracking-widest text-lime font-semibold">
+          {isBuilding ? "Building your quote" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
         </p>
-        <p className="num text-2xl mt-1 text-paper">
-          <span className="text-lime">●</span> <span className="text-paper">{formatMMSS(seconds)}</span>
-        </p>
+      </div>
 
-        {showList && hasItems && (
-          <div className="mt-4 flex flex-col items-center">
-            <p className="text-[10px] uppercase tracking-widest text-paper/50 font-semibold">Running total</p>
-            <CountUpGBP value={liveTotal} className="num text-4xl text-lime mt-0.5" />
-          </div>
+      {/* CENTRE — hero mic while recording, skeleton while building */}
+      <div className="relative flex-1 w-full max-w-md mx-auto flex flex-col items-center justify-center">
+        {!isBuilding && (
+          <>
+            <button
+              type="button"
+              onClick={idle ? onStart : onStop}
+              aria-label={recording ? "Stop recording" : "Start recording"}
+              className="relative flex items-center justify-center"
+            >
+              {recording && (
+                <MicLevelRings streamRef={streamRef} active={recording} size="lg" />
+              )}
+              <div
+                className={`relative h-36 w-36 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_60px_-12px_rgba(200,224,74,0.7)] transition-all ${
+                  recording ? "animate-[pulse_1.4s_ease-in-out_infinite]" : ""
+                }`}
+              >
+                {recording ? (
+                  <Square className="h-14 w-14 text-ink fill-ink" strokeWidth={2.25} />
+                ) : (
+                  <VoiceWaveform size={56} className="text-ink" />
+                )}
+              </div>
+            </button>
+
+            {recording && (
+              <>
+                <div
+                  className="mt-6 flex items-center justify-center"
+                  aria-hidden="true"
+                >
+                  <MicLevelBars streamRef={streamRef} active={recording} />
+                </div>
+                <p className="num text-sm mt-3 text-paper/50">
+                  <span className="text-lime">●</span> {formatMMSS(seconds)}
+                </p>
+                <p className="mt-4 text-xs uppercase tracking-widest text-paper/60 font-semibold">
+                  Listening…
+                </p>
+              </>
+            )}
+          </>
         )}
 
-        {showList && hasItems && (
-          <p className="mt-3 text-[10px] uppercase tracking-widest text-paper/40 text-center">
-            Tap a line to edit
-          </p>
+        {isBuilding && (
+          <div className="w-full flex flex-col items-center gap-5">
+            {/* progress shimmer bar */}
+            <span className="relative w-40 h-1 overflow-hidden rounded-full bg-paper/[0.08]">
+              <span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-lime/70 to-transparent bg-[length:200%_100%]" />
+            </span>
+
+            {/* skeleton line-item rows */}
+            <ul className="w-full space-y-2 px-1">
+              {[0, 1, 2, 3].map((i) => (
+                <li
+                  key={i}
+                  className="rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-3 flex items-center gap-3"
+                  style={{
+                    animation: "scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both",
+                    animationDelay: `${i * 120}ms`,
+                  }}
+                >
+                  <span
+                    className="relative flex-1 h-3 overflow-hidden rounded-md bg-paper/[0.06]"
+                  >
+                    <span
+                      className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-paper/25 to-transparent bg-[length:200%_100%]"
+                      style={{ animationDelay: `${i * 120}ms` }}
+                    />
+                  </span>
+                  <span
+                    className="relative h-3 w-16 overflow-hidden rounded-md bg-paper/[0.06]"
+                  >
+                    <span
+                      className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-lime/40 to-transparent bg-[length:200%_100%]"
+                      style={{ animationDelay: `${i * 120 + 60}ms` }}
+                    />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
 
-      {/* Listening cue — audio-level bars + aria-live label.
-          INVARIANT: the live transcript is captured internally to feed the AI
-          on every regenerate / on stop. It must NEVER be rendered here. If
-          you need a visual signal, this audio-level meter is the answer. */}
-      {recording && (
-        <div
-          className="w-full max-w-md mx-auto mt-3 px-2 flex items-center justify-center gap-2"
-          aria-hidden="true"
-        >
-          <MicLevelBars streamRef={streamRef} active={recording} />
-          <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">
-            Listening…
-          </span>
-        </div>
-      )}
-
-
-
-
-      {(transcribing || building) && !hasItems && (
-        <div className="flex flex-col items-center gap-3 mt-6">
-          <span className="relative flex h-12 w-12">
-            <span className="absolute inline-flex h-full w-full rounded-full bg-lime opacity-30 animate-ping" />
-            <span className="relative inline-flex h-12 w-12 rounded-full bg-lime/20 items-center justify-center">
-              <VoiceWaveform size={24} className="text-lime" />
-            </span>
-          </span>
-          <p className="text-sm text-paper/70 font-medium">Building your quote…</p>
-        </div>
-      )}
-
-      {/* SCROLLABLE MIDDLE: line items list — fills available space between total and stop button */}
-      {showList && (
-        <div className="relative flex-1 min-h-0 w-full max-w-md mx-auto mt-2">
-          {/* top fade */}
-          <span aria-hidden className="pointer-events-none absolute top-0 inset-x-0 h-4 bg-gradient-to-b from-ink to-transparent z-10" />
-          <ul
-            ref={listRef}
-            onScroll={onListScroll}
-            className="absolute inset-0 w-full overflow-y-auto space-y-1.5 pt-2 pb-28 pr-1 -mr-1"
-            style={{ scrollbarWidth: "thin" }}
-          >
-            {liveItems.map((li, i) => {
-              const isLabour = li.category === "labour" || li.category === "cis_labour";
-              const unit = li.unit ?? (isLabour ? "hours" : "qty");
-              const suffix = unit === "hours" ? "/hr" : unit === "days" ? "/day" : "";
-              const isEditing = editingIndex === i;
-              if (isEditing) {
-                return (
-                  <li
-                    key={i}
-                    className="rounded-lg bg-paper/[0.08] border-l-2 border-lime pl-3 pr-3 py-2 space-y-2"
-                  >
-                    <textarea
-                      value={editDesc}
-                      onChange={(e) => setEditDesc(e.target.value)}
-                      rows={2}
-                      autoFocus
-                      className="w-full rounded-md bg-ink/60 border border-paper/20 px-2 py-1.5 text-sm text-paper placeholder-paper/40 focus:outline-none focus:border-lime"
-                      placeholder="Description"
-                    />
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-paper/60">£</span>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        value={editPrice}
-                        onChange={(e) => setEditPrice(e.target.value)}
-                        className="flex-1 rounded-md bg-ink/60 border border-paper/20 px-2 py-1.5 num text-sm text-paper focus:outline-none focus:border-lime"
-                        placeholder="0.00"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => { onDeleteItem(i); setEditingIndex(null); }}
-                        className="rounded-md bg-status-overdue/20 text-status-overdue px-2 py-1.5"
-                        aria-label="Delete line item"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingIndex(null)}
-                        className="rounded-md bg-paper/10 text-paper px-3 py-1.5 text-xs font-semibold"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => commitEdit(i, li)}
-                        className="rounded-md bg-lime text-ink px-3 py-1.5 text-xs font-bold"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </li>
-                );
-              }
-              const justLanded = i >= justLandedFrom;
-              return (
-                <li
-                  key={i}
-                  onClick={() => beginEdit(i, li)}
-                  style={{
-                    animation: `scale-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both`,
-                    animationDelay: `${Math.min(i, 5) * 30}ms`,
-                  }}
-                  className={`rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-2 flex items-start gap-3 cursor-pointer active:bg-paper/[0.1] ${justLanded ? "animate-line-glow" : ""}`}
-                >
-                  <span className="num text-[11px] font-bold text-paper/40 mt-0.5 shrink-0 w-5 text-right">
-                    {i + 1}
-                  </span>
-                  <p className="flex-1 text-sm leading-snug text-paper font-medium">
-                    {li.description}
-                  </p>
-                  <p className="num text-sm font-semibold text-paper shrink-0 whitespace-nowrap text-right">
-                    <span className="text-paper/60 text-xs font-medium">
-                      {li.qty}{unit === "hours" ? "h" : unit === "days" ? "d" : ""} × {formatGBP(li.unit_price)}
-                    </span>
-                    <span className="text-paper/40 mx-1">=</span>
-                    {formatGBP(li.qty * li.unit_price)}
-                    {suffix && <span className="text-paper/50 text-[10px]"> {suffix}</span>}
-                  </p>
-                </li>
-              );
-            })}
-            {pendingItems.map((p) => (
-              <li
-                key={p.id}
-                className="rounded-lg bg-paper/[0.04] border-l-2 border-paper/20 pl-3 pr-3 py-2 flex items-center gap-3 animate-scale-in"
-                aria-live="polite"
-              >
-                <span className="num text-[11px] font-bold text-paper/30 mt-0.5 shrink-0 w-5 text-right">
-                  {liveItems.length + 1}
-                </span>
-                <div className="flex-1 flex items-center gap-2">
-                  <span className="text-sm text-paper/50 italic">Got it…</span>
-                  <span className="relative flex-1 h-2 overflow-hidden rounded-full bg-paper/[0.06]">
-                    <span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-paper/30 to-transparent bg-[length:200%_100%]" />
-                  </span>
-                </div>
-              </li>
-            ))}
-            {building && (
-              <li
-                className="flex items-center gap-3 px-1 py-3 animate-pulse transition-opacity duration-300"
-                style={{ opacity: 1 }}
-              >
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-lime opacity-75 animate-ping" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-lime" />
-                </span>
-                <span className="text-sm text-paper/70 font-medium">Quottr is building your quote…</span>
-              </li>
-            )}
-          </ul>
-          {/* Transcript — collapsed by default, lets the user verify what was heard */}
-          {liveItems.length > 0 && transcript.trim() && (
-            <details className="mt-4 mx-1 px-4 py-3 rounded-lg bg-paper/[0.04] border border-paper/10">
-              <summary className="text-xs uppercase tracking-widest font-semibold text-paper/60 cursor-pointer hover:text-paper/80 transition list-none">
-                What you said
-              </summary>
-              <p className="mt-3 text-sm text-paper/70 leading-relaxed whitespace-pre-wrap break-words">
-                {transcript}
-              </p>
-            </details>
-          )}
-          {/* bottom fade hint that list continues under the stop button */}
-          <span aria-hidden className="pointer-events-none absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-ink via-ink/85 to-transparent z-10" />
-        </div>
-      )}
-
-
-
-      {/* EMPTY STATE: large central mic — hero of an empty screen */}
-      {!hasItems && !hasPending && (
-        <button
-          type="button"
-          onClick={idle ? onStart : onStop}
-          disabled={transcribing}
-          aria-label={transcribing ? "Transcribing" : recording ? "Stop recording" : "Start recording"}
-          className="relative flex items-center justify-center my-6 disabled:opacity-60"
-        >
-          {recording && (
-            <MicLevelRings streamRef={streamRef} active={recording} size="lg" />
-          )}
-          <div
-            className={`relative h-36 w-36 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_60px_-12px_rgba(200,224,74,0.7)] transition-all ${
-              recording ? "animate-[pulse_1.4s_ease-in-out_infinite]" : ""
-            }`}
-          >
-            {transcribing ? (
-              <Loader2 className="h-14 w-14 text-ink animate-spin" />
-            ) : recording ? (
-              <Square className="h-14 w-14 text-ink fill-ink" strokeWidth={2.25} />
-            ) : (
-              <VoiceWaveform size={56} className="text-ink" />
-            )}
-          </div>
-        </button>
-      )}
-
-      {/* ACTIVE / BUILDING STATE: smaller FAB docked at bottom-centre */}
-      {(hasItems || hasPending) && (
-        <button
-          type="button"
-          onClick={idle ? onStart : onStop}
-          disabled={transcribing}
-          aria-label={transcribing ? "Transcribing" : recording ? "Stop recording" : "Start recording"}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[70] flex items-center justify-center disabled:opacity-60"
-        >
-          {recording && (
-            <MicLevelRings streamRef={streamRef} active={recording} size="sm" />
-          )}
-          <div
-            className={`relative h-14 w-14 rounded-full bg-lime flex items-center justify-center shadow-[0_8px_24px_-6px_rgba(200,224,74,0.6)] transition-all ${
-              recording ? "animate-[pulse_1.4s_ease-in-out_infinite]" : ""
-            }`}
-          >
-            {transcribing ? (
-              <Loader2 className="h-7 w-7 text-ink animate-spin" />
-            ) : recording ? (
-              <Square className="h-7 w-7 text-ink fill-ink" strokeWidth={2.25} />
-            ) : (
-              <VoiceWaveform size={28} className="text-ink" />
-            )}
-          </div>
-        </button>
-      )}
-
-      {/* Bottom text area — pushes up when mic is large, stays above FAB when mic is small */}
-      <div className={`w-full max-w-md min-h-[4rem] text-center space-y-2 ${(hasItems || hasPending) ? "pb-16" : ""}`}>
+      {/* Bottom text area — error / hint / lastTranscript */}
+      <div className="relative w-full max-w-md min-h-[4rem] text-center space-y-2">
         {error ? (
           <>
             <p className="text-sm text-status-overdue font-medium">{error}</p>
@@ -2676,13 +2484,12 @@ function VoiceOverlay({
               )}
             </div>
           </>
-        ) : transcribing ? (
-          <p className="text-sm text-paper/70">Building your quote…</p>
+        ) : isBuilding ? (
+          <p className="text-sm text-paper/70">Hang tight — shaping your quote…</p>
         ) : recording ? (
           <p className="text-sm text-paper/70">
-            Keep talking — describe the job, materials, time. Tap stop when done.
+            Keep talking — describe the job, materials, time. Tap the mic when done.
           </p>
-
         ) : lastTranscript ? (
           <>
             <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">Captured</p>
@@ -2697,12 +2504,12 @@ function VoiceOverlay({
         <button
           type="button"
           onClick={onClose}
-          className="text-xs uppercase tracking-widest text-paper/60 font-semibold py-3"
+          className="relative text-xs uppercase tracking-widest text-paper/60 font-semibold py-3"
         >
           {error || lastTranscript ? "Done" : "Cancel"}
         </button>
       )}
-      {!idle && <div className={`h-12 ${(hasItems || hasPending) ? "pb-8" : ""}`} />}
+      {!idle && <div className="h-12" />}
     </div>,
     document.body,
   );
