@@ -23,7 +23,9 @@ const features = [
   { kicker: "Branding", title: "Quotes that look the part", body: "Your logo, your colours, every time. Looks like you spent two grand on a brand designer." },
   { kicker: "Payments", title: "Get paid in the app", body: "Card, bank transfer or Apple Pay. The money lands in your account, not next month." },
   { kicker: "Auto-chase", title: "Chases the money for you", body: "Polite reminders go out at day 7, 14 and 21, automatically. You never have to ask twice." },
+  { kicker: "Accounting", title: "Your books, already sorted", body: "Export paid invoices as a CSV formatted for Xero, QuickBooks, FreeAgent or Sage, with the right VAT codes. No re-typing.", wide: true },
 ];
+
 
 function FeaturesPage() {
   return (
