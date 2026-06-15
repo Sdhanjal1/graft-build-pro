@@ -34,6 +34,7 @@ export function PageHeader({
   action,
   crumbs,
   urgent = false,
+  slim = false,
 }: {
   title: string;
   subtitle?: string;
@@ -42,6 +43,13 @@ export function PageHeader({
   action?: HeaderAction;
   crumbs?: string[];
   urgent?: boolean;
+  /**
+   * Lighter visual variant for top-level tab pages so the title doesn't
+   * compete with the bottom-nav's active pill. Drops the decorative glow
+   * blob + left accent bar, tightens vertical padding, and reduces the
+   * expanded title size. Detail-page headers keep the default.
+   */
+  slim?: boolean;
   /** legacy — accepted but no longer differentiates */
   compact?: boolean;
 }) {
