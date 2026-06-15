@@ -22,7 +22,7 @@ import { resolveTrade } from "@/lib/trades";
 import { toast } from "sonner";
 
 
-import { generateAIQuote, prefetchQuoteContext } from "@/lib/ai-quote.functions";
+import { generateAIQuote } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search, Send, Check, Banknote, Zap, Mic, ChevronRight, AlertCircle, ArrowLeftRight, Keyboard } from "lucide-react";
@@ -145,14 +145,12 @@ function NewQuotePage() {
   const [voiceOpening, setVoiceOpening] = useState(false);
   useEffect(() => { if (recording) setVoiceOpening(false); }, [recording]);
   const [lastTranscript, setLastTranscript] = useState<string | null>(null);
-  const [livePreview, setLivePreview] = useState<string>("");
-  const [liveSupported, setLiveSupported] = useState<boolean>(true);
   
   const [draft, setDraft] = useState<Draft>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const generateFn = useServerFn(generateAIQuote);
-  const prefetchFn = useServerFn(prefetchQuoteContext);
+  
   const transcribeFn = useServerFn(transcribeAudio);
   const { canUse: subActive, blocked: subBlocked, loading: subLoading } = useSubscription();
   const paidQuoteCount = usePaidQuoteCount();
@@ -179,74 +177,20 @@ function NewQuotePage() {
   const [showTyping, setShowTyping] = useState(!!typeParam);
   const [confirmTrashIdx, setConfirmTrashIdx] = useState<number | null>(null);
   const originalDraftRef = useRef<string>("");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null);
-  const liveFinalRef = useRef<string>("");
-  const liveInterimRef = useRef<string>("");
-  const firstItemsLandedRef = useRef<boolean>(false);
   // Set true when a voice finalise wants the page to scroll to the freshly
   // committed draft. The scroll runs in an effect that watches `draft` so it
   // fires AFTER React has painted the draft surface into the DOM, not before.
   const pendingScrollToDraftRef = useRef<boolean>(false);
 
-
-  
-
-  // LIVE per-phrase pipeline: each recognised final phrase fires a parallel
-  // Haiku generate call. Items append as soon as their phrase resolves.
-  const [liveItems, setLiveItems] = useState<LineItem[]>([]);
-  const liveItemsRef = useRef<LineItem[]>([]);
-  const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
-  const [building, setBuilding] = useState(false);
-  const pendingItemsRef = useRef<PendingItem[]>([]);
-  const pendingCountRef = useRef(0);
-  const phraseSeqRef = useRef(0);
-  const lastFinalIdxRef = useRef(-1);
   const voiceSessionRef = useRef(0);
   const closeRequestedRef = useRef(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const prefetchedContextRef = useRef<any>(null);
-  const liveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Tracks the latest in-flight regenerateLiveQuote so we can await it before
-  // deciding whether to run the Whisper fallback in `mr.onstop`.
-  const regenerateInFlightRef = useRef<Promise<void> | null>(null);
-  // Latest successful per-phrase AI response metadata — used at stop time so the
-  // live flow keeps the AI's clean title / description / extracted customer
-  // instead of falling back to deriveTitle + raw transcript.
-  const lastLiveGenRef = useRef<{
-    title?: string;
-    clean_description?: string;
-    extracted_customer?: { name?: string; phone?: string };
-  } | null>(null);
-  // Session-scoped tombstones + edit overrides so user changes during recording
-  // survive the next regenerateLiveQuote pass. Keyed by normalised description.
+  // Session-scoped tombstones so user deletions during recording survive a
+  // subsequent voice-add pass. Keyed by normalised description.
   const deletedDescsRef = useRef<Set<string>>(new Set());
-  const editedItemsRef = useRef<Map<string, LineItem>>(new Map());
   const normDesc = (s: string) => s.trim().toLowerCase();
-  // Cumulative offset for Web Speech result indices across browser auto-restarts.
-  // Each restart's `event.resultIndex` becomes `offset + index` for monotone tracking.
-  const speechIndexOffsetRef = useRef<number>(0);
-  const LIVE_PAUSE_MS = 2000;
 
   // Kept as inert ref so nothing from older code paths leaks.
   const sharedStreamRef = useRef<MediaStream | null>(null);
-
-
-  const clearPendingItems = () => {
-    pendingItemsRef.current = [];
-    setPendingItems([]);
-  };
-
-  const waitForPendingPhraseProcessing = async (timeoutMs = 30_000) => {
-    const start = Date.now();
-    while (pendingCountRef.current > 0 || pendingItemsRef.current.length > 0) {
-      if (Date.now() - start > timeoutMs) {
-        console.warn("[voice] waitForPendingPhraseProcessing timed out, proceeding");
-        return;
-      }
-      await new Promise((r) => setTimeout(r, 100));
-    }
-  };
 
 
 
@@ -257,9 +201,6 @@ function NewQuotePage() {
       voiceSessionRef.current++;
       closeRequestedRef.current = true;
       if (tickRef.current) clearInterval(tickRef.current);
-      if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current);
-      try { recognitionRef.current?.abort?.() ?? recognitionRef.current?.stop?.(); } catch { /* noop */ }
-      recognitionRef.current = null;
       sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current?.getTracks().forEach((t) => t.stop());
       sharedStreamRef.current = null;
@@ -397,9 +338,6 @@ function NewQuotePage() {
     closeRequestedRef.current = false;
     setVoiceError(null);
     setLastTranscript(null);
-    setLivePreview("");
-    liveFinalRef.current = "";
-    liveInterimRef.current = "";
     setVoiceOpening(true);
     if (voiceParam === 1) navigate({ to: "/quotes/new", search: {}, replace: true });
     try {
@@ -417,9 +355,6 @@ function NewQuotePage() {
     closeRequestedRef.current = false;
     setVoiceError(null);
     setLastTranscript(null);
-    setLivePreview("");
-    liveFinalRef.current = "";
-    liveInterimRef.current = "";
     setVoiceOpening(true);
     try {
       await startRecording();
@@ -431,9 +366,6 @@ function NewQuotePage() {
   const handleVoiceClose = () => {
     closeRequestedRef.current = true;
     voiceSessionRef.current++;
-    try { recognitionRef.current?.stop?.(); } catch { /* noop */ }
-    recognitionRef.current = null;
-    if (liveDebounceRef.current) { clearTimeout(liveDebounceRef.current); liveDebounceRef.current = null; }
     const mr = mediaRecorderRef.current;
     if (mr && mr.state !== "inactive") {
       try { mr.stop(); } catch { /* noop */ }
@@ -445,39 +377,20 @@ function NewQuotePage() {
     streamRef.current = null;
     // handleVoiceStart already strips ?voice=1; no need to navigate again here.
     setRecording(false);
-    setBuilding(false);
     setTranscribing(false);
     setVoiceError(null);
     setVoiceOpening(false);
     setLastTranscript(null);
-    setLivePreview("");
-    liveFinalRef.current = "";
-    liveInterimRef.current = "";
-    clearPendingItems();
-    pendingCountRef.current = 0;
-    setLiveItems([]);
-    liveItemsRef.current = [];
-    phraseSeqRef.current = 0;
-    lastFinalIdxRef.current = -1;
-    speechIndexOffsetRef.current = 0;
     setEditVoiceOpen(false);
     recordTargetRef.current = "desc";
   };
 
   const recordStartRef = useRef<number>(0);
   const MIN_RECORD_MS = 1000;
-  const stopRequestedRef = useRef<boolean>(false);
 
   const stopRecording = () => {
     const mr = mediaRecorderRef.current;
-    if (!mr || mr.state === "inactive") {
-      // Race: user tapped Stop before getUserMedia resolved or after recorder
-      // already finalised. Don't lock the UI into "building" — clear it.
-      setBuilding(false);
-      return;
-    }
-    setBuilding(true);
-    stopRequestedRef.current = true;
+    if (!mr || mr.state === "inactive") return;
     const elapsed = Date.now() - recordStartRef.current;
     const remaining = MIN_RECORD_MS - elapsed;
     if (remaining > 0) {
@@ -519,7 +432,6 @@ function NewQuotePage() {
   const runTranscribe = async (blob: Blob, mimeType: string) => {
     setTranscribing(true);
     setVoiceError(null);
-    clearPendingItems();
     try {
       const audioBase64 = await blobToBase64(blob);
       const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
@@ -548,9 +460,6 @@ function NewQuotePage() {
       setError(msg);
     } finally {
       setTranscribing(false);
-      setLivePreview("");
-      liveFinalRef.current = "";
-      clearPendingItems();
     }
   };
 
@@ -581,13 +490,7 @@ function NewQuotePage() {
       if (ec?.name && !clientName.trim()) setClientName(ec.name);
       if (ec?.phone && !clientPhone.trim()) setClientPhone(ec.phone);
 
-      // Tear down live preview state — committed draft now comes from audio only.
-      setLiveItems([]);
-      liveItemsRef.current = [];
-      setLivePreview("");
-      liveFinalRef.current = "";
-      liveInterimRef.current = "";
-      clearPendingItems();
+
 
       feedback("success");
       playSample("ding");
@@ -647,141 +550,15 @@ function NewQuotePage() {
 
 
 
-  // Filter out breath/noise/filler-only phrases — only let real speech
-  // trigger a per-phrase generate call.
-  const isMeaningfulPhrase = (text: string): boolean => {
-    const t = text.trim();
-    if (t.length < 4) return false;
-    const words = t.split(/\s+/).filter((w) => /[a-z]{2,}/i.test(w));
-    if (words.length < 2) return false;
-    // Reject pure filler ("uh um er erm yeah ok okay right so").
-    const filler = /^(?:uh|um|er|erm|yeah|ok|okay|right|so|hmm|well|and|or)$/i;
-    if (words.every((w) => filler.test(w))) return false;
-    return true;
-  };
 
-  const deriveTitle = (items: LineItem[]): string => {
-    const first = items[0]?.description?.trim();
-    if (first) return first.length > 60 ? `${first.slice(0, 57)}…` : first;
-    return `${trade} quote`;
-  };
-
-  // (Removed: legacy per-phrase processPhrase. Superseded by the debounced
-  // regenerateLiveQuote pipeline below, which sees the full transcript and
-  // avoids duplicate/invented filler items.)
-
-
-  // Pause-debounced full regeneration. When the speaker pauses for
-  // LIVE_PAUSE_MS we send the ENTIRE accumulated transcript to the AI and
-  // REPLACE the live items with the returned list. This avoids the duplicate
-  // and invented-filler items produced by per-phrase generation, since each
-  // call now sees the full context.
-  const regenerateLiveQuote = async (sessionId: number): Promise<void> => {
-    if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
-    const transcript = liveFinalRef.current.trim();
-    if (!transcript || !isMeaningfulPhrase(transcript)) return;
-    const genId = ++phraseSeqRef.current;
-    pendingCountRef.current++;
-    setBuilding(true);
-    try {
-      const ctx = prefetchedContextRef.current;
-      const g = await generateFn({
-        data: { description: transcript, trade, vatRegistered: vat, ...(ctx ? { prefetchedContext: ctx } : {}) },
-      });
-      if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
-      if (genId !== phraseSeqRef.current) return;
-      if (g.line_items?.length) {
-        const filtered = g.line_items
-          .filter((li) => !deletedDescsRef.current.has(normDesc(li.description)))
-          .map((li) => editedItemsRef.current.get(normDesc(li.description)) ?? li);
-        // Append-only merge: keep existing tiles in place; update qty/unit_price
-        // in place when a filtered item matches by normDesc; append new ones.
-        // Never remove tiles here — only the tombstone path does that.
-        const base = liveItemsRef.current;
-        const indexByKey = new Map<string, number>();
-        base.forEach((it, i) => indexByKey.set(normDesc(it.description), i));
-        const next = base.slice();
-        for (const li of filtered) {
-          const key = normDesc(li.description);
-          const idx = indexByKey.get(key);
-          if (idx != null) {
-            const existing = next[idx];
-            next[idx] = { ...existing, qty: li.qty, unit_price: li.unit_price };
-          } else {
-            indexByKey.set(key, next.length);
-            next.push(li);
-          }
-        }
-        setLiveItems(next);
-        liveItemsRef.current = next;
-        lastLiveGenRef.current = {
-          title: g.title,
-          clean_description: g.clean_description,
-          extracted_customer: g.extracted_customer,
-        };
-        // Haptic + sound feedback — only on first items landing per session
-        if (!firstItemsLandedRef.current && filtered.length) {
-          firstItemsLandedRef.current = true;
-          if (typeof navigator !== "undefined" && navigator.vibrate) {
-            try { navigator.vibrate(20); } catch { /* ignore */ }
-          }
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const AC = (window.AudioContext || (window as any).webkitAudioContext);
-            if (AC) {
-              const actx = new AC();
-              const osc = actx.createOscillator();
-              const gain = actx.createGain();
-              osc.connect(gain);
-              gain.connect(actx.destination);
-              osc.frequency.value = 800;
-              osc.type = "sine";
-              gain.gain.setValueAtTime(0.2, actx.currentTime);
-              gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.1);
-              osc.start(actx.currentTime);
-              osc.stop(actx.currentTime + 0.1);
-            }
-          } catch { /* audio unavailable */ }
-        }
-      }
-    } catch (err) {
-      console.warn("[voice] live regenerate failed", err);
-    } finally {
-      pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
-      // Only clear the spinner when nothing else is in flight — otherwise
-      // the first phrase to resolve flickers it off while later phrases
-      // are still being generated.
-      if (pendingCountRef.current === 0) setBuilding(false);
-    }
-  };
-
-  // Wrapper that exposes the running regenerate promise so `mr.onstop` can
-  // await it before deciding whether to fall back to a full Whisper pass.
-  const runRegenerate = (sessionId: number): Promise<void> => {
-    const p = regenerateLiveQuote(sessionId).finally(() => {
-      if (regenerateInFlightRef.current === p) regenerateInFlightRef.current = null;
-    });
-    regenerateInFlightRef.current = p;
-    return p;
-  };
-
-  // LIVE FLOW: continuous MediaRecorder (only used as a stop-time fallback if
-  // Web Speech produced no items) + Web Speech API per-phrase pipeline.
+  // Recording flow: MediaRecorder captures audio; on stop, Whisper transcribes
+  // and the AI builds the draft from the full transcript.
   const startRecording = async () => {
     const sessionId = voiceSessionRef.current + 1;
     voiceSessionRef.current = sessionId;
     closeRequestedRef.current = false;
     setVoiceError(null);
-    clearPendingItems();
-    pendingCountRef.current = 0;
-    setLiveItems([]);
-    liveItemsRef.current = [];
-    firstItemsLandedRef.current = false;
-    phraseSeqRef.current = 0;
-    lastFinalIdxRef.current = -1;
-    lastLiveGenRef.current = null;
     deletedDescsRef.current = new Set();
-    editedItemsRef.current = new Map();
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
       setVoiceOpening(false);
@@ -816,20 +593,7 @@ function NewQuotePage() {
     streamRef.current = stream;
     sharedStreamRef.current = stream;
 
-    // Prefetch labour rates + patterns ONCE — reused for every per-phrase call.
-    // Fire-and-forget; per-phrase calls fall back to server-side fetch if it
-    // hasn't arrived yet.
-    prefetchedContextRef.current = null;
-    void prefetchFn()
-      .then((ctx) => { prefetchedContextRef.current = ctx; })
-      .catch((e) => console.warn("[voice] prefetch failed", e));
-
     const mimeType = pickMimeType();
-    liveFinalRef.current = "";
-    liveInterimRef.current = "";
-    
-    setLivePreview("");
-    stopRequestedRef.current = false;
 
     const isClipMode = recordTargetRef.current === "clip" || recordTargetRef.current === "edit";
 
@@ -849,8 +613,6 @@ function NewQuotePage() {
     };
     mr.onstop = async () => {
       if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
-      try { recognitionRef.current?.stop?.(); } catch { /* noop */ }
-      recognitionRef.current = null;
       setRecording(false);
       sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
       sharedStreamRef.current = null;
@@ -874,75 +636,15 @@ function NewQuotePage() {
         return;
       }
 
-      if (liveDebounceRef.current) { clearTimeout(liveDebounceRef.current); liveDebounceRef.current = null; }
-
       // Single authoritative path: Whisper transcribes the recorded audio and
-      // rebuilds the draft. Live tiles were preview only and are discarded.
-      clearPendingItems();
+      // rebuilds the draft.
       if (blob.size < 1000) {
-        setLivePreview("");
-        liveFinalRef.current = "";
-        liveInterimRef.current = "";
         setVoiceError("We didn't catch any speech. Tap the mic and describe the job out loud.");
         return;
       }
       lastBlobRef.current = { blob, mimeType: blobType };
       await finaliseFromAudio(blob, blobType, sessionId);
     };
-
-    // Web Speech API: drives live preview AND per-phrase processing.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR: any =
-      typeof window !== "undefined"
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-        : null;
-    if (SR && !isClipMode) {
-      setLiveSupported(true);
-      try {
-        const rec = new SR();
-        rec.continuous = true;
-        rec.interimResults = true;
-        rec.lang = "en-GB";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        rec.onresult = (event: any) => {
-          let interim = "";
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const res = event.results[i];
-            const txt = res[0]?.transcript ?? "";
-            if (res.isFinal) {
-              if (i > lastFinalIdxRef.current) {
-                lastFinalIdxRef.current = i;
-                liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
-                if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current);
-                const sid = sessionId;
-                liveDebounceRef.current = setTimeout(() => { void regenerateLiveQuote(sid); }, LIVE_PAUSE_MS);
-              }
-            } else {
-              interim += txt;
-            }
-          }
-          liveInterimRef.current = interim.trim();
-          // INVARIANT: livePreview captures the transcript internally so the
-          // AI can re-prompt with the full text on each regenerate / on stop.
-          // It must NEVER be rendered in the overlay — use MicLevelBars there.
-          setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
-        };
-        rec.onerror = () => { /* silent: pipeline only */ };
-        rec.onend = () => {
-          if (!stopRequestedRef.current && mediaRecorderRef.current?.state === "recording") {
-            lastFinalIdxRef.current = -1; // new session, fresh result indices
-            try { rec.start(); } catch { /* noop */ }
-          }
-        };
-        recognitionRef.current = rec;
-        try { rec.start(); } catch { /* noop */ }
-      } catch {
-        recognitionRef.current = null;
-      }
-    } else if (!SR) {
-      setLiveSupported(false);
-    }
 
     recordStartRef.current = Date.now();
     mr.start(1000);
@@ -1194,15 +896,6 @@ function NewQuotePage() {
           seconds={recordSeconds}
           error={voiceError}
           lastTranscript={lastTranscript}
-          // NOTE: livePreview / liveSupported are intentionally NOT passed to
-          // the overlay. The live transcript is captured internally to feed
-          // the AI on every regenerate / on stop — it must never be rendered.
-          // If you need a live cue, use MicLevelBars below.
-
-          liveItems={liveItems}
-          transcript={desc}
-          pendingItems={pendingItems}
-          building={building}
           streamRef={sharedStreamRef}
           onStart={handleVoiceStart}
           onStop={stopRecording}
@@ -1216,35 +909,6 @@ function NewQuotePage() {
             }, 0);
           }}
           onRetryTranscription={lastBlobRef.current ? retryTranscription : undefined}
-          onUpdateItem={(index, patch) => {
-            setLiveItems((prev) => {
-              const orig = prev[index];
-              const patched = orig ? { ...orig, ...patch } : orig;
-              if (orig && patched) {
-                const origKey = normDesc(orig.description);
-                editedItemsRef.current.set(origKey, patched);
-                if (patch.description && normDesc(patch.description) !== origKey) {
-                  // User renamed the description — tombstone old key so AI's
-                  // version doesn't reappear alongside on next regenerate.
-                  deletedDescsRef.current.add(origKey);
-                  editedItemsRef.current.set(normDesc(patch.description), patched);
-                }
-              }
-              const next = prev.map((it, i) => (i === index ? { ...it, ...patch } : it));
-              liveItemsRef.current = next;
-              return next;
-            });
-          }}
-          onDeleteItem={(index) => {
-            setLiveItems((prev) => {
-              const victim = prev[index];
-              if (victim) deletedDescsRef.current.add(normDesc(victim.description));
-              const next = prev.filter((_, i) => i !== index);
-              liveItemsRef.current = next;
-              return next;
-            });
-            feedback("warn");
-          }}
         />
       )}
 
@@ -2288,49 +1952,28 @@ function VoiceOverlay({
   seconds,
   error,
   lastTranscript,
-  // livePreview / liveSupported intentionally removed — see invariant note below.
-
-  liveItems,
-  transcript,
-  pendingItems,
-  building,
   streamRef,
   onStart,
   onStop,
   onClose,
   onTypeInstead,
   onRetryTranscription,
-  onUpdateItem,
-  onDeleteItem,
 }: {
   recording: boolean;
   transcribing: boolean;
   seconds: number;
   error: string | null;
   lastTranscript: string | null;
-  liveItems: LineItem[];
-  transcript: string;
-  pendingItems: { id: string; text: string }[];
-  building: boolean;
   streamRef?: React.RefObject<MediaStream | null>;
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
   onTypeInstead?: () => void;
   onRetryTranscription?: () => void;
-  onUpdateItem: (index: number, patch: Partial<LineItem>) => void;
-  onDeleteItem: (index: number) => void;
 }) {
-  // Mark intentionally-unused props (call site is unchanged; cleanup is a follow-up).
-  void liveItems;
-  void pendingItems;
-  void transcript;
-  void onUpdateItem;
-  void onDeleteItem;
-
   if (typeof document === "undefined") return null;
   const idle = !recording && !transcribing;
-  const isBuilding = transcribing || building;
+  const isBuilding = transcribing;
 
   // aria-live status — announces transitions (Listening / Processing / Stopped
   // / error) without firing on every render. Visually hidden.
