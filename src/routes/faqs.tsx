@@ -24,7 +24,7 @@ const faqs = [
   { q: "Can I use my own branding?", a: "Yes, logo, colours, business details, VAT number. Quotes look like you, not us." },
   { q: "Does it integrate with my accounting?", a: "Yes. From Settings you can export your paid invoices as a CSV formatted for Xero, QuickBooks, FreeAgent or Sage, with the right VAT codes and your nominal codes, by tax year or a custom range." },
   { q: "What about chasing late payers?", a: "Quottr nudges them at day 7, 14 and 21 with polite, on-brand reminders. You never have to send 'just chasing this' again." },
-  { q: "Is my data safe?", a: "Yes. UK-hosted, encrypted at rest and in transit. You own your data and can export it any time." },
+  { q: "Is my data safe?", a: "Yes. It's encrypted in transit and at rest, hosted in the EU, and it stays yours." },
 ];
 
 function FaqsPage() {
