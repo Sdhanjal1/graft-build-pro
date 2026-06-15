@@ -1952,49 +1952,28 @@ function VoiceOverlay({
   seconds,
   error,
   lastTranscript,
-  // livePreview / liveSupported intentionally removed — see invariant note below.
-
-  liveItems,
-  transcript,
-  pendingItems,
-  building,
   streamRef,
   onStart,
   onStop,
   onClose,
   onTypeInstead,
   onRetryTranscription,
-  onUpdateItem,
-  onDeleteItem,
 }: {
   recording: boolean;
   transcribing: boolean;
   seconds: number;
   error: string | null;
   lastTranscript: string | null;
-  liveItems: LineItem[];
-  transcript: string;
-  pendingItems: { id: string; text: string }[];
-  building: boolean;
   streamRef?: React.RefObject<MediaStream | null>;
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
   onTypeInstead?: () => void;
   onRetryTranscription?: () => void;
-  onUpdateItem: (index: number, patch: Partial<LineItem>) => void;
-  onDeleteItem: (index: number) => void;
 }) {
-  // Mark intentionally-unused props (call site is unchanged; cleanup is a follow-up).
-  void liveItems;
-  void pendingItems;
-  void transcript;
-  void onUpdateItem;
-  void onDeleteItem;
-
   if (typeof document === "undefined") return null;
   const idle = !recording && !transcribing;
-  const isBuilding = transcribing || building;
+  const isBuilding = transcribing;
 
   // aria-live status — announces transitions (Listening / Processing / Stopped
   // / error) without firing on every render. Visually hidden.
