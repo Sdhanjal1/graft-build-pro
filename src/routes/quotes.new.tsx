@@ -548,6 +548,55 @@ function NewQuotePage() {
     }
   };
 
+  // Authoritative finalise path: Whisper transcribes the recorded blob, then
+  // we regenerate the draft from that transcript. Live tiles are preview only.
+  const finaliseFromAudio = async (blob: Blob, mimeType: string, sessionId: number) => {
+    setTranscribing(true);
+    setVoiceError(null);
+    try {
+      const audioBase64 = await blobToBase64(blob);
+      const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
+      if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
+      const transcript = (text || "").trim();
+      if (!transcript) {
+        setVoiceError("We didn't catch any speech. Tap the mic and describe the job out loud.");
+        return;
+      }
+      const g = await generateFn({ data: { description: transcript, trade, vatRegistered: vat } });
+      if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
+
+      setDraft({ title: g.title, line_items: g.line_items });
+      originalDraftRef.current = JSON.stringify(g.line_items);
+      setDesc(g.clean_description || transcript);
+      const ec = g.extracted_customer;
+      if (ec?.name && !clientName.trim()) setClientName(ec.name);
+      if (ec?.phone && !clientPhone.trim()) setClientPhone(ec.phone);
+
+      // Tear down live preview state — committed draft now comes from audio only.
+      setLiveItems([]);
+      liveItemsRef.current = [];
+      setLivePreview("");
+      liveFinalRef.current = "";
+      liveInterimRef.current = "";
+      clearPendingItems();
+
+      feedback("success");
+      playSample("ding");
+      requestAnimationFrame(() => {
+        draftRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    } catch (err) {
+      console.error(err);
+      const msg = err instanceof Error
+        ? err.message
+        : "Could not finalise the recording. Check your connection and retry.";
+      setVoiceError(msg);
+      setError(msg);
+    } finally {
+      setTranscribing(false);
+    }
+  };
+
   const applyVoiceEdit = async (transcript: string) => {
     if (!draft || !transcript.trim()) return;
     const existingItems = draft.line_items
