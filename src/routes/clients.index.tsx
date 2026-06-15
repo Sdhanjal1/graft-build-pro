@@ -51,7 +51,7 @@ function ClientsPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Customers" subtitle="Customer book" right={newCustomerPill} />
+      <PageHeader title="Customers" subtitle="Customer book" right={newCustomerPill} slim />
 
       <div className="px-5 mt-5">
         <div className="relative">
