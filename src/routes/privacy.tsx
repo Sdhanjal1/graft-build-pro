@@ -57,7 +57,7 @@ function PrivacyPage() {
           <Section title="Who we share it with">
             <p>Only the processors we need to run the service:</p>
             <ul className="list-disc pl-5 space-y-1.5 mt-2">
-              <li><strong>Supabase</strong>, database and authentication (EU hosting).</li>
+              <li><strong>Supabase</strong>, database and authentication (EU hosting, Ireland).</li>
               <li><strong>Stripe</strong>, payment processing.</li>
               <li><strong>OpenAI / Anthropic / Google</strong>, AI processing of voice notes and quote text.</li>
               <li><strong>Resend</strong>, sending transactional email.</li>
