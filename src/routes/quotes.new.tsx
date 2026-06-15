@@ -571,6 +571,9 @@ function NewQuotePage() {
       const g = await generateFn({ data: { description: transcript, trade, vatRegistered: vat } });
       if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
 
+      // Arm the scroll BEFORE setDraft so the effect that watches `draft`
+      // fires on the very next render and scrolls once the surface is mounted.
+      pendingScrollToDraftRef.current = true;
       setDraft({ title: g.title, line_items: g.line_items });
       originalDraftRef.current = JSON.stringify(g.line_items);
       setDesc(g.clean_description || transcript);
@@ -588,9 +591,6 @@ function NewQuotePage() {
 
       feedback("success");
       playSample("ding");
-      requestAnimationFrame(() => {
-        draftRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
     } catch (err) {
       console.error(err);
       const msg = err instanceof Error
