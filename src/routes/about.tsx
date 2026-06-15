@@ -77,47 +77,20 @@ function AboutPage() {
       {/* PILLARS */}
       <section className="bg-card border-y border-ink/10">
         <div className="mx-auto max-w-6xl px-5 py-20 md:py-28">
-          <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">What we stand for</p>
-          <h2 className="mt-3 text-4xl md:text-6xl leading-[0.95] max-w-3xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+          <h2 className="text-4xl md:text-6xl leading-[0.95] max-w-3xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
             Four promises. <span className="text-ink/40">No small print.</span>
           </h2>
 
-          <div className="mt-14 grid gap-6 md:grid-cols-2">
+          <div className="mt-14 grid gap-px bg-ink/10 md:grid-cols-2 rounded-3xl overflow-hidden">
             {[
-              {
-                icon: Clock,
-                title: "Your evenings back",
-                body: "Every feature we ship is judged by one question: does it give a trades person their night back? If not, it doesn't go in.",
-              },
-              {
-                icon: Wrench,
-                title: "Built for muddy hands",
-                body: "Voice-first. One-thumb operation. Works under a sink, in a loft, in the rain. No 40-click onboarding. No menus inside menus.",
-              },
-              {
-                icon: Zap,
-                title: "Honest pricing",
-                body: "One price. No per-quote fees. No 'upgrade to unlock'. No surprise enterprise tier you didn't ask for.",
-              },
-              {
-                icon: Heart,
-                title: "Trades-first, always",
-                body: "We talk to plumbers, sparkies and gas engineers every week. Their problems write our roadmap, not investors.",
-              },
+              { kicker: "Time", title: "Your evenings back", body: "Every feature we ship is judged by one question: does it give a tradesperson their night back? If not, it doesn't go in." },
+              { kicker: "Built for the job", title: "Built for muddy hands", body: "Voice-first, one-thumb operation. Works under a sink, in a loft, in the rain. No 40-click onboarding, no menus inside menus." },
+              { kicker: "Pricing", title: "Honest pricing", body: "One price. No per-quote fees. No 'upgrade to unlock'. No surprise enterprise tier you didn't ask for." },
+              { kicker: "Trades-first", title: "Trades-first, always", body: "We talk to plumbers, sparkies and gas engineers every week. Their problems write our roadmap, not investors." },
             ].map((p) => (
-              <div
-                key={p.title}
-                className="group rounded-3xl border border-ink/10 bg-paper p-8 hover:border-ink/30 transition"
-              >
-                <div className="h-12 w-12 rounded-2xl bg-lime flex items-center justify-center group-hover:scale-105 transition">
-                  <p.icon className="h-5 w-5 text-ink" />
-                </div>
-                <h3
-                  className="mt-6 text-2xl md:text-3xl text-ink uppercase leading-tight"
-                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-                >
-                  {p.title}
-                </h3>
+              <div key={p.title} className="bg-paper p-8">
+                <span className="text-[11px] uppercase tracking-[0.2em] font-bold text-lime">{p.kicker}</span>
+                <h3 className="mt-4 text-2xl md:text-3xl text-ink leading-[0.95]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{p.title}</h3>
                 <p className="mt-3 text-[15px] text-ink/70 leading-relaxed">{p.body}</p>
               </div>
             ))}
