@@ -201,24 +201,15 @@ export const generateAIQuote = createServerFn({ method: "POST" })
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
 
-    let hourly: number | null;
-    let day: number | null;
-    let allPatterns: PricingPattern[];
-    if (data.prefetchedContext) {
-      hourly = data.prefetchedContext.hourly;
-      day = data.prefetchedContext.day;
-      allPatterns = data.prefetchedContext.patterns as PricingPattern[];
-    } else {
-      const { supabase, userId } = context as { supabase: any; userId: string };
-      allPatterns = await fetchTopPatterns(supabase, userId, 80);
-      const { data: profileRow } = await supabase
-        .from("profiles")
-        .select("labour_hourly_rate, labour_day_rate")
-        .eq("id", userId)
-        .maybeSingle();
-      hourly = profileRow?.labour_hourly_rate != null ? Number(profileRow.labour_hourly_rate) : null;
-      day = profileRow?.labour_day_rate != null ? Number(profileRow.labour_day_rate) : null;
-    }
+    const { supabase, userId } = context as { supabase: any; userId: string };
+    const allPatterns: PricingPattern[] = await fetchTopPatterns(supabase, userId, 80);
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("labour_hourly_rate, labour_day_rate")
+      .eq("id", userId)
+      .maybeSingle();
+    const hourly: number | null = profileRow?.labour_hourly_rate != null ? Number(profileRow.labour_hourly_rate) : null;
+    const day: number | null = profileRow?.labour_day_rate != null ? Number(profileRow.labour_day_rate) : null;
     const patterns = rankPatternsForJob(allPatterns, `${data.trade} ${data.description}`, 10);
     const systemPrompt =
       SYSTEM_PROMPT +
@@ -226,20 +217,14 @@ export const generateAIQuote = createServerFn({ method: "POST" })
       tradeGuidance(data.trade) +
       patternsForPrompt(patterns, data.trade);
 
-
-    const prevBlock =
-      data.previousChunkText && data.previousItemDescription
-        ? `\n\nPREVIOUS IN-PROGRESS ITEM (currently the last line on the live quote — decide if the new chunk continues this item or starts new ones):\n- Previous spoken text: "${data.previousChunkText}"\n- Previous line description: "${data.previousItemDescription}"\n`
-        : "";
-
     const userPrompt = `CRITICAL: Create line items ONLY for work explicitly mentioned in the job description below. Do NOT add suggested items, related services, or items from the learned patterns unless the tradesperson specifically mentioned them. The job description is the source of truth.
 
 Generate an itemised quote for this job.
 
 Trade: ${data.trade}
 VAT registered: ${data.vatRegistered ? "Yes (20% VAT will be added)" : "No"}
-${prevBlock}
-New spoken chunk (job description):
+
+Job description:
 ${data.description}
 
 Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
@@ -247,7 +232,6 @@ Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
   "title": "3–4 words max, covers all work (e.g. 'Boiler & radiators fit')",
   "clean_description": "Professional scope-of-work summary, no customer names/contacts/filler",
   "extracted_customer": { "name": "optional", "phone": "optional", "email": "optional" },
-  "continues_previous": false,
   "line_items": [
     { "description": "Clean professional item name only (NO 'estimate' / 'please confirm' text)", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other", "unit": "qty" | "hours" | "days", "is_estimate": false }
   ]
