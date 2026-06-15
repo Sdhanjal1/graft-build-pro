@@ -1,69 +1,45 @@
-# Voice overlay: "wow" recording + building state
+# Remove dead live-preview pipeline
 
-Scope is limited to the `VoiceOverlay` component in `src/routes/quotes.new.tsx` (lines ~2285–2700). The call site, props, `finaliseFromAudio`, the recording pipeline, the live-pipeline state machinery, the `draft`/`!draft` screen split, and the error/typed-instead flows are all left untouched.
+Pure deletion. `finaliseFromAudio`, the `MediaRecorder` flow, `applyVoiceEdit`, and the `draft` / `!draft` split are untouched.
 
-## What changes inside VoiceOverlay
+## ⚠️ Heads-up: existing invariant test will break
 
-### 1. Drop the list rendering
+`tests/voice-overlay-transcript-invariant.test.ts` currently asserts that `setLivePreview(`, `liveFinalRef.current =`, and `liveInterimRef.current =` still exist in `src/routes/quotes.new.tsx`. After this deletion, those identifiers are gone and that test fails.
 
-Delete:
+Since the whole point of Prompt B is that the live capture is dead code, the test is also obsolete. Plan: delete `tests/voice-overlay-transcript-invariant.test.ts` as part of this change. Flagging explicitly so it isn't a surprise.
 
-- The `showList` block — the scrollable `<ul>` of `liveItems`, the `pendingItems` rows, the `building` placeholder row inside it, the top/bottom fades, the "What you said" transcript `<details>`.
-- The pinned-top **Running total** + `CountUpGBP` and the "Tap a line to edit" hint.
-- The smaller "ACTIVE / BUILDING STATE: smaller FAB docked at bottom-centre" stop-button branch (no longer needed — only the hero mic remains).
-- The now-unused locals/helpers tied to list editing: `editingIndex`, `editDesc`, `editPrice`, `beginEdit`, `commitEdit`, `prevCountRef`/`justLandedFrom`, `liveTotal`, `listRef`, `pinnedRef`, `onListScroll`, the `showList` / `hasItems` / `hasPending` flags, and the list `useEffect`s.
+## src/routes/quotes.new.tsx
 
-Props stay exactly as they are (`liveItems`, `pendingItems`, `transcript`, `onUpdateItem`, `onDeleteItem`, etc.) so the call site is unaffected; they're just no longer read. (Cleanup of the call site + pipeline is a separate follow-up.)
+1. **Speech Recognition setup inside `startRecording**` (~lines 896–945): delete the entire `SR = window.SpeechRecognition || …` block, `rec.onresult` / `rec.onerror` / `rec.onend`, `rec.start()`, both `setLiveSupported` calls, and the surrounding `try { … } catch { setLiveSupported(false) }`. Keep `MediaRecorder` setup, `mr.start(1000)`, the seconds tick interval, and the `finaliseFromAudio` call on stop unchanged.
+2. `**regenerateLiveQuote**` (~lines 670–762): delete the function and the debounce scheduler that calls it.
+3. **State / refs / helpers** — delete every declaration and every read/write of:
+  `liveItems`, `setLiveItems`, `liveItemsRef`, `pendingItems`, `setPendingItems`, `pendingItemsRef`, `clearPendingItems`, `pendingCountRef`, `livePreview`, `setLivePreview`, `liveFinalRef`, `liveInterimRef`, `liveDebounceRef`, `phraseSeqRef`, `lastFinalIdxRef`, `speechIndexOffsetRef`, `recognitionRef`, `liveSupported`, `setLiveSupported`, `building`, `setBuilding`, plus `prefetchFn` / `useServerFn(prefetchQuoteContext)` (line 155) and the `prefetchQuoteContext` import (line 25).
+   This includes all the teardown lines that currently clear these inside `finaliseFromAudio`, `handleVoiceClose`, `stopRecording`, and the unmount cleanup effect (~lines 260–262, 401–402, 421–422, 434–436, 448, 454–462, 522, 552–553, 586–590, 775–781, 828–829, 852–853, 877, 881, 884–885). After removal those cleanup blocks may collapse to no-ops — drop them if empty.
+4. **VoiceOverlay call site** (~lines 1197–1245): remove `liveItems`, `pendingItems`, `transcript`, `building`, `onUpdateItem`, `onDeleteItem` props (and the inline handlers at 1234/1243 that mutate `liveItemsRef`). Keep `recording`, `transcribing`, `seconds`, `error`, `lastTranscript`, `streamRef`, `onStart`, `onStop`, `onClose`, `onTypeInstead`, `onRetryTranscription`.
+5. `**VoiceOverlay` signature + type** (~lines 2285–2333): remove the same six props from the destructure and the type. Drop the `void liveItems; void pendingItems;` discards and the `isBuilding = transcribing || building` line (replace usages with just `transcribing`).
 
-### 2. Recording state — hero mic with breathing glow
+## src/lib/ai-quote.functions.ts
 
-A single centred composition on the existing `bg-ink` surface:
+6. Delete `prefetchQuoteContext` (lines 399–418) and its doc comment.
+7. In `InputSchema`: drop `previousChunkText`, `previousItemDescription`, `prefetchedContext` (lines 24–37 / 27–37) and the `PatternSchema` if it's only used by `prefetchedContext` (it is — also delete lines 9–18).
+8. In the handler: drop the `if (data.prefetchedContext) { … } else { … }` branch and keep only the `else` body (always fetch patterns + rates from DB).
+9. In the prompt: remove `prevBlock`, the `${prevBlock}` interpolation, the entire "ITEM BOUNDARY DETECTION (LIVE PHRASE CAPTURE)" section of `SYSTEM_PROMPT` (lines 226–250), the `continues_previous` field on `QuoteSchema` (lines 60–65), and the `"continues_previous": false,` line in the example JSON.
 
-- Off-centre **breathing glow blob** behind everything: `absolute … bg-lime/15 blur-[130px] rounded-full` with a slow `animate-[pulse_4s_ease-in-out_infinite]` (matches the site's glow-blob language; respects reduced motion via existing tokens).
-- **Large circular mic presence**: lime halo ring(s) + the existing 144px lime disc with the `VoiceWaveform` glyph (kept from current empty-state mic), with `MicLevelRings` already wrapping it for voice-reactive halos.
-- `**MicLevelBars**` rendered directly beneath the disc so the bars visibly react to the user's voice (the existing component already binds to `streamRef`).
-- **Timer secondary**: `formatMMSS(seconds)` + lime pulse dot kept, but smaller (`text-sm`/`num`) and `text-paper/50`, placed under the bars.
-- **One calm label** above the mic: "Listening…" in the existing uppercase-tracked-widest kicker style. No per-item "Got it" chatter.
+## Verification
 
-The stop button stays prominent — the hero mic disc itself is the stop control during recording (same `onClick={idle ? onStart : onStop}` it already has, same `Square` icon when `recording`).
+After edits, grep the file for every removed symbol — must return zero matches in `src/routes/quotes.new.tsx` and `src/lib/ai-quote.functions.ts`:
 
-### 3. Building state — shimmering skeleton quote
+```
+liveItems liveItemsRef pendingItems pendingItemsRef clearPendingItems pendingCountRef
+livePreview setLivePreview liveFinalRef liveInterimRef liveDebounceRef
+phraseSeqRef lastFinalIdxRef speechIndexOffsetRef recognitionRef
+liveSupported setLiveSupported regenerateLiveQuote prefetchQuoteContext
+setBuilding building SpeechRecognition webkitSpeechRecognition
+previousChunkText previousItemDescription prefetchedContext continues_previous
+```
 
-When `transcribing` (or `building`) is true, swap the mic composition for:
+Then let the typechecker run.
 
-- Same `bg-ink` surface, same off-centre glow blob (continuity — feels like one moment).
-- Lime kicker "Building your quote" + a thin full-width shimmer progress bar (re-using `animate-shimmer` + the existing gradient already used by `pendingItems`).
-- **3–4 skeleton line-item rows**, each:
-  - `rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-3`
-  - Inner shimmer block (`animate-shimmer` gradient) for the description, plus a narrow shimmer block on the right for the price.
-  - Staggered with `animationDelay` of 0/120/240/360ms so they pulse in sequence.
-- Purely decorative — no real data. Disappears the moment `draft` is set because the parent unmounts the overlay (existing behaviour — unchanged).
+Notes - 1. The building → transcribing swap in VoiceOverlay (step 5). Make sure the building skeleton state you just added in Prompt A is driven by transcribing after this. Prompt A’s skeleton showed on transcribing || building; once building is gone, it must show on transcribing alone. The plan says to replace usages with transcribing — just confirm the skeleton still actually appears, because that’s the wow moment you don’t want to accidentally gate off.
 
-### 4. Preserved as-is
-
-- The `sr-only` aria-live announcement region and its `announcement` string.
-- `onClose`, `onStop`, `onTypeInstead`, `onRetryTranscription` controls and the error branch in the bottom text area (kept verbatim).
-- The `lastTranscript` re-record/use-anyway block at the bottom.
-- `createPortal` mount, safe-area paddings, `bg-ink text-paper` shell.
-- `finaliseFromAudio`, the recording state machine, `draft`/`!draft` split, and everything outside `VoiceOverlay`.
-
-## Technical notes
-
-- Only existing tokens: `lime`, `ink`, `paper`, `num`/Bebas, DM Sans, `animate-shimmer`, `animate-ping`, `animate-pulse`, `MicLevelBars`, `MicLevelRings`, `VoiceWaveform`. No new CSS or imports.
-- Layout becomes a simpler 3-zone flex column: top kicker → centred mic-or-skeleton → bottom text/error area. The `showList ? "" : "items-center justify-between"` conditional is replaced by a single always-centred layout.
-- The unused list-editing locals being removed means `onUpdateItem`/`onDeleteItem` are received but unread — fine for this prompt (call site unchanged), and the follow-up cleanup will drop them from the prop list.
-
-## Out of scope (follow-up)
-
-- Removing the live-pipeline state (`liveItems`, `pendingItems`, `regenerateLiveQuote`, etc.) from the parent and from `VoiceOverlay`'s props.
-- Any changes to the finished-quote screen or to `finaliseFromAudio`.
-
-Extra notes:
-
-1. Confirm MicLevelRings actually exists. The plan references both MicLevelBars and MicLevelRings, but I only saw MicLevelBars in the code I read. If MicLevelRings isn’t a real component in the file, Lovable will either invent one or error. Tell Lovable: “if MicLevelRings doesn’t already exist, skip it and just use MicLevelBars — do not create a new component.” You don’t want a hallucinated component on launch-eve.
-
-2. The hero mic doubling as the stop button — make sure it’s obvious. The plan keeps onClick={idle ? onStart : onStop} with a Square icon when recording. That’s clean, but during recording a user needs to know the big lime disc is now “tap to stop.” Ask Lovable to ensure the recording-state disc clearly reads as a stop control — the Square icon plus maybe the “Listening…” label sitting right by it. Otherwise people record forever waiting for a stop button that’s disguised as the mic. Low risk, just worth a word.
-
-3. Reduced-motion. The plan says “respects reduced motion via existing tokens.” Confirm that’s actually true — breathing glow + shimmer + ping all animating at once is a lot of motion. If there’s a prefers-reduced-motion handler already in the CSS, good; if not, it’s fine to ship and add later, but don’t assume it’s handled. Minor.
-
-4. Skeleton row count. You asked earlier about matching typical quote length — the plan fixes it at 3–4 rows, which is a sensible average. Leave it fixed; varying it would need to know the result before it exists, which you can’t. 3–4 is the right call.
+2. stopRequestedRef. The Web Speech onend handler referenced stopRequestedRef (line 933). Check whether stopRequestedRef is used anywhere else — if it was only there for the Web Speech restart logic, it’s now dead too and can go; if stopRecording uses it, leave it. The plan doesn’t mention it, so worth a quick grep so you don’t leave one orphan ref.
