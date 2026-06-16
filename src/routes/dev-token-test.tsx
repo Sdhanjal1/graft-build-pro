@@ -5,6 +5,9 @@ import {
   createRealtimeTranscriptionToken,
   connectRealtimeCall,
 } from "@/lib/realtime-token.functions";
+import { generateAIQuote, type AIGeneratedQuote } from "@/lib/ai-quote.functions";
+
+type Tile = AIGeneratedQuote["line_items"][number];
 
 export const Route = createFileRoute("/dev-token-test")({
   component: DevTokenTest,
