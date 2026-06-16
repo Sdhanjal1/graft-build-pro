@@ -1097,16 +1097,40 @@ function NewQuotePage() {
         {/* Live "listening" placeholder — shown after the user taps the mic
             but before the first regenerate pass has produced tiles. Keeps
             the surface from looking empty while the bar pulses below. */}
-        {liveActive && !draft && !voiceError && (
-          <div className="card-surface p-8 flex flex-col items-center justify-center text-center gap-3">
-            <span className="relative flex items-center justify-center h-3 w-3">
-              <span className="absolute inset-0 rounded-full bg-lime animate-ping opacity-75" />
-              <span className="relative h-3 w-3 rounded-full bg-lime" />
-            </span>
-            <p className="text-sm font-semibold text-ink">Listening…</p>
-            <p className="text-xs text-muted-foreground max-w-[20rem]">
-              Describe the job out loud. Tiles will appear here as you speak — tap stop when you're done.
-            </p>
+        {liveActive && !voiceError && (
+          <div className="card-surface overflow-hidden">
+            <div className="p-8 flex flex-col items-center justify-center text-center gap-3">
+              <span className="relative flex items-center justify-center h-3 w-3">
+                <span className="absolute inset-0 rounded-full bg-lime animate-ping opacity-75" />
+                <span className="relative h-3 w-3 rounded-full bg-lime" />
+              </span>
+              <p className="text-sm font-semibold text-ink">Listening…</p>
+              <p className="text-xs text-muted-foreground max-w-[20rem]">
+                Describe the job out loud. Tiles will appear here as you speak — tap stop when you're done.
+              </p>
+            </div>
+            {draft && draft.line_items.length > 0 && (
+              <ul className="border-t border-border">
+                {draft.line_items.map((li, i) => {
+                  const isLabour = li.category === "labour" || li.category === "cis_labour";
+                  const unit = li.unit ?? (isLabour ? "hours" : "qty");
+                  const qtyLabel = unit === "hours" ? "Hrs" : unit === "days" ? "Days" : "Qty";
+                  const priceSuffix = unit === "hours" ? "/hr" : unit === "days" ? "/day" : "";
+                  const lineTotal = li.qty * li.unit_price;
+                  return (
+                    <li key={i} className="px-4 py-3 border-t border-border first:border-t-0 space-y-1">
+                      <p className="text-sm font-medium text-ink">{li.description || "…"}</p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                          {qtyLabel} {li.qty} · {formatGBP(li.unit_price)}{priceSuffix}
+                        </span>
+                        <span className="num text-sm font-semibold text-ink">{formatGBP(lineTotal)}</span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         )}
 
