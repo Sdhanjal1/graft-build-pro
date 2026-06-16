@@ -675,6 +675,46 @@ function NewQuotePage() {
 
     const isClipMode = recordTargetRef.current === "clip" || recordTargetRef.current === "edit";
 
+    // LIVE PATH — desc target only. Stream the spoken job through the
+    // realtime relay so tiles appear live. Clip/edit modes keep using
+    // MediaRecorder + Whisper below (those flows append/merge differently).
+    if (!isClipMode) {
+      try {
+        await live.start(stream);
+      } catch (err) {
+        console.error("[live] start failed", err);
+        stream.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+        sharedStreamRef.current = null;
+        const msg = err instanceof Error ? err.message : "Could not start live session.";
+        setVoiceError(msg);
+        setError(msg);
+        setVoiceOpening(false);
+        return;
+      }
+      if (closeRequestedRef.current || sessionId !== voiceSessionRef.current) {
+        // User bailed during handshake — tear down what we just opened.
+        void live.stop({ finalize: false });
+        return;
+      }
+      liveActiveRef.current = true;
+      recordStartRef.current = Date.now();
+      setRecording(true);
+      setRecordSeconds(0);
+      tickRef.current = setInterval(() => {
+        setRecordSeconds((s) => {
+          const next = s + 1;
+          if (next >= MAX_RECORD_SECONDS) {
+            stopRecording();
+            return MAX_RECORD_SECONDS;
+          }
+          return next;
+        });
+      }, 1000);
+      return;
+    }
+
+
     let mr: MediaRecorder;
     try {
       mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
