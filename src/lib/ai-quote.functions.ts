@@ -296,6 +296,21 @@ Omit extracted_customer entirely if no customer details were mentioned. Unit pri
     } catch {
       throw new Error("Claude returned malformed JSON");
     }
+    // Defensive: drop line items with missing/zero/negative qty BEFORE schema
+    // parse, so one bad line doesn't fail the whole regenerate pass.
+    if (parsed && typeof parsed === "object" && Array.isArray((parsed as any).line_items)) {
+      const raw = (parsed as any).line_items as Array<any>;
+      const before = raw.length;
+      (parsed as any).line_items = raw.filter((li) => {
+        const q = typeof li?.qty === "number" ? li.qty : Number(li?.qty);
+        return Number.isFinite(q) && q > 0;
+      });
+      const dropped = before - (parsed as any).line_items.length;
+      if (dropped > 0) console.warn(`[ai-quote] dropped ${dropped} line item(s) with invalid qty`);
+      if ((parsed as any).line_items.length === 0) {
+        throw new Error("Could not generate quote. Please try again.");
+      }
+    }
     const result = QuoteSchema.parse(parsed);
     // Safety net: strip any "— estimate, please confirm" suffix the model may have
     // emitted into a description and convert it into the structured is_estimate flag,
