@@ -1,72 +1,76 @@
-# Stage 2a — SDP relay for the realtime call
+# Stage 2b — Live transcript harness (dev-only)
 
-Pure additive. No UI wiring. Sits next to `createRealtimeTranscriptionToken` in the same file.
+Smallest possible end-to-end proof that words stream in live. Diagnostic, ugly on purpose.
 
-## What changes
+## Where it goes
 
-**Edit:** `src/lib/realtime-token.functions.ts` — add one export, `connectRealtimeCall`.
+**Edit:** `src/routes/dev-token-test.tsx` (the existing Stage 1 harness). Add the harness below the existing mint button — same route, no new files, no nav links. Leave the mint button in place: it's still useful for isolated token tests.
 
-```ts
-export const connectRealtimeCall = createServerFn({ method: "POST" })
-  .middleware([requireActiveSubscription])
-  .inputValidator((input) => z.object({
-    sdp: z.string().min(1).max(64_000),       // SDP offers are small; cap defensively
-    ephemeralToken: z.string().min(1).max(4_000),
-  }).parse(input))
-  .handler(async ({ data }) => {
-    // POST raw SDP to https://api.openai.com/v1/realtime/calls
-    //   Authorization: Bearer <ephemeralToken>
-    //   Content-Type: application/sdp
-    //   body: data.sdp
-    // 30s timeout via AbortSignal.timeout(30_000).
-    // On !ok: read text body, log status + truncated body (NO token), throw.
-    // On ok: return { answer: await res.text() }.
-  });
-```
+Nothing else is touched. `quotes.new.tsx`, `VoiceOverlay`, `runTranscribe`, `finaliseFromAudio` are all untouched.
 
-Behaviour mirrors `createRealtimeTranscriptionToken`:
+## What the harness does
 
-- Gated by `requireActiveSubscription` (which chains `requireSupabaseAuth`).
-- Real `OPENAI_API_KEY` is NOT read or sent — the ephemeral token authenticates this call. That's the whole point of the relay.
-- 30 s timeout; `TimeoutError`/`AbortError` → friendly "Took too long" message.
-- Non-2xx: `console.error("OpenAI Realtime SDP exchange failed", status, body.slice(0, 500))`, then throw `Realtime SDP exchange failed (${status}): ${body.slice(0, 300)}`. The token never appears in the logged/thrown output (it lives only in the request headers).
-- Returns `{ answer: string }` — the SDP answer text verbatim.
+A single **"Start listening"** button runs:
 
-Adds `import { z } from "zod"` if not already present in the file (currently it isn't — `createRealtimeTranscriptionToken` takes no input). Switches to a `zod`-validated `.inputValidator(...)` so the SDP and token sizes are bounded server-side.
+1. `mint = useServerFn(createRealtimeTranscriptionToken)` → `{ token }`. Status: `"minting"`.
+2. `getUserMedia({ audio: true })`. Status: `"requesting mic"`.
+3. Build `RTCPeerConnection` (default config, no custom STUN). Add the mic track. Create the data channel `"oai-events"` BEFORE `createOffer` so it's negotiated in the SDP. Status: `"connecting"`.
+4. `await pc.setLocalDescription(await pc.createOffer())`, then wait for ICE gathering to complete (the SDP relay is a single HTTP exchange, no trickle ICE — we need a complete SDP). A small `waitForIceComplete(pc)` helper: resolves immediately if `iceGatheringState === "complete"`, else listens for `icegatheringstatechange` with a 3 s safety timeout.
+5. `connect = useServerFn(connectRealtimeCall)` with `{ sdp: pc.localDescription.sdp, ephemeralToken: token }` → `{ answer }`. Status stays `"connecting"`.
+6. `await pc.setRemoteDescription({ type: "answer", sdp: answer })`.
+7. On data-channel `open`, status → `"listening"`.
 
-## Deliberate design notes
+## Event handling on `oai-events`
 
-1. **Why relay instead of letting the browser hit `/v1/realtime/calls` directly?** With a valid ephemeral token the browser technically *can* call `/v1/realtime/calls` itself. Going via our server has two real benefits: (a) the subscription gate runs on the SDP exchange too, so a stale ephemeral token can't be used to start a session after a user's trial lapses mid-flow; (b) future migration off OpenAI (or to a different realtime variant) is a one-file change. Cost is one extra network hop on session start — fine.
-2. **Token in the request, not logged.** The ephemeral token is in the `Authorization` header only. The error branch logs status + body slice; neither contains the token. No `console.log` of `data` anywhere.
-3. **No `OpenAI-Safety-Identifier` on this call.** The identifier was bound to the token when it was minted (Stage 1). Per the Realtime docs the binding travels with the token, so we don't re-send it here.
-4. `**maxBytes` caps.** SDP offers are typically a few KB; `64_000` is generous. Ephemeral tokens are short; `4_000` is way over actual size but cheap insurance.
+`channel.onmessage = (e) => { const evt = JSON.parse(e.data); console.log("[oai]", evt.type, evt); switch(...) }`.
 
-## What does NOT change
+Handled types:
+- `conversation.item.input_audio_transcription.delta` → append `evt.delta` to a `interim` string state.
+- `conversation.item.input_audio_transcription.completed` → look up `evt.item_id` in a `Set` of seen ids; if new, append `evt.transcript + " "` to `committed` state, clear `interim`, add id to set.
+- `input_audio_buffer.speech_started` → boolean `speaking = true`.
+- `input_audio_buffer.speech_stopped` → `speaking = false`.
+- `error` (or any event whose type starts with `error`) → push to an on-screen error list and console.error it.
+- Anything else: console.log only (we want the full stream visible during diagnosis).
 
-- `createRealtimeTranscriptionToken` — untouched.
-- `src/lib/transcribe.functions.ts` — untouched (fallback path).
-- No UI, no call sites. Stage 2b will wire the browser's `RTCPeerConnection` and call both functions in sequence.
+## On-screen
 
-## Verification (deferred to Stage 2b)
+Three blocks, no styling beyond inline monospace + a couple of borders to match the existing harness aesthetic:
 
-This function can't be meaningfully tested standalone — it needs a real SDP offer from a live `RTCPeerConnection` and a fresh (60 s TTL) ephemeral token. Stage 2b's first deliverable will be the smallest possible "open connection, log transcript events" harness; that's where we verify both Stage 1 and Stage 2a end-to-end.
+1. **Status line**: `idle | minting | requesting mic | connecting | listening | error | stopped` + a green/red dot. When `speaking`, append `· speaking…`.
+2. **Committed transcript**: large readable block, the finalised text accumulated.
+3. **Interim transcript**: same block visually below it, greyed (`opacity: 0.55`), italic — streams as words arrive, clears on each `completed`.
+4. **Error panel**: red box, shown only when populated. Each step is wrapped in try/catch; on throw, `setStatus("error")`, push `err.message` to the list, fully tear down (see Stop).
+
+A **Stop** button (only enabled in non-idle states):
+- `channel?.close()`
+- `stream?.getTracks().forEach(t => t.stop())` (releases the mic light)
+- `pc?.close()`
+- Clear all refs, status → `"stopped"`. Committed transcript stays on screen so we can read what was captured.
+
+## Refs vs state
+
+- `pcRef`, `channelRef`, `streamRef`, `seenItemIdsRef` (a `Set<string>`) — refs, no re-render needed.
+- `status`, `committed`, `interim`, `speaking`, `errors[]` — state, drive the UI.
+- A `useEffect` cleanup on unmount runs the same Stop teardown so navigating away during a session releases the mic.
+
+## Deliberate omissions (for this stage)
+
+- No silence/end-of-turn handling beyond logging the events.
+- No reconnect on failure — Stop and restart.
+- No `RTCPeerConnection` config tweaks; browser defaults are sufficient for the OpenAI relay.
+- No `addTransceiver("audio", { direction: "recvonly" })`. Transcription sessions don't return audio; data channel works independent of media direction.
+- No styling polish, no haptics, no animations. This is a diagnostic.
+
+## Verification (the whole point of this stage)
+
+1. Visit `/dev-token-test` signed in, tap **Start listening**.
+2. Status reaches `"listening"` within ~1–2 s on good network.
+3. Speak: greyed interim text appears within a few hundred ms; on pause, it commits to the black text and clears.
+4. Console shows a continuous stream of `[oai] conversation.item.input_audio_transcription.delta` and one `…completed` per phrase, plus `speech_started/stopped`.
+5. Stop releases the mic (browser tab indicator disappears).
+
+If any of those fail, the console log of the full event stream + the on-screen error panel is the diagnosis surface for the next iteration. The mint button stays in place so we can confirm whether a failure is at the token layer or downstream.
 
 ## Open question
 
-None — spec is unambiguous. Ready to build on approval.
-
-This plan is correct and well-reasoned. The relay-vs-direct justification is sound — and notably, point 1(a) answers the open question I raised: routing the SDP exchange through your server means the subscription gate runs again at session start, so a token minted during a trial can’t be used to open a session after the trial lapses mid-flow. That’s a real security benefit and it settles it: keep the relay, don’t go browser-direct. Good call, and better reasoning than my “maybe we drop 2a” hedge.
-
-Four additional notes to send back before they build:
-
-1. Verify the ephemeral token TTL the plan assumes. The plan’s verification section says “fresh (60s TTL)” — but your Stage 1 test showed 600s, not 60. That’s not a problem, it’s better, but make sure no code anywhere assumes a 60-second expiry. The mint→offer→relay→connect sequence is fast, but I want the assumption corrected in their heads so nobody builds a too-tight refresh timer later.
-
-2. Confirm the SDP answer is returned as raw text, not JSON-wrapped. OpenAI returns the SDP answer as application/sdp text. The plan says return { answer: await res.text() } — good. Just confirm nothing in the TanStack serverFn response path mangles or re-encodes that string (SDP is whitespace/newline-sensitive; if it gets trimmed or re-escaped, the browser’s setRemoteDescription will fail). The answer must arrive at the browser byte-identical.
-
-3. Content-Type on the response check. Add a note: if OpenAI returns a non-2xx that’s actually JSON (an error object) rather than SDP, the error branch should still read it as text safely — which the plan does. Fine as-is, just confirming the error path doesn’t assume SDP shape.
-
-4. One question to answer in the plan, not assume: does requireActiveSubscription middleware add meaningful latency to this call? The SDP exchange is in the critical path of session startup — if the middleware does a fresh DB round-trip to Supabase on every call, that’s added before the connection even opens. Probably fine, but confirm it’s not doing something heavy synchronously, because this call’s speed is felt directly by Nav as “time to first word.”
-
-None of these change the architecture — they’re guardrails on the load-bearing details (token TTL, SDP integrity, startup latency). Send them, approve, and build.
-
-&nbsp;
+None. Spec is precise; harness is a contained additive change to one existing dev-only route.
