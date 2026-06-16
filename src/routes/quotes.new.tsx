@@ -1013,7 +1013,7 @@ function NewQuotePage() {
 
   return (
     <AppShell>
-      {(editVoiceOpen || !draft) && (recording || transcribing || voicePending || voiceError || voiceOpening) && (
+      {(editVoiceOpen || !draft) && (recording || transcribing || voicePending || voiceError || voiceOpening) && !(liveActive && draft && !voiceError) && (
         <VoiceOverlay
           recording={recording}
           transcribing={transcribing}
@@ -1033,6 +1033,18 @@ function NewQuotePage() {
             }, 0);
           }}
           onRetryTranscription={lastBlobRef.current ? retryTranscription : undefined}
+        />
+      )}
+
+      {/* LIVE RECORDING BAR — compact sticky control shown once tiles start
+          appearing during a live desc recording, so the building draft stays
+          visible. The full hero overlay only shows for the empty/initial
+          state and for clip/edit modes. */}
+      {liveActive && recording && draft && !voiceError && (
+        <LiveRecordingBar
+          seconds={recordSeconds}
+          streamRef={sharedStreamRef}
+          onStop={stopRecording}
         />
       )}
 
