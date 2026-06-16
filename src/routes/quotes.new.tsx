@@ -226,10 +226,52 @@ function NewQuotePage() {
       // Stale-session guard: if the user closed or restarted while a pass
       // was in flight, drop the result rather than overwriting the draft.
       if (closeRequestedRef.current) return;
-      // Arm scroll BEFORE setDraft so the watcher fires on the next render
-      // once the draft surface is mounted (same discipline as finaliseFromAudio).
-      pendingScrollToDraftRef.current = true;
-      setDraft({ title: g.title, line_items: g.line_items });
+      // Don't auto-scroll while live — the user is already on the editable
+      // surface; the scroll-to-draft effect runs only after finalise.
+      const isLive = liveActiveRef.current;
+
+      setDraft((prev) => {
+        // Tag fresh AI items with their original normalised description so
+        // future passes can identify them across user edits.
+        const taggedIncoming: LiveLineItem[] = g.line_items.map((li) => ({
+          ...li,
+          _origDesc: normDesc(li.description),
+        }));
+
+        if (!isLive || !prev) {
+          // Non-live path (clip-style finalise, or first pass before any
+          // user interaction): replace wholesale, matching prior behaviour.
+          if (!isLive) pendingScrollToDraftRef.current = true;
+          return { title: g.title, line_items: taggedIncoming };
+        }
+
+        // Live merge:
+        //   1. Keep user-edited lines verbatim (by their `_origDesc`).
+        //   2. Keep manually-added lines verbatim (no `_origDesc`).
+        //   3. From the new pass, drop anything whose normDesc matches a
+        //      kept-edited slot, anything the user deleted, or anything
+        //      we've already kept.
+        const editedKeys = editedOrigDescsRef.current;
+        const deletedKeys = deletedDescsRef.current;
+        const kept: LiveLineItem[] = prev.line_items.filter(
+          (li) => !li._origDesc || editedKeys.has(li._origDesc),
+        );
+        const keptOrigs = new Set(
+          kept.map((li) => li._origDesc).filter((k): k is string => !!k),
+        );
+        const additions = taggedIncoming.filter((li) => {
+          const k = li._origDesc!;
+          if (keptOrigs.has(k)) return false;
+          if (editedKeys.has(k)) return false;
+          if (deletedKeys.has(k)) return false;
+          return true;
+        });
+        const merged = [...kept, ...additions];
+        return { title: prev.title || g.title, line_items: merged };
+      });
+
+      // Keep the originalDraftRef tracking the latest AI shape for save-state
+      // comparison; the merged draft itself is what we render.
       originalDraftRef.current = JSON.stringify(g.line_items);
       setDesc(g.clean_description || transcript);
       const ec = g.extracted_customer;
