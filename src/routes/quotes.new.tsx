@@ -1097,16 +1097,40 @@ function NewQuotePage() {
         {/* Live "listening" placeholder — shown after the user taps the mic
             but before the first regenerate pass has produced tiles. Keeps
             the surface from looking empty while the bar pulses below. */}
-        {liveActive && !draft && !voiceError && (
-          <div className="card-surface p-8 flex flex-col items-center justify-center text-center gap-3">
-            <span className="relative flex items-center justify-center h-3 w-3">
-              <span className="absolute inset-0 rounded-full bg-lime animate-ping opacity-75" />
-              <span className="relative h-3 w-3 rounded-full bg-lime" />
-            </span>
-            <p className="text-sm font-semibold text-ink">Listening…</p>
-            <p className="text-xs text-muted-foreground max-w-[20rem]">
-              Describe the job out loud. Tiles will appear here as you speak — tap stop when you're done.
-            </p>
+        {liveActive && !voiceError && (
+          <div className="card-surface overflow-hidden">
+            <div className="p-8 flex flex-col items-center justify-center text-center gap-3">
+              <span className="relative flex items-center justify-center h-3 w-3">
+                <span className="absolute inset-0 rounded-full bg-lime animate-ping opacity-75" />
+                <span className="relative h-3 w-3 rounded-full bg-lime" />
+              </span>
+              <p className="text-sm font-semibold text-ink">Listening…</p>
+              <p className="text-xs text-muted-foreground max-w-[20rem]">
+                Describe the job out loud. Tiles will appear here as you speak — tap stop when you're done.
+              </p>
+            </div>
+            {draft && draft.line_items.length > 0 && (
+              <ul className="border-t border-border">
+                {draft.line_items.map((li, i) => {
+                  const isLabour = li.category === "labour" || li.category === "cis_labour";
+                  const unit = li.unit ?? (isLabour ? "hours" : "qty");
+                  const qtyLabel = unit === "hours" ? "Hrs" : unit === "days" ? "Days" : "Qty";
+                  const priceSuffix = unit === "hours" ? "/hr" : unit === "days" ? "/day" : "";
+                  const lineTotal = li.qty * li.unit_price;
+                  return (
+                    <li key={i} className="px-4 py-3 border-t border-border first:border-t-0 space-y-1">
+                      <p className="text-sm font-medium text-ink">{li.description || "…"}</p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                          {qtyLabel} {li.qty} · {formatGBP(li.unit_price)}{priceSuffix}
+                        </span>
+                        <span className="num text-sm font-semibold text-ink">{formatGBP(lineTotal)}</span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         )}
 
@@ -1309,7 +1333,7 @@ function NewQuotePage() {
         )}
 
         {/* Editable quote preview */}
-        {draft && (
+        {draft && !liveActive && (
           <div ref={draftRef} className="card-surface overflow-hidden scroll-mt-20">
 
             <div className="bg-ink text-paper p-4">
@@ -1486,7 +1510,7 @@ function NewQuotePage() {
         )}
 
         {/* Customer — gates save, surfaced before payment */}
-        {draft && (
+        {draft && !liveActive && (
           <div ref={customerRef} className="space-y-3 scroll-mt-20">
             <div>
               <h3 className="text-lg font-bold">Customer</h3>
@@ -1617,7 +1641,7 @@ function NewQuotePage() {
         )}
 
         {/* Payment — after customer */}
-        {draft && (
+        {draft && !liveActive && (
           <div className="space-y-3">
             <div>
               <h3 className="text-lg font-bold">Payment</h3>
@@ -1686,7 +1710,7 @@ function NewQuotePage() {
       </form>
 
       {/* Sticky save bar (draft state) */}
-      {draft && (
+      {draft && !liveActive && (
         <div className="fixed bottom-0 inset-x-0 z-30 px-3 pb-3 safe-bottom pointer-events-none">
           <div className="mx-auto max-w-md pointer-events-auto space-y-2">
             {error && (
