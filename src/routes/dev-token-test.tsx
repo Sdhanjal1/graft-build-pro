@@ -5,6 +5,9 @@ import {
   createRealtimeTranscriptionToken,
   connectRealtimeCall,
 } from "@/lib/realtime-token.functions";
+import { generateAIQuote, type AIGeneratedQuote } from "@/lib/ai-quote.functions";
+
+type Tile = AIGeneratedQuote["line_items"][number];
 
 export const Route = createFileRoute("/dev-token-test")({
   component: DevTokenTest,
@@ -68,6 +71,7 @@ function DevTokenTest() {
 
   // ---- Stage 2b: live transcript harness -----------------------------------
   const connect = useServerFn(connectRealtimeCall);
+  const generate = useServerFn(generateAIQuote);
 
   const [status, setStatus] = useState<HarnessStatus>("idle");
   const [committed, setCommitted] = useState("");
@@ -75,12 +79,65 @@ function DevTokenTest() {
   const [speaking, setSpeaking] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
+  // Stage 3: live tiles
+  const [tiles, setTiles] = useState<Tile[]>([]);
+  const [updating, setUpdating] = useState(false);
+  const committedRef = useRef("");
+  const regenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inFlightRef = useRef(false);
+  const staleRef = useRef(false);
+
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const channelRef = useRef<RTCDataChannel | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const seenItemIdsRef = useRef<Set<string>>(new Set());
 
+  async function runRegenerate() {
+    const text = committedRef.current.trim();
+    if (!text) return;
+    if (inFlightRef.current) {
+      staleRef.current = true;
+      return;
+    }
+    inFlightRef.current = true;
+    staleRef.current = false;
+    setUpdating(true);
+    console.log("[tiles] regenerate fired; transcript:", text);
+    try {
+      const result = await generate({
+        data: { description: text, trade: "Plumber", vatRegistered: false },
+      });
+      console.log("[tiles] returned items:", result.line_items.length, result);
+      setTiles(result.line_items);
+    } catch (e) {
+      console.error("[tiles] regenerate failed", e);
+      const msg = e instanceof Error ? e.message : String(e);
+      setErrors((xs) => [...xs, `regenerate: ${msg}`]);
+    } finally {
+      inFlightRef.current = false;
+      setUpdating(false);
+      if (staleRef.current) {
+        staleRef.current = false;
+        // run once more to capture latest transcript
+        runRegenerate();
+      }
+    }
+  }
+
+  function scheduleRegenerate() {
+    if (regenTimerRef.current) clearTimeout(regenTimerRef.current);
+    regenTimerRef.current = setTimeout(() => {
+      regenTimerRef.current = null;
+      runRegenerate();
+    }, 1200);
+  }
+
   function teardown(nextStatus: HarnessStatus = "stopped") {
+    if (regenTimerRef.current) {
+      clearTimeout(regenTimerRef.current);
+      regenTimerRef.current = null;
+    }
+    staleRef.current = false;
     try {
       channelRef.current?.close();
     } catch {}
@@ -95,6 +152,7 @@ function DevTokenTest() {
     pcRef.current = null;
     setSpeaking(false);
     setInterim("");
+    setUpdating(false);
     setStatus(nextStatus);
   }
 
@@ -117,7 +175,9 @@ function DevTokenTest() {
     if (status !== "idle" && status !== "stopped" && status !== "error") return;
     setErrors([]);
     setCommitted("");
+    committedRef.current = "";
     setInterim("");
+    setTiles([]);
     seenItemIdsRef.current = new Set();
     setStatus("minting");
 
@@ -198,7 +258,14 @@ function DevTokenTest() {
           if (id && seenItemIdsRef.current.has(id)) break;
           if (id) seenItemIdsRef.current.add(id);
           const text = typeof evt.transcript === "string" ? evt.transcript : "";
-          if (text) setCommitted((prev) => (prev ? prev + " " : "") + text.trim());
+          if (text) {
+            const trimmed = text.trim();
+            committedRef.current = committedRef.current
+              ? committedRef.current + " " + trimmed
+              : trimmed;
+            setCommitted(committedRef.current);
+            scheduleRegenerate();
+          }
           setInterim("");
           break;
         }
@@ -394,6 +461,95 @@ function DevTokenTest() {
         <span style={{ opacity: 0.55, fontStyle: "italic" }}>{interim}</span>
         {!committed && !interim && (
           <span style={{ opacity: 0.4 }}>— transcript will appear here —</span>
+        )}
+      </div>
+
+      {/* ---- Stage 3: live tiles ---- */}
+      <div style={{ marginTop: 20 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 8,
+            fontSize: 13,
+          }}
+        >
+          <h3 style={{ fontSize: 13, margin: 0, fontFamily: "monospace" }}>
+            tiles ({tiles.length})
+          </h3>
+          <span style={{ fontSize: 12, opacity: updating ? 0.9 : 0, transition: "opacity .2s" }}>
+            updating…
+          </span>
+        </div>
+        {tiles.length === 0 ? (
+          <div
+            style={{
+              padding: 14,
+              background: "#fafafa",
+              border: "1px dashed #ddd",
+              borderRadius: 8,
+              fontSize: 13,
+              opacity: 0.5,
+              fontFamily: "ui-sans-serif, system-ui, sans-serif",
+            }}
+          >
+            — tiles will appear here after you pause —
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {tiles.map((t, i) => {
+              const total = t.qty * t.unit_price;
+              return (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    padding: "10px 12px",
+                    background: "#fff",
+                    border: "1px solid #e5e5e5",
+                    borderRadius: 8,
+                    fontFamily: "ui-sans-serif, system-ui, sans-serif",
+                    fontSize: 14,
+                  }}
+                >
+                  <span style={{ flex: 1 }}>
+                    {t.description}
+                    {t.qty !== 1 ? (
+                      <span style={{ opacity: 0.5 }}>
+                        {" "}
+                        × {t.qty}
+                        {t.unit && t.unit !== "qty" ? ` ${t.unit}` : ""}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                    £{total.toFixed(2)}
+                  </span>
+                </div>
+              );
+            })}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "10px 12px",
+                marginTop: 4,
+                background: "#f3f3f3",
+                borderRadius: 8,
+                fontFamily: "ui-sans-serif, system-ui, sans-serif",
+                fontWeight: 700,
+                fontSize: 14,
+              }}
+            >
+              <span>Total (ex VAT)</span>
+              <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                £{tiles.reduce((s, t) => s + t.qty * t.unit_price, 0).toFixed(2)}
+              </span>
+            </div>
+          </div>
         )}
       </div>
 
