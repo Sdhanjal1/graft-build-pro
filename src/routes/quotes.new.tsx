@@ -1333,7 +1333,7 @@ function NewQuotePage() {
         )}
 
         {/* Editable quote preview */}
-        {draft && (
+        {draft && !liveActive && (
           <div ref={draftRef} className="card-surface overflow-hidden scroll-mt-20">
 
             <div className="bg-ink text-paper p-4">
