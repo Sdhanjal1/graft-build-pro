@@ -703,6 +703,7 @@ function NewQuotePage() {
         return;
       }
       liveActiveRef.current = true;
+      setLiveActive(true);
       recordStartRef.current = Date.now();
       setRecording(true);
       setRecordSeconds(0);
