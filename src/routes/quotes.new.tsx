@@ -704,6 +704,7 @@ function NewQuotePage() {
       }
       liveActiveRef.current = true;
       setLiveActive(true);
+      setVoiceOpening(false);
       recordStartRef.current = Date.now();
       setRecording(true);
       setRecordSeconds(0);
@@ -1013,7 +1014,11 @@ function NewQuotePage() {
 
   return (
     <AppShell>
-      {(editVoiceOpen || !draft) && (recording || transcribing || voicePending || voiceError || voiceOpening) && !(liveActive && draft && !voiceError) && (
+      {/* VoiceOverlay is now ONLY used for edit-by-voice. The main desc
+          voice flow happens entirely on the quote screen (mic CTA →
+          LiveRecordingBar → tiles in place → stop finalises). Clip
+          recordings use their own inline UI elsewhere. */}
+      {editVoiceOpen && (recording || transcribing || voicePending || voiceError || voiceOpening) && (
         <VoiceOverlay
           recording={recording}
           transcribing={transcribing}
@@ -1036,11 +1041,10 @@ function NewQuotePage() {
         />
       )}
 
-      {/* LIVE RECORDING BAR — compact sticky control shown once tiles start
-          appearing during a live desc recording, so the building draft stays
-          visible. The full hero overlay only shows for the empty/initial
-          state and for clip/edit modes. */}
-      {liveActive && recording && draft && !voiceError && (
+      {/* LIVE RECORDING BAR — single control for the entire main desc voice
+          session. Mounts as soon as the live transport is up (even before
+          the first tile lands) and stays put until stop finalises. */}
+      {liveActive && recording && !voiceError && (
         <LiveRecordingBar
           seconds={recordSeconds}
           streamRef={sharedStreamRef}
@@ -1087,7 +1091,65 @@ function NewQuotePage() {
         }}
       >
 
-        {!draft && (
+        {/* Live "listening" placeholder — shown after the user taps the mic
+            but before the first regenerate pass has produced tiles. Keeps
+            the surface from looking empty while the bar pulses below. */}
+        {liveActive && !draft && !voiceError && (
+          <div className="card-surface p-8 flex flex-col items-center justify-center text-center gap-3">
+            <span className="relative flex items-center justify-center h-3 w-3">
+              <span className="absolute inset-0 rounded-full bg-lime animate-ping opacity-75" />
+              <span className="relative h-3 w-3 rounded-full bg-lime" />
+            </span>
+            <p className="text-sm font-semibold text-ink">Listening…</p>
+            <p className="text-xs text-muted-foreground max-w-[20rem]">
+              Describe the job out loud. Tiles will appear here as you speak — tap stop when you're done.
+            </p>
+          </div>
+        )}
+
+        {/* Inline error for the main desc voice flow — replaces the old
+            full-screen overlay error. Offers retry and a path back to typing
+            so the user is never stranded in a voice-only state. */}
+        {!editVoiceOpen && voiceError && !draft && (
+          <div className="card-surface p-4 border border-status-overdue/40 space-y-3">
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="h-4 w-4 text-status-overdue shrink-0 mt-0.5" />
+              <p className="text-xs text-ink flex-1 leading-relaxed">{voiceError}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => { setVoiceError(null); void handleVoiceStart(); }}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-ink text-paper text-xs font-semibold py-2.5 active:scale-[0.99] transition"
+              >
+                <Mic className="h-3.5 w-3.5" /> Try again
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setVoiceError(null);
+                  setShowTyping(true);
+                  setTimeout(() => textareaRef.current?.focus(), 0);
+                }}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-secondary text-ink text-xs font-semibold py-2.5 active:scale-[0.99] transition"
+              >
+                <Keyboard className="h-3.5 w-3.5" /> Type instead
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Inline "starting mic" indicator — brief window between tap and
+            transport ready. Keeps the hero hidden so the screen doesn't
+            flash content the user is about to leave behind. */}
+        {!editVoiceOpen && voiceOpening && !liveActive && !voiceError && (
+          <div className="card-surface p-6 flex items-center justify-center gap-2.5 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Starting mic…</span>
+          </div>
+        )}
+
+        {!draft && !liveActive && !voiceOpening && !voiceError && (
           <div className="space-y-3">
             {typeParam ? (
               <>
