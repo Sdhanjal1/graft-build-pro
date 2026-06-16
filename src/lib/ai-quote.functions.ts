@@ -14,6 +14,8 @@ const InputSchema = z.object({
 
 const LineItemSchema = z.object({
   description: z.string().min(1).max(240),
+  // Accept any number here; we filter qty <= 0 / missing defensively before
+  // schema parse so one bad line doesn't fail the whole quote.
   qty: z.number().positive().max(1000),
   unit_price: z.number().nonnegative().max(100000),
   source: z.enum(["voice", "learned", "ai"]).optional().default("ai"),
@@ -41,13 +43,14 @@ function labourRatesBlock(hourly: number | null, day: number | null): string {
   const h = hourly && hourly > 0 ? hourly : null;
   const d = day && day > 0 ? day : null;
   if (!h && !d) {
-    return `\n\nLABOUR RATES — NOT CONFIGURED:\nThe tradesperson has NOT set their labour rates in settings. If they speak a labour price (e.g. "£65 an hour", "£280 a day"), use that exact figure with source: "voice". If they mention labour without any price, still include the labour line but set unit_price to 0 so they can fill it in — do NOT invent a market rate.`;
+    return `\n\nLABOUR RATES — NOT CONFIGURED:\nThe tradesperson has NOT set their labour rates in settings. If they speak a labour price (e.g. "£65 an hour", "£280 a day"), use that exact figure with source: "voice". If they mention labour without any price, still include the labour line but set unit_price to 0 so they can fill it in — do NOT invent a market rate. For service-type jobs (boiler service, gas safety check, EICR, callout, annual service) where no price was spoken, set qty: 1, unit: "qty", unit_price: 0 (NEVER 0 qty).`;
   }
   return `\n\nLABOUR RATES — USE THESE EXACT FIGURES (configured by the tradesperson, do NOT override):
 ${h ? `- Hourly rate: £${h}/hr (use for "hours" labour lines)` : "- Hourly rate: not set — if labour is in hours and no rate is spoken, set unit_price to 0"}
 ${d ? `- Day rate: £${d}/day (use for "days" labour lines)` : "- Day rate: not set — if labour is in days and no rate is spoken, set unit_price to 0"}
 - "two days labour" → qty 2, unit "days", unit_price ${d ?? 0}.
 - "three hours" → qty 3, unit "hours", unit_price ${h ?? 0}.
+- SERVICE-TYPE JOBS (boiler service, gas safety check / CP12, EICR, PAT test, callout, annual service, inspection): these aren't billed per unit. Use qty: 1, unit: "qty", and put the FULL price in unit_price. If the tradesperson spoke a price, use that. Otherwise estimate a sensible job total based on the configured rate${h ? ` (e.g. ~1.5–2 hours at £${h}/hr for an annual boiler service)` : d ? ` (e.g. a portion of the £${d}/day rate)` : ""}, set source: "ai", is_estimate: true. NEVER emit qty: 0.
 - The ONLY time you may use a different labour figure is when the tradesperson explicitly speaks a price for that labour line in this voice note (then use it and mark source: "voice"). Never invent or "estimate" a labour rate from market knowledge when these settings are configured.`;
 }
 
@@ -182,6 +185,10 @@ Examples:
 - "Two days labour on site" → { description: "On-site labour", qty: 2, unit_price: <day rate>, unit: "days", category: "labour", source: "learned", is_estimate: false }
 - "Three hours work" → { description: "Labour", qty: 3, unit_price: <hourly rate>, unit: "hours", category: "labour", source: "learned", is_estimate: false }
 - "Three radiators" (no price spoken) → { description: "Radiator", qty: 3, unit_price: <estimate>, unit: "qty", category: "materials", source: "ai", is_estimate: true }
+- "Annual boiler service" → { description: "Annual boiler service", qty: 1, unit_price: <job total>, unit: "qty", category: "labour", source: "ai", is_estimate: true }
+
+QTY FIELD — STRICT, NON-NEGOTIABLE:
+Every line item MUST have qty >= 1. NEVER emit qty: 0, negative, or missing. For service-type / fixed-fee work (boiler service, gas safety / CP12, EICR, PAT test, callout, inspection) where quantity isn't a unit count, use qty: 1 and put the full price in unit_price. If unsure, default qty to 1.
 
 JOB DESCRIPTION — write a clean, concise, professional summary of the work for the customer-facing quote. Extract only the scope of work from what the tradesperson said. Do NOT include:
 - Customer names, phone numbers, or email addresses
@@ -288,6 +295,21 @@ Omit extracted_customer entirely if no customer details were mentioned. Unit pri
       parsed = JSON.parse(jsonMatch[0]);
     } catch {
       throw new Error("Claude returned malformed JSON");
+    }
+    // Defensive: drop line items with missing/zero/negative qty BEFORE schema
+    // parse, so one bad line doesn't fail the whole regenerate pass.
+    if (parsed && typeof parsed === "object" && Array.isArray((parsed as any).line_items)) {
+      const raw = (parsed as any).line_items as Array<any>;
+      const before = raw.length;
+      (parsed as any).line_items = raw.filter((li) => {
+        const q = typeof li?.qty === "number" ? li.qty : Number(li?.qty);
+        return Number.isFinite(q) && q > 0;
+      });
+      const dropped = before - (parsed as any).line_items.length;
+      if (dropped > 0) console.warn(`[ai-quote] dropped ${dropped} line item(s) with invalid qty`);
+      if ((parsed as any).line_items.length === 0) {
+        throw new Error("Could not generate quote. Please try again.");
+      }
     }
     const result = QuoteSchema.parse(parsed);
     // Safety net: strip any "— estimate, please confirm" suffix the model may have
