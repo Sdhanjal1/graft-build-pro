@@ -704,6 +704,7 @@ function NewQuotePage() {
       }
       liveActiveRef.current = true;
       setLiveActive(true);
+      setVoiceOpening(false);
       recordStartRef.current = Date.now();
       setRecording(true);
       setRecordSeconds(0);
