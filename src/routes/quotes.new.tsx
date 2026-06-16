@@ -1510,7 +1510,7 @@ function NewQuotePage() {
         )}
 
         {/* Customer — gates save, surfaced before payment */}
-        {draft && (
+        {draft && !liveActive && (
           <div ref={customerRef} className="space-y-3 scroll-mt-20">
             <div>
               <h3 className="text-lg font-bold">Customer</h3>
