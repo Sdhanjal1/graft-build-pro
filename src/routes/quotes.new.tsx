@@ -193,6 +193,36 @@ function NewQuotePage() {
   // Kept as inert ref so nothing from older code paths leaks.
   const sharedStreamRef = useRef<MediaStream | null>(null);
 
+  // Live realtime path — when true, the active recording session is being
+  // streamed through useLiveQuoteSession rather than buffered into a
+  // MediaRecorder + Whisper finalise. Stays false for clip/edit modes.
+  const liveActiveRef = useRef(false);
+
+  const live = useLiveQuoteSession({
+    trade,
+    vatRegistered: vat,
+    onResult: (g, transcript) => {
+      // Stale-session guard: if the user closed or restarted while a pass
+      // was in flight, drop the result rather than overwriting the draft.
+      if (closeRequestedRef.current) return;
+      // Arm scroll BEFORE setDraft so the watcher fires on the next render
+      // once the draft surface is mounted (same discipline as finaliseFromAudio).
+      pendingScrollToDraftRef.current = true;
+      setDraft({ title: g.title, line_items: g.line_items });
+      originalDraftRef.current = JSON.stringify(g.line_items);
+      setDesc(g.clean_description || transcript);
+      const ec = g.extracted_customer;
+      // Functional setState — avoids stale-closure overwrites of names the
+      // user typed mid-recording.
+      if (ec?.name) setClientName((prev) => (prev.trim() ? prev : ec.name!));
+      if (ec?.phone) setClientPhone((prev) => (prev.trim() ? prev : ec.phone!));
+    },
+    onError: (msg) => {
+      setVoiceError(msg);
+      setError(msg);
+    },
+  });
+
 
 
 
