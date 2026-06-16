@@ -197,6 +197,9 @@ function NewQuotePage() {
   // streamed through useLiveQuoteSession rather than buffered into a
   // MediaRecorder + Whisper finalise. Stays false for clip/edit modes.
   const liveActiveRef = useRef(false);
+  // State mirror of liveActiveRef so renders react. Drives the compact
+  // sticky bar vs full overlay decision below.
+  const [liveActive, setLiveActive] = useState(false);
 
   const live = useLiveQuoteSession({
     trade,
