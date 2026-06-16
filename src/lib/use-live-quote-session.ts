@@ -79,14 +79,22 @@ export function useLiveQuoteSession(opts: UseLiveQuoteSessionOpts) {
   const streamRef = useRef<MediaStream | null>(null);
 
   const committedRef = useRef("");
+  const interimRef = useRef("");
   const seenItemIdsRef = useRef<Set<string>>(new Set());
   const regenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inFlightRef = useRef(false);
   const staleRef = useRef(false);
   const sessionIdRef = useRef(0);
 
+  function fullTranscript() {
+    const c = committedRef.current.trim();
+    const i = interimRef.current.trim();
+    if (c && i) return c + " " + i;
+    return c || i;
+  }
+
   async function runRegenerate(sessionId: number) {
-    const text = committedRef.current.trim();
+    const text = fullTranscript();
     if (!text) return;
     if (inFlightRef.current) {
       staleRef.current = true;
