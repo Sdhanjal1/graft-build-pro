@@ -104,7 +104,14 @@ export const Route = createFileRoute("/quotes/new")({
   }),
 });
 
-type Draft = { title: string; line_items: LineItem[] } | null;
+/** Live-session bookkeeping fields. `_origDesc` is the AI's original
+ *  normalised description for this line at the time it first arrived from a
+ *  regenerate pass; stays constant even if the user edits the description.
+ *  Used by the live-merge logic in `onResult` to identify which lines the
+ *  user has touched so subsequent passes don't clobber edits.
+ *  Stripped from line_items before persistence (see `save`). */
+type LiveLineItem = LineItem & { _origDesc?: string };
+type Draft = { title: string; line_items: LiveLineItem[] } | null;
 
 type Clip = { id: string; transcript: string };
 
@@ -188,7 +195,18 @@ function NewQuotePage() {
   // Session-scoped tombstones so user deletions during recording survive a
   // subsequent voice-add pass. Keyed by normalised description.
   const deletedDescsRef = useRef<Set<string>>(new Set());
+  // Original (AI-issued) normalised descriptions for lines the user has
+  // edited during the current live session. Lines with an `_origDesc` in
+  // this set are preserved verbatim on subsequent regenerate passes so
+  // in-flight edits survive. Reset on each new live session.
+  const editedOrigDescsRef = useRef<Set<string>>(new Set());
   const normDesc = (s: string) => s.trim().toLowerCase();
+  // Mark a line as user-edited. Safe to call on every onChange — if the
+  // line wasn't issued by the AI (manually added) it has no `_origDesc`
+  // and is preserved by the merge anyway.
+  const markLineEdited = (li: LiveLineItem) => {
+    if (li._origDesc) editedOrigDescsRef.current.add(li._origDesc);
+  };
 
   // Kept as inert ref so nothing from older code paths leaks.
   const sharedStreamRef = useRef<MediaStream | null>(null);
@@ -208,10 +226,52 @@ function NewQuotePage() {
       // Stale-session guard: if the user closed or restarted while a pass
       // was in flight, drop the result rather than overwriting the draft.
       if (closeRequestedRef.current) return;
-      // Arm scroll BEFORE setDraft so the watcher fires on the next render
-      // once the draft surface is mounted (same discipline as finaliseFromAudio).
-      pendingScrollToDraftRef.current = true;
-      setDraft({ title: g.title, line_items: g.line_items });
+      // Don't auto-scroll while live — the user is already on the editable
+      // surface; the scroll-to-draft effect runs only after finalise.
+      const isLive = liveActiveRef.current;
+
+      setDraft((prev) => {
+        // Tag fresh AI items with their original normalised description so
+        // future passes can identify them across user edits.
+        const taggedIncoming: LiveLineItem[] = g.line_items.map((li) => ({
+          ...li,
+          _origDesc: normDesc(li.description),
+        }));
+
+        if (!isLive || !prev) {
+          // Non-live path (clip-style finalise, or first pass before any
+          // user interaction): replace wholesale, matching prior behaviour.
+          if (!isLive) pendingScrollToDraftRef.current = true;
+          return { title: g.title, line_items: taggedIncoming };
+        }
+
+        // Live merge:
+        //   1. Keep user-edited lines verbatim (by their `_origDesc`).
+        //   2. Keep manually-added lines verbatim (no `_origDesc`).
+        //   3. From the new pass, drop anything whose normDesc matches a
+        //      kept-edited slot, anything the user deleted, or anything
+        //      we've already kept.
+        const editedKeys = editedOrigDescsRef.current;
+        const deletedKeys = deletedDescsRef.current;
+        const kept: LiveLineItem[] = prev.line_items.filter(
+          (li) => !li._origDesc || editedKeys.has(li._origDesc),
+        );
+        const keptOrigs = new Set(
+          kept.map((li) => li._origDesc).filter((k): k is string => !!k),
+        );
+        const additions = taggedIncoming.filter((li) => {
+          const k = li._origDesc!;
+          if (keptOrigs.has(k)) return false;
+          if (editedKeys.has(k)) return false;
+          if (deletedKeys.has(k)) return false;
+          return true;
+        });
+        const merged = [...kept, ...additions];
+        return { title: prev.title || g.title, line_items: merged };
+      });
+
+      // Keep the originalDraftRef tracking the latest AI shape for save-state
+      // comparison; the merged draft itself is what we render.
       originalDraftRef.current = JSON.stringify(g.line_items);
       setDesc(g.clean_description || transcript);
       const ec = g.extracted_customer;
@@ -460,18 +520,42 @@ function NewQuotePage() {
     }
   };
 
+  // Cancel the live session WITHOUT committing a final regenerate. Tiles
+  // built so far stay in `draft` — the user can keep editing and save
+  // manually, or tap the mic again to resume. The secondary X control on
+  // the LiveRecordingBar maps to this.
+  const cancelLiveSession = () => {
+    if (!liveActiveRef.current) return;
+    liveActiveRef.current = false;
+    setLiveActive(false);
+    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+    setRecording(false);
+    sharedStreamRef.current = null;
+    streamRef.current = null;
+    // No finalize pass — drop whatever's in flight and keep the current draft.
+    void live.stop({ finalize: false });
+  };
+
+  // Primary commit path bound to the new on-screen "Finish quote" button.
+  // Runs the final regenerate and unmounts the live UI; the rest of the
+  // page (customer, payment, save bar) then renders via its `draft && !liveActive` gates.
+  const handleFinishLive = () => {
+    if (!liveActiveRef.current) return;
+    const elapsed = Date.now() - recordStartRef.current;
+    const remaining = MIN_RECORD_MS - elapsed;
+    if (remaining > 0) {
+      setTimeout(handleFinishLive, remaining);
+      return;
+    }
+    const sessionId = voiceSessionRef.current;
+    void finaliseLiveSession(sessionId);
+  };
+
   const stopRecording = () => {
-    // Enforce MIN_RECORD_MS for both paths so a fat-fingered tap doesn't
-    // close the session before any speech reaches the wire.
+    // Live mode: the stop control is now "cancel" — tear down the session
+    // but keep any tiles already on screen. Finish is a separate button.
     if (liveActiveRef.current) {
-      const elapsed = Date.now() - recordStartRef.current;
-      const remaining = MIN_RECORD_MS - elapsed;
-      if (remaining > 0) {
-        setTimeout(stopRecording, remaining);
-        return;
-      }
-      const sessionId = voiceSessionRef.current;
-      void finaliseLiveSession(sessionId);
+      cancelLiveSession();
       return;
     }
     const mr = mediaRecorderRef.current;
@@ -645,6 +729,15 @@ function NewQuotePage() {
     closeRequestedRef.current = false;
     setVoiceError(null);
     deletedDescsRef.current = new Set();
+    // Seed the edited-set from any tiles already on screen (e.g. user
+    // cancelled a previous session and is now resuming). Treating prior
+    // tiles as "edited" preserves them through the next regenerate pass;
+    // they remain freely editable inline.
+    editedOrigDescsRef.current = new Set(
+      (draft?.line_items ?? [])
+        .map((li) => li._origDesc)
+        .filter((k): k is string => !!k),
+    );
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
       setVoiceOpening(false);
@@ -938,6 +1031,9 @@ function NewQuotePage() {
     if (!draft || saving) return null;
     setSavingMode(mode);
     setError(null);
+    // Strip live-session bookkeeping fields before persistence — `_origDesc`
+    // is a render-side concern, not part of the LineItem schema.
+    const cleanLineItems: LineItem[] = draft.line_items.map(({ _origDesc: _o, ...rest }) => rest);
     try {
       const q = editId
         ? await updateGeneratedQuote({
@@ -946,7 +1042,7 @@ function NewQuotePage() {
             clientPhone: clientPhone.trim() || undefined,
             description: desc.trim(),
             title: draft.title,
-            line_items: draft.line_items,
+            line_items: cleanLineItems,
             vatRegistered: vat,
             payment_timing: paymentTiming,
             deposit_amount: paymentTiming === "deposit_then_balance" ? depositAmt : 0,
@@ -957,7 +1053,7 @@ function NewQuotePage() {
             clientPhone: clientPhone.trim() || undefined,
             description: desc.trim(),
             title: draft.title,
-            line_items: draft.line_items,
+            line_items: cleanLineItems,
             vatRegistered: vat,
             payment_timing: paymentTiming,
             deposit_amount: paymentTiming === "deposit_then_balance" ? depositAmt : 0,
@@ -1044,14 +1140,18 @@ function NewQuotePage() {
         />
       )}
 
-      {/* LIVE RECORDING BAR — single control for the entire main desc voice
-          session. Mounts as soon as the live transport is up (even before
-          the first tile lands) and stays put until stop finalises. */}
+      {/* LIVE RECORDING BAR — floating session control. Houses the primary
+          "Finish quote" CTA (visible once tiles exist) and a secondary X
+          cancel. Mounts as soon as the live transport is up and stays put
+          until Finish or Cancel ends it. */}
       {liveActive && recording && !voiceError && (
         <LiveRecordingBar
           seconds={recordSeconds}
           streamRef={sharedStreamRef}
-          onStop={stopRecording}
+          onCancel={stopRecording}
+          onFinish={handleFinishLive}
+          canFinish={!!draft && draft.line_items.length > 0}
+          finishing={transcribing}
         />
       )}
 
@@ -1094,10 +1194,11 @@ function NewQuotePage() {
         }}
       >
 
-        {/* Live "listening" placeholder — shown after the user taps the mic
-            but before the first regenerate pass has produced tiles. Keeps
-            the surface from looking empty while the bar pulses below. */}
-        {liveActive && !voiceError && (
+        {/* Pre-tile "listening" placeholder — only shown before the first
+            regenerate pass arrives. Once `draft` exists, the editable
+            line-items card below renders in its place so the user can edit
+            tiles as they appear. */}
+        {liveActive && !draft && !voiceError && (
           <div className="card-surface overflow-hidden">
             <div className="p-8 flex flex-col items-center justify-center text-center gap-3">
               <span className="relative flex items-center justify-center h-3 w-3">
@@ -1106,33 +1207,12 @@ function NewQuotePage() {
               </span>
               <p className="text-sm font-semibold text-ink">Listening…</p>
               <p className="text-xs text-muted-foreground max-w-[20rem]">
-                Describe the job out loud. Tiles will appear here as you speak — tap stop when you're done.
+                Describe the job out loud. Tiles will appear here as you speak — edit anything inline, then tap Finish.
               </p>
             </div>
-            {draft && draft.line_items.length > 0 && (
-              <ul className="border-t border-border">
-                {draft.line_items.map((li, i) => {
-                  const isLabour = li.category === "labour" || li.category === "cis_labour";
-                  const unit = li.unit ?? (isLabour ? "hours" : "qty");
-                  const qtyLabel = unit === "hours" ? "Hrs" : unit === "days" ? "Days" : "Qty";
-                  const priceSuffix = unit === "hours" ? "/hr" : unit === "days" ? "/day" : "";
-                  const lineTotal = li.qty * li.unit_price;
-                  return (
-                    <li key={i} className="px-4 py-3 border-t border-border first:border-t-0 space-y-1">
-                      <p className="text-sm font-medium text-ink">{li.description || "…"}</p>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>
-                          {qtyLabel} {li.qty} · {formatGBP(li.unit_price)}{priceSuffix}
-                        </span>
-                        <span className="num text-sm font-semibold text-ink">{formatGBP(lineTotal)}</span>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
           </div>
         )}
+
 
         {/* Inline error for the main desc voice flow — replaces the old
             full-screen overlay error. Offers retry and a path back to typing
@@ -1332,25 +1412,37 @@ function NewQuotePage() {
           </div>
         )}
 
-        {/* Editable quote preview */}
-        {draft && !liveActive && (
+        {/* Editable quote preview — renders the moment the first regenerate
+            pass produces tiles. Stays mounted through the live session so
+            edits are immediate; the customer/payment/save sections below
+            stay hidden until the user taps Finish (those are gated
+            `draft && !liveActive`). */}
+        {draft && (
           <div ref={draftRef} className="card-surface overflow-hidden scroll-mt-20">
 
             <div className="bg-ink text-paper p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
-                  <p className="text-[11px] text-paper/55 mt-0.5">Tap any field to edit, or use voice →</p>
+                  <p className="text-[10px] uppercase tracking-widest text-lime font-bold">
+                    {liveActive ? "Listening · editable" : "Preview · editable"}
+                  </p>
+                  <p className="text-[11px] text-paper/55 mt-0.5">
+                    {liveActive
+                      ? "Tap any tile to edit while you speak."
+                      : "Tap any field to edit, or use voice →"}
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleEditByVoice}
-                  disabled={recording || transcribing || saving}
-                  className="inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-3 py-1 text-[11px] font-bold active:scale-[0.98] transition disabled:opacity-60 shrink-0"
-                >
-                  <Mic className="h-3 w-3" />
-                  Edit by voice
-                </button>
+                {!liveActive && (
+                  <button
+                    type="button"
+                    onClick={handleEditByVoice}
+                    disabled={recording || transcribing || saving}
+                    className="inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-3 py-1 text-[11px] font-bold active:scale-[0.98] transition disabled:opacity-60 shrink-0"
+                  >
+                    <Mic className="h-3 w-3" />
+                    Edit by voice
+                  </button>
+                )}
               </div>
               <p className="font-bold mt-2">{userProfile.business_name}</p>
               {userProfile.registration_number && (
@@ -1394,6 +1486,7 @@ function NewQuotePage() {
                       <textarea
                         value={li.description}
                         onChange={(e) => {
+                          markLineEdited(li);
                           const next = [...draft.line_items];
                           next[i] = { ...li, description: e.target.value };
                           setDraft({ ...draft, line_items: next });
@@ -1411,6 +1504,9 @@ function NewQuotePage() {
                             return;
                           }
                           setConfirmTrashIdx(null);
+                          // Tombstone so a subsequent live regenerate pass
+                          // doesn't re-add this line.
+                          if (li._origDesc) deletedDescsRef.current.add(li._origDesc);
                           const next = draft.line_items.filter((_, idx) => idx !== i);
                           setDraft({ ...draft, line_items: next.length ? next : [{ description: "", qty: 1, unit_price: 0 }] });
                         }}
@@ -1438,6 +1534,7 @@ function NewQuotePage() {
                           step="0.1"
                           value={li.qty}
                           onChange={(e) => {
+                            markLineEdited(li);
                             const next = [...draft.line_items];
                             next[i] = { ...li, qty: parseFloat(e.target.value) || 0 };
                             setDraft({ ...draft, line_items: next });
@@ -1452,6 +1549,7 @@ function NewQuotePage() {
                               key={u}
                               type="button"
                               onClick={() => {
+                                markLineEdited(li);
                                 const next = [...draft.line_items];
                                 next[i] = { ...li, unit: u };
                                 setDraft({ ...draft, line_items: next });
@@ -1472,6 +1570,7 @@ function NewQuotePage() {
                           step="0.01"
                           value={li.unit_price}
                           onChange={(e) => {
+                            markLineEdited(li);
                             const next = [...draft.line_items];
                             next[i] = { ...li, unit_price: parseFloat(e.target.value) || 0 };
                             setDraft({ ...draft, line_items: next });
@@ -2386,47 +2485,68 @@ function VoiceOverlay({
 }
 
 /**
- * LiveRecordingBar — compact sticky control that replaces the full-screen
- * VoiceOverlay once the first regenerate pass has populated the draft. The
- * user keeps the mic / timer / stop affordances while watching tiles build
- * underneath. Renders into a portal so it floats above the form regardless
- * of scroll position.
+ * LiveRecordingBar — floating session control. Houses the primary
+ * "Finish quote" CTA (once at least one tile has landed) and a secondary
+ * X cancel control. Renders into a portal so it floats above the form
+ * regardless of scroll position.
  */
 function LiveRecordingBar({
   seconds,
   streamRef,
-  onStop,
+  onCancel,
+  onFinish,
+  canFinish,
+  finishing,
 }: {
   seconds: number;
   streamRef?: React.RefObject<MediaStream | null>;
-  onStop: () => void;
+  onCancel: () => void;
+  onFinish: () => void;
+  canFinish: boolean;
+  finishing: boolean;
 }) {
   if (typeof document === "undefined") return null;
   return createPortal(
     <div
-      className="fixed left-1/2 -translate-x-1/2 z-[55] bottom-nav w-[min(92vw,28rem)]"
+      className="fixed left-1/2 -translate-x-1/2 z-[55] bottom-nav w-[min(94vw,30rem)]"
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-center gap-3 rounded-full bg-ink text-paper pl-4 pr-2 py-2 shadow-[0_12px_36px_-12px_rgba(0,0,0,0.5)] border border-paper/10">
-        <span className="relative flex items-center justify-center h-2.5 w-2.5">
+      <div className="flex items-center gap-2 rounded-full bg-ink text-paper pl-4 pr-1.5 py-1.5 shadow-[0_12px_36px_-12px_rgba(0,0,0,0.5)] border border-paper/10">
+        <span className="relative flex items-center justify-center h-2.5 w-2.5 shrink-0">
           <span className="absolute inset-0 rounded-full bg-lime animate-[pulse_1.4s_ease-in-out_infinite]" />
         </span>
-        <span className="text-[10px] uppercase tracking-widest text-paper/70 font-semibold">
+        <span className="text-[10px] uppercase tracking-widest text-paper/70 font-semibold shrink-0">
           Listening
         </span>
-        <span className="flex-1 flex items-center justify-center">
+        <span className="flex-1 flex items-center justify-center min-w-0">
           <MicLevelBars streamRef={streamRef} active={true} />
         </span>
-        <span className="num text-xs text-paper/70 tabular-nums">{formatMMSS(seconds)}</span>
+        <span className="num text-xs text-paper/70 tabular-nums shrink-0">{formatMMSS(seconds)}</span>
+        {/* Secondary: cancel — ends the session WITHOUT committing. Visually
+            quiet so it doesn't compete with Finish. */}
         <button
           type="button"
-          onClick={onStop}
-          aria-label="Stop recording"
-          className="h-10 w-10 rounded-full bg-lime flex items-center justify-center active:scale-[0.97] transition-transform"
+          onClick={onCancel}
+          aria-label="Cancel recording"
+          title="Cancel"
+          className="h-8 w-8 rounded-full bg-paper/10 hover:bg-paper/20 flex items-center justify-center shrink-0 transition-colors"
         >
-          <Square className="h-4 w-4 text-ink fill-ink" strokeWidth={2.25} />
+          <X className="h-4 w-4 text-paper/80" strokeWidth={2.25} />
         </button>
+        {/* Primary: Finish — commits the quote. Only shown once tiles exist. */}
+        {canFinish && (
+          <button
+            type="button"
+            onClick={onFinish}
+            disabled={finishing}
+            aria-label="Finish quote"
+            className="h-9 px-4 rounded-full bg-lime text-ink text-xs font-bold flex items-center gap-1.5 active:scale-[0.97] transition-transform disabled:opacity-60 shrink-0"
+          >
+            {finishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" strokeWidth={2.5} />}
+            {finishing ? "Finishing…" : "Finish"}
+          </button>
+        )}
       </div>
     </div>,
     document.body,
