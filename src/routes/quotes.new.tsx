@@ -195,7 +195,18 @@ function NewQuotePage() {
   // Session-scoped tombstones so user deletions during recording survive a
   // subsequent voice-add pass. Keyed by normalised description.
   const deletedDescsRef = useRef<Set<string>>(new Set());
+  // Original (AI-issued) normalised descriptions for lines the user has
+  // edited during the current live session. Lines with an `_origDesc` in
+  // this set are preserved verbatim on subsequent regenerate passes so
+  // in-flight edits survive. Reset on each new live session.
+  const editedOrigDescsRef = useRef<Set<string>>(new Set());
   const normDesc = (s: string) => s.trim().toLowerCase();
+  // Mark a line as user-edited. Safe to call on every onChange — if the
+  // line wasn't issued by the AI (manually added) it has no `_origDesc`
+  // and is preserved by the merge anyway.
+  const markLineEdited = (li: LiveLineItem) => {
+    if (li._origDesc) editedOrigDescsRef.current.add(li._origDesc);
+  };
 
   // Kept as inert ref so nothing from older code paths leaks.
   const sharedStreamRef = useRef<MediaStream | null>(null);
