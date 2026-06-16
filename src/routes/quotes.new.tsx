@@ -104,7 +104,14 @@ export const Route = createFileRoute("/quotes/new")({
   }),
 });
 
-type Draft = { title: string; line_items: LineItem[] } | null;
+/** Live-session bookkeeping fields. `_origDesc` is the AI's original
+ *  normalised description for this line at the time it first arrived from a
+ *  regenerate pass; stays constant even if the user edits the description.
+ *  Used by the live-merge logic in `onResult` to identify which lines the
+ *  user has touched so subsequent passes don't clobber edits.
+ *  Stripped from line_items before persistence (see `save`). */
+type LiveLineItem = LineItem & { _origDesc?: string };
+type Draft = { title: string; line_items: LiveLineItem[] } | null;
 
 type Clip = { id: string; transcript: string };
 
