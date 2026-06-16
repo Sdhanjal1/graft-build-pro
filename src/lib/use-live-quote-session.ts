@@ -281,7 +281,7 @@ export function useLiveQuoteSession(opts: UseLiveQuoteSessionOpts) {
   }> {
     const sessionId = sessionIdRef.current;
     teardownTransport();
-    const transcript = committedRef.current.trim();
+    const transcript = fullTranscript().trim();
 
     if (!opts.finalize || !transcript) return { transcript, didRegenerate: false };
 
