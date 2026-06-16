@@ -43,13 +43,14 @@ function labourRatesBlock(hourly: number | null, day: number | null): string {
   const h = hourly && hourly > 0 ? hourly : null;
   const d = day && day > 0 ? day : null;
   if (!h && !d) {
-    return `\n\nLABOUR RATES — NOT CONFIGURED:\nThe tradesperson has NOT set their labour rates in settings. If they speak a labour price (e.g. "£65 an hour", "£280 a day"), use that exact figure with source: "voice". If they mention labour without any price, still include the labour line but set unit_price to 0 so they can fill it in — do NOT invent a market rate.`;
+    return `\n\nLABOUR RATES — NOT CONFIGURED:\nThe tradesperson has NOT set their labour rates in settings. If they speak a labour price (e.g. "£65 an hour", "£280 a day"), use that exact figure with source: "voice". If they mention labour without any price, still include the labour line but set unit_price to 0 so they can fill it in — do NOT invent a market rate. For service-type jobs (boiler service, gas safety check, EICR, callout, annual service) where no price was spoken, set qty: 1, unit: "qty", unit_price: 0 (NEVER 0 qty).`;
   }
   return `\n\nLABOUR RATES — USE THESE EXACT FIGURES (configured by the tradesperson, do NOT override):
 ${h ? `- Hourly rate: £${h}/hr (use for "hours" labour lines)` : "- Hourly rate: not set — if labour is in hours and no rate is spoken, set unit_price to 0"}
 ${d ? `- Day rate: £${d}/day (use for "days" labour lines)` : "- Day rate: not set — if labour is in days and no rate is spoken, set unit_price to 0"}
 - "two days labour" → qty 2, unit "days", unit_price ${d ?? 0}.
 - "three hours" → qty 3, unit "hours", unit_price ${h ?? 0}.
+- SERVICE-TYPE JOBS (boiler service, gas safety check / CP12, EICR, PAT test, callout, annual service, inspection): these aren't billed per unit. Use qty: 1, unit: "qty", and put the FULL price in unit_price. If the tradesperson spoke a price, use that. Otherwise estimate a sensible job total based on the configured rate${h ? ` (e.g. ~1.5–2 hours at £${h}/hr for an annual boiler service)` : d ? ` (e.g. a portion of the £${d}/day rate)` : ""}, set source: "ai", is_estimate: true. NEVER emit qty: 0.
 - The ONLY time you may use a different labour figure is when the tradesperson explicitly speaks a price for that labour line in this voice note (then use it and mark source: "voice"). Never invent or "estimate" a labour rate from market knowledge when these settings are configured.`;
 }
 
