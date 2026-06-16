@@ -1129,14 +1129,18 @@ function NewQuotePage() {
         />
       )}
 
-      {/* LIVE RECORDING BAR — single control for the entire main desc voice
-          session. Mounts as soon as the live transport is up (even before
-          the first tile lands) and stays put until stop finalises. */}
+      {/* LIVE RECORDING BAR — floating session control. Houses the primary
+          "Finish quote" CTA (visible once tiles exist) and a secondary X
+          cancel. Mounts as soon as the live transport is up and stays put
+          until Finish or Cancel ends it. */}
       {liveActive && recording && !voiceError && (
         <LiveRecordingBar
           seconds={recordSeconds}
           streamRef={sharedStreamRef}
-          onStop={stopRecording}
+          onCancel={stopRecording}
+          onFinish={handleFinishLive}
+          canFinish={!!draft && draft.line_items.length > 0}
+          finishing={transcribing}
         />
       )}
 
