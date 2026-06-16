@@ -1023,6 +1023,9 @@ function NewQuotePage() {
     if (!draft || saving) return null;
     setSavingMode(mode);
     setError(null);
+    // Strip live-session bookkeeping fields before persistence — `_origDesc`
+    // is a render-side concern, not part of the LineItem schema.
+    const cleanLineItems: LineItem[] = draft.line_items.map(({ _origDesc: _o, ...rest }) => rest);
     try {
       const q = editId
         ? await updateGeneratedQuote({
