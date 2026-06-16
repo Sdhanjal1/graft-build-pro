@@ -409,6 +409,7 @@ function NewQuotePage() {
     // in-flight pass.
     if (liveActiveRef.current) {
       liveActiveRef.current = false;
+      setLiveActive(false);
       void live.stop({ finalize: false });
     }
     if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
