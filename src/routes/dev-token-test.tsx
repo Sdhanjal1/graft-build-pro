@@ -258,7 +258,14 @@ function DevTokenTest() {
           if (id && seenItemIdsRef.current.has(id)) break;
           if (id) seenItemIdsRef.current.add(id);
           const text = typeof evt.transcript === "string" ? evt.transcript : "";
-          if (text) setCommitted((prev) => (prev ? prev + " " : "") + text.trim());
+          if (text) {
+            const trimmed = text.trim();
+            committedRef.current = committedRef.current
+              ? committedRef.current + " " + trimmed
+              : trimmed;
+            setCommitted(committedRef.current);
+            scheduleRegenerate();
+          }
           setInterim("");
           break;
         }
