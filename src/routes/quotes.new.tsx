@@ -729,7 +729,15 @@ function NewQuotePage() {
     closeRequestedRef.current = false;
     setVoiceError(null);
     deletedDescsRef.current = new Set();
-    editedOrigDescsRef.current = new Set();
+    // Seed the edited-set from any tiles already on screen (e.g. user
+    // cancelled a previous session and is now resuming). Treating prior
+    // tiles as "edited" preserves them through the next regenerate pass;
+    // they remain freely editable inline.
+    editedOrigDescsRef.current = new Set(
+      (draft?.line_items ?? [])
+        .map((li) => li._origDesc)
+        .filter((k): k is string => !!k),
+    );
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
       setVoiceOpening(false);
