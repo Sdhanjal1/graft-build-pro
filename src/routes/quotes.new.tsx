@@ -23,6 +23,7 @@ import { toast } from "sonner";
 
 
 import { generateAIQuote } from "@/lib/ai-quote.functions";
+import { useLiveQuoteSession } from "@/lib/use-live-quote-session";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search, Send, Check, Banknote, Zap, Mic, ChevronRight, AlertCircle, ArrowLeftRight, Keyboard } from "lucide-react";
@@ -191,6 +192,36 @@ function NewQuotePage() {
 
   // Kept as inert ref so nothing from older code paths leaks.
   const sharedStreamRef = useRef<MediaStream | null>(null);
+
+  // Live realtime path — when true, the active recording session is being
+  // streamed through useLiveQuoteSession rather than buffered into a
+  // MediaRecorder + Whisper finalise. Stays false for clip/edit modes.
+  const liveActiveRef = useRef(false);
+
+  const live = useLiveQuoteSession({
+    trade,
+    vatRegistered: vat,
+    onResult: (g, transcript) => {
+      // Stale-session guard: if the user closed or restarted while a pass
+      // was in flight, drop the result rather than overwriting the draft.
+      if (closeRequestedRef.current) return;
+      // Arm scroll BEFORE setDraft so the watcher fires on the next render
+      // once the draft surface is mounted (same discipline as finaliseFromAudio).
+      pendingScrollToDraftRef.current = true;
+      setDraft({ title: g.title, line_items: g.line_items });
+      originalDraftRef.current = JSON.stringify(g.line_items);
+      setDesc(g.clean_description || transcript);
+      const ec = g.extracted_customer;
+      // Functional setState — avoids stale-closure overwrites of names the
+      // user typed mid-recording.
+      if (ec?.name) setClientName((prev) => (prev.trim() ? prev : ec.name!));
+      if (ec?.phone) setClientPhone((prev) => (prev.trim() ? prev : ec.phone!));
+    },
+    onError: (msg) => {
+      setVoiceError(msg);
+      setError(msg);
+    },
+  });
 
 
 
@@ -370,6 +401,13 @@ function NewQuotePage() {
     if (mr && mr.state !== "inactive") {
       try { mr.stop(); } catch { /* noop */ }
     }
+    // Live path: close transport without a final regenerate — the user is
+    // bailing out, not finishing. The stale guard in onResult drops any
+    // in-flight pass.
+    if (liveActiveRef.current) {
+      liveActiveRef.current = false;
+      void live.stop({ finalize: false });
+    }
     if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
     sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -388,7 +426,46 @@ function NewQuotePage() {
   const recordStartRef = useRef<number>(0);
   const MIN_RECORD_MS = 1000;
 
+  const finaliseLiveSession = async (sessionId: number) => {
+    if (!liveActiveRef.current) return;
+    liveActiveRef.current = false;
+    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+    setRecording(false);
+    // The hook owns the mic stream lifecycle — clear our refs so the meter
+    // stops drawing immediately.
+    sharedStreamRef.current = null;
+    streamRef.current = null;
+    setTranscribing(true);
+    try {
+      const { transcript, didRegenerate } = await live.stop({ finalize: true });
+      if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
+      if (!transcript) {
+        setVoiceError("We didn't catch any speech. Tap the mic and describe the job out loud.");
+        return;
+      }
+      if (didRegenerate) {
+        feedback("success");
+        playSample("ding");
+      }
+    } finally {
+      setTranscribing(false);
+    }
+  };
+
   const stopRecording = () => {
+    // Enforce MIN_RECORD_MS for both paths so a fat-fingered tap doesn't
+    // close the session before any speech reaches the wire.
+    if (liveActiveRef.current) {
+      const elapsed = Date.now() - recordStartRef.current;
+      const remaining = MIN_RECORD_MS - elapsed;
+      if (remaining > 0) {
+        setTimeout(stopRecording, remaining);
+        return;
+      }
+      const sessionId = voiceSessionRef.current;
+      void finaliseLiveSession(sessionId);
+      return;
+    }
     const mr = mediaRecorderRef.current;
     if (!mr || mr.state === "inactive") return;
     const elapsed = Date.now() - recordStartRef.current;
@@ -402,6 +479,7 @@ function NewQuotePage() {
     }
     mr.stop();
   };
+
 
   const appendTranscript = (text: string): { combinedDesc: string; target: "desc" | "clip" | "edit" } => {
     const clean = text.trim();
@@ -596,6 +674,46 @@ function NewQuotePage() {
     const mimeType = pickMimeType();
 
     const isClipMode = recordTargetRef.current === "clip" || recordTargetRef.current === "edit";
+
+    // LIVE PATH — desc target only. Stream the spoken job through the
+    // realtime relay so tiles appear live. Clip/edit modes keep using
+    // MediaRecorder + Whisper below (those flows append/merge differently).
+    if (!isClipMode) {
+      try {
+        await live.start(stream);
+      } catch (err) {
+        console.error("[live] start failed", err);
+        stream.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+        sharedStreamRef.current = null;
+        const msg = err instanceof Error ? err.message : "Could not start live session.";
+        setVoiceError(msg);
+        setError(msg);
+        setVoiceOpening(false);
+        return;
+      }
+      if (closeRequestedRef.current || sessionId !== voiceSessionRef.current) {
+        // User bailed during handshake — tear down what we just opened.
+        void live.stop({ finalize: false });
+        return;
+      }
+      liveActiveRef.current = true;
+      recordStartRef.current = Date.now();
+      setRecording(true);
+      setRecordSeconds(0);
+      tickRef.current = setInterval(() => {
+        setRecordSeconds((s) => {
+          const next = s + 1;
+          if (next >= MAX_RECORD_SECONDS) {
+            stopRecording();
+            return MAX_RECORD_SECONDS;
+          }
+          return next;
+        });
+      }, 1000);
+      return;
+    }
+
 
     let mr: MediaRecorder;
     try {
