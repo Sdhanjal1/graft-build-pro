@@ -175,7 +175,9 @@ function DevTokenTest() {
     if (status !== "idle" && status !== "stopped" && status !== "error") return;
     setErrors([]);
     setCommitted("");
+    committedRef.current = "";
     setInterim("");
+    setTiles([]);
     seenItemIdsRef.current = new Set();
     setStatus("minting");
 
