@@ -1,45 +1,63 @@
-# Remove dead live-preview pipeline
+# Stage 1 — Ephemeral Realtime token server function
 
-Pure deletion. `finaliseFromAudio`, the `MediaRecorder` flow, `applyVoiceEdit`, and the `draft` / `!draft` split are untouched.
+Pure additive change. No UI wiring, no other files touched. This proves the security foundation before any WebRTC work in Stage 2.
 
-## ⚠️ Heads-up: existing invariant test will break
+## What changes
 
-`tests/voice-overlay-transcript-invariant.test.ts` currently asserts that `setLivePreview(`, `liveFinalRef.current =`, and `liveInterimRef.current =` still exist in `src/routes/quotes.new.tsx`. After this deletion, those identifiers are gone and that test fails.
+**New file:** `src/lib/realtime-token.functions.ts`
 
-Since the whole point of Prompt B is that the live capture is dead code, the test is also obsolete. Plan: delete `tests/voice-overlay-transcript-invariant.test.ts` as part of this change. Flagging explicitly so it isn't a surprise.
+A `createServerFn({ method: "POST" })` named `createRealtimeTranscriptionToken` that:
 
-## src/routes/quotes.new.tsx
+- Reads `process.env.OPENAI_API_KEY` (same pattern as `transcribe.functions.ts`).
+- Accepts an optional `{ userId?: string }` input and, when present, sends it as the `OpenAI-Safety-Identifier` header so the ephemeral token is bound to that user for abuse monitoring (browser never sends it).
+- `POST`s to `https://api.openai.com/v1/realtime/client_secrets` with a `session` body of `type: "transcription"`, `gpt-4o-mini-transcribe`, `language: "en"`, the existing UK-trade prompt, PCM 24 kHz input, and `server_vad` with `silence_duration_ms: 700`.
+- 60s timeout via `AbortSignal.timeout(60_000)`, matching the surrounding code style.
+- On non-2xx, throws with status + truncated body for diagnosability (matches `transcribeAudio` error tone).
+- Returns only `{ token, expiresAt }` — never the real key, never the full provider payload.
 
-1. **Speech Recognition setup inside `startRecording**` (~lines 896–945): delete the entire `SR = window.SpeechRecognition || …` block, `rec.onresult` / `rec.onerror` / `rec.onend`, `rec.start()`, both `setLiveSupported` calls, and the surrounding `try { … } catch { setLiveSupported(false) }`. Keep `MediaRecorder` setup, `mr.start(1000)`, the seconds tick interval, and the `finaliseFromAudio` call on stop unchanged.
-2. `**regenerateLiveQuote**` (~lines 670–762): delete the function and the debounce scheduler that calls it.
-3. **State / refs / helpers** — delete every declaration and every read/write of:
-  `liveItems`, `setLiveItems`, `liveItemsRef`, `pendingItems`, `setPendingItems`, `pendingItemsRef`, `clearPendingItems`, `pendingCountRef`, `livePreview`, `setLivePreview`, `liveFinalRef`, `liveInterimRef`, `liveDebounceRef`, `phraseSeqRef`, `lastFinalIdxRef`, `speechIndexOffsetRef`, `recognitionRef`, `liveSupported`, `setLiveSupported`, `building`, `setBuilding`, plus `prefetchFn` / `useServerFn(prefetchQuoteContext)` (line 155) and the `prefetchQuoteContext` import (line 25).
-   This includes all the teardown lines that currently clear these inside `finaliseFromAudio`, `handleVoiceClose`, `stopRecording`, and the unmount cleanup effect (~lines 260–262, 401–402, 421–422, 434–436, 448, 454–462, 522, 552–553, 586–590, 775–781, 828–829, 852–853, 877, 881, 884–885). After removal those cleanup blocks may collapse to no-ops — drop them if empty.
-4. **VoiceOverlay call site** (~lines 1197–1245): remove `liveItems`, `pendingItems`, `transcript`, `building`, `onUpdateItem`, `onDeleteItem` props (and the inline handlers at 1234/1243 that mutate `liveItemsRef`). Keep `recording`, `transcribing`, `seconds`, `error`, `lastTranscript`, `streamRef`, `onStart`, `onStop`, `onClose`, `onTypeInstead`, `onRetryTranscription`.
-5. `**VoiceOverlay` signature + type** (~lines 2285–2333): remove the same six props from the destructure and the type. Drop the `void liveItems; void pendingItems;` discards and the `isBuilding = transcribing || building` line (replace usages with just `transcribing`).
+## Deliberate deviations from the pasted snippet
 
-## src/lib/ai-quote.functions.ts
+These are small but worth flagging so there are no surprises on apply:
 
-6. Delete `prefetchQuoteContext` (lines 399–418) and its doc comment.
-7. In `InputSchema`: drop `previousChunkText`, `previousItemDescription`, `prefetchedContext` (lines 24–37 / 27–37) and the `PatternSchema` if it's only used by `prefetchedContext` (it is — also delete lines 9–18).
-8. In the handler: drop the `if (data.prefetchedContext) { … } else { … }` branch and keep only the `else` body (always fetch patterns + rates from DB).
-9. In the prompt: remove `prevBlock`, the `${prevBlock}` interpolation, the entire "ITEM BOUNDARY DETECTION (LIVE PHRASE CAPTURE)" section of `SYSTEM_PROMPT` (lines 226–250), the `continues_previous` field on `QuoteSchema` (lines 60–65), and the `"continues_previous": false,` line in the example JSON.
+1. `**.inputValidator`, not `.validator`.** Current TanStack Start uses `.inputValidator()` in this codebase (see `transcribe.functions.ts`); `.validator()` would fail to typecheck. The behaviour is identical.
+2. **No `requireActiveSubscription` middleware on this stage.** `transcribeAudio` gates on subscription, and live transcription will cost money per session, so eventually this must gate too. For Stage 1 the goal is "prove the token mints"; I'll leave a `TODO` comment in the file noting that `requireSupabaseAuth` + `requireActiveSubscription` should be added before Stage 2 wires it to the client. Call out if you'd rather I add the gating now — it's one line and one import, but it means you can't test-call it without a signed-in, subscribed user.
+3. `**userId` source.** The snippet takes `userId` from the client. That's spoofable — a malicious client could pass anyone's id. The right shape is to derive `userId` server-side from `requireSupabaseAuth` context (which lands in Stage 2 prep above). For Stage 1, I'll accept it as input but mark it `TODO: replace with context.userId once auth middleware is added`, so we don't bake in a foot-gun.
 
-## Verification
+## What does NOT change
 
-After edits, grep the file for every removed symbol — must return zero matches in `src/routes/quotes.new.tsx` and `src/lib/ai-quote.functions.ts`:
+- `src/lib/transcribe.functions.ts` — untouched; remains the fallback path.
+- `src/routes/quotes.new.tsx` — no call site, no import. Stage 1 is provable from a one-off invocation alone.
+- No new secrets, no new env vars (`OPENAI_API_KEY` is already configured).
+- No `src/start.ts` changes (no new middleware in this stage).
 
-```
-liveItems liveItemsRef pendingItems pendingItemsRef clearPendingItems pendingCountRef
-livePreview setLivePreview liveFinalRef liveInterimRef liveDebounceRef
-phraseSeqRef lastFinalIdxRef speechIndexOffsetRef recognitionRef
-liveSupported setLiveSupported regenerateLiveQuote prefetchQuoteContext
-setBuilding building SpeechRecognition webkitSpeechRecognition
-previousChunkText previousItemDescription prefetchedContext continues_previous
-```
+## How to verify before Stage 2
 
-Then let the typechecker run.
+Once built, invoke `createRealtimeTranscriptionToken` once (temporary button, dev console, or `stack_modern--invoke-server-function`). Success = response object with `token` (string, typically `ek_…`) and a future `expiresAt`. Failure = paste the status + body and I'll adjust the `session` nesting; OpenAI's Realtime config shape has minor version variance and the error message tells us exactly what to change.
 
-Notes - 1. The building → transcribing swap in VoiceOverlay (step 5). Make sure the building skeleton state you just added in Prompt A is driven by transcribing after this. Prompt A’s skeleton showed on transcribing || building; once building is gone, it must show on transcribing alone. The plan says to replace usages with transcribing — just confirm the skeleton still actually appears, because that’s the wow moment you don’t want to accidentally gate off.
+## Open questions before I implement
 
-2. stopRequestedRef. The Web Speech onend handler referenced stopRequestedRef (line 933). Check whether stopRequestedRef is used anywhere else — if it was only there for the Web Speech restart logic, it’s now dead too and can go; if stopRecording uses it, leave it. The plan doesn’t mention it, so worth a quick grep so you don’t leave one orphan ref.
+1. **Add `requireSupabaseAuth` + `requireActiveSubscription` now, or in Stage 2?** Recommendation: add now (one extra import, one extra `.middleware([...])` line, and derive `userId` from `context` instead of input) so we never ship an unauthenticated public token-minting endpoint, even briefly. Confirm and I'll include it.
+
+1. Confirmed: add the gating now.
+
+Add requireSupabaseAuth + requireActiveSubscription middleware to createRealtimeTranscriptionToken in this stage. Derive userId server-side from the auth context for the OpenAI-Safety-Identifier header. Remove the client-supplied userId input entirely — don’t accept it as a parameter at all, so there’s nothing spoofable. No TODO placeholders; ship it fully gated.
+
+2. Match the exact middleware pattern from transcribeAudio.
+
+Use whatever import paths and middleware-array syntax transcribeAudio already uses for requireSupabaseAuth / requireActiveSubscription — don’t introduce a new pattern. And read how transcribeAudio pulls the user id out of context (the field name), so the safety identifier uses the same source of truth.
+
+3. Keep the userId privacy-preserving.
+
+The safety identifier should be a stable internal id (the Supabase user id is fine) — not an email or anything personally identifying. If the auth context exposes both, use the opaque user id.
+
+4. Don’t log the token or the real key.
+
+In the error-handling branch, make sure the truncated body that gets thrown/logged can’t include the ephemeral token value or any Authorization header. Log status + a safe slice of the error body only.
+
+5. Confirm the response-shape hedge stays.
+
+Keep the defensive extraction (client_secret?.value ?? value, client_secret?.expires_at ?? expires_at) so a minor API version difference doesn’t break it silently — and keep the note that a 400 means we adjust the session nesting against the actual error message.
+
+6. One question back for Lovable to answer in the plan, not assume:
+
+Does requireActiveSubscription currently allow users still inside their 14-day free trial? 
