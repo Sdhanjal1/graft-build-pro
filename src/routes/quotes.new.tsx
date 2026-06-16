@@ -2477,47 +2477,68 @@ function VoiceOverlay({
 }
 
 /**
- * LiveRecordingBar — compact sticky control that replaces the full-screen
- * VoiceOverlay once the first regenerate pass has populated the draft. The
- * user keeps the mic / timer / stop affordances while watching tiles build
- * underneath. Renders into a portal so it floats above the form regardless
- * of scroll position.
+ * LiveRecordingBar — floating session control. Houses the primary
+ * "Finish quote" CTA (once at least one tile has landed) and a secondary
+ * X cancel control. Renders into a portal so it floats above the form
+ * regardless of scroll position.
  */
 function LiveRecordingBar({
   seconds,
   streamRef,
-  onStop,
+  onCancel,
+  onFinish,
+  canFinish,
+  finishing,
 }: {
   seconds: number;
   streamRef?: React.RefObject<MediaStream | null>;
-  onStop: () => void;
+  onCancel: () => void;
+  onFinish: () => void;
+  canFinish: boolean;
+  finishing: boolean;
 }) {
   if (typeof document === "undefined") return null;
   return createPortal(
     <div
-      className="fixed left-1/2 -translate-x-1/2 z-[55] bottom-nav w-[min(92vw,28rem)]"
+      className="fixed left-1/2 -translate-x-1/2 z-[55] bottom-nav w-[min(94vw,30rem)]"
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-center gap-3 rounded-full bg-ink text-paper pl-4 pr-2 py-2 shadow-[0_12px_36px_-12px_rgba(0,0,0,0.5)] border border-paper/10">
-        <span className="relative flex items-center justify-center h-2.5 w-2.5">
+      <div className="flex items-center gap-2 rounded-full bg-ink text-paper pl-4 pr-1.5 py-1.5 shadow-[0_12px_36px_-12px_rgba(0,0,0,0.5)] border border-paper/10">
+        <span className="relative flex items-center justify-center h-2.5 w-2.5 shrink-0">
           <span className="absolute inset-0 rounded-full bg-lime animate-[pulse_1.4s_ease-in-out_infinite]" />
         </span>
-        <span className="text-[10px] uppercase tracking-widest text-paper/70 font-semibold">
+        <span className="text-[10px] uppercase tracking-widest text-paper/70 font-semibold shrink-0">
           Listening
         </span>
-        <span className="flex-1 flex items-center justify-center">
+        <span className="flex-1 flex items-center justify-center min-w-0">
           <MicLevelBars streamRef={streamRef} active={true} />
         </span>
-        <span className="num text-xs text-paper/70 tabular-nums">{formatMMSS(seconds)}</span>
+        <span className="num text-xs text-paper/70 tabular-nums shrink-0">{formatMMSS(seconds)}</span>
+        {/* Secondary: cancel — ends the session WITHOUT committing. Visually
+            quiet so it doesn't compete with Finish. */}
         <button
           type="button"
-          onClick={onStop}
-          aria-label="Stop recording"
-          className="h-10 w-10 rounded-full bg-lime flex items-center justify-center active:scale-[0.97] transition-transform"
+          onClick={onCancel}
+          aria-label="Cancel recording"
+          title="Cancel"
+          className="h-8 w-8 rounded-full bg-paper/10 hover:bg-paper/20 flex items-center justify-center shrink-0 transition-colors"
         >
-          <Square className="h-4 w-4 text-ink fill-ink" strokeWidth={2.25} />
+          <X className="h-4 w-4 text-paper/80" strokeWidth={2.25} />
         </button>
+        {/* Primary: Finish — commits the quote. Only shown once tiles exist. */}
+        {canFinish && (
+          <button
+            type="button"
+            onClick={onFinish}
+            disabled={finishing}
+            aria-label="Finish quote"
+            className="h-9 px-4 rounded-full bg-lime text-ink text-xs font-bold flex items-center gap-1.5 active:scale-[0.97] transition-transform disabled:opacity-60 shrink-0"
+          >
+            {finishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" strokeWidth={2.5} />}
+            {finishing ? "Finishing…" : "Finish"}
+          </button>
+        )}
       </div>
     </div>,
     document.body,
