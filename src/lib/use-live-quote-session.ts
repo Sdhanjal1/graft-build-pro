@@ -79,14 +79,22 @@ export function useLiveQuoteSession(opts: UseLiveQuoteSessionOpts) {
   const streamRef = useRef<MediaStream | null>(null);
 
   const committedRef = useRef("");
+  const interimRef = useRef("");
   const seenItemIdsRef = useRef<Set<string>>(new Set());
   const regenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inFlightRef = useRef(false);
   const staleRef = useRef(false);
   const sessionIdRef = useRef(0);
 
+  function fullTranscript() {
+    const c = committedRef.current.trim();
+    const i = interimRef.current.trim();
+    if (c && i) return c + " " + i;
+    return c || i;
+  }
+
   async function runRegenerate(sessionId: number) {
-    const text = committedRef.current.trim();
+    const text = fullTranscript();
     if (!text) return;
     if (inFlightRef.current) {
       staleRef.current = true;
@@ -160,6 +168,7 @@ export function useLiveQuoteSession(opts: UseLiveQuoteSessionOpts) {
   async function start(stream: MediaStream): Promise<void> {
     const sessionId = ++sessionIdRef.current;
     committedRef.current = "";
+    interimRef.current = "";
     seenItemIdsRef.current = new Set();
     inFlightRef.current = false;
     staleRef.current = false;
@@ -200,13 +209,24 @@ export function useLiveQuoteSession(opts: UseLiveQuoteSessionOpts) {
       console.error("[live] data channel error", e);
     });
     channel.addEventListener("message", (e) => {
-      let evt: { type?: string; item_id?: unknown; transcript?: unknown; error?: { message?: string }; message?: string };
+      let evt: { type?: string; item_id?: unknown; transcript?: unknown; delta?: unknown; error?: { message?: string }; message?: string };
       try {
         evt = JSON.parse(e.data);
       } catch {
         return;
       }
+      console.log("[oai]", evt.type, evt);
       switch (evt.type) {
+        case "conversation.item.input_audio_transcription.delta": {
+          const delta = typeof evt.delta === "string" ? evt.delta : "";
+          if (delta) {
+            interimRef.current = interimRef.current
+              ? interimRef.current + delta
+              : delta;
+            scheduleRegenerate(sessionId);
+          }
+          break;
+        }
         case "conversation.item.input_audio_transcription.completed": {
           const id = String(evt.item_id ?? "");
           if (id && seenItemIdsRef.current.has(id)) break;
@@ -216,8 +236,10 @@ export function useLiveQuoteSession(opts: UseLiveQuoteSessionOpts) {
             committedRef.current = committedRef.current
               ? committedRef.current + " " + text
               : text;
-            scheduleRegenerate(sessionId);
           }
+          // Fold any interim into the committed turn boundary.
+          interimRef.current = "";
+          if (text) scheduleRegenerate(sessionId);
           break;
         }
         default: {
@@ -259,7 +281,7 @@ export function useLiveQuoteSession(opts: UseLiveQuoteSessionOpts) {
   }> {
     const sessionId = sessionIdRef.current;
     teardownTransport();
-    const transcript = committedRef.current.trim();
+    const transcript = fullTranscript().trim();
 
     if (!opts.finalize || !transcript) return { transcript, didRegenerate: false };
 
