@@ -168,6 +168,7 @@ export function useLiveQuoteSession(opts: UseLiveQuoteSessionOpts) {
   async function start(stream: MediaStream): Promise<void> {
     const sessionId = ++sessionIdRef.current;
     committedRef.current = "";
+    interimRef.current = "";
     seenItemIdsRef.current = new Set();
     inFlightRef.current = false;
     staleRef.current = false;
