@@ -433,6 +433,7 @@ function NewQuotePage() {
   const finaliseLiveSession = async (sessionId: number) => {
     if (!liveActiveRef.current) return;
     liveActiveRef.current = false;
+    setLiveActive(false);
     if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
     setRecording(false);
     // The hook owns the mic stream lifecycle — clear our refs so the meter
