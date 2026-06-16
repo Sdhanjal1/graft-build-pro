@@ -1401,25 +1401,37 @@ function NewQuotePage() {
           </div>
         )}
 
-        {/* Editable quote preview */}
-        {draft && !liveActive && (
+        {/* Editable quote preview — renders the moment the first regenerate
+            pass produces tiles. Stays mounted through the live session so
+            edits are immediate; the customer/payment/save sections below
+            stay hidden until the user taps Finish (those are gated
+            `draft && !liveActive`). */}
+        {draft && (
           <div ref={draftRef} className="card-surface overflow-hidden scroll-mt-20">
 
             <div className="bg-ink text-paper p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
-                  <p className="text-[11px] text-paper/55 mt-0.5">Tap any field to edit, or use voice →</p>
+                  <p className="text-[10px] uppercase tracking-widest text-lime font-bold">
+                    {liveActive ? "Listening · editable" : "Preview · editable"}
+                  </p>
+                  <p className="text-[11px] text-paper/55 mt-0.5">
+                    {liveActive
+                      ? "Tap any tile to edit while you speak."
+                      : "Tap any field to edit, or use voice →"}
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleEditByVoice}
-                  disabled={recording || transcribing || saving}
-                  className="inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-3 py-1 text-[11px] font-bold active:scale-[0.98] transition disabled:opacity-60 shrink-0"
-                >
-                  <Mic className="h-3 w-3" />
-                  Edit by voice
-                </button>
+                {!liveActive && (
+                  <button
+                    type="button"
+                    onClick={handleEditByVoice}
+                    disabled={recording || transcribing || saving}
+                    className="inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-3 py-1 text-[11px] font-bold active:scale-[0.98] transition disabled:opacity-60 shrink-0"
+                  >
+                    <Mic className="h-3 w-3" />
+                    Edit by voice
+                  </button>
+                )}
               </div>
               <p className="font-bold mt-2">{userProfile.business_name}</p>
               {userProfile.registration_number && (
