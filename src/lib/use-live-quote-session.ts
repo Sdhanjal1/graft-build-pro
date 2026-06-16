@@ -209,13 +209,24 @@ export function useLiveQuoteSession(opts: UseLiveQuoteSessionOpts) {
       console.error("[live] data channel error", e);
     });
     channel.addEventListener("message", (e) => {
-      let evt: { type?: string; item_id?: unknown; transcript?: unknown; error?: { message?: string }; message?: string };
+      let evt: { type?: string; item_id?: unknown; transcript?: unknown; delta?: unknown; error?: { message?: string }; message?: string };
       try {
         evt = JSON.parse(e.data);
       } catch {
         return;
       }
+      console.log("[oai]", evt.type, evt);
       switch (evt.type) {
+        case "conversation.item.input_audio_transcription.delta": {
+          const delta = typeof evt.delta === "string" ? evt.delta : "";
+          if (delta) {
+            interimRef.current = interimRef.current
+              ? interimRef.current + delta
+              : delta;
+            scheduleRegenerate(sessionId);
+          }
+          break;
+        }
         case "conversation.item.input_audio_transcription.completed": {
           const id = String(evt.item_id ?? "");
           if (id && seenItemIdsRef.current.has(id)) break;
@@ -225,8 +236,10 @@ export function useLiveQuoteSession(opts: UseLiveQuoteSessionOpts) {
             committedRef.current = committedRef.current
               ? committedRef.current + " " + text
               : text;
-            scheduleRegenerate(sessionId);
           }
+          // Fold any interim into the committed turn boundary.
+          interimRef.current = "";
+          if (text) scheduleRegenerate(sessionId);
           break;
         }
         default: {
