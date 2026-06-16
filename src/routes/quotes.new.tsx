@@ -369,11 +369,14 @@ function NewQuotePage() {
 
   const handleVoiceStart = async () => {
     if (saving) return;
+    recordTargetRef.current = "desc";
+    setEditVoiceOpen(false);
     closeRequestedRef.current = false;
     setVoiceError(null);
     setLastTranscript(null);
     setVoiceOpening(true);
     if (voiceParam === 1) navigate({ to: "/quotes/new", search: {}, replace: true });
+
     try {
       await startRecording();
     } catch (e) {
