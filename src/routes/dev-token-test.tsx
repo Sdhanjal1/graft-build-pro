@@ -71,6 +71,7 @@ function DevTokenTest() {
 
   // ---- Stage 2b: live transcript harness -----------------------------------
   const connect = useServerFn(connectRealtimeCall);
+  const generate = useServerFn(generateAIQuote);
 
   const [status, setStatus] = useState<HarnessStatus>("idle");
   const [committed, setCommitted] = useState("");
@@ -78,10 +79,58 @@ function DevTokenTest() {
   const [speaking, setSpeaking] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
+  // Stage 3: live tiles
+  const [tiles, setTiles] = useState<Tile[]>([]);
+  const [updating, setUpdating] = useState(false);
+  const committedRef = useRef("");
+  const regenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inFlightRef = useRef(false);
+  const staleRef = useRef(false);
+
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const channelRef = useRef<RTCDataChannel | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const seenItemIdsRef = useRef<Set<string>>(new Set());
+
+  async function runRegenerate() {
+    const text = committedRef.current.trim();
+    if (!text) return;
+    if (inFlightRef.current) {
+      staleRef.current = true;
+      return;
+    }
+    inFlightRef.current = true;
+    staleRef.current = false;
+    setUpdating(true);
+    console.log("[tiles] regenerate fired; transcript:", text);
+    try {
+      const result = await generate({
+        data: { description: text, trade: "Plumber", vatRegistered: false },
+      });
+      console.log("[tiles] returned items:", result.line_items.length, result);
+      setTiles(result.line_items);
+    } catch (e) {
+      console.error("[tiles] regenerate failed", e);
+      const msg = e instanceof Error ? e.message : String(e);
+      setErrors((xs) => [...xs, `regenerate: ${msg}`]);
+    } finally {
+      inFlightRef.current = false;
+      setUpdating(false);
+      if (staleRef.current) {
+        staleRef.current = false;
+        // run once more to capture latest transcript
+        runRegenerate();
+      }
+    }
+  }
+
+  function scheduleRegenerate() {
+    if (regenTimerRef.current) clearTimeout(regenTimerRef.current);
+    regenTimerRef.current = setTimeout(() => {
+      regenTimerRef.current = null;
+      runRegenerate();
+    }, 1200);
+  }
 
   function teardown(nextStatus: HarnessStatus = "stopped") {
     try {
