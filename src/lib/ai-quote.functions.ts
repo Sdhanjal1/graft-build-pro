@@ -185,6 +185,10 @@ Examples:
 - "Two days labour on site" → { description: "On-site labour", qty: 2, unit_price: <day rate>, unit: "days", category: "labour", source: "learned", is_estimate: false }
 - "Three hours work" → { description: "Labour", qty: 3, unit_price: <hourly rate>, unit: "hours", category: "labour", source: "learned", is_estimate: false }
 - "Three radiators" (no price spoken) → { description: "Radiator", qty: 3, unit_price: <estimate>, unit: "qty", category: "materials", source: "ai", is_estimate: true }
+- "Annual boiler service" → { description: "Annual boiler service", qty: 1, unit_price: <job total>, unit: "qty", category: "labour", source: "ai", is_estimate: true }
+
+QTY FIELD — STRICT, NON-NEGOTIABLE:
+Every line item MUST have qty >= 1. NEVER emit qty: 0, negative, or missing. For service-type / fixed-fee work (boiler service, gas safety / CP12, EICR, PAT test, callout, inspection) where quantity isn't a unit count, use qty: 1 and put the full price in unit_price. If unsure, default qty to 1.
 
 JOB DESCRIPTION — write a clean, concise, professional summary of the work for the customer-facing quote. Extract only the scope of work from what the tradesperson said. Do NOT include:
 - Customer names, phone numbers, or email addresses
