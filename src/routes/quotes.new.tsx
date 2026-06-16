@@ -1013,7 +1013,11 @@ function NewQuotePage() {
 
   return (
     <AppShell>
-      {(editVoiceOpen || !draft) && (recording || transcribing || voicePending || voiceError || voiceOpening) && !(liveActive && draft && !voiceError) && (
+      {/* VoiceOverlay is now ONLY used for edit-by-voice. The main desc
+          voice flow happens entirely on the quote screen (mic CTA →
+          LiveRecordingBar → tiles in place → stop finalises). Clip
+          recordings use their own inline UI elsewhere. */}
+      {editVoiceOpen && (recording || transcribing || voicePending || voiceError || voiceOpening) && (
         <VoiceOverlay
           recording={recording}
           transcribing={transcribing}
@@ -1036,11 +1040,10 @@ function NewQuotePage() {
         />
       )}
 
-      {/* LIVE RECORDING BAR — compact sticky control shown once tiles start
-          appearing during a live desc recording, so the building draft stays
-          visible. The full hero overlay only shows for the empty/initial
-          state and for clip/edit modes. */}
-      {liveActive && recording && draft && !voiceError && (
+      {/* LIVE RECORDING BAR — single control for the entire main desc voice
+          session. Mounts as soon as the live transport is up (even before
+          the first tile lands) and stays put until stop finalises. */}
+      {liveActive && recording && !voiceError && (
         <LiveRecordingBar
           seconds={recordSeconds}
           streamRef={sharedStreamRef}
