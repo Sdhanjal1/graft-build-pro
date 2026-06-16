@@ -133,6 +133,11 @@ function DevTokenTest() {
   }
 
   function teardown(nextStatus: HarnessStatus = "stopped") {
+    if (regenTimerRef.current) {
+      clearTimeout(regenTimerRef.current);
+      regenTimerRef.current = null;
+    }
+    staleRef.current = false;
     try {
       channelRef.current?.close();
     } catch {}
@@ -147,6 +152,7 @@ function DevTokenTest() {
     pcRef.current = null;
     setSpeaking(false);
     setInterim("");
+    setUpdating(false);
     setStatus(nextStatus);
   }
 
