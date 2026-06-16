@@ -1,63 +1,72 @@
-# Stage 1 — Ephemeral Realtime token server function
+# Stage 2a — SDP relay for the realtime call
 
-Pure additive change. No UI wiring, no other files touched. This proves the security foundation before any WebRTC work in Stage 2.
+Pure additive. No UI wiring. Sits next to `createRealtimeTranscriptionToken` in the same file.
 
 ## What changes
 
-**New file:** `src/lib/realtime-token.functions.ts`
+**Edit:** `src/lib/realtime-token.functions.ts` — add one export, `connectRealtimeCall`.
 
-A `createServerFn({ method: "POST" })` named `createRealtimeTranscriptionToken` that:
+```ts
+export const connectRealtimeCall = createServerFn({ method: "POST" })
+  .middleware([requireActiveSubscription])
+  .inputValidator((input) => z.object({
+    sdp: z.string().min(1).max(64_000),       // SDP offers are small; cap defensively
+    ephemeralToken: z.string().min(1).max(4_000),
+  }).parse(input))
+  .handler(async ({ data }) => {
+    // POST raw SDP to https://api.openai.com/v1/realtime/calls
+    //   Authorization: Bearer <ephemeralToken>
+    //   Content-Type: application/sdp
+    //   body: data.sdp
+    // 30s timeout via AbortSignal.timeout(30_000).
+    // On !ok: read text body, log status + truncated body (NO token), throw.
+    // On ok: return { answer: await res.text() }.
+  });
+```
 
-- Reads `process.env.OPENAI_API_KEY` (same pattern as `transcribe.functions.ts`).
-- Accepts an optional `{ userId?: string }` input and, when present, sends it as the `OpenAI-Safety-Identifier` header so the ephemeral token is bound to that user for abuse monitoring (browser never sends it).
-- `POST`s to `https://api.openai.com/v1/realtime/client_secrets` with a `session` body of `type: "transcription"`, `gpt-4o-mini-transcribe`, `language: "en"`, the existing UK-trade prompt, PCM 24 kHz input, and `server_vad` with `silence_duration_ms: 700`.
-- 60s timeout via `AbortSignal.timeout(60_000)`, matching the surrounding code style.
-- On non-2xx, throws with status + truncated body for diagnosability (matches `transcribeAudio` error tone).
-- Returns only `{ token, expiresAt }` — never the real key, never the full provider payload.
+Behaviour mirrors `createRealtimeTranscriptionToken`:
 
-## Deliberate deviations from the pasted snippet
+- Gated by `requireActiveSubscription` (which chains `requireSupabaseAuth`).
+- Real `OPENAI_API_KEY` is NOT read or sent — the ephemeral token authenticates this call. That's the whole point of the relay.
+- 30 s timeout; `TimeoutError`/`AbortError` → friendly "Took too long" message.
+- Non-2xx: `console.error("OpenAI Realtime SDP exchange failed", status, body.slice(0, 500))`, then throw `Realtime SDP exchange failed (${status}): ${body.slice(0, 300)}`. The token never appears in the logged/thrown output (it lives only in the request headers).
+- Returns `{ answer: string }` — the SDP answer text verbatim.
 
-These are small but worth flagging so there are no surprises on apply:
+Adds `import { z } from "zod"` if not already present in the file (currently it isn't — `createRealtimeTranscriptionToken` takes no input). Switches to a `zod`-validated `.inputValidator(...)` so the SDP and token sizes are bounded server-side.
 
-1. `**.inputValidator`, not `.validator`.** Current TanStack Start uses `.inputValidator()` in this codebase (see `transcribe.functions.ts`); `.validator()` would fail to typecheck. The behaviour is identical.
-2. **No `requireActiveSubscription` middleware on this stage.** `transcribeAudio` gates on subscription, and live transcription will cost money per session, so eventually this must gate too. For Stage 1 the goal is "prove the token mints"; I'll leave a `TODO` comment in the file noting that `requireSupabaseAuth` + `requireActiveSubscription` should be added before Stage 2 wires it to the client. Call out if you'd rather I add the gating now — it's one line and one import, but it means you can't test-call it without a signed-in, subscribed user.
-3. `**userId` source.** The snippet takes `userId` from the client. That's spoofable — a malicious client could pass anyone's id. The right shape is to derive `userId` server-side from `requireSupabaseAuth` context (which lands in Stage 2 prep above). For Stage 1, I'll accept it as input but mark it `TODO: replace with context.userId once auth middleware is added`, so we don't bake in a foot-gun.
+## Deliberate design notes
+
+1. **Why relay instead of letting the browser hit `/v1/realtime/calls` directly?** With a valid ephemeral token the browser technically *can* call `/v1/realtime/calls` itself. Going via our server has two real benefits: (a) the subscription gate runs on the SDP exchange too, so a stale ephemeral token can't be used to start a session after a user's trial lapses mid-flow; (b) future migration off OpenAI (or to a different realtime variant) is a one-file change. Cost is one extra network hop on session start — fine.
+2. **Token in the request, not logged.** The ephemeral token is in the `Authorization` header only. The error branch logs status + body slice; neither contains the token. No `console.log` of `data` anywhere.
+3. **No `OpenAI-Safety-Identifier` on this call.** The identifier was bound to the token when it was minted (Stage 1). Per the Realtime docs the binding travels with the token, so we don't re-send it here.
+4. `**maxBytes` caps.** SDP offers are typically a few KB; `64_000` is generous. Ephemeral tokens are short; `4_000` is way over actual size but cheap insurance.
 
 ## What does NOT change
 
-- `src/lib/transcribe.functions.ts` — untouched; remains the fallback path.
-- `src/routes/quotes.new.tsx` — no call site, no import. Stage 1 is provable from a one-off invocation alone.
-- No new secrets, no new env vars (`OPENAI_API_KEY` is already configured).
-- No `src/start.ts` changes (no new middleware in this stage).
+- `createRealtimeTranscriptionToken` — untouched.
+- `src/lib/transcribe.functions.ts` — untouched (fallback path).
+- No UI, no call sites. Stage 2b will wire the browser's `RTCPeerConnection` and call both functions in sequence.
 
-## How to verify before Stage 2
+## Verification (deferred to Stage 2b)
 
-Once built, invoke `createRealtimeTranscriptionToken` once (temporary button, dev console, or `stack_modern--invoke-server-function`). Success = response object with `token` (string, typically `ek_…`) and a future `expiresAt`. Failure = paste the status + body and I'll adjust the `session` nesting; OpenAI's Realtime config shape has minor version variance and the error message tells us exactly what to change.
+This function can't be meaningfully tested standalone — it needs a real SDP offer from a live `RTCPeerConnection` and a fresh (60 s TTL) ephemeral token. Stage 2b's first deliverable will be the smallest possible "open connection, log transcript events" harness; that's where we verify both Stage 1 and Stage 2a end-to-end.
 
-## Open questions before I implement
+## Open question
 
-1. **Add `requireSupabaseAuth` + `requireActiveSubscription` now, or in Stage 2?** Recommendation: add now (one extra import, one extra `.middleware([...])` line, and derive `userId` from `context` instead of input) so we never ship an unauthenticated public token-minting endpoint, even briefly. Confirm and I'll include it.
+None — spec is unambiguous. Ready to build on approval.
 
-1. Confirmed: add the gating now.
+This plan is correct and well-reasoned. The relay-vs-direct justification is sound — and notably, point 1(a) answers the open question I raised: routing the SDP exchange through your server means the subscription gate runs again at session start, so a token minted during a trial can’t be used to open a session after the trial lapses mid-flow. That’s a real security benefit and it settles it: keep the relay, don’t go browser-direct. Good call, and better reasoning than my “maybe we drop 2a” hedge.
 
-Add requireSupabaseAuth + requireActiveSubscription middleware to createRealtimeTranscriptionToken in this stage. Derive userId server-side from the auth context for the OpenAI-Safety-Identifier header. Remove the client-supplied userId input entirely — don’t accept it as a parameter at all, so there’s nothing spoofable. No TODO placeholders; ship it fully gated.
+Four additional notes to send back before they build:
 
-2. Match the exact middleware pattern from transcribeAudio.
+1. Verify the ephemeral token TTL the plan assumes. The plan’s verification section says “fresh (60s TTL)” — but your Stage 1 test showed 600s, not 60. That’s not a problem, it’s better, but make sure no code anywhere assumes a 60-second expiry. The mint→offer→relay→connect sequence is fast, but I want the assumption corrected in their heads so nobody builds a too-tight refresh timer later.
 
-Use whatever import paths and middleware-array syntax transcribeAudio already uses for requireSupabaseAuth / requireActiveSubscription — don’t introduce a new pattern. And read how transcribeAudio pulls the user id out of context (the field name), so the safety identifier uses the same source of truth.
+2. Confirm the SDP answer is returned as raw text, not JSON-wrapped. OpenAI returns the SDP answer as application/sdp text. The plan says return { answer: await res.text() } — good. Just confirm nothing in the TanStack serverFn response path mangles or re-encodes that string (SDP is whitespace/newline-sensitive; if it gets trimmed or re-escaped, the browser’s setRemoteDescription will fail). The answer must arrive at the browser byte-identical.
 
-3. Keep the userId privacy-preserving.
+3. Content-Type on the response check. Add a note: if OpenAI returns a non-2xx that’s actually JSON (an error object) rather than SDP, the error branch should still read it as text safely — which the plan does. Fine as-is, just confirming the error path doesn’t assume SDP shape.
 
-The safety identifier should be a stable internal id (the Supabase user id is fine) — not an email or anything personally identifying. If the auth context exposes both, use the opaque user id.
+4. One question to answer in the plan, not assume: does requireActiveSubscription middleware add meaningful latency to this call? The SDP exchange is in the critical path of session startup — if the middleware does a fresh DB round-trip to Supabase on every call, that’s added before the connection even opens. Probably fine, but confirm it’s not doing something heavy synchronously, because this call’s speed is felt directly by Nav as “time to first word.”
 
-4. Don’t log the token or the real key.
+None of these change the architecture — they’re guardrails on the load-bearing details (token TTL, SDP integrity, startup latency). Send them, approve, and build.
 
-In the error-handling branch, make sure the truncated body that gets thrown/logged can’t include the ephemeral token value or any Authorization header. Log status + a safe slice of the error body only.
-
-5. Confirm the response-shape hedge stays.
-
-Keep the defensive extraction (client_secret?.value ?? value, client_secret?.expires_at ?? expires_at) so a minor API version difference doesn’t break it silently — and keep the note that a 400 means we adjust the session nesting against the actual error message.
-
-6. One question back for Lovable to answer in the plan, not assume:
-
-Does requireActiveSubscription currently allow users still inside their 14-day free trial? 
+&nbsp;
