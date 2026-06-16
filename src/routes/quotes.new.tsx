@@ -705,6 +705,7 @@ function NewQuotePage() {
     closeRequestedRef.current = false;
     setVoiceError(null);
     deletedDescsRef.current = new Set();
+    editedOrigDescsRef.current = new Set();
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
       setVoiceOpening(false);
