@@ -1710,7 +1710,7 @@ function NewQuotePage() {
       </form>
 
       {/* Sticky save bar (draft state) */}
-      {draft && (
+      {draft && !liveActive && (
         <div className="fixed bottom-0 inset-x-0 z-30 px-3 pb-3 safe-bottom pointer-events-none">
           <div className="mx-auto max-w-md pointer-events-auto space-y-2">
             {error && (
