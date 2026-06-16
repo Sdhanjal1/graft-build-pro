@@ -23,6 +23,7 @@ import { toast } from "sonner";
 
 
 import { generateAIQuote } from "@/lib/ai-quote.functions";
+import { useLiveQuoteSession } from "@/lib/use-live-quote-session";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search, Send, Check, Banknote, Zap, Mic, ChevronRight, AlertCircle, ArrowLeftRight, Keyboard } from "lucide-react";
