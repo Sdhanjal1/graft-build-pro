@@ -1641,7 +1641,7 @@ function NewQuotePage() {
         )}
 
         {/* Payment — after customer */}
-        {draft && (
+        {draft && !liveActive && (
           <div className="space-y-3">
             <div>
               <h3 className="text-lg font-bold">Payment</h3>
