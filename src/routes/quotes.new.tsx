@@ -520,18 +520,42 @@ function NewQuotePage() {
     }
   };
 
+  // Cancel the live session WITHOUT committing a final regenerate. Tiles
+  // built so far stay in `draft` — the user can keep editing and save
+  // manually, or tap the mic again to resume. The secondary X control on
+  // the LiveRecordingBar maps to this.
+  const cancelLiveSession = () => {
+    if (!liveActiveRef.current) return;
+    liveActiveRef.current = false;
+    setLiveActive(false);
+    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+    setRecording(false);
+    sharedStreamRef.current = null;
+    streamRef.current = null;
+    // No finalize pass — drop whatever's in flight and keep the current draft.
+    void live.stop({ finalize: false });
+  };
+
+  // Primary commit path bound to the new on-screen "Finish quote" button.
+  // Runs the final regenerate and unmounts the live UI; the rest of the
+  // page (customer, payment, save bar) then renders via its `draft && !liveActive` gates.
+  const handleFinishLive = () => {
+    if (!liveActiveRef.current) return;
+    const elapsed = Date.now() - recordStartRef.current;
+    const remaining = MIN_RECORD_MS - elapsed;
+    if (remaining > 0) {
+      setTimeout(handleFinishLive, remaining);
+      return;
+    }
+    const sessionId = voiceSessionRef.current;
+    void finaliseLiveSession(sessionId);
+  };
+
   const stopRecording = () => {
-    // Enforce MIN_RECORD_MS for both paths so a fat-fingered tap doesn't
-    // close the session before any speech reaches the wire.
+    // Live mode: the stop control is now "cancel" — tear down the session
+    // but keep any tiles already on screen. Finish is a separate button.
     if (liveActiveRef.current) {
-      const elapsed = Date.now() - recordStartRef.current;
-      const remaining = MIN_RECORD_MS - elapsed;
-      if (remaining > 0) {
-        setTimeout(stopRecording, remaining);
-        return;
-      }
-      const sessionId = voiceSessionRef.current;
-      void finaliseLiveSession(sessionId);
+      cancelLiveSession();
       return;
     }
     const mr = mediaRecorderRef.current;
