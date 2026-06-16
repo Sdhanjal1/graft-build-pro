@@ -464,6 +464,95 @@ function DevTokenTest() {
         )}
       </div>
 
+      {/* ---- Stage 3: live tiles ---- */}
+      <div style={{ marginTop: 20 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 8,
+            fontSize: 13,
+          }}
+        >
+          <h3 style={{ fontSize: 13, margin: 0, fontFamily: "monospace" }}>
+            tiles ({tiles.length})
+          </h3>
+          <span style={{ fontSize: 12, opacity: updating ? 0.9 : 0, transition: "opacity .2s" }}>
+            updating…
+          </span>
+        </div>
+        {tiles.length === 0 ? (
+          <div
+            style={{
+              padding: 14,
+              background: "#fafafa",
+              border: "1px dashed #ddd",
+              borderRadius: 8,
+              fontSize: 13,
+              opacity: 0.5,
+              fontFamily: "ui-sans-serif, system-ui, sans-serif",
+            }}
+          >
+            — tiles will appear here after you pause —
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {tiles.map((t, i) => {
+              const total = t.qty * t.unit_price;
+              return (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    padding: "10px 12px",
+                    background: "#fff",
+                    border: "1px solid #e5e5e5",
+                    borderRadius: 8,
+                    fontFamily: "ui-sans-serif, system-ui, sans-serif",
+                    fontSize: 14,
+                  }}
+                >
+                  <span style={{ flex: 1 }}>
+                    {t.description}
+                    {t.qty !== 1 ? (
+                      <span style={{ opacity: 0.5 }}>
+                        {" "}
+                        × {t.qty}
+                        {t.unit && t.unit !== "qty" ? ` ${t.unit}` : ""}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                    £{total.toFixed(2)}
+                  </span>
+                </div>
+              );
+            })}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "10px 12px",
+                marginTop: 4,
+                background: "#f3f3f3",
+                borderRadius: 8,
+                fontFamily: "ui-sans-serif, system-ui, sans-serif",
+                fontWeight: 700,
+                fontSize: 14,
+              }}
+            >
+              <span>Total (ex VAT)</span>
+              <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                £{tiles.reduce((s, t) => s + t.qty * t.unit_price, 0).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
       {errors.length > 0 && (
         <div
           style={{
