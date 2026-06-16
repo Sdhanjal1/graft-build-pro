@@ -14,6 +14,8 @@ const InputSchema = z.object({
 
 const LineItemSchema = z.object({
   description: z.string().min(1).max(240),
+  // Accept any number here; we filter qty <= 0 / missing defensively before
+  // schema parse so one bad line doesn't fail the whole quote.
   qty: z.number().positive().max(1000),
   unit_price: z.number().nonnegative().max(100000),
   source: z.enum(["voice", "learned", "ai"]).optional().default("ai"),
