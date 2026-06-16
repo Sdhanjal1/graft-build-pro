@@ -1475,6 +1475,7 @@ function NewQuotePage() {
                       <textarea
                         value={li.description}
                         onChange={(e) => {
+                          markLineEdited(li);
                           const next = [...draft.line_items];
                           next[i] = { ...li, description: e.target.value };
                           setDraft({ ...draft, line_items: next });
@@ -1492,6 +1493,9 @@ function NewQuotePage() {
                             return;
                           }
                           setConfirmTrashIdx(null);
+                          // Tombstone so a subsequent live regenerate pass
+                          // doesn't re-add this line.
+                          if (li._origDesc) deletedDescsRef.current.add(li._origDesc);
                           const next = draft.line_items.filter((_, idx) => idx !== i);
                           setDraft({ ...draft, line_items: next.length ? next : [{ description: "", qty: 1, unit_price: 0 }] });
                         }}
@@ -1519,6 +1523,7 @@ function NewQuotePage() {
                           step="0.1"
                           value={li.qty}
                           onChange={(e) => {
+                            markLineEdited(li);
                             const next = [...draft.line_items];
                             next[i] = { ...li, qty: parseFloat(e.target.value) || 0 };
                             setDraft({ ...draft, line_items: next });
@@ -1533,6 +1538,7 @@ function NewQuotePage() {
                               key={u}
                               type="button"
                               onClick={() => {
+                                markLineEdited(li);
                                 const next = [...draft.line_items];
                                 next[i] = { ...li, unit: u };
                                 setDraft({ ...draft, line_items: next });
@@ -1553,6 +1559,7 @@ function NewQuotePage() {
                           step="0.01"
                           value={li.unit_price}
                           onChange={(e) => {
+                            markLineEdited(li);
                             const next = [...draft.line_items];
                             next[i] = { ...li, unit_price: parseFloat(e.target.value) || 0 };
                             setDraft({ ...draft, line_items: next });
