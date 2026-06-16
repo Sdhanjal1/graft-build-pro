@@ -101,3 +101,82 @@ export const createRealtimeTranscriptionToken = createServerFn({ method: "POST" 
 
     return { token, expiresAt };
   });
+
+/**
+ * Relays the WebRTC SDP handshake with OpenAI's Realtime API.
+ *
+ * The browser creates an RTCPeerConnection, generates an SDP offer, and posts
+ * it through this server function alongside the ephemeral token it just
+ * minted. We forward the SDP to OpenAI authenticated by the ephemeral token —
+ * the real OPENAI_API_KEY is never read or sent here. The SDP answer is
+ * returned verbatim for the browser to feed into setRemoteDescription.
+ *
+ * Why relay instead of letting the browser call /v1/realtime/calls directly:
+ *  - requireActiveSubscription runs on the SDP exchange too, so a token
+ *    minted just before a trial lapse can't be used to open a session.
+ *  - Single chokepoint for future provider/model changes.
+ *
+ * Notes for callers:
+ *  - Ephemeral tokens issued by Stage 1 currently have a ~600s TTL (observed),
+ *    not 60s — do NOT build tight refresh timers around an assumed 60s.
+ *  - The SDP answer is whitespace/newline-sensitive; it MUST reach the
+ *    browser byte-identical. We return it as a plain string in a JSON DTO;
+ *    TanStack's JSON serialization preserves the string exactly.
+ *  - The error branch reads the body as text (never assumes SDP shape), so
+ *    JSON error envelopes from OpenAI are logged safely.
+ *  - requireActiveSubscription does one Supabase SELECT (1 row, indexed by
+ *    user_id) — see require-active-subscription.ts. Single round-trip; not a
+ *    meaningful contributor to time-to-first-word.
+ */
+export const connectRealtimeCall = createServerFn({ method: "POST" })
+  .middleware([requireActiveSubscription])
+  .inputValidator((input) =>
+    z
+      .object({
+        sdp: z.string().min(1).max(64_000),
+        ephemeralToken: z.string().min(1).max(4_000),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    let res: Response;
+    try {
+      res = await fetch("https://api.openai.com/v1/realtime/calls", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${data.ephemeralToken}`,
+          "Content-Type": "application/sdp",
+        },
+        body: data.sdp,
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch (err) {
+      const name = (err as { name?: string })?.name;
+      if (name === "TimeoutError" || name === "AbortError") {
+        throw new Error("Took too long — check your connection and try again.");
+      }
+      throw err;
+    }
+
+    if (!res.ok) {
+      // Body may be SDP, plain text, or a JSON error envelope — read as text
+      // so we don't assume a shape. The ephemeral token lives only in the
+      // request Authorization header above, so it is NOT in the response body
+      // and will not leak via this log/throw.
+      const body = await res.text().catch(() => "");
+      console.error("OpenAI Realtime SDP exchange failed", res.status, body.slice(0, 500));
+      if (res.status === 401) {
+        throw new Error("Realtime session token was rejected. Please try again.");
+      }
+      if (res.status === 429) {
+        throw new Error("OpenAI rate limit hit. Wait a moment and try again.");
+      }
+      throw new Error(`Realtime SDP exchange failed (${res.status}): ${body.slice(0, 300)}`);
+    }
+
+    const answer = await res.text();
+    if (!answer) {
+      throw new Error("Realtime SDP exchange returned an empty answer.");
+    }
+    return { answer };
+  });
