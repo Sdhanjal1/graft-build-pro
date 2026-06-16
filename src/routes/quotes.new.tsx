@@ -1286,22 +1286,24 @@ function NewQuotePage() {
                 </div>
               )}
 
-              <button
-                type="submit"
-                form="new-quote-form"
-                disabled={loading || subBlocked}
-                onPointerDown={() => feedback("tap")}
-                className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition disabled:opacity-60 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.35)]"
-              >
-                {loading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : error ? (
-                  <RefreshCw className="h-5 w-5" />
-                ) : (
-                  <Sparkles className="h-5 w-5" />
-                )}
-                {loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : error ? "Retry generate" : "Generate quote"}
-              </button>
+              {!liveActive && !(recording && recordTargetRef.current === "desc") && !(transcribing && recordTargetRef.current === "desc") && (
+                <button
+                  type="submit"
+                  form="new-quote-form"
+                  disabled={loading || subBlocked}
+                  onPointerDown={() => feedback("tap")}
+                  className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition disabled:opacity-60 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.35)]"
+                >
+                  {loading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : error ? (
+                    <RefreshCw className="h-5 w-5" />
+                  ) : (
+                    <Sparkles className="h-5 w-5" />
+                  )}
+                  {loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : error ? "Retry generate" : "Generate quote"}
+                </button>
+              )}
             </div>
           </div>
         )}
