@@ -22,8 +22,7 @@ import { resolveTrade } from "@/lib/trades";
 import { toast } from "sonner";
 
 
-import { generateAIQuote } from "@/lib/ai-quote.functions";
-import { useLiveQuoteSession } from "@/lib/use-live-quote-session";
+import { generateAIQuote, prefetchQuoteContext } from "@/lib/ai-quote.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { transcribeAudio } from "@/lib/transcribe.functions";
 import { Sparkles, Square, Save, RefreshCw, Loader2, Plus, Trash2, X, Search, Send, Check, Banknote, Zap, Mic, ChevronRight, AlertCircle, ArrowLeftRight, Keyboard } from "lucide-react";
@@ -104,14 +103,7 @@ export const Route = createFileRoute("/quotes/new")({
   }),
 });
 
-/** Live-session bookkeeping fields. `_origDesc` is the AI's original
- *  normalised description for this line at the time it first arrived from a
- *  regenerate pass; stays constant even if the user edits the description.
- *  Used by the live-merge logic in `onResult` to identify which lines the
- *  user has touched so subsequent passes don't clobber edits.
- *  Stripped from line_items before persistence (see `save`). */
-type LiveLineItem = LineItem & { _origDesc?: string };
-type Draft = { title: string; line_items: LiveLineItem[] } | null;
+type Draft = { title: string; line_items: LineItem[] } | null;
 
 type Clip = { id: string; transcript: string };
 
@@ -153,12 +145,14 @@ function NewQuotePage() {
   const [voiceOpening, setVoiceOpening] = useState(false);
   useEffect(() => { if (recording) setVoiceOpening(false); }, [recording]);
   const [lastTranscript, setLastTranscript] = useState<string | null>(null);
+  const [livePreview, setLivePreview] = useState<string>("");
+  const [liveSupported, setLiveSupported] = useState<boolean>(true);
   
   const [draft, setDraft] = useState<Draft>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const generateFn = useServerFn(generateAIQuote);
-  
+  const prefetchFn = useServerFn(prefetchQuoteContext);
   const transcribeFn = useServerFn(transcribeAudio);
   const { canUse: subActive, blocked: subBlocked, loading: subLoading } = useSubscription();
   const paidQuoteCount = usePaidQuoteCount();
@@ -185,106 +179,68 @@ function NewQuotePage() {
   const [showTyping, setShowTyping] = useState(!!typeParam);
   const [confirmTrashIdx, setConfirmTrashIdx] = useState<number | null>(null);
   const originalDraftRef = useRef<string>("");
-  // Set true when a voice finalise wants the page to scroll to the freshly
-  // committed draft. The scroll runs in an effect that watches `draft` so it
-  // fires AFTER React has painted the draft surface into the DOM, not before.
-  const pendingScrollToDraftRef = useRef<boolean>(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+  const liveFinalRef = useRef<string>("");
+  const liveInterimRef = useRef<string>("");
+  const firstItemsLandedRef = useRef<boolean>(false);
+  
 
+  // LIVE per-phrase pipeline: each recognised final phrase fires a parallel
+  // Haiku generate call. Items append as soon as their phrase resolves.
+  const [liveItems, setLiveItems] = useState<LineItem[]>([]);
+  const liveItemsRef = useRef<LineItem[]>([]);
+  const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
+  const [building, setBuilding] = useState(false);
+  const pendingItemsRef = useRef<PendingItem[]>([]);
+  const pendingCountRef = useRef(0);
+  const phraseSeqRef = useRef(0);
+  const lastFinalIdxRef = useRef(-1);
   const voiceSessionRef = useRef(0);
   const closeRequestedRef = useRef(false);
-  // Session-scoped tombstones so user deletions during recording survive a
-  // subsequent voice-add pass. Keyed by normalised description.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const prefetchedContextRef = useRef<any>(null);
+  const liveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks the latest in-flight regenerateLiveQuote so we can await it before
+  // deciding whether to run the Whisper fallback in `mr.onstop`.
+  const regenerateInFlightRef = useRef<Promise<void> | null>(null);
+  // Latest successful per-phrase AI response metadata — used at stop time so the
+  // live flow keeps the AI's clean title / description / extracted customer
+  // instead of falling back to deriveTitle + raw transcript.
+  const lastLiveGenRef = useRef<{
+    title?: string;
+    clean_description?: string;
+    extracted_customer?: { name?: string; phone?: string };
+  } | null>(null);
+  // Session-scoped tombstones + edit overrides so user changes during recording
+  // survive the next regenerateLiveQuote pass. Keyed by normalised description.
   const deletedDescsRef = useRef<Set<string>>(new Set());
-  // Original (AI-issued) normalised descriptions for lines the user has
-  // edited during the current live session. Lines with an `_origDesc` in
-  // this set are preserved verbatim on subsequent regenerate passes so
-  // in-flight edits survive. Reset on each new live session.
-  const editedOrigDescsRef = useRef<Set<string>>(new Set());
+  const editedItemsRef = useRef<Map<string, LineItem>>(new Map());
   const normDesc = (s: string) => s.trim().toLowerCase();
-  // Mark a line as user-edited. Safe to call on every onChange — if the
-  // line wasn't issued by the AI (manually added) it has no `_origDesc`
-  // and is preserved by the merge anyway.
-  const markLineEdited = (li: LiveLineItem) => {
-    if (li._origDesc) editedOrigDescsRef.current.add(li._origDesc);
-  };
+  // Cumulative offset for Web Speech result indices across browser auto-restarts.
+  // Each restart's `event.resultIndex` becomes `offset + index` for monotone tracking.
+  const speechIndexOffsetRef = useRef<number>(0);
+  const LIVE_PAUSE_MS = 2000;
 
   // Kept as inert ref so nothing from older code paths leaks.
   const sharedStreamRef = useRef<MediaStream | null>(null);
 
-  // Live realtime path — when true, the active recording session is being
-  // streamed through useLiveQuoteSession rather than buffered into a
-  // MediaRecorder + Whisper finalise. Stays false for clip/edit modes.
-  const liveActiveRef = useRef(false);
-  // State mirror of liveActiveRef so renders react. Drives the compact
-  // sticky bar vs full overlay decision below.
-  const [liveActive, setLiveActive] = useState(false);
 
-  const live = useLiveQuoteSession({
-    trade,
-    vatRegistered: vat,
-    onResult: (g, transcript) => {
-      // Stale-session guard: if the user closed or restarted while a pass
-      // was in flight, drop the result rather than overwriting the draft.
-      if (closeRequestedRef.current) return;
-      // Don't auto-scroll while live — the user is already on the editable
-      // surface; the scroll-to-draft effect runs only after finalise.
-      const isLive = liveActiveRef.current;
+  const clearPendingItems = () => {
+    pendingItemsRef.current = [];
+    setPendingItems([]);
+  };
 
-      setDraft((prev) => {
-        // Tag fresh AI items with their original normalised description so
-        // future passes can identify them across user edits.
-        const taggedIncoming: LiveLineItem[] = g.line_items.map((li) => ({
-          ...li,
-          _origDesc: normDesc(li.description),
-        }));
-
-        if (!isLive || !prev) {
-          // Non-live path (clip-style finalise, or first pass before any
-          // user interaction): replace wholesale, matching prior behaviour.
-          if (!isLive) pendingScrollToDraftRef.current = true;
-          return { title: g.title, line_items: taggedIncoming };
-        }
-
-        // Live merge:
-        //   1. Keep user-edited lines verbatim (by their `_origDesc`).
-        //   2. Keep manually-added lines verbatim (no `_origDesc`).
-        //   3. From the new pass, drop anything whose normDesc matches a
-        //      kept-edited slot, anything the user deleted, or anything
-        //      we've already kept.
-        const editedKeys = editedOrigDescsRef.current;
-        const deletedKeys = deletedDescsRef.current;
-        const kept: LiveLineItem[] = prev.line_items.filter(
-          (li) => !li._origDesc || editedKeys.has(li._origDesc),
-        );
-        const keptOrigs = new Set(
-          kept.map((li) => li._origDesc).filter((k): k is string => !!k),
-        );
-        const additions = taggedIncoming.filter((li) => {
-          const k = li._origDesc!;
-          if (keptOrigs.has(k)) return false;
-          if (editedKeys.has(k)) return false;
-          if (deletedKeys.has(k)) return false;
-          return true;
-        });
-        const merged = [...kept, ...additions];
-        return { title: prev.title || g.title, line_items: merged };
-      });
-
-      // Keep the originalDraftRef tracking the latest AI shape for save-state
-      // comparison; the merged draft itself is what we render.
-      originalDraftRef.current = JSON.stringify(g.line_items);
-      setDesc(g.clean_description || transcript);
-      const ec = g.extracted_customer;
-      // Functional setState — avoids stale-closure overwrites of names the
-      // user typed mid-recording.
-      if (ec?.name) setClientName((prev) => (prev.trim() ? prev : ec.name!));
-      if (ec?.phone) setClientPhone((prev) => (prev.trim() ? prev : ec.phone!));
-    },
-    onError: (msg) => {
-      setVoiceError(msg);
-      setError(msg);
-    },
-  });
+  const waitForPendingPhraseProcessing = async (timeoutMs = 30_000) => {
+    const start = Date.now();
+    while (pendingCountRef.current > 0 || pendingItemsRef.current.length > 0) {
+      if (Date.now() - start > timeoutMs) {
+        console.warn("[voice] waitForPendingPhraseProcessing timed out, proceeding");
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  };
 
 
 
@@ -295,6 +251,9 @@ function NewQuotePage() {
       voiceSessionRef.current++;
       closeRequestedRef.current = true;
       if (tickRef.current) clearInterval(tickRef.current);
+      if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current);
+      try { recognitionRef.current?.abort?.() ?? recognitionRef.current?.stop?.(); } catch { /* noop */ }
+      recognitionRef.current = null;
       sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current?.getTracks().forEach((t) => t.stop());
       sharedStreamRef.current = null;
@@ -315,24 +274,6 @@ function NewQuotePage() {
   // so the user taps the lime mic in the overlay to start. Derived from the
   // URL so it can't race a setState during navigation.
   const voicePending = voiceParam === 1;
-
-  // Auto-start the live voice session when arriving via ?voice=1 (e.g. Home's
-  // "New voice quote" tile). Without this the user lands on the New Quote
-  // screen and has to tap "Speak the job" a second time. Guarded by a ref so
-  // it only fires once per mount and never re-fires after handleVoiceStart
-  // strips the param.
-  const voiceAutoStartedRef = useRef(false);
-  useEffect(() => {
-    if (voiceAutoStartedRef.current) return;
-    if (voiceParam !== 1) return;
-    if (typeParam === "typed") return;
-    if (editId) return;
-    if (recording || liveActive || voiceOpening) return;
-    if (draft) return;
-    voiceAutoStartedRef.current = true;
-    void handleVoiceStart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceParam]);
 
   // Pre-populate customer when arriving from "Quote again" on customer detail
   useEffect(() => {
@@ -447,14 +388,14 @@ function NewQuotePage() {
 
   const handleVoiceStart = async () => {
     if (saving) return;
-    recordTargetRef.current = "desc";
-    setEditVoiceOpen(false);
     closeRequestedRef.current = false;
     setVoiceError(null);
     setLastTranscript(null);
+    setLivePreview("");
+    liveFinalRef.current = "";
+    liveInterimRef.current = "";
     setVoiceOpening(true);
     if (voiceParam === 1) navigate({ to: "/quotes/new", search: {}, replace: true });
-
     try {
       await startRecording();
     } catch (e) {
@@ -470,6 +411,9 @@ function NewQuotePage() {
     closeRequestedRef.current = false;
     setVoiceError(null);
     setLastTranscript(null);
+    setLivePreview("");
+    liveFinalRef.current = "";
+    liveInterimRef.current = "";
     setVoiceOpening(true);
     try {
       await startRecording();
@@ -481,17 +425,12 @@ function NewQuotePage() {
   const handleVoiceClose = () => {
     closeRequestedRef.current = true;
     voiceSessionRef.current++;
+    try { recognitionRef.current?.stop?.(); } catch { /* noop */ }
+    recognitionRef.current = null;
+    if (liveDebounceRef.current) { clearTimeout(liveDebounceRef.current); liveDebounceRef.current = null; }
     const mr = mediaRecorderRef.current;
     if (mr && mr.state !== "inactive") {
       try { mr.stop(); } catch { /* noop */ }
-    }
-    // Live path: close transport without a final regenerate — the user is
-    // bailing out, not finishing. The stale guard in onResult drops any
-    // in-flight pass.
-    if (liveActiveRef.current) {
-      liveActiveRef.current = false;
-      setLiveActive(false);
-      void live.stop({ finalize: false });
     }
     if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
     sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -500,84 +439,39 @@ function NewQuotePage() {
     streamRef.current = null;
     // handleVoiceStart already strips ?voice=1; no need to navigate again here.
     setRecording(false);
+    setBuilding(false);
     setTranscribing(false);
     setVoiceError(null);
     setVoiceOpening(false);
     setLastTranscript(null);
+    setLivePreview("");
+    liveFinalRef.current = "";
+    liveInterimRef.current = "";
+    clearPendingItems();
+    pendingCountRef.current = 0;
+    setLiveItems([]);
+    liveItemsRef.current = [];
+    phraseSeqRef.current = 0;
+    lastFinalIdxRef.current = -1;
+    speechIndexOffsetRef.current = 0;
     setEditVoiceOpen(false);
     recordTargetRef.current = "desc";
   };
 
   const recordStartRef = useRef<number>(0);
   const MIN_RECORD_MS = 1000;
-
-  const finaliseLiveSession = async (sessionId: number) => {
-    if (!liveActiveRef.current) return;
-    liveActiveRef.current = false;
-    setLiveActive(false);
-    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
-    setRecording(false);
-    // The hook owns the mic stream lifecycle — clear our refs so the meter
-    // stops drawing immediately.
-    sharedStreamRef.current = null;
-    streamRef.current = null;
-    setTranscribing(true);
-    try {
-      const { transcript, didRegenerate } = await live.stop({ finalize: true });
-      if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
-      if (!transcript) {
-        setVoiceError("We didn't catch any speech. Tap the mic and describe the job out loud.");
-        return;
-      }
-      if (didRegenerate) {
-        feedback("success");
-        playSample("ding");
-      }
-    } finally {
-      setTranscribing(false);
-    }
-  };
-
-  // Cancel the live session WITHOUT committing a final regenerate. Tiles
-  // built so far stay in `draft` — the user can keep editing and save
-  // manually, or tap the mic again to resume. The secondary X control on
-  // the LiveRecordingBar maps to this.
-  const cancelLiveSession = () => {
-    if (!liveActiveRef.current) return;
-    liveActiveRef.current = false;
-    setLiveActive(false);
-    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
-    setRecording(false);
-    sharedStreamRef.current = null;
-    streamRef.current = null;
-    // No finalize pass — drop whatever's in flight and keep the current draft.
-    void live.stop({ finalize: false });
-  };
-
-  // Primary commit path bound to the new on-screen "Finish quote" button.
-  // Runs the final regenerate and unmounts the live UI; the rest of the
-  // page (customer, payment, save bar) then renders via its `draft && !liveActive` gates.
-  const handleFinishLive = () => {
-    if (!liveActiveRef.current) return;
-    const elapsed = Date.now() - recordStartRef.current;
-    const remaining = MIN_RECORD_MS - elapsed;
-    if (remaining > 0) {
-      setTimeout(handleFinishLive, remaining);
-      return;
-    }
-    const sessionId = voiceSessionRef.current;
-    void finaliseLiveSession(sessionId);
-  };
+  const stopRequestedRef = useRef<boolean>(false);
 
   const stopRecording = () => {
-    // Live mode: the stop control is now "cancel" — tear down the session
-    // but keep any tiles already on screen. Finish is a separate button.
-    if (liveActiveRef.current) {
-      cancelLiveSession();
+    const mr = mediaRecorderRef.current;
+    if (!mr || mr.state === "inactive") {
+      // Race: user tapped Stop before getUserMedia resolved or after recorder
+      // already finalised. Don't lock the UI into "building" — clear it.
+      setBuilding(false);
       return;
     }
-    const mr = mediaRecorderRef.current;
-    if (!mr || mr.state === "inactive") return;
+    setBuilding(true);
+    stopRequestedRef.current = true;
     const elapsed = Date.now() - recordStartRef.current;
     const remaining = MIN_RECORD_MS - elapsed;
     if (remaining > 0) {
@@ -589,7 +483,6 @@ function NewQuotePage() {
     }
     mr.stop();
   };
-
 
   const appendTranscript = (text: string): { combinedDesc: string; target: "desc" | "clip" | "edit" } => {
     const clean = text.trim();
@@ -620,6 +513,7 @@ function NewQuotePage() {
   const runTranscribe = async (blob: Blob, mimeType: string) => {
     setTranscribing(true);
     setVoiceError(null);
+    clearPendingItems();
     try {
       const audioBase64 = await blobToBase64(blob);
       const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
@@ -648,73 +542,28 @@ function NewQuotePage() {
       setError(msg);
     } finally {
       setTranscribing(false);
-    }
-  };
-
-  // Authoritative finalise path: Whisper transcribes the recorded blob, then
-  // we regenerate the draft from that transcript. Live tiles are preview only.
-  const finaliseFromAudio = async (blob: Blob, mimeType: string, sessionId: number) => {
-    setTranscribing(true);
-    setVoiceError(null);
-    try {
-      const audioBase64 = await blobToBase64(blob);
-      const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
-      if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
-      const transcript = (text || "").trim();
-      if (!transcript) {
-        setVoiceError("We didn't catch any speech. Tap the mic and describe the job out loud.");
-        return;
-      }
-      const g = await generateFn({ data: { description: transcript, trade, vatRegistered: vat } });
-      if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
-
-      // Arm the scroll BEFORE setDraft so the effect that watches `draft`
-      // fires on the very next render and scrolls once the surface is mounted.
-      pendingScrollToDraftRef.current = true;
-      setDraft({ title: g.title, line_items: g.line_items });
-      originalDraftRef.current = JSON.stringify(g.line_items);
-      setDesc(g.clean_description || transcript);
-      const ec = g.extracted_customer;
-      if (ec?.name && !clientName.trim()) setClientName(ec.name);
-      if (ec?.phone && !clientPhone.trim()) setClientPhone(ec.phone);
-
-
-
-      feedback("success");
-      playSample("ding");
-    } catch (err) {
-      console.error(err);
-      const msg = err instanceof Error
-        ? err.message
-        : "Could not finalise the recording. Check your connection and retry.";
-      setVoiceError(msg);
-      setError(msg);
-    } finally {
-      setTranscribing(false);
+      setLivePreview("");
+      liveFinalRef.current = "";
+      clearPendingItems();
     }
   };
 
   const applyVoiceEdit = async (transcript: string) => {
     if (!draft || !transcript.trim()) return;
+    const existingItems = draft.line_items
+      .map((li, idx) => `${idx + 1}. ${li.description} — qty ${li.qty}, £${li.unit_price} each`)
+      .join("\n");
+    const editPrompt = `EXISTING QUOTE — these are the items currently on this quote:
+${existingItems}
+
+CHANGE REQUEST FROM THE TRADESPERSON: ${transcript}
+
+Re-output the FULL updated list of line items for this quote, applying the change above. Keep unchanged items exactly as written (same description, qty, unit_price). Add, remove, or modify only what the change request asks for.`;
     try {
-      // Generate from the new transcript ALONE — same shape as a fresh quote.
-      // The model never sees existing items, so it cannot rewrite or re-price them.
-      const g = await generateFn({ data: { description: transcript, trade, vatRegistered: vat } });
-
-      const existing = draft.line_items;
-      const existingKeys = new Set(existing.map((li) => normDesc(li.description)));
-
-      const newOnes = (g.line_items ?? []).filter((li) => {
-        const key = normDesc(li.description);
-        if (existingKeys.has(key)) return false;            // dedupe vs current draft
-        if (deletedDescsRef.current.has(key)) return false; // respect user deletions
-        return true;
-      });
-
-      if (newOnes.length) {
-        const merged = [...existing, ...newOnes];
-        setDraft({ title: draft.title, line_items: merged });
-        originalDraftRef.current = JSON.stringify(merged);
+      const g = await generateFn({ data: { description: editPrompt, trade, vatRegistered: vat } });
+      if (g.line_items?.length) {
+        setDraft({ title: draft.title, line_items: g.line_items });
+        originalDraftRef.current = JSON.stringify(g.line_items);
         // Let the seeding effect re-derive payment timing from the new total
         // (only for fresh quotes — don't auto-flip a saved quote's timing).
         if (!editId) paymentSeededRef.current = false;
@@ -738,24 +587,141 @@ function NewQuotePage() {
 
 
 
+  // Filter out breath/noise/filler-only phrases — only let real speech
+  // trigger a per-phrase generate call.
+  const isMeaningfulPhrase = (text: string): boolean => {
+    const t = text.trim();
+    if (t.length < 4) return false;
+    const words = t.split(/\s+/).filter((w) => /[a-z]{2,}/i.test(w));
+    if (words.length < 2) return false;
+    // Reject pure filler ("uh um er erm yeah ok okay right so").
+    const filler = /^(?:uh|um|er|erm|yeah|ok|okay|right|so|hmm|well|and|or)$/i;
+    if (words.every((w) => filler.test(w))) return false;
+    return true;
+  };
 
-  // Recording flow: MediaRecorder captures audio; on stop, Whisper transcribes
-  // and the AI builds the draft from the full transcript.
+  const deriveTitle = (items: LineItem[]): string => {
+    const first = items[0]?.description?.trim();
+    if (first) return first.length > 60 ? `${first.slice(0, 57)}…` : first;
+    return `${trade} quote`;
+  };
+
+  // (Removed: legacy per-phrase processPhrase. Superseded by the debounced
+  // regenerateLiveQuote pipeline below, which sees the full transcript and
+  // avoids duplicate/invented filler items.)
+
+
+  // Pause-debounced full regeneration. When the speaker pauses for
+  // LIVE_PAUSE_MS we send the ENTIRE accumulated transcript to the AI and
+  // REPLACE the live items with the returned list. This avoids the duplicate
+  // and invented-filler items produced by per-phrase generation, since each
+  // call now sees the full context.
+  const regenerateLiveQuote = async (sessionId: number): Promise<void> => {
+    if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
+    const transcript = liveFinalRef.current.trim();
+    if (!transcript || !isMeaningfulPhrase(transcript)) return;
+    const genId = ++phraseSeqRef.current;
+    pendingCountRef.current++;
+    setBuilding(true);
+    try {
+      const ctx = prefetchedContextRef.current;
+      const g = await generateFn({
+        data: { description: transcript, trade, vatRegistered: vat, ...(ctx ? { prefetchedContext: ctx } : {}) },
+      });
+      if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
+      if (genId !== phraseSeqRef.current) return;
+      if (g.line_items?.length) {
+        const filtered = g.line_items
+          .filter((li) => !deletedDescsRef.current.has(normDesc(li.description)))
+          .map((li) => editedItemsRef.current.get(normDesc(li.description)) ?? li);
+        // Append-only merge: keep existing tiles in place; update qty/unit_price
+        // in place when a filtered item matches by normDesc; append new ones.
+        // Never remove tiles here — only the tombstone path does that.
+        const base = liveItemsRef.current;
+        const indexByKey = new Map<string, number>();
+        base.forEach((it, i) => indexByKey.set(normDesc(it.description), i));
+        const next = base.slice();
+        for (const li of filtered) {
+          const key = normDesc(li.description);
+          const idx = indexByKey.get(key);
+          if (idx != null) {
+            const existing = next[idx];
+            next[idx] = { ...existing, qty: li.qty, unit_price: li.unit_price };
+          } else {
+            indexByKey.set(key, next.length);
+            next.push(li);
+          }
+        }
+        setLiveItems(next);
+        liveItemsRef.current = next;
+        lastLiveGenRef.current = {
+          title: g.title,
+          clean_description: g.clean_description,
+          extracted_customer: g.extracted_customer,
+        };
+        // Haptic + sound feedback — only on first items landing per session
+        if (!firstItemsLandedRef.current && filtered.length) {
+          firstItemsLandedRef.current = true;
+          if (typeof navigator !== "undefined" && navigator.vibrate) {
+            try { navigator.vibrate(20); } catch { /* ignore */ }
+          }
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const AC = (window.AudioContext || (window as any).webkitAudioContext);
+            if (AC) {
+              const actx = new AC();
+              const osc = actx.createOscillator();
+              const gain = actx.createGain();
+              osc.connect(gain);
+              gain.connect(actx.destination);
+              osc.frequency.value = 800;
+              osc.type = "sine";
+              gain.gain.setValueAtTime(0.2, actx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.1);
+              osc.start(actx.currentTime);
+              osc.stop(actx.currentTime + 0.1);
+            }
+          } catch { /* audio unavailable */ }
+        }
+      }
+    } catch (err) {
+      console.warn("[voice] live regenerate failed", err);
+    } finally {
+      pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
+      // Only clear the spinner when nothing else is in flight — otherwise
+      // the first phrase to resolve flickers it off while later phrases
+      // are still being generated.
+      if (pendingCountRef.current === 0) setBuilding(false);
+    }
+  };
+
+  // Wrapper that exposes the running regenerate promise so `mr.onstop` can
+  // await it before deciding whether to fall back to a full Whisper pass.
+  const runRegenerate = (sessionId: number): Promise<void> => {
+    const p = regenerateLiveQuote(sessionId).finally(() => {
+      if (regenerateInFlightRef.current === p) regenerateInFlightRef.current = null;
+    });
+    regenerateInFlightRef.current = p;
+    return p;
+  };
+
+  // LIVE FLOW: continuous MediaRecorder (only used as a stop-time fallback if
+  // Web Speech produced no items) + Web Speech API per-phrase pipeline.
   const startRecording = async () => {
     const sessionId = voiceSessionRef.current + 1;
     voiceSessionRef.current = sessionId;
     closeRequestedRef.current = false;
     setVoiceError(null);
+    clearPendingItems();
+    pendingCountRef.current = 0;
+    setLiveItems([]);
+    liveItemsRef.current = [];
+    firstItemsLandedRef.current = false;
+    phraseSeqRef.current = 0;
+    lastFinalIdxRef.current = -1;
+    lastLiveGenRef.current = null;
     deletedDescsRef.current = new Set();
-    // Seed the edited-set from any tiles already on screen (e.g. user
-    // cancelled a previous session and is now resuming). Treating prior
-    // tiles as "edited" preserves them through the next regenerate pass;
-    // they remain freely editable inline.
-    editedOrigDescsRef.current = new Set(
-      (draft?.line_items ?? [])
-        .map((li) => li._origDesc)
-        .filter((k): k is string => !!k),
-    );
+    editedItemsRef.current = new Map();
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("Microphone not supported on this device.");
       setVoiceOpening(false);
@@ -790,51 +756,22 @@ function NewQuotePage() {
     streamRef.current = stream;
     sharedStreamRef.current = stream;
 
+    // Prefetch labour rates + patterns ONCE — reused for every per-phrase call.
+    // Fire-and-forget; per-phrase calls fall back to server-side fetch if it
+    // hasn't arrived yet.
+    prefetchedContextRef.current = null;
+    void prefetchFn()
+      .then((ctx) => { prefetchedContextRef.current = ctx; })
+      .catch((e) => console.warn("[voice] prefetch failed", e));
+
     const mimeType = pickMimeType();
+    liveFinalRef.current = "";
+    liveInterimRef.current = "";
+    
+    setLivePreview("");
+    stopRequestedRef.current = false;
 
     const isClipMode = recordTargetRef.current === "clip" || recordTargetRef.current === "edit";
-
-    // LIVE PATH — desc target only. Stream the spoken job through the
-    // realtime relay so tiles appear live. Clip/edit modes keep using
-    // MediaRecorder + Whisper below (those flows append/merge differently).
-    if (!isClipMode) {
-      try {
-        await live.start(stream);
-      } catch (err) {
-        console.error("[live] start failed", err);
-        stream.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-        sharedStreamRef.current = null;
-        const msg = err instanceof Error ? err.message : "Could not start live session.";
-        setVoiceError(msg);
-        setError(msg);
-        setVoiceOpening(false);
-        return;
-      }
-      if (closeRequestedRef.current || sessionId !== voiceSessionRef.current) {
-        // User bailed during handshake — tear down what we just opened.
-        void live.stop({ finalize: false });
-        return;
-      }
-      liveActiveRef.current = true;
-      setLiveActive(true);
-      setVoiceOpening(false);
-      recordStartRef.current = Date.now();
-      setRecording(true);
-      setRecordSeconds(0);
-      tickRef.current = setInterval(() => {
-        setRecordSeconds((s) => {
-          const next = s + 1;
-          if (next >= MAX_RECORD_SECONDS) {
-            stopRecording();
-            return MAX_RECORD_SECONDS;
-          }
-          return next;
-        });
-      }, 1000);
-      return;
-    }
-
 
     let mr: MediaRecorder;
     try {
@@ -852,6 +789,8 @@ function NewQuotePage() {
     };
     mr.onstop = async () => {
       if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+      try { recognitionRef.current?.stop?.(); } catch { /* noop */ }
+      recognitionRef.current = null;
       setRecording(false);
       sharedStreamRef.current?.getTracks().forEach((t) => t.stop());
       sharedStreamRef.current = null;
@@ -875,15 +814,174 @@ function NewQuotePage() {
         return;
       }
 
-      // Single authoritative path: Whisper transcribes the recorded audio and
-      // rebuilds the draft.
+      const finalInterim = liveInterimRef.current.trim();
+      if (finalInterim) {
+        liveFinalRef.current = `${liveFinalRef.current} ${finalInterim}`.trim();
+      }
+      if (liveDebounceRef.current) { clearTimeout(liveDebounceRef.current); liveDebounceRef.current = null; }
+
+      // INSTANT-STOP BRANCH: if we already have tiles, build the draft right
+      // now from what's visible — no spinner. Then reconcile in the background
+      // (final regenerate + pending phrases) and merge any genuinely new items
+      // append-only, only if the user hasn't started editing.
+      if (liveItemsRef.current.length > 0) {
+        const items = liveItemsRef.current;
+        const transcript = liveFinalRef.current.trim();
+        const meta = lastLiveGenRef.current;
+        const built = {
+          title: meta?.title?.trim() || deriveTitle(items),
+          line_items: items,
+        };
+        setDraft(built);
+        // Set the baseline BEFORE kicking off background work so an untouched
+        // draft compares equal and the background merge proceeds.
+        originalDraftRef.current = JSON.stringify(built.line_items);
+        setDesc(meta?.clean_description?.trim() || transcript);
+        const ec = meta?.extracted_customer;
+        if (ec?.name && !clientName.trim()) setClientName(ec.name);
+        if (ec?.phone && !clientPhone.trim()) setClientPhone(ec.phone);
+        clearPendingItems();
+        setLivePreview("");
+        liveFinalRef.current = "";
+        liveInterimRef.current = "";
+        feedback("success");
+        playSample("ding");
+        requestAnimationFrame(() => {
+          draftRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+
+        // Background reconcile — never blocks UI, never sets transcribing.
+        void (async () => {
+          try {
+            await runRegenerate(sessionId);
+            await waitForPendingPhraseProcessing();
+          } catch { /* swallowed */ }
+          if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
+          const lateItems = liveItemsRef.current;
+          if (!lateItems.length) return;
+          setDraft((prev) => {
+            if (!prev) return prev;
+            // Skip merge if the user has started editing the draft.
+            if (JSON.stringify(prev.line_items) !== originalDraftRef.current) return prev;
+            const indexByKey = new Map<string, number>();
+            prev.line_items.forEach((it, i) => indexByKey.set(normDesc(it.description), i));
+            const next = prev.line_items.slice();
+            let appended = false;
+            for (const li of lateItems) {
+              const key = normDesc(li.description);
+              if (deletedDescsRef.current.has(key)) continue;
+              if (indexByKey.has(key)) continue;
+              indexByKey.set(key, next.length);
+              next.push(li);
+              appended = true;
+            }
+            if (!appended) return prev;
+            const merged = { ...prev, line_items: next };
+            originalDraftRef.current = JSON.stringify(merged.line_items);
+            return merged;
+          });
+        })();
+        return;
+      }
+
+      // ZERO-TILES BRANCH: unchanged — spinner + Whisper fallback.
+      const finalRegen = runRegenerate(sessionId);
+      setTranscribing(true);
+      try { await finalRegen; } catch { /* swallowed inside regenerateLiveQuote */ }
+      try { await waitForPendingPhraseProcessing(); } catch { /* noop */ }
+      setTranscribing(false);
+
+      const items = liveItemsRef.current;
+      if (items.length > 0) {
+        const transcript = liveFinalRef.current.trim();
+        const meta = lastLiveGenRef.current;
+        const built = {
+          title: meta?.title?.trim() || deriveTitle(items),
+          line_items: items,
+        };
+        setDraft(built);
+        originalDraftRef.current = JSON.stringify(items);
+        setDesc(meta?.clean_description?.trim() || transcript);
+        const ec = meta?.extracted_customer;
+        if (ec?.name && !clientName.trim()) setClientName(ec.name);
+        if (ec?.phone && !clientPhone.trim()) setClientPhone(ec.phone);
+        clearPendingItems();
+        setLivePreview("");
+        liveFinalRef.current = "";
+        liveInterimRef.current = "";
+        feedback("success");
+        playSample("ding");
+        requestAnimationFrame(() => {
+          draftRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        return;
+      }
+
+      // FALLBACK: Web Speech produced nothing usable → single Whisper pass.
+      clearPendingItems();
       if (blob.size < 1000) {
+        setLivePreview("");
+        liveFinalRef.current = "";
         setVoiceError("We didn't catch any speech. Tap the mic and describe the job out loud.");
         return;
       }
       lastBlobRef.current = { blob, mimeType: blobType };
-      await finaliseFromAudio(blob, blobType, sessionId);
+      await runTranscribe(blob, blobType);
     };
+
+    // Web Speech API: drives live preview AND per-phrase processing.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR: any =
+      typeof window !== "undefined"
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        : null;
+    if (SR && !isClipMode) {
+      setLiveSupported(true);
+      try {
+        const rec = new SR();
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.lang = "en-GB";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        rec.onresult = (event: any) => {
+          let interim = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const res = event.results[i];
+            const txt = res[0]?.transcript ?? "";
+            if (res.isFinal) {
+              if (i > lastFinalIdxRef.current) {
+                lastFinalIdxRef.current = i;
+                liveFinalRef.current = `${liveFinalRef.current} ${txt}`.trim();
+                if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current);
+                const sid = sessionId;
+                liveDebounceRef.current = setTimeout(() => { void regenerateLiveQuote(sid); }, LIVE_PAUSE_MS);
+              }
+            } else {
+              interim += txt;
+            }
+          }
+          liveInterimRef.current = interim.trim();
+          // INVARIANT: livePreview captures the transcript internally so the
+          // AI can re-prompt with the full text on each regenerate / on stop.
+          // It must NEVER be rendered in the overlay — use MicLevelBars there.
+          setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
+        };
+        rec.onerror = () => { /* silent: pipeline only */ };
+        rec.onend = () => {
+          if (!stopRequestedRef.current && mediaRecorderRef.current?.state === "recording") {
+            lastFinalIdxRef.current = -1; // new session, fresh result indices
+            try { rec.start(); } catch { /* noop */ }
+          }
+        };
+        recognitionRef.current = rec;
+        try { rec.start(); } catch { /* noop */ }
+      } catch {
+        recognitionRef.current = null;
+      }
+    } else if (!SR) {
+      setLiveSupported(false);
+    }
 
     recordStartRef.current = Date.now();
     mr.start(1000);
@@ -986,21 +1084,6 @@ function NewQuotePage() {
     paymentSeededRef.current = true;
   }, [draft, editId, subtotal, total]);
 
-  // After a successful voice finalise, scroll the freshly committed draft into
-  // view. Runs in a layout-after-paint effect so the draft surface is already
-  // mounted; double-rAF guards against the voice overlay reflow.
-  useEffect(() => {
-    if (!draft || !pendingScrollToDraftRef.current) return;
-    pendingScrollToDraftRef.current = false;
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        draftRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    });
-  }, [draft]);
-
-
-
   // Keep deposit amount in sync with subtotal when timing is deposit (user-edited
   // values are preserved — we only recompute from the stored percent).
   useEffect(() => {
@@ -1049,9 +1132,6 @@ function NewQuotePage() {
     if (!draft || saving) return null;
     setSavingMode(mode);
     setError(null);
-    // Strip live-session bookkeeping fields before persistence — `_origDesc`
-    // is a render-side concern, not part of the LineItem schema.
-    const cleanLineItems: LineItem[] = draft.line_items.map(({ _origDesc: _o, ...rest }) => rest);
     try {
       const q = editId
         ? await updateGeneratedQuote({
@@ -1060,7 +1140,7 @@ function NewQuotePage() {
             clientPhone: clientPhone.trim() || undefined,
             description: desc.trim(),
             title: draft.title,
-            line_items: cleanLineItems,
+            line_items: draft.line_items,
             vatRegistered: vat,
             payment_timing: paymentTiming,
             deposit_amount: paymentTiming === "deposit_then_balance" ? depositAmt : 0,
@@ -1071,7 +1151,7 @@ function NewQuotePage() {
             clientPhone: clientPhone.trim() || undefined,
             description: desc.trim(),
             title: draft.title,
-            line_items: cleanLineItems,
+            line_items: draft.line_items,
             vatRegistered: vat,
             payment_timing: paymentTiming,
             deposit_amount: paymentTiming === "deposit_then_balance" ? depositAmt : 0,
@@ -1131,17 +1211,22 @@ function NewQuotePage() {
 
   return (
     <AppShell>
-      {/* VoiceOverlay is now ONLY used for edit-by-voice. The main desc
-          voice flow happens entirely on the quote screen (mic CTA →
-          LiveRecordingBar → tiles in place → stop finalises). Clip
-          recordings use their own inline UI elsewhere. */}
-      {editVoiceOpen && (recording || transcribing || voicePending || voiceError || voiceOpening) && (
+      {(editVoiceOpen || !draft) && (recording || transcribing || voicePending || voiceError || voiceOpening) && (
         <VoiceOverlay
           recording={recording}
           transcribing={transcribing}
           seconds={recordSeconds}
           error={voiceError}
           lastTranscript={lastTranscript}
+          // NOTE: livePreview / liveSupported are intentionally NOT passed to
+          // the overlay. The live transcript is captured internally to feed
+          // the AI on every regenerate / on stop — it must never be rendered.
+          // If you need a live cue, use MicLevelBars below.
+
+          liveItems={liveItems}
+          transcript={desc}
+          pendingItems={pendingItems}
+          building={building}
           streamRef={sharedStreamRef}
           onStart={handleVoiceStart}
           onStop={stopRecording}
@@ -1155,21 +1240,35 @@ function NewQuotePage() {
             }, 0);
           }}
           onRetryTranscription={lastBlobRef.current ? retryTranscription : undefined}
-        />
-      )}
-
-      {/* LIVE RECORDING BAR — floating session control. Houses the primary
-          "Finish quote" CTA (visible once tiles exist) and a secondary X
-          cancel. Mounts as soon as the live transport is up and stays put
-          until Finish or Cancel ends it. */}
-      {liveActive && recording && !voiceError && (
-        <LiveRecordingBar
-          seconds={recordSeconds}
-          streamRef={sharedStreamRef}
-          onCancel={stopRecording}
-          onFinish={handleFinishLive}
-          canFinish={!!draft && draft.line_items.length > 0}
-          finishing={transcribing}
+          onUpdateItem={(index, patch) => {
+            setLiveItems((prev) => {
+              const orig = prev[index];
+              const patched = orig ? { ...orig, ...patch } : orig;
+              if (orig && patched) {
+                const origKey = normDesc(orig.description);
+                editedItemsRef.current.set(origKey, patched);
+                if (patch.description && normDesc(patch.description) !== origKey) {
+                  // User renamed the description — tombstone old key so AI's
+                  // version doesn't reappear alongside on next regenerate.
+                  deletedDescsRef.current.add(origKey);
+                  editedItemsRef.current.set(normDesc(patch.description), patched);
+                }
+              }
+              const next = prev.map((it, i) => (i === index ? { ...it, ...patch } : it));
+              liveItemsRef.current = next;
+              return next;
+            });
+          }}
+          onDeleteItem={(index) => {
+            setLiveItems((prev) => {
+              const victim = prev[index];
+              if (victim) deletedDescsRef.current.add(normDesc(victim.description));
+              const next = prev.filter((_, i) => i !== index);
+              liveItemsRef.current = next;
+              return next;
+            });
+            feedback("warn");
+          }}
         />
       )}
 
@@ -1212,69 +1311,7 @@ function NewQuotePage() {
         }}
       >
 
-        {/* Pre-tile "listening" placeholder — only shown before the first
-            regenerate pass arrives. Once `draft` exists, the editable
-            line-items card below renders in its place so the user can edit
-            tiles as they appear. */}
-        {liveActive && !draft && !voiceError && (
-          <div className="card-surface overflow-hidden">
-            <div className="p-8 flex flex-col items-center justify-center text-center gap-3">
-              <span className="relative flex items-center justify-center h-3 w-3">
-                <span className="absolute inset-0 rounded-full bg-lime animate-ping opacity-75" />
-                <span className="relative h-3 w-3 rounded-full bg-lime" />
-              </span>
-              <p className="text-sm font-semibold text-ink">Listening…</p>
-              <p className="text-xs text-muted-foreground max-w-[20rem]">
-                Describe the job out loud. Tiles will appear here as you speak — edit anything inline, then tap Finish.
-              </p>
-            </div>
-          </div>
-        )}
-
-
-        {/* Inline error for the main desc voice flow — replaces the old
-            full-screen overlay error. Offers retry and a path back to typing
-            so the user is never stranded in a voice-only state. */}
-        {!editVoiceOpen && voiceError && !draft && (
-          <div className="card-surface p-4 border border-status-overdue/40 space-y-3">
-            <div className="flex items-start gap-2.5">
-              <AlertCircle className="h-4 w-4 text-status-overdue shrink-0 mt-0.5" />
-              <p className="text-xs text-ink flex-1 leading-relaxed">{voiceError}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => { setVoiceError(null); void handleVoiceStart(); }}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-ink text-paper text-xs font-semibold py-2.5 active:scale-[0.99] transition"
-              >
-                <Mic className="h-3.5 w-3.5" /> Try again
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setVoiceError(null);
-                  setShowTyping(true);
-                  setTimeout(() => textareaRef.current?.focus(), 0);
-                }}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-secondary text-ink text-xs font-semibold py-2.5 active:scale-[0.99] transition"
-              >
-                <Keyboard className="h-3.5 w-3.5" /> Type instead
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Inline "starting mic" indicator — brief window between tap and
-            transport ready. Keeps the hero hidden so the screen doesn't
-            flash content the user is about to leave behind. */}
-        {!editVoiceOpen && voiceOpening && !liveActive && !voiceError && (
-          <div className="card-surface p-6 flex items-center justify-center gap-2.5 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Starting mic…</span>
-          </div>
-        )}
-
-        {!draft && !liveActive && !voiceOpening && !voiceError && (
+        {!draft && (
           <div className="space-y-3">
             {typeParam ? (
               <>
@@ -1408,59 +1445,45 @@ function NewQuotePage() {
                 </div>
               )}
 
-              {!liveActive && !(recording && recordTargetRef.current === "desc") && !(transcribing && recordTargetRef.current === "desc") && (
-                <button
-                  type="submit"
-                  form="new-quote-form"
-                  disabled={loading || subBlocked}
-                  onPointerDown={() => feedback("tap")}
-                  className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition disabled:opacity-60 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.35)]"
-                >
-                  {loading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : error ? (
-                    <RefreshCw className="h-5 w-5" />
-                  ) : (
-                    <Sparkles className="h-5 w-5" />
-                  )}
-                  {loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : error ? "Retry generate" : "Generate quote"}
-                </button>
-              )}
+              <button
+                type="submit"
+                form="new-quote-form"
+                disabled={loading || subBlocked}
+                onPointerDown={() => feedback("tap")}
+                className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99] transition disabled:opacity-60 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.35)]"
+              >
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : error ? (
+                  <RefreshCw className="h-5 w-5" />
+                ) : (
+                  <Sparkles className="h-5 w-5" />
+                )}
+                {loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : error ? "Retry generate" : "Generate quote"}
+              </button>
             </div>
           </div>
         )}
 
-        {/* Editable quote preview — renders the moment the first regenerate
-            pass produces tiles. Stays mounted through the live session so
-            edits are immediate; the customer/payment/save sections below
-            stay hidden until the user taps Finish (those are gated
-            `draft && !liveActive`). */}
+        {/* Editable quote preview */}
         {draft && (
           <div ref={draftRef} className="card-surface overflow-hidden scroll-mt-20">
 
             <div className="bg-ink text-paper p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-widest text-lime font-bold">
-                    {liveActive ? "Listening · editable" : "Preview · editable"}
-                  </p>
-                  <p className="text-[11px] text-paper/55 mt-0.5">
-                    {liveActive
-                      ? "Tap any tile to edit while you speak."
-                      : "Tap any field to edit, or use voice →"}
-                  </p>
+                  <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
+                  <p className="text-[11px] text-paper/55 mt-0.5">Tap any field to edit, or use voice →</p>
                 </div>
-                {!liveActive && (
-                  <button
-                    type="button"
-                    onClick={handleEditByVoice}
-                    disabled={recording || transcribing || saving}
-                    className="inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-3 py-1 text-[11px] font-bold active:scale-[0.98] transition disabled:opacity-60 shrink-0"
-                  >
-                    <Mic className="h-3 w-3" />
-                    Edit by voice
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={handleEditByVoice}
+                  disabled={recording || transcribing || saving}
+                  className="inline-flex items-center gap-1.5 bg-lime text-ink rounded-full px-3 py-1 text-[11px] font-bold active:scale-[0.98] transition disabled:opacity-60 shrink-0"
+                >
+                  <Mic className="h-3 w-3" />
+                  Edit by voice
+                </button>
               </div>
               <p className="font-bold mt-2">{userProfile.business_name}</p>
               {userProfile.registration_number && (
@@ -1504,7 +1527,6 @@ function NewQuotePage() {
                       <textarea
                         value={li.description}
                         onChange={(e) => {
-                          markLineEdited(li);
                           const next = [...draft.line_items];
                           next[i] = { ...li, description: e.target.value };
                           setDraft({ ...draft, line_items: next });
@@ -1522,9 +1544,6 @@ function NewQuotePage() {
                             return;
                           }
                           setConfirmTrashIdx(null);
-                          // Tombstone so a subsequent live regenerate pass
-                          // doesn't re-add this line.
-                          if (li._origDesc) deletedDescsRef.current.add(li._origDesc);
                           const next = draft.line_items.filter((_, idx) => idx !== i);
                           setDraft({ ...draft, line_items: next.length ? next : [{ description: "", qty: 1, unit_price: 0 }] });
                         }}
@@ -1552,7 +1571,6 @@ function NewQuotePage() {
                           step="0.1"
                           value={li.qty}
                           onChange={(e) => {
-                            markLineEdited(li);
                             const next = [...draft.line_items];
                             next[i] = { ...li, qty: parseFloat(e.target.value) || 0 };
                             setDraft({ ...draft, line_items: next });
@@ -1567,7 +1585,6 @@ function NewQuotePage() {
                               key={u}
                               type="button"
                               onClick={() => {
-                                markLineEdited(li);
                                 const next = [...draft.line_items];
                                 next[i] = { ...li, unit: u };
                                 setDraft({ ...draft, line_items: next });
@@ -1588,7 +1605,6 @@ function NewQuotePage() {
                           step="0.01"
                           value={li.unit_price}
                           onChange={(e) => {
-                            markLineEdited(li);
                             const next = [...draft.line_items];
                             next[i] = { ...li, unit_price: parseFloat(e.target.value) || 0 };
                             setDraft({ ...draft, line_items: next });
@@ -1627,7 +1643,7 @@ function NewQuotePage() {
         )}
 
         {/* Customer — gates save, surfaced before payment */}
-        {draft && !liveActive && (
+        {draft && (
           <div ref={customerRef} className="space-y-3 scroll-mt-20">
             <div>
               <h3 className="text-lg font-bold">Customer</h3>
@@ -1758,7 +1774,7 @@ function NewQuotePage() {
         )}
 
         {/* Payment — after customer */}
-        {draft && !liveActive && (
+        {draft && (
           <div className="space-y-3">
             <div>
               <h3 className="text-lg font-bold">Payment</h3>
@@ -1827,7 +1843,7 @@ function NewQuotePage() {
       </form>
 
       {/* Sticky save bar (draft state) */}
-      {draft && !liveActive && (
+      {draft && (
         <div className="fixed bottom-0 inset-x-0 z-30 px-3 pb-3 safe-bottom pointer-events-none">
           <div className="mx-auto max-w-md pointer-events-auto space-y-2">
             {error && (
@@ -2296,42 +2312,104 @@ function VoiceOverlay({
   seconds,
   error,
   lastTranscript,
+  // livePreview / liveSupported intentionally removed — see invariant note below.
+
+  liveItems,
+  transcript,
+  pendingItems,
+  building,
   streamRef,
   onStart,
   onStop,
   onClose,
   onTypeInstead,
   onRetryTranscription,
+  onUpdateItem,
+  onDeleteItem,
 }: {
   recording: boolean;
   transcribing: boolean;
   seconds: number;
   error: string | null;
   lastTranscript: string | null;
+  liveItems: LineItem[];
+  transcript: string;
+  pendingItems: { id: string; text: string }[];
+  building: boolean;
   streamRef?: React.RefObject<MediaStream | null>;
   onStart: () => void;
   onStop: () => void;
   onClose: () => void;
   onTypeInstead?: () => void;
   onRetryTranscription?: () => void;
+  onUpdateItem: (index: number, patch: Partial<LineItem>) => void;
+  onDeleteItem: (index: number) => void;
 }) {
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editDesc, setEditDesc] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const prevCountRef = useRef(0);
+  const justLandedFrom = prevCountRef.current;
+  useEffect(() => {
+    prevCountRef.current = liveItems.length;
+  }, [liveItems.length]);
+  const liveTotal = liveItems.reduce((s, li) => s + li.qty * li.unit_price, 0);
+
+  // Independent list scroll with sticky auto-pin to bottom.
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const pinnedRef = useRef(true);
+  const onListScroll = () => {
+    const el = listRef.current;
+    if (!el) return;
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    pinnedRef.current = distance < 80;
+  };
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    if (pinnedRef.current) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }
+  }, [liveItems.length, pendingItems.length]);
+
+
+  function beginEdit(i: number, li: LineItem) {
+    setEditingIndex(i);
+    setEditDesc(li.description);
+    setEditPrice(String(li.qty * li.unit_price));
+  }
+  function commitEdit(i: number, li: LineItem) {
+    const total = parseFloat(editPrice);
+    const safeTotal = isFinite(total) && total >= 0 ? total : li.qty * li.unit_price;
+    const qty = li.qty || 1;
+    onUpdateItem(i, {
+      description: editDesc.trim() || li.description,
+      unit_price: +(safeTotal / qty).toFixed(2),
+    });
+    setEditingIndex(null);
+    feedback("success");
+  }
+
   if (typeof document === "undefined") return null;
   const idle = !recording && !transcribing;
-  const isBuilding = transcribing;
+  const hasItems = liveItems.length > 0;
+  const hasPending = pendingItems.length > 0;
+  const showList = (recording || transcribing) && (hasItems || hasPending);
 
   // aria-live status — announces transitions (Listening / Processing / Stopped
   // / error) without firing on every render. Visually hidden.
   const announcement = error
     ? `Microphone error. ${error}`
-    : isBuilding
+    : transcribing || building
       ? "Processing your quote"
       : recording
         ? "Listening"
         : "Stopped";
 
   return createPortal(
-    <div className="fixed inset-0 z-[60] bg-ink text-paper flex flex-col px-6 pt-12 pb-8 safe-top safe-bottom items-center justify-between overflow-hidden">
-      {/* Visually hidden aria-live region for screen readers. */}
+    <div className={`fixed inset-0 z-[60] bg-ink text-paper flex flex-col px-6 pt-12 pb-8 safe-top safe-bottom ${showList ? "" : "items-center justify-between"}`}>
+      {/* Visually hidden aria-live region for screen readers. Updates on
+          transitions: Listening → Processing → Stopped (or error). */}
       <span
         className="sr-only"
         role="status"
@@ -2341,111 +2419,262 @@ function VoiceOverlay({
         {announcement}
       </span>
 
-      {/* Off-centre breathing lime glow blob — depth behind the dark surface. */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-32 -right-24 h-[420px] w-[420px] rounded-full bg-lime/15 blur-[130px] animate-[pulse_4s_ease-in-out_infinite]"
-      />
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-40 -left-20 h-[360px] w-[360px] rounded-full bg-lime/10 blur-[130px] animate-[pulse_5s_ease-in-out_infinite]"
-      />
 
-      {/* TOP KICKER */}
-      <div className="relative flex flex-col items-center w-full max-w-md mx-auto">
-        <p className="text-[10px] uppercase tracking-widest text-lime font-semibold">
-          {isBuilding ? "Building your quote" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
+      {/* PINNED TOP: meta + running total */}
+      <div className={`flex flex-col items-center w-full max-w-md mx-auto ${showList ? "shrink-0" : ""}`}>
+        <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
+          {transcribing ? "Building your quote" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
         </p>
-      </div>
+        <p className="num text-2xl mt-1 text-paper">
+          <span className="text-lime">●</span> <span className="text-paper">{formatMMSS(seconds)}</span>
+        </p>
 
-      {/* CENTRE — hero mic while recording, skeleton while building */}
-      <div className="relative flex-1 w-full max-w-md mx-auto flex flex-col items-center justify-center">
-        {!isBuilding && (
-          <>
-            <button
-              type="button"
-              onClick={idle ? onStart : onStop}
-              aria-label={recording ? "Stop recording" : "Start recording"}
-              className="relative flex items-center justify-center"
-            >
-              {recording && (
-                <MicLevelRings streamRef={streamRef} active={recording} size="lg" />
-              )}
-              <div
-                className={`relative h-36 w-36 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_60px_-12px_rgba(200,224,74,0.7)] transition-all ${
-                  recording ? "animate-[pulse_1.4s_ease-in-out_infinite]" : ""
-                }`}
-              >
-                {recording ? (
-                  <Square className="h-14 w-14 text-ink fill-ink" strokeWidth={2.25} />
-                ) : (
-                  <VoiceWaveform size={56} className="text-ink" />
-                )}
-              </div>
-            </button>
-
-            {recording && (
-              <>
-                <div
-                  className="mt-6 flex items-center justify-center"
-                  aria-hidden="true"
-                >
-                  <MicLevelBars streamRef={streamRef} active={recording} />
-                </div>
-                <p className="num text-sm mt-3 text-paper/50">
-                  <span className="text-lime">●</span> {formatMMSS(seconds)}
-                </p>
-                <p className="mt-4 text-xs uppercase tracking-widest text-paper/60 font-semibold">
-                  Listening…
-                </p>
-              </>
-            )}
-          </>
-        )}
-
-        {isBuilding && (
-          <div className="w-full flex flex-col items-center gap-5">
-            {/* progress shimmer bar */}
-            <span className="relative w-40 h-1 overflow-hidden rounded-full bg-paper/[0.08]">
-              <span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-lime/70 to-transparent bg-[length:200%_100%]" />
-            </span>
-
-            {/* skeleton line-item rows */}
-            <ul className="w-full space-y-2 px-1">
-              {[0, 1, 2, 3].map((i) => (
-                <li
-                  key={i}
-                  className="rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-3 flex items-center gap-3"
-                  style={{
-                    animation: "scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both",
-                    animationDelay: `${i * 120}ms`,
-                  }}
-                >
-                  <span
-                    className="relative flex-1 h-3 overflow-hidden rounded-md bg-paper/[0.06]"
-                  >
-                    <span
-                      className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-paper/25 to-transparent bg-[length:200%_100%]"
-                      style={{ animationDelay: `${i * 120}ms` }}
-                    />
-                  </span>
-                  <span
-                    className="relative h-3 w-16 overflow-hidden rounded-md bg-paper/[0.06]"
-                  >
-                    <span
-                      className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-lime/40 to-transparent bg-[length:200%_100%]"
-                      style={{ animationDelay: `${i * 120 + 60}ms` }}
-                    />
-                  </span>
-                </li>
-              ))}
-            </ul>
+        {showList && hasItems && (
+          <div className="mt-4 flex flex-col items-center">
+            <p className="text-[10px] uppercase tracking-widest text-paper/50 font-semibold">Running total</p>
+            <CountUpGBP value={liveTotal} className="num text-4xl text-lime mt-0.5" />
           </div>
         )}
+
+        {showList && hasItems && (
+          <p className="mt-3 text-[10px] uppercase tracking-widest text-paper/40 text-center">
+            Tap a line to edit
+          </p>
+        )}
       </div>
 
-      {/* Bottom text area — error / hint / lastTranscript */}
-      <div className="relative w-full max-w-md min-h-[4rem] text-center space-y-2">
+      {/* Listening cue — audio-level bars + aria-live label.
+          INVARIANT: the live transcript is captured internally to feed the AI
+          on every regenerate / on stop. It must NEVER be rendered here. If
+          you need a visual signal, this audio-level meter is the answer. */}
+      {recording && (
+        <div
+          className="w-full max-w-md mx-auto mt-3 px-2 flex items-center justify-center gap-2"
+          aria-hidden="true"
+        >
+          <MicLevelBars streamRef={streamRef} active={recording} />
+          <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">
+            Listening…
+          </span>
+        </div>
+      )}
+
+
+
+
+      {(transcribing || building) && !hasItems && (
+        <div className="flex flex-col items-center gap-3 mt-6">
+          <span className="relative flex h-12 w-12">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-lime opacity-30 animate-ping" />
+            <span className="relative inline-flex h-12 w-12 rounded-full bg-lime/20 items-center justify-center">
+              <VoiceWaveform size={24} className="text-lime" />
+            </span>
+          </span>
+          <p className="text-sm text-paper/70 font-medium">Building your quote…</p>
+        </div>
+      )}
+
+      {/* SCROLLABLE MIDDLE: line items list — fills available space between total and stop button */}
+      {showList && (
+        <div className="relative flex-1 min-h-0 w-full max-w-md mx-auto mt-2">
+          {/* top fade */}
+          <span aria-hidden className="pointer-events-none absolute top-0 inset-x-0 h-4 bg-gradient-to-b from-ink to-transparent z-10" />
+          <ul
+            ref={listRef}
+            onScroll={onListScroll}
+            className="absolute inset-0 w-full overflow-y-auto space-y-1.5 pt-2 pb-28 pr-1 -mr-1"
+            style={{ scrollbarWidth: "thin" }}
+          >
+            {liveItems.map((li, i) => {
+              const isLabour = li.category === "labour" || li.category === "cis_labour";
+              const unit = li.unit ?? (isLabour ? "hours" : "qty");
+              const suffix = unit === "hours" ? "/hr" : unit === "days" ? "/day" : "";
+              const isEditing = editingIndex === i;
+              if (isEditing) {
+                return (
+                  <li
+                    key={i}
+                    className="rounded-lg bg-paper/[0.08] border-l-2 border-lime pl-3 pr-3 py-2 space-y-2"
+                  >
+                    <textarea
+                      value={editDesc}
+                      onChange={(e) => setEditDesc(e.target.value)}
+                      rows={2}
+                      autoFocus
+                      className="w-full rounded-md bg-ink/60 border border-paper/20 px-2 py-1.5 text-sm text-paper placeholder-paper/40 focus:outline-none focus:border-lime"
+                      placeholder="Description"
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-paper/60">£</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.01"
+                        value={editPrice}
+                        onChange={(e) => setEditPrice(e.target.value)}
+                        className="flex-1 rounded-md bg-ink/60 border border-paper/20 px-2 py-1.5 num text-sm text-paper focus:outline-none focus:border-lime"
+                        placeholder="0.00"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { onDeleteItem(i); setEditingIndex(null); }}
+                        className="rounded-md bg-status-overdue/20 text-status-overdue px-2 py-1.5"
+                        aria-label="Delete line item"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingIndex(null)}
+                        className="rounded-md bg-paper/10 text-paper px-3 py-1.5 text-xs font-semibold"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => commitEdit(i, li)}
+                        className="rounded-md bg-lime text-ink px-3 py-1.5 text-xs font-bold"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </li>
+                );
+              }
+              const justLanded = i >= justLandedFrom;
+              return (
+                <li
+                  key={i}
+                  onClick={() => beginEdit(i, li)}
+                  style={{
+                    animation: `scale-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both`,
+                    animationDelay: `${Math.min(i, 5) * 30}ms`,
+                  }}
+                  className={`rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-2 flex items-start gap-3 cursor-pointer active:bg-paper/[0.1] ${justLanded ? "animate-line-glow" : ""}`}
+                >
+                  <span className="num text-[11px] font-bold text-paper/40 mt-0.5 shrink-0 w-5 text-right">
+                    {i + 1}
+                  </span>
+                  <p className="flex-1 text-sm leading-snug text-paper font-medium">
+                    {li.description}
+                  </p>
+                  <p className="num text-sm font-semibold text-paper shrink-0 whitespace-nowrap text-right">
+                    <span className="text-paper/60 text-xs font-medium">
+                      {li.qty}{unit === "hours" ? "h" : unit === "days" ? "d" : ""} × {formatGBP(li.unit_price)}
+                    </span>
+                    <span className="text-paper/40 mx-1">=</span>
+                    {formatGBP(li.qty * li.unit_price)}
+                    {suffix && <span className="text-paper/50 text-[10px]"> {suffix}</span>}
+                  </p>
+                </li>
+              );
+            })}
+            {pendingItems.map((p) => (
+              <li
+                key={p.id}
+                className="rounded-lg bg-paper/[0.04] border-l-2 border-paper/20 pl-3 pr-3 py-2 flex items-center gap-3 animate-scale-in"
+                aria-live="polite"
+              >
+                <span className="num text-[11px] font-bold text-paper/30 mt-0.5 shrink-0 w-5 text-right">
+                  {liveItems.length + 1}
+                </span>
+                <div className="flex-1 flex items-center gap-2">
+                  <span className="text-sm text-paper/50 italic">Got it…</span>
+                  <span className="relative flex-1 h-2 overflow-hidden rounded-full bg-paper/[0.06]">
+                    <span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-paper/30 to-transparent bg-[length:200%_100%]" />
+                  </span>
+                </div>
+              </li>
+            ))}
+            {building && (
+              <li
+                className="flex items-center gap-3 px-1 py-3 animate-pulse transition-opacity duration-300"
+                style={{ opacity: 1 }}
+              >
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-lime opacity-75 animate-ping" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-lime" />
+                </span>
+                <span className="text-sm text-paper/70 font-medium">Quottr is building your quote…</span>
+              </li>
+            )}
+          </ul>
+          {/* Transcript — collapsed by default, lets the user verify what was heard */}
+          {liveItems.length > 0 && transcript.trim() && (
+            <details className="mt-4 mx-1 px-4 py-3 rounded-lg bg-paper/[0.04] border border-paper/10">
+              <summary className="text-xs uppercase tracking-widest font-semibold text-paper/60 cursor-pointer hover:text-paper/80 transition list-none">
+                What you said
+              </summary>
+              <p className="mt-3 text-sm text-paper/70 leading-relaxed whitespace-pre-wrap break-words">
+                {transcript}
+              </p>
+            </details>
+          )}
+          {/* bottom fade hint that list continues under the stop button */}
+          <span aria-hidden className="pointer-events-none absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-ink via-ink/85 to-transparent z-10" />
+        </div>
+      )}
+
+
+
+      {/* EMPTY STATE: large central mic — hero of an empty screen */}
+      {!hasItems && !hasPending && (
+        <button
+          type="button"
+          onClick={idle ? onStart : onStop}
+          disabled={transcribing}
+          aria-label={transcribing ? "Transcribing" : recording ? "Stop recording" : "Start recording"}
+          className="relative flex items-center justify-center my-6 disabled:opacity-60"
+        >
+          {recording && (
+            <MicLevelRings streamRef={streamRef} active={recording} size="lg" />
+          )}
+          <div
+            className={`relative h-36 w-36 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_60px_-12px_rgba(200,224,74,0.7)] transition-all ${
+              recording ? "animate-[pulse_1.4s_ease-in-out_infinite]" : ""
+            }`}
+          >
+            {transcribing ? (
+              <Loader2 className="h-14 w-14 text-ink animate-spin" />
+            ) : recording ? (
+              <Square className="h-14 w-14 text-ink fill-ink" strokeWidth={2.25} />
+            ) : (
+              <VoiceWaveform size={56} className="text-ink" />
+            )}
+          </div>
+        </button>
+      )}
+
+      {/* ACTIVE / BUILDING STATE: smaller FAB docked at bottom-centre */}
+      {(hasItems || hasPending) && (
+        <button
+          type="button"
+          onClick={idle ? onStart : onStop}
+          disabled={transcribing}
+          aria-label={transcribing ? "Transcribing" : recording ? "Stop recording" : "Start recording"}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[70] flex items-center justify-center disabled:opacity-60"
+        >
+          {recording && (
+            <MicLevelRings streamRef={streamRef} active={recording} size="sm" />
+          )}
+          <div
+            className={`relative h-14 w-14 rounded-full bg-lime flex items-center justify-center shadow-[0_8px_24px_-6px_rgba(200,224,74,0.6)] transition-all ${
+              recording ? "animate-[pulse_1.4s_ease-in-out_infinite]" : ""
+            }`}
+          >
+            {transcribing ? (
+              <Loader2 className="h-7 w-7 text-ink animate-spin" />
+            ) : recording ? (
+              <Square className="h-7 w-7 text-ink fill-ink" strokeWidth={2.25} />
+            ) : (
+              <VoiceWaveform size={28} className="text-ink" />
+            )}
+          </div>
+        </button>
+      )}
+
+      {/* Bottom text area — pushes up when mic is large, stays above FAB when mic is small */}
+      <div className={`w-full max-w-md min-h-[4rem] text-center space-y-2 ${(hasItems || hasPending) ? "pb-16" : ""}`}>
         {error ? (
           <>
             <p className="text-sm text-status-overdue font-medium">{error}</p>
@@ -2471,12 +2700,13 @@ function VoiceOverlay({
               )}
             </div>
           </>
-        ) : isBuilding ? (
-          <p className="text-sm text-paper/70">Hang tight — shaping your quote…</p>
+        ) : transcribing ? (
+          <p className="text-sm text-paper/70">Building your quote…</p>
         ) : recording ? (
           <p className="text-sm text-paper/70">
-            Keep talking — describe the job, materials, time. Tap the mic when done.
+            Keep talking — describe the job, materials, time. Tap stop when done.
           </p>
+
         ) : lastTranscript ? (
           <>
             <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">Captured</p>
@@ -2491,85 +2721,15 @@ function VoiceOverlay({
         <button
           type="button"
           onClick={onClose}
-          className="relative text-xs uppercase tracking-widest text-paper/60 font-semibold py-3"
+          className="text-xs uppercase tracking-widest text-paper/60 font-semibold py-3"
         >
           {error || lastTranscript ? "Done" : "Cancel"}
         </button>
       )}
-      {!idle && <div className="h-12" />}
+      {!idle && <div className={`h-12 ${(hasItems || hasPending) ? "pb-8" : ""}`} />}
     </div>,
     document.body,
   );
 }
-
-/**
- * LiveRecordingBar — floating session control. Houses the primary
- * "Finish quote" CTA (once at least one tile has landed) and a secondary
- * X cancel control. Renders into a portal so it floats above the form
- * regardless of scroll position.
- */
-function LiveRecordingBar({
-  seconds,
-  streamRef,
-  onCancel,
-  onFinish,
-  canFinish,
-  finishing,
-}: {
-  seconds: number;
-  streamRef?: React.RefObject<MediaStream | null>;
-  onCancel: () => void;
-  onFinish: () => void;
-  canFinish: boolean;
-  finishing: boolean;
-}) {
-  if (typeof document === "undefined") return null;
-  return createPortal(
-    <div
-      className="fixed left-1/2 -translate-x-1/2 z-[55] bottom-nav w-[min(94vw,30rem)]"
-      role="status"
-      aria-live="polite"
-    >
-      <div className="flex items-center gap-2 rounded-full bg-ink text-paper pl-4 pr-1.5 py-1.5 shadow-[0_12px_36px_-12px_rgba(0,0,0,0.5)] border border-paper/10">
-        <span className="relative flex items-center justify-center h-2.5 w-2.5 shrink-0">
-          <span className="absolute inset-0 rounded-full bg-lime animate-[pulse_1.4s_ease-in-out_infinite]" />
-        </span>
-        <span className="text-[10px] uppercase tracking-widest text-paper/70 font-semibold shrink-0">
-          Listening
-        </span>
-        <span className="flex-1 flex items-center justify-center min-w-0">
-          <MicLevelBars streamRef={streamRef} active={true} />
-        </span>
-        <span className="num text-xs text-paper/70 tabular-nums shrink-0">{formatMMSS(seconds)}</span>
-        {/* Secondary: cancel — ends the session WITHOUT committing. Visually
-            quiet so it doesn't compete with Finish. */}
-        <button
-          type="button"
-          onClick={onCancel}
-          aria-label="Cancel recording"
-          title="Cancel"
-          className="h-8 w-8 rounded-full bg-paper/10 hover:bg-paper/20 flex items-center justify-center shrink-0 transition-colors"
-        >
-          <X className="h-4 w-4 text-paper/80" strokeWidth={2.25} />
-        </button>
-        {/* Primary: Finish — commits the quote. Only shown once tiles exist. */}
-        {canFinish && (
-          <button
-            type="button"
-            onClick={onFinish}
-            disabled={finishing}
-            aria-label="Finish quote"
-            className="h-9 px-4 rounded-full bg-lime text-ink text-xs font-bold flex items-center gap-1.5 active:scale-[0.97] transition-transform disabled:opacity-60 shrink-0"
-          >
-            {finishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" strokeWidth={2.5} />}
-            {finishing ? "Finishing…" : "Finish"}
-          </button>
-        )}
-      </div>
-    </div>,
-    document.body,
-  );
-}
-
 
 

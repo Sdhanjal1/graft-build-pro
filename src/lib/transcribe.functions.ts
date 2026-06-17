@@ -34,13 +34,9 @@ export const transcribeAudio = createServerFn({ method: "POST" })
 
     const form = new FormData();
     form.append("file", blob, `recording.${ext}`);
-    form.append("model", "gpt-4o-mini-transcribe");
+    form.append("model", "whisper-1");
     form.append("language", "en");
     form.append("response_format", "json");
-    form.append(
-      "prompt",
-      "UK tradesperson describing a job for a quote. Expect trade terms and brand names like Worcester Bosch, Vaillant, Baxi, Ideal, Drayton, Geberit, Grundfos, Hep2O, consumer unit, EICR, power flush, magnetic filter, double-panel radiator, soil pipe, isolation valve. Prices are in pounds sterling, e.g. £85, £1,200, 'two fifty', 'a hundred and twenty'.",
-    );
 
     let res: Response;
     try {

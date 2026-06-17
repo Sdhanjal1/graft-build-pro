@@ -115,7 +115,6 @@ function QuotesPage() {
         title="Quotes"
         subtitle={subtitle}
         action={{ to: "/quotes/new", search: { voice: 1 }, label: "+ New" }}
-        slim
       />
 
       {/* HERO PIPELINE STRIP */}

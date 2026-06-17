@@ -6,16 +6,39 @@ import { tradeGuidance } from "@/lib/ai-trade-guidance";
 import { rankPatternsForJob, type PricingPattern } from "@/lib/pricing-patterns";
 
 
+const PatternSchema = z.object({
+  id: z.string(),
+  item_description: z.string(),
+  item_category: z.string(),
+  typical_price: z.number(),
+  price_count: z.number(),
+  price_min: z.number(),
+  price_max: z.number(),
+  last_quoted_at: z.string(),
+});
+
 const InputSchema = z.object({
   description: z.string().min(1).max(4000),
   trade: z.string().min(1).max(120),
   vatRegistered: z.boolean(),
+  // Optional context for live phrase-by-phrase capture so the AI can decide
+  // whether this new chunk CONTINUES the previous in-progress item (slow
+  // speaker pausing mid-thought) or starts NEW item(s) (moved on to next job).
+  previousChunkText: z.string().max(4000).optional(),
+  previousItemDescription: z.string().max(240).optional(),
+  // Optional pre-fetched context — client passes this on per-phrase live
+  // calls so the server skips DB lookups (rates + patterns) every phrase.
+  prefetchedContext: z
+    .object({
+      hourly: z.number().nullable(),
+      day: z.number().nullable(),
+      patterns: z.array(PatternSchema).max(120),
+    })
+    .optional(),
 });
 
 const LineItemSchema = z.object({
   description: z.string().min(1).max(240),
-  // Accept any number here; we filter qty <= 0 / missing defensively before
-  // schema parse so one bad line doesn't fail the whole quote.
   qty: z.number().positive().max(1000),
   unit_price: z.number().nonnegative().max(100000),
   source: z.enum(["voice", "learned", "ai"]).optional().default("ai"),
@@ -34,6 +57,12 @@ const QuoteSchema = z.object({
       email: z.string().max(200).optional(),
     })
     .optional(),
+  // When previous-item context is provided and this new chunk continues the
+  // SAME item the speaker was already describing, set true and return a SINGLE
+  // line_items entry representing the merged/extended item (which replaces the
+  // previous in-progress line). When false (default), line_items are appended
+  // as new items.
+  continues_previous: z.boolean().optional().default(false),
   line_items: z.array(LineItemSchema).min(1).max(30),
 });
 
@@ -43,14 +72,13 @@ function labourRatesBlock(hourly: number | null, day: number | null): string {
   const h = hourly && hourly > 0 ? hourly : null;
   const d = day && day > 0 ? day : null;
   if (!h && !d) {
-    return `\n\nLABOUR RATES — NOT CONFIGURED:\nThe tradesperson has NOT set their labour rates in settings. If they speak a labour price (e.g. "£65 an hour", "£280 a day"), use that exact figure with source: "voice". If they mention labour without any price, still include the labour line but set unit_price to 0 so they can fill it in — do NOT invent a market rate. For service-type jobs (boiler service, gas safety check, EICR, callout, annual service) where no price was spoken, set qty: 1, unit: "qty", unit_price: 0 (NEVER 0 qty).`;
+    return `\n\nLABOUR RATES — NOT CONFIGURED:\nThe tradesperson has NOT set their labour rates in settings. If they speak a labour price (e.g. "£65 an hour", "£280 a day"), use that exact figure with source: "voice". If they mention labour without any price, still include the labour line but set unit_price to 0 so they can fill it in — do NOT invent a market rate.`;
   }
   return `\n\nLABOUR RATES — USE THESE EXACT FIGURES (configured by the tradesperson, do NOT override):
 ${h ? `- Hourly rate: £${h}/hr (use for "hours" labour lines)` : "- Hourly rate: not set — if labour is in hours and no rate is spoken, set unit_price to 0"}
 ${d ? `- Day rate: £${d}/day (use for "days" labour lines)` : "- Day rate: not set — if labour is in days and no rate is spoken, set unit_price to 0"}
 - "two days labour" → qty 2, unit "days", unit_price ${d ?? 0}.
 - "three hours" → qty 3, unit "hours", unit_price ${h ?? 0}.
-- SERVICE-TYPE JOBS (boiler service, gas safety check / CP12, EICR, PAT test, callout, annual service, inspection): these aren't billed per unit. Use qty: 1, unit: "qty", and put the FULL price in unit_price. If the tradesperson spoke a price, use that. Otherwise estimate a sensible job total based on the configured rate${h ? ` (e.g. ~1.5–2 hours at £${h}/hr for an annual boiler service)` : d ? ` (e.g. a portion of the £${d}/day rate)` : ""}, set source: "ai", is_estimate: true. NEVER emit qty: 0.
 - The ONLY time you may use a different labour figure is when the tradesperson explicitly speaks a price for that labour line in this voice note (then use it and mark source: "voice"). Never invent or "estimate" a labour rate from market knowledge when these settings are configured.`;
 }
 
@@ -185,10 +213,6 @@ Examples:
 - "Two days labour on site" → { description: "On-site labour", qty: 2, unit_price: <day rate>, unit: "days", category: "labour", source: "learned", is_estimate: false }
 - "Three hours work" → { description: "Labour", qty: 3, unit_price: <hourly rate>, unit: "hours", category: "labour", source: "learned", is_estimate: false }
 - "Three radiators" (no price spoken) → { description: "Radiator", qty: 3, unit_price: <estimate>, unit: "qty", category: "materials", source: "ai", is_estimate: true }
-- "Annual boiler service" → { description: "Annual boiler service", qty: 1, unit_price: <job total>, unit: "qty", category: "labour", source: "ai", is_estimate: true }
-
-QTY FIELD — STRICT, NON-NEGOTIABLE:
-Every line item MUST have qty >= 1. NEVER emit qty: 0, negative, or missing. For service-type / fixed-fee work (boiler service, gas safety / CP12, EICR, PAT test, callout, inspection) where quantity isn't a unit count, use qty: 1 and put the full price in unit_price. If unsure, default qty to 1.
 
 JOB DESCRIPTION — write a clean, concise, professional summary of the work for the customer-facing quote. Extract only the scope of work from what the tradesperson said. Do NOT include:
 - Customer names, phone numbers, or email addresses
@@ -199,7 +223,31 @@ Write it as a professional job description a customer would expect on a formal q
 
 EXTRACTED CUSTOMER DETAILS — if the tradesperson mentioned a customer name, phone number, or email address in the voice note, return them in the extracted_customer object. Omit any field that wasn't mentioned. Do NOT make up details.
 
-EXTRACTED CUSTOMER DETAILS — if the tradesperson mentioned a customer name, phone number, or email address in the voice note, return them in the extracted_customer object. Omit any field that wasn't mentioned. Do NOT make up details.`;
+ITEM BOUNDARY DETECTION (LIVE PHRASE CAPTURE) — VERY IMPORTANT:
+
+When a "PREVIOUS IN-PROGRESS ITEM" block is included below, the tradesperson is describing a job live, phrase by phrase, with natural pauses. Your job is to decide — from the MEANING of the new chunk, not from any timer — whether this new chunk:
+
+(a) CONTINUES the same item the speaker was already describing (they paused to think, took a breath, said "erm…", added more detail to the SAME task/object), OR
+(b) STARTS one or more NEW items (they have moved on to a different task/object/room/material).
+
+Heuristics:
+- Same task/object/material being elaborated on, qualified, given a price, given a quantity, or refined → CONTINUATION. Example: previous "replace radiator in living room", new chunk "the big double panel one, about 1200 wide" → continuation.
+- A new verb/task on a different object, a new room, a new material category, or an obvious topic shift → NEW item(s). Example: previous "replace radiator in living room", new chunk "and then fit a new toilet seat" → new item.
+- Filler/connector words at the start ("and", "also", "then", "next", "after that", "oh and") usually signal a NEW item, but only when followed by a different task/object. "And it needs bleeding too" after a radiator line is still about that radiator.
+- A bare price or quantity on its own ("…about three hundred quid", "…times two") is a CONTINUATION applying to the previous item.
+- If the new chunk clearly contains MULTIPLE distinct items, return them all in line_items with continues_previous: false (the first item is a NEW item, not a merge).
+
+When continues_previous is true:
+- line_items MUST contain exactly ONE entry representing the FULL merged item (previous text + new text combined), re-priced and re-described as a single clean professional line. This replaces the previous in-progress line on the client.
+- Apply all the usual rules (filler stripping, only-what-was-said, labour from settings) to the COMBINED text.
+
+When continues_previous is false:
+- line_items are the NEW items only — do NOT re-emit the previous item.
+- The previous item is already committed and will not be changed.
+
+If NO "PREVIOUS IN-PROGRESS ITEM" block is included, treat the input as a fresh chunk: continues_previous must be false and line_items are the items from this chunk.
+
+Default continues_previous to FALSE when uncertain — splitting a continuation into two lines is a smaller mistake than merging two genuinely different items into one.`;
 
 export const generateAIQuote = createServerFn({ method: "POST" })
   .middleware([requireActiveSubscription])
@@ -208,15 +256,24 @@ export const generateAIQuote = createServerFn({ method: "POST" })
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
 
-    const { supabase, userId } = context as { supabase: any; userId: string };
-    const allPatterns: PricingPattern[] = await fetchTopPatterns(supabase, userId, 80);
-    const { data: profileRow } = await supabase
-      .from("profiles")
-      .select("labour_hourly_rate, labour_day_rate")
-      .eq("id", userId)
-      .maybeSingle();
-    const hourly: number | null = profileRow?.labour_hourly_rate != null ? Number(profileRow.labour_hourly_rate) : null;
-    const day: number | null = profileRow?.labour_day_rate != null ? Number(profileRow.labour_day_rate) : null;
+    let hourly: number | null;
+    let day: number | null;
+    let allPatterns: PricingPattern[];
+    if (data.prefetchedContext) {
+      hourly = data.prefetchedContext.hourly;
+      day = data.prefetchedContext.day;
+      allPatterns = data.prefetchedContext.patterns as PricingPattern[];
+    } else {
+      const { supabase, userId } = context as { supabase: any; userId: string };
+      allPatterns = await fetchTopPatterns(supabase, userId, 80);
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("labour_hourly_rate, labour_day_rate")
+        .eq("id", userId)
+        .maybeSingle();
+      hourly = profileRow?.labour_hourly_rate != null ? Number(profileRow.labour_hourly_rate) : null;
+      day = profileRow?.labour_day_rate != null ? Number(profileRow.labour_day_rate) : null;
+    }
     const patterns = rankPatternsForJob(allPatterns, `${data.trade} ${data.description}`, 10);
     const systemPrompt =
       SYSTEM_PROMPT +
@@ -224,14 +281,20 @@ export const generateAIQuote = createServerFn({ method: "POST" })
       tradeGuidance(data.trade) +
       patternsForPrompt(patterns, data.trade);
 
+
+    const prevBlock =
+      data.previousChunkText && data.previousItemDescription
+        ? `\n\nPREVIOUS IN-PROGRESS ITEM (currently the last line on the live quote — decide if the new chunk continues this item or starts new ones):\n- Previous spoken text: "${data.previousChunkText}"\n- Previous line description: "${data.previousItemDescription}"\n`
+        : "";
+
     const userPrompt = `CRITICAL: Create line items ONLY for work explicitly mentioned in the job description below. Do NOT add suggested items, related services, or items from the learned patterns unless the tradesperson specifically mentioned them. The job description is the source of truth.
 
 Generate an itemised quote for this job.
 
 Trade: ${data.trade}
 VAT registered: ${data.vatRegistered ? "Yes (20% VAT will be added)" : "No"}
-
-Job description:
+${prevBlock}
+New spoken chunk (job description):
 ${data.description}
 
 Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
@@ -239,6 +302,7 @@ Return ONLY valid JSON matching this exact shape (no markdown, no commentary):
   "title": "3–4 words max, covers all work (e.g. 'Boiler & radiators fit')",
   "clean_description": "Professional scope-of-work summary, no customer names/contacts/filler",
   "extracted_customer": { "name": "optional", "phone": "optional", "email": "optional" },
+  "continues_previous": false,
   "line_items": [
     { "description": "Clean professional item name only (NO 'estimate' / 'please confirm' text)", "qty": 1, "unit_price": 0, "source": "voice" | "learned" | "ai", "category": "labour" | "materials" | "certificate" | "cis_labour" | "other", "unit": "qty" | "hours" | "days", "is_estimate": false }
   ]
@@ -296,21 +360,6 @@ Omit extracted_customer entirely if no customer details were mentioned. Unit pri
     } catch {
       throw new Error("Claude returned malformed JSON");
     }
-    // Defensive: drop line items with missing/zero/negative qty BEFORE schema
-    // parse, so one bad line doesn't fail the whole regenerate pass.
-    if (parsed && typeof parsed === "object" && Array.isArray((parsed as any).line_items)) {
-      const raw = (parsed as any).line_items as Array<any>;
-      const before = raw.length;
-      (parsed as any).line_items = raw.filter((li) => {
-        const q = typeof li?.qty === "number" ? li.qty : Number(li?.qty);
-        return Number.isFinite(q) && q > 0;
-      });
-      const dropped = before - (parsed as any).line_items.length;
-      if (dropped > 0) console.warn(`[ai-quote] dropped ${dropped} line item(s) with invalid qty`);
-      if ((parsed as any).line_items.length === 0) {
-        throw new Error("Could not generate quote. Please try again.");
-      }
-    }
     const result = QuoteSchema.parse(parsed);
     // Safety net: strip any "— estimate, please confirm" suffix the model may have
     // emitted into a description and convert it into the structured is_estimate flag,
@@ -345,5 +394,26 @@ Omit extracted_customer entirely if no customer details were mentioned. Unit pri
     }
 
     return result;
+  });
+
+/**
+ * Prefetch the per-user context the AI needs (labour rates + pricing patterns)
+ * so the live per-phrase pipeline can skip a DB round-trip on every phrase.
+ * Called once when voice recording starts; the result is passed back into
+ * generateAIQuote.prefetchedContext for each phrase.
+ */
+export const prefetchQuoteContext = createServerFn({ method: "POST" })
+  .middleware([requireActiveSubscription])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as { supabase: any; userId: string };
+    const allPatterns = await fetchTopPatterns(supabase, userId, 80);
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("labour_hourly_rate, labour_day_rate")
+      .eq("id", userId)
+      .maybeSingle();
+    const hourly = profileRow?.labour_hourly_rate != null ? Number(profileRow.labour_hourly_rate) : null;
+    const day = profileRow?.labour_day_rate != null ? Number(profileRow.labour_day_rate) : null;
+    return { hourly, day, patterns: allPatterns };
   });
 

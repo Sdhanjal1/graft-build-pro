@@ -22,7 +22,6 @@ import { Route as MerchRouteImport } from './routes/merch'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as FaqsRouteImport } from './routes/faqs'
-import { Route as DevTokenTestRouteImport } from './routes/dev-token-test'
 import { Route as ConfirmedRouteImport } from './routes/confirmed'
 import { Route as ChaserRouteImport } from './routes/chaser'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -109,11 +108,6 @@ const FeaturesRoute = FeaturesRouteImport.update({
 const FaqsRoute = FaqsRouteImport.update({
   id: '/faqs',
   path: '/faqs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DevTokenTestRoute = DevTokenTestRouteImport.update({
-  id: '/dev-token-test',
-  path: '/dev-token-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfirmedRoute = ConfirmedRouteImport.update({
@@ -237,7 +231,6 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/chaser': typeof ChaserRoute
   '/confirmed': typeof ConfirmedRoute
-  '/dev-token-test': typeof DevTokenTestRoute
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -275,7 +268,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/chaser': typeof ChaserRoute
   '/confirmed': typeof ConfirmedRoute
-  '/dev-token-test': typeof DevTokenTestRoute
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -314,7 +306,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/chaser': typeof ChaserRoute
   '/confirmed': typeof ConfirmedRoute
-  '/dev-token-test': typeof DevTokenTestRoute
   '/faqs': typeof FaqsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -354,7 +345,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chaser'
     | '/confirmed'
-    | '/dev-token-test'
     | '/faqs'
     | '/features'
     | '/forgot-password'
@@ -392,7 +382,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chaser'
     | '/confirmed'
-    | '/dev-token-test'
     | '/faqs'
     | '/features'
     | '/forgot-password'
@@ -430,7 +419,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chaser'
     | '/confirmed'
-    | '/dev-token-test'
     | '/faqs'
     | '/features'
     | '/forgot-password'
@@ -469,7 +457,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ChaserRoute: typeof ChaserRoute
   ConfirmedRoute: typeof ConfirmedRoute
-  DevTokenTestRoute: typeof DevTokenTestRoute
   FaqsRoute: typeof FaqsRoute
   FeaturesRoute: typeof FeaturesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -591,13 +578,6 @@ declare module '@tanstack/react-router' {
       path: '/faqs'
       fullPath: '/faqs'
       preLoaderRoute: typeof FaqsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dev-token-test': {
-      id: '/dev-token-test'
-      path: '/dev-token-test'
-      fullPath: '/dev-token-test'
-      preLoaderRoute: typeof DevTokenTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/confirmed': {
@@ -775,7 +755,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ChaserRoute: ChaserRoute,
   ConfirmedRoute: ConfirmedRoute,
-  DevTokenTestRoute: DevTokenTestRoute,
   FaqsRoute: FaqsRoute,
   FeaturesRoute: FeaturesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
@@ -808,3 +787,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
