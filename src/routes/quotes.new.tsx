@@ -1043,8 +1043,22 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           // It must NEVER be rendered in the overlay — use MicLevelBars there.
           setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
         };
-        rec.onerror = () => { /* silent: pipeline only */ };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        rec.onerror = (event: any) => {
+          const type = event?.error ?? "unknown";
+          // Recoverable: SR auto-restarts via onend; ignore silently.
+          if (type === "no-speech" || type === "aborted") return;
+          // Unrecoverable: permission revoked, no mic, browser killed
+          // recognition. Stop the restart loop and surface a hint. The
+          // Whisper fallback at stop-time can still produce tiles.
+          console.warn("[voice] SpeechRecognition fatal error", type);
+          srFatalRef.current = true;
+          if (type === "not-allowed" || type === "service-not-allowed") {
+            setVoiceError("Mic access was blocked — check your browser permissions, then try again.");
+          }
+        };
         rec.onend = () => {
+          if (srFatalRef.current) return;
           if (!stopRequestedRef.current && mediaRecorderRef.current?.state === "recording") {
             lastFinalIdxRef.current = -1; // new session, fresh result indices
             try { rec.start(); } catch { /* noop */ }
