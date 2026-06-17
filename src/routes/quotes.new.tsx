@@ -672,11 +672,21 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     setBuilding(true);
     try {
       const ctx = prefetchedContextRef.current;
-      const g = await generateFn({
-        data: { description: transcript, trade, vatRegistered: vat, ...(ctx ? { prefetchedContext: ctx } : {}) },
-      });
+      // Bound the per-phrase call so a stalled AI doesn't strand the
+      // overlay in "building…" or block waitForPendingPhraseProcessing.
+      const timeoutMs = 20_000;
+      const g = await Promise.race<Awaited<ReturnType<typeof generateFn>>>([
+        generateFn({
+          data: { description: transcript, trade, vatRegistered: vat, ...(ctx ? { prefetchedContext: ctx } : {}) },
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), timeoutMs),
+        ) as Promise<never>,
+      ]);
       if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
       if (genId !== phraseSeqRef.current) return;
+      // Successful response — clear the failure streak.
+      voiceFailCountRef.current = 0;
       if (g.line_items?.length) {
         const filtered = g.line_items
           .filter((li) => !deletedDescsRef.current.has(normDesc(li.description)))
@@ -732,7 +742,17 @@ Re-output the FULL updated list of line items for this quote, applying the chang
         }
       }
     } catch (err) {
+      // Always log full detail for debugging — don't swallow silently.
       console.warn("[voice] live regenerate failed", err);
+      if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
+      voiceFailCountRef.current += 1;
+      // Surface a clear, specific error after two consecutive failures so the
+      // user knows to stop talking. Don't stop the recorder — the Whisper
+      // fallback at stop-time may still rescue the session.
+      if (voiceFailCountRef.current >= 2) {
+        const { msg } = classifyAIError(err);
+        setVoiceError(msg);
+      }
     } finally {
       pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
       // Only clear the spinner when nothing else is in flight — otherwise
