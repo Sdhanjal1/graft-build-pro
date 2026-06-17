@@ -38,7 +38,7 @@ function pwaEligible() {
  *   offline pill (top)   = 70
  */
 export function BannerSlot() {
-  const { sub, loading, showWarn, showExpired } = useSubscription();
+  const { sub, loading, showWarn, showExpired, showPastDue } = useSubscription();
 
   const [pwaActive, setPwaActive] = useState(false);
   const [offline, setOffline] = useState(
@@ -69,7 +69,7 @@ export function BannerSlot() {
     !loading &&
     !!sub &&
     !(sub.has_payment_method && sub.status === "active") &&
-    (showWarn || showExpired);
+    (showWarn || showExpired || showPastDue);
 
   if (trialActive) return <TrialBanner />;
 
