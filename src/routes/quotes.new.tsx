@@ -458,7 +458,8 @@ function NewQuotePage() {
     liveItemsRef.current = [];
     phraseSeqRef.current = 0;
     lastFinalIdxRef.current = -1;
-    speechIndexOffsetRef.current = 0;
+    srFatalRef.current = false;
+    voiceFailCountRef.current = 0;
     setEditVoiceOpen(false);
     recordTargetRef.current = "desc";
   };
