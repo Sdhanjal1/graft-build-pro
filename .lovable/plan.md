@@ -1,80 +1,87 @@
-## Voice-to-quote — issues found and proposed fixes
+# Visual Polish — Bolder & More Confident
 
-The flow is well thought through (per-phrase regenerate, append-only tile merge, append-only background reconcile, Whisper fallback when Web Speech is unavailable). But there are five real bugs and three UX gaps that will bite real users. Ordered by severity.
+The home screen reads well because it has clear hierarchy, generous spacing and one hero moment (the big lime number). The rest of the app reads "busy" because every card competes — same weight, same radius, same chip styling, low contrast on the cream background. This plan brings the home-screen confidence to every other screen, then mirrors it on the portal and marketing.
 
----
-
-### P0 — silent failures that look like "broken"
-
-**1. Per-phrase `generateFn` failures are swallowed.**
-`regenerateLiveQuote` wraps the AI call in `try/catch { console.warn(...) }`. If Anthropic returns 401/429/500, or the user is rate-limited, the user keeps talking, no tiles appear, and there's no error on the overlay. Combined with the Whisper fallback only firing when `liveItemsRef.current.length === 0`, a partial failure mid-recording is invisible.
-
-Fix: track a consecutive-failure counter inside the session. After 2 consecutive failures, surface a `voiceError` on the overlay ("Quottr couldn't reach the AI — stop and try again, or type the job") without stopping the recorder. Reset the counter on first success.
-
-**2. Subscription gate runs too late.**
-`subBlocked` is only checked inside `runTranscribe`, after a Whisper call has already gone out. A user on day 15 with no card can record a 60-second clip, hit stop, wait for transcription, then see "Trial ended". Worse: per-phrase `generateFn` calls during recording will all reject server-side (`requireActiveSubscription`), invisibly (see #1).
-
-Fix: gate at `handleVoiceStart` / `handleEditByVoice` — if `subBlocked`, do not call `getUserMedia` at all, show the "Trial ended — add payment method" CTA in the overlay's error slot (re-uses the existing error UI), wire the button to open the billing portal.
-
-**3. Race on close orphans aren't complete — Whisper results can still mutate the form.**
-`handleVoiceClose` bumps `voiceSessionRef.current` and sets `closeRequestedRef.current = true`, but `runTranscribe` and `appendTranscript` do not check either before calling `setDesc(combinedDesc)` or auto-running `generate(combinedDesc)`. A user who taps Cancel while transcription is in flight can have the textarea silently overwritten ~2s later and an unwanted full quote generated.
-
-Fix: at the top of `runTranscribe`'s post-`await` continuation, bail out if `closeRequestedRef.current || sessionId !== voiceSessionRef.current`. Pass `sessionId` into `runTranscribe` so it captures the session at call time.
+No functional changes. CSS tokens + component-level styling only.
 
 ---
 
-### P1 — recoverable-vs-unrecoverable confusion
+## 1. Tighten the design system (foundation — affects everything)
 
-**4. SpeechRecognition `onerror` is fully silenced.**
-`rec.onerror = () => { /* silent: pipeline only */ }`. Two of the four event types are unrecoverable: `not-allowed` and `service-not-allowed` (Chrome killed the recognition session, often when mic permission was revoked or when on insecure context). `onend` then immediately restarts via `rec.start()` and instantly errors again, looping. The user sees no tiles, no error, and the FAB still says "Listening…".
+`**src/styles.css**`
 
-Fix: differentiate. Log every error. On `not-allowed` / `service-not-allowed` / `audio-capture`: stop trying to restart in `onend`, set `voiceError`, and keep MediaRecorder running so the Whisper fallback at stop still produces tiles. On `no-speech` and `aborted`: keep current behaviour.
+- **Surface stack.** Today everything sits on cream paper with hairline borders. Introduce three explicit surfaces so cards stop blending into the page:
+  - `--paper` (page bg) — slightly cooler, marginally darker so white cards lift
+  - `--card` — pure cream, what most cards sit on
+  - `--card-elev` — for the focal card on each screen (one per view)
+- **Stronger ink.** Bump primary text to near-black for crisper headings; add `--ink-soft` for body so the contrast hierarchy is obvious at a glance.
+- **Lime, used with intent.** Keep `--lime` as the hero accent, add `--lime-soft` (15% tint) for chips/highlights so we stop using grey for "good news". Promote `bg-lime` to mean "money / positive action" only.
+- **Status colour clean-up.** Status chips currently mix lime/grey/red at the same weight. Re-tune to three tiers: positive (lime), awaiting (warm sand, not grey), urgent (red). Updated tokens flow through `STATUS_CHIP` / `STATUS_DOT` automatically.
+- **Radii.** Tighten card radius from `1rem` to `0.875rem`, pills stay full. Modern, less template-y.
+- **Shadow.** Single elevation token `--shadow-card` (soft, warm, ~8% opacity) used by `.card-focal` only. Replaces the heavier existing shadow.
+- **Type scale.** Add `.display-xl` / `.display-lg` / `.display-md` Bebas helpers so big numbers and section titles share a rhythm across screens.
 
-**5. No timeout on `getUserMedia` or per-phrase `generateFn`.**
+## 2. Screen-level rhythm (where "not easy on the eye" lives)
 
-- `navigator.mediaDevices.getUserMedia` can hang indefinitely on locked-down browsers (corporate MDM, certain in-app webviews). The user sees `voiceOpening = true` forever with no escape.
-- `generateFn` per-phrase has no `AbortSignal.timeout(...)`; a stalled Anthropic call leaves `building = true` and `pendingCountRef > 0`, which makes the post-stop `waitForPendingPhraseProcessing` block up to 30s.
+Same pattern applied to **Quotes list, Chaser, Clients, Settings, New Quote**:
 
-Fix: `Promise.race(getUserMedia, timeout(10_000))` with a plain-English error on timeout. Wrap per-phrase `generateFn` in `AbortSignal.timeout(20_000)` and treat timeouts as failures for #1's counter.
+1. **One focal block per screen** using `card-focal` (e.g. the totals strip on Quotes, the overdue summary on Chaser, the profile card on Settings). Everything else uses flat `card-surface` — kills visual competition.
+2. **Section headers** become small uppercase Bebas labels with a thin lime underline rule, instead of the current bold sans headings. Gives the editorial confidence the home screen has.
+3. **Row density.** Lists currently use `py-4` with hairline borders that wash out. Switch to `py-3.5` rows on a true card with internal dividers (`divide-y divide-ink/5`) — feels structured instead of floating.
+4. **Numbers lead.** Money/counters move to Bebas display weight on the right of each row (mirrors home screen). The label is the secondary element.
+5. **Sticky header polish.** `PageHeader` already condenses on scroll; tighten the un-condensed state — slightly smaller title (1.75rem), add a subtle 1px lime hairline along the bottom curve when scrolled, drop the blurred paper blob (reads noisy on small screens).
+
+## 3. New Quote / Voice screen (the flattest screen today)
+
+- Replace the current flat form stack with a single elevated quote-preview card on top + flat input rows below — same "one focal" rule.
+- Voice FAB: keep the lime pulse, but seat it on a slim ink pedestal so it reads as the primary action even when content scrolls behind it.
+- Live transcript tiles get a left lime bar + warmer paper background so they look generated, not pasted in.
+
+## 4. Empty & loading states
+
+- `EmptyState` icon circle: switch the celebrate tint from `bg-lime/30` to a soft lime gradient with a thin ring; default tint goes from flat grey to `card-elev`. Small change, big "considered" feel.
+- Skeletons get the same warm tone as cards (currently cool grey — looks foreign on cream).
+
+## 5. Bottom nav
+
+- Active item: lime dot under the icon + ink label (instead of full lime pill) — quieter, more confident, matches the editorial direction.
+- Pedestal: slight blur + warm tint behind the pill so it floats over content without the current hard edge.
+
+## 6. Portal & request pages (cohesion pass)
+
+- Lift the same surface stack, type scale, and "one focal card" rule.
+- Customer-facing money number uses the home-screen display treatment so accepting a quote feels like the payoff moment.
+
+## 7. Marketing site (Home / Features / Pricing / Trades)
+
+- Already strong — apply only: matching radii, matching status colours in any embedded UI mocks, and the new Bebas section-label treatment so the marketing → app transition feels seamless.
 
 ---
 
-### P2 — small UX gaps
+## Technical notes
 
-**6. iOS has no SpeechRecognition.** The live tiles experience is exclusively the Whisper-only fallback path. This works, but there's no signal during recording that anything is being captured beyond the level meter. Acceptable for launch; flag for follow-up (would need a streaming STT, e.g. ElevenLabs realtime — the connector is already linked).
+- All changes go through `src/styles.css` tokens + the components listed; no route logic touched.
+- `STATUS_CHIP` / `STATUS_DOT` in `src/lib/status-styles.ts` get re-tuned values — single source of truth, propagates everywhere.
+- `AppShell` `PageHeader` gets the header tweaks; the `condensed` behaviour stays.
+- No new fonts (Bebas + DM Sans stay). No new dependencies.
+- Dark portal/auth surfaces unchanged.
 
-**7. "Could not start recorder on this browser."** Still in tech-y voice — replace with the same plain-English style we used for #15. E.g. "This browser can't record audio — open Quottr in Safari or Chrome." Same for "Microphone not supported on this device."
+## Out of scope
 
-**8. `speechIndexOffsetRef` is dead code.** Declared and reset on start, never read. Either wire it up to track cumulative final indices across SR auto-restarts (currently relies on `lastFinalIdxRef = -1` reset in `onend`, which is correct but undocumented) or remove the ref. Recommend remove + a short comment on the existing approach.
+- No copy changes, no information-architecture changes, no new screens.
+- No animation overhaul beyond the existing tokens (the home screen's motion already works).
+- Voice flow logic untouched — visual only.
 
----
+## Files expected to change
 
-### Scope I'm proposing
+- `src/styles.css` (tokens, utilities)
+- `src/lib/status-styles.ts` (re-tuned chips/dots)
+- `src/components/AppShell.tsx` (header polish)
+- `src/components/BottomNav.tsx` (active state)
+- `src/components/EmptyState.tsx`, `src/components/Skeletons.tsx`
+- `src/routes/quotes.index.tsx`, `chaser.tsx`, `clients.index.tsx`, `settings.tsx`, `quotes.new.tsx` (apply focal/flat pattern, section labels, row rhythm)
+- `src/routes/portal.$token.tsx`, `request.$proId.tsx` (cohesion pass)
 
-If you're happy, I'd ship #1, #2, #3, #4, #5 together — they're all in the same file (`src/routes/quotes.new.tsx`) and the same mental model (session-scoped error handling + cancellation hygiene). #7 is a one-line tweak. #6/#8 deferred.
+Marketing pages (`index.tsx`, `features.tsx`, `pricing.tsx`, `trades.tsx`) only inherit token changes — no structural edits.
 
-If you only want one: **#3 (close-race)** is the one most likely to cause a "WTF, who edited my quote" support ticket. **#1 (silent failures)** is the one that quietly destroys trial-to-paid conversion when the AI hiccups.
-
-Here’s the note to add to the plan for approval:
-
-Approved — ship #1, #2, #3, #4, #5, and #7 together as one batch. Defer #6 and #8. Three additions/clarifications before you build:
-
-On #1 (surface failures): make the surfaced error specific, not generic. Distinguish the failure reason and show plain-English text accordingly:
-
-	•	Auth/401 → “Couldn’t reach Quottr’s AI — please refresh and sign in again.”
-
-	•	Rate limit/429 → “Too many requests just now — wait a few seconds and keep talking.”
-
-	•	Subscription rejection/403 → the trial/billing CTA (ties to #2).
-
-	•	Network/timeout/500 → “Couldn’t reach the AI — check your signal, or type the job instead.”
-
-Also log the actual error (status + short body) to the console for every failure, even the ones that don’t surface yet, so I can diagnose the real cause when testing. The consecutive-failure counter and “surface after 2, reset on success, don’t stop the recorder” behaviour is correct as you described.
-
-On #2 (subscription gate): gate at handleVoiceStart / handleEditByVoice before getUserMedia — if subBlocked, don’t request the mic at all; show the “Trial ended — add payment method” CTA in the overlay’s error slot, wired to the billing portal. Important: confirm that trial users (trialing status) and past_due are NOT blocked — only genuinely lapsed/cancelled subs should be gated. Trial users must be able to use voice fully; that’s when they evaluate it. If subBlocked currently includes trialing, fix that as part of this.
-
-On #3 (close-race): pass sessionId into runTranscribe (captured at call time) and bail at the top of every post-await continuation if closeRequestedRef.current || sessionId !== voiceSessionRef.current, before any setDesc / setDraft / auto-generate. Apply the same guard in appendTranscript.
-
-General: this is all in src/routes/[quotes.new](http://quotes.new).tsx. Don’t change the voice architecture, the per-phrase pipeline, or the tile-merge logic — these are error-handling, cancellation, and gating fixes only. After building, confirm the five fixes don’t alter the happy-path flow (record → tiles → stop → quote) at all.
-
-&nbsp;
+Can you instead show me some mock up design alternatives rather than change anything on the app itself 
