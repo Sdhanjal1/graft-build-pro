@@ -24,12 +24,14 @@ export const STATUS_LABEL: Record<QuoteStatus, string> = {
 };
 
 
+// Bold Cashboard: solid pill chips — every status reads at the same weight,
+// the colour does the talking. Tiny tracking-tight uppercase labels.
 export const STATUS_CHIP: Record<QuoteStatus, string> = {
-  pending: "bg-ink/8 text-muted-foreground",
-  sent: "bg-ink/8 text-muted-foreground",
-  accepted: "bg-lime/30 text-ink",
-  declined: "bg-ink/8 text-muted-foreground line-through",
-  completed: "bg-lime/20 text-ink",
+  pending: "bg-secondary text-ink",
+  sent: "bg-secondary text-ink",
+  accepted: "bg-ink text-paper",
+  declined: "bg-secondary text-muted-foreground line-through",
+  completed: "bg-ink text-paper",
   paid: "bg-lime text-ink",
   overdue: "bg-status-overdue text-white",
 };
