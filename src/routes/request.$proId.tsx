@@ -282,7 +282,7 @@ function VoiceRecorder({ onTranscript }: { onTranscript: (t: string) => void }) 
           const r = await transcribe({ data: { audioBase64: b64, mimeType: blob.type } });
           onTranscript(r.text);
         } catch (e) {
-          setErr(e instanceof Error ? e.message : "Transcription failed");
+          setErr(e instanceof Error ? e.message : "Couldn't hear that — try again in a quieter spot.");
         } finally {
           setProcessing(false);
         }
@@ -291,7 +291,7 @@ function VoiceRecorder({ onTranscript }: { onTranscript: (t: string) => void }) 
       mediaRef.current = mr;
       setRecording(true);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Microphone access denied");
+      setErr("Can't access the mic — check your browser permissions and try again.");
     }
   };
 

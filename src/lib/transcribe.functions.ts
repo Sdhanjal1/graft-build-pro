@@ -57,17 +57,17 @@ export const transcribeAudio = createServerFn({ method: "POST" })
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
       console.error("OpenAI Whisper error", res.status, errText);
-      if (res.status === 401) {
-        throw new Error("OpenAI API key is invalid. Update the key and try again.");
+      if (res.status === 401 || res.status === 403) {
+        throw new Error("Voice isn't set up right now. Try again in a moment.");
       }
-      if (res.status === 429) {
-        throw new Error("OpenAI rate limit hit. Wait a moment and try again.");
+      if (res.status === 429 || res.status >= 500) {
+        throw new Error("Busy right now — give it a few seconds and try again.");
       }
-      throw new Error(`Transcription failed (${res.status})`);
+      throw new Error("Couldn't hear that — try again in a quieter spot.");
     }
 
     const json = (await res.json()) as { text?: string };
     const text = (json.text || "").trim();
-    if (!text) throw new Error("No speech detected");
+    if (!text) throw new Error("Didn't catch anything — try speaking a bit closer to the mic.");
     return { text };
   });
