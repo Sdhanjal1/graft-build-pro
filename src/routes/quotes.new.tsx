@@ -391,8 +391,37 @@ function NewQuotePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editId]);
 
+  // Classify an error from generateFn / transcribeFn into a plain-English
+  // message + whether to retry. Status codes come from the Error message text
+  // (server functions throw `new Error("... (429)")`-style messages) plus
+  // common transport failures (fetch TypeError / AbortError).
+  const classifyAIError = (err: unknown): { msg: string; subBlocked: boolean } => {
+    const raw = err instanceof Error ? err.message : String(err ?? "");
+    const lower = raw.toLowerCase();
+    if (lower.includes("trial") || lower.includes("subscription") || lower.includes("403")) {
+      return { msg: "Trial ended — add a card to keep using voice quoting.", subBlocked: true };
+    }
+    if (lower.includes("401") || lower.includes("unauthorized") || lower.includes("auth")) {
+      return { msg: "Couldn't reach Quottr's AI — refresh and sign in again.", subBlocked: false };
+    }
+    if (lower.includes("429") || lower.includes("rate")) {
+      return { msg: "Too many requests just now — wait a few seconds and keep talking.", subBlocked: false };
+    }
+    if (lower.includes("timeout") || lower.includes("abort") || lower.includes("network") || lower.includes("failed to fetch")) {
+      return { msg: "Couldn't reach the AI — check your signal, or type the job instead.", subBlocked: false };
+    }
+    if (lower.includes("5")) {
+      // 500-ish; fall through to generic
+    }
+    return { msg: "Couldn't reach the AI — try again, or type the job instead.", subBlocked: false };
+  };
+
   const handleVoiceStart = async () => {
     if (saving) return;
+    if (subBlocked) {
+      setVoiceError("Your trial has ended — add a card to use voice quoting.");
+      return;
+    }
     closeRequestedRef.current = false;
     setVoiceError(null);
     setLastTranscript(null);
@@ -410,6 +439,11 @@ function NewQuotePage() {
   };
   const handleEditByVoice = async () => {
     if (saving || recording || transcribing) return;
+    if (subBlocked) {
+      setVoiceError("Your trial has ended — add a card to use voice quoting.");
+      setEditVoiceOpen(true);
+      return;
+    }
     feedback("tap");
     recordTargetRef.current = "edit";
     setEditVoiceOpen(true);
