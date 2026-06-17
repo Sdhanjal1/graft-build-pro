@@ -855,7 +855,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     } catch (err) {
       console.error(err);
       stream.getTracks().forEach((t) => t.stop());
-      setVoiceError("Could not start recorder on this browser.");
+      setVoiceError("This browser can't record audio — open Quottr in Safari or Chrome.");
       return;
     }
     mediaRecorderRef.current = mr;
