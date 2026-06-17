@@ -886,7 +886,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           return;
         }
         lastBlobRef.current = { blob, mimeType: blobType };
-        await runTranscribe(blob, blobType);
+        await runTranscribe(blob, blobType, sessionId);
         return;
       }
 
