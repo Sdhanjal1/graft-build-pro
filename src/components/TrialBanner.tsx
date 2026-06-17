@@ -1,19 +1,23 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, Sparkles } from "lucide-react";
+import { AlertTriangle, CreditCard, Sparkles } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { startSubscriptionCheckout, openBillingPortal } from "@/lib/subscription.functions";
 import { toast } from "sonner";
 
+type Variant = "past_due" | "expired" | "warn";
+
 export function TrialBanner() {
-  const { sub, loading, showWarn, showExpired, trialDaysLeft } = useSubscription();
+  const { sub, loading, showWarn, showExpired, showPastDue, trialDaysLeft } = useSubscription();
   const startCheckout = useServerFn(startSubscriptionCheckout);
   const openPortal = useServerFn(openBillingPortal);
   const [busy, setBusy] = useState(false);
 
   if (loading || !sub) return null;
   if (sub.has_payment_method && sub.status === "active") return null;
-  if (!showWarn && !showExpired && sub.status === "trialing") return null;
+  if (!showWarn && !showExpired && !showPastDue) return null;
+
+  const variant: Variant = showPastDue ? "past_due" : showExpired ? "expired" : "warn";
 
   const addCard = async () => {
     setBusy(true);
@@ -27,7 +31,7 @@ export function TrialBanner() {
       });
       window.location.href = url;
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not start checkout");
+      toast.error(e?.message ?? "Couldn't open checkout — try again in a moment.");
       setBusy(false);
     }
   };
@@ -40,55 +44,86 @@ export function TrialBanner() {
       });
       window.location.href = url;
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not open billing");
+      toast.error(e?.message ?? "Couldn't open billing — try again in a moment.");
       setBusy(false);
     }
   };
 
-  if (showExpired) {
-    return (
-      <div className="mx-4 my-3 rounded-2xl bg-destructive/5 border border-destructive/20 p-4 text-sm">
+  const copy = {
+    past_due: {
+      title: "Payment failed",
+      body: "Your last payment didn't go through. Update your card to keep using Quottr.",
+      action: "Update card",
+      onClick: manage,
+      tone: "destructive" as const,
+      Icon: CreditCard,
+    },
+    expired: {
+      title: "Your trial has ended",
+      body: "Add a card to keep using Quottr — £29/month.",
+      action: "Add payment method",
+      onClick: sub.stripe_customer_id ? manage : addCard,
+      tone: "destructive" as const,
+      Icon: AlertTriangle,
+    },
+    warn: {
+      title: trialDaysLeft === 1 ? "Trial ends tomorrow" : `${trialDaysLeft} days left in trial`,
+      body: "Add a card now — you won't be charged until your trial ends.",
+      action: "Add payment method",
+      onClick: addCard,
+      tone: "warn" as const,
+      Icon: Sparkles,
+    },
+  }[variant];
+
+  // High-urgency states (expired / past_due) lock to bottom as a sticky action sheet.
+  // Warn stays inline so it doesn't crowd the thumb zone on day 12.
+  const isSticky = variant !== "warn";
+
+  const wrapper = isSticky
+    ? "fixed inset-x-0 bottom-0 z-[55] px-3 pb-[calc(env(safe-area-inset-bottom)+84px)] pt-2 pointer-events-none"
+    : "mx-4 my-3";
+
+  const panelTone =
+    copy.tone === "destructive"
+      ? "bg-destructive text-destructive-foreground border-destructive"
+      : "bg-status-pending/10 border-status-pending/30 text-ink";
+
+  const buttonTone =
+    copy.tone === "destructive"
+      ? "bg-paper text-ink hover:bg-paper/90"
+      : "bg-ink text-paper hover:bg-ink/90";
+
+  return (
+    <div className={wrapper}>
+      <div
+        className={`pointer-events-auto rounded-2xl border p-4 text-sm shadow-lg ${panelTone}`}
+      >
         <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <copy.Icon
+            className={`h-5 w-5 shrink-0 mt-0.5 ${
+              copy.tone === "destructive" ? "text-destructive-foreground" : "text-status-pending"
+            }`}
+          />
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-destructive">Your trial has ended</p>
-            <p className="text-destructive/80 mt-0.5">
-              Add a card to keep using Quottr, £29/month.
+            <p className="font-semibold">{copy.title}</p>
+            <p
+              className={`mt-0.5 ${
+                copy.tone === "destructive"
+                  ? "text-destructive-foreground/85"
+                  : "text-muted-foreground"
+              }`}
+            >
+              {copy.body}
             </p>
             <button
-              onClick={sub.stripe_customer_id ? manage : addCard}
+              onClick={copy.onClick}
               disabled={busy}
-              className="mt-3 rounded-full bg-destructive text-destructive-foreground text-xs font-semibold px-4 py-2 disabled:opacity-60"
+              className={`mt-3 w-full sm:w-auto rounded-full text-xs font-semibold px-4 py-2.5 disabled:opacity-60 ${buttonTone}`}
             >
-              {busy ? "Opening…" : "Add payment method"}
+              {busy ? "Opening…" : copy.action}
             </button>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Amber warning: last 3 days, no card
-  return (
-    <div className="mx-4 my-3 rounded-2xl bg-status-pending/10 border border-status-pending/30 p-4 text-sm">
-      <div className="flex items-start gap-3">
-        <Sparkles className="h-5 w-5 text-status-pending shrink-0 mt-0.5" />
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-ink">
-            {trialDaysLeft === 1
-              ? "Trial ends tomorrow"
-              : `${trialDaysLeft} days left in trial`}
-          </p>
-          <p className="text-muted-foreground mt-0.5">
-            Add a card now, you won't be charged until the trial ends.
-          </p>
-          <button
-            onClick={addCard}
-            disabled={busy}
-            className="mt-3 rounded-full bg-ink text-paper text-xs font-semibold px-4 py-2 disabled:opacity-60"
-          >
-            {busy ? "Opening…" : "Add payment method"}
-          </button>
         </div>
       </div>
     </div>

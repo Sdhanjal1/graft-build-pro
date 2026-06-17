@@ -31,6 +31,8 @@ export type SubscriptionState = {
   showWarn: boolean;
   /** Show red expired banner. */
   showExpired: boolean;
+  /** Stripe reports the last payment failed — card needs updating. */
+  showPastDue: boolean;
   refresh: () => Promise<void>;
 };
 
@@ -96,6 +98,7 @@ export function useSubscription(): SubscriptionState {
   const blocked = !canUse;
   const showWarn = inTrial && !sub?.has_payment_method && trialDaysLeft <= 3;
   const showExpired = !canUse;
+  const showPastDue = status === "past_due";
 
   return {
     loading,
@@ -106,6 +109,7 @@ export function useSubscription(): SubscriptionState {
     trialDay,
     showWarn,
     showExpired,
+    showPastDue,
     refresh: load,
   };
 }
