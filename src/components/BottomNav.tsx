@@ -91,14 +91,14 @@ function NavItem({
         if (!active) playSample("tick");
       }}
       aria-current={active ? "page" : undefined}
-      className="h-full min-w-0 shrink-0 flex items-center justify-center relative"
+      className="h-full min-w-0 shrink-0 flex items-center justify-center relative group active:scale-95 transition-transform duration-150"
     >
       <span
         className={[
           "relative flex items-center gap-1.5 rounded-full transition-all duration-200 ease-out min-w-0",
           active
-            ? "bg-lime text-ink px-3 py-2 shadow-[0_6px_16px_-6px_rgba(200,224,74,0.7)]"
-            : "text-paper/60 px-2.5 py-2 scale-95",
+            ? "bg-lime text-ink px-3 py-2 -translate-y-0.5 shadow-[0_4px_0_0_#9db23a,0_10px_22px_-8px_rgba(200,224,74,0.6)]"
+            : "text-paper/55 px-2.5 py-2 scale-95 group-hover:text-paper/85",
         ].join(" ")}
       >
         <span className="relative inline-flex">
@@ -109,7 +109,10 @@ function NavItem({
           {hasUnread && (
             <span
               aria-hidden
-              className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-lime ring-2 ring-ink"
+              className={[
+                "absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-ink",
+                active ? "bg-ink" : "bg-lime animate-pulse",
+              ].join(" ")}
             />
           )}
         </span>
@@ -117,6 +120,12 @@ function NavItem({
           <span className="text-[12px] font-bold tracking-tight leading-none whitespace-nowrap truncate min-w-0">
             {label}
           </span>
+        )}
+        {!active && (
+          <span
+            aria-hidden
+            className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-0.5 w-0 rounded-full bg-lime transition-all duration-200 group-hover:w-3"
+          />
         )}
       </span>
       <span className="sr-only">
