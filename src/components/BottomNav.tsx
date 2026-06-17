@@ -120,14 +120,11 @@ function NavItem({
             className={active ? "h-[18px] w-[18px]" : "h-5 w-5"}
             strokeWidth={active ? 2.75 : 2}
           />
-          {hasUnread && (
-            <span
-              aria-hidden
-              className={[
-                "absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-ink",
-                active ? "bg-ink" : "bg-lime animate-pulse",
-              ].join(" ")}
-            />
+          {hasUnread && !active && (
+            <span aria-hidden className="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5">
+              <span className="absolute inset-0 rounded-full bg-lime/70 animate-ping" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-lime ring-2 ring-ink" />
+            </span>
           )}
         </span>
         {active && (
