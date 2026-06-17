@@ -316,6 +316,24 @@ function NewQuotePage() {
   // URL so it can't race a setState during navigation.
   const voicePending = voiceParam === 1;
 
+  // Auto-start the live voice session when arriving via ?voice=1 (e.g. Home's
+  // "New voice quote" tile). Without this the user lands on the New Quote
+  // screen and has to tap "Speak the job" a second time. Guarded by a ref so
+  // it only fires once per mount and never re-fires after handleVoiceStart
+  // strips the param.
+  const voiceAutoStartedRef = useRef(false);
+  useEffect(() => {
+    if (voiceAutoStartedRef.current) return;
+    if (voiceParam !== 1) return;
+    if (typeParam === "typed") return;
+    if (editId) return;
+    if (recording || liveActive || voiceOpening) return;
+    if (draft) return;
+    voiceAutoStartedRef.current = true;
+    void handleVoiceStart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceParam]);
+
   // Pre-populate customer when arriving from "Quote again" on customer detail
   useEffect(() => {
     if (!clientId) return;
