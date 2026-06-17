@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, FileText, Users, Clock, Inbox, Plus } from "lucide-react";
+import { Home, FileText, Users, Clock, Inbox } from "lucide-react";
 
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
