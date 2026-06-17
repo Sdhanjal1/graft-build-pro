@@ -70,7 +70,7 @@ export function PageHeader({
       <Link
         to={action.to}
         search={action.search as never}
-        className="shrink-0 h-8 px-3 rounded-full bg-lime text-ink inline-flex items-center font-bold text-[11px] uppercase tracking-wide active:scale-95 transition"
+        className="shrink-0 h-9 px-4 rounded-full bg-lime text-ink inline-flex items-center font-bold text-[12px] uppercase tracking-tight active:translate-y-0.5 active:shadow-none transition shadow-[0_3px_0_0_#9db23a]"
       >
         {action.label}
       </Link>
@@ -78,7 +78,7 @@ export function PageHeader({
       <button
         type="button"
         onClick={action.onClick}
-        className="shrink-0 h-8 px-3 rounded-full bg-lime text-ink inline-flex items-center font-bold text-[11px] uppercase tracking-wide active:scale-95 transition"
+        className="shrink-0 h-9 px-4 rounded-full bg-lime text-ink inline-flex items-center font-bold text-[12px] uppercase tracking-tight active:translate-y-0.5 active:shadow-none transition shadow-[0_3px_0_0_#9db23a]"
       >
         {action.label}
       </button>
