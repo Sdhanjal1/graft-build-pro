@@ -790,19 +790,26 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     deletedDescsRef.current = new Set();
     editedItemsRef.current = new Map();
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      setVoiceError("Microphone not supported on this device.");
+      setVoiceError("This browser can't use the mic — open Quottr in Safari or Chrome.");
       setVoiceOpening(false);
       return;
     }
     let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+      // 10s timeout — some locked-down browsers (corporate MDM, in-app
+      // webviews) hang on getUserMedia indefinitely. Better to fail clearly.
+      stream = await Promise.race<MediaStream>([
+        navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        }),
+        new Promise<MediaStream>((_, reject) =>
+          setTimeout(() => reject(new DOMException("Timed out", "TimeoutError")), 10_000),
+        ),
+      ]);
     } catch (err) {
       console.error(err);
       // Distinguish the failure modes so the user gets actionable guidance
