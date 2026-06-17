@@ -550,13 +550,17 @@ function NewQuotePage() {
     return { combinedDesc: combined, target: "desc" };
   };
 
-  const runTranscribe = async (blob: Blob, mimeType: string) => {
+  const runTranscribe = async (blob: Blob, mimeType: string, sessionId?: number) => {
+    const sid = sessionId ?? voiceSessionRef.current;
     setTranscribing(true);
     setVoiceError(null);
     clearPendingItems();
     try {
       const audioBase64 = await blobToBase64(blob);
       const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
+      // Bail if the user closed the overlay / started a new session while
+      // Whisper was running — otherwise stale results overwrite the form.
+      if (closeRequestedRef.current || sid !== voiceSessionRef.current) return;
       const { combinedDesc, target } = appendTranscript(text);
       lastBlobRef.current = null;
       if (target === "edit") {
@@ -565,21 +569,24 @@ function NewQuotePage() {
       }
       if (target === "desc" && mode === "speak" && combinedDesc.trim() && !draft) {
         if (subBlocked) {
-          const msg = "Trial ended — add a payment method to generate quotes.";
+          const msg = "Your trial has ended — add a card to keep generating quotes.";
           setVoiceError(msg);
           setError(msg);
           return;
         }
+        if (closeRequestedRef.current || sid !== voiceSessionRef.current) return;
         await generate(combinedDesc);
       }
     } catch (err) {
-      console.error(err);
-      const msg = err instanceof Error
+      if (closeRequestedRef.current || sid !== voiceSessionRef.current) return;
+      console.error("[voice] transcribe failed", err);
+      const { msg } = classifyAIError(err);
+      const finalMsg = err instanceof Error && err.message && !/\(\d{3}\)/.test(err.message)
         ? err.message
-        : "Could not transcribe. Check your connection and retry.";
-      setVoiceError(msg);
+        : msg;
+      setVoiceError(finalMsg);
       // Mirror to the main form error so failures aren't silent after the overlay closes.
-      setError(msg);
+      setError(finalMsg);
     } finally {
       setTranscribing(false);
       setLivePreview("");
