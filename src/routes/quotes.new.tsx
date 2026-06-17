@@ -217,10 +217,15 @@ function NewQuotePage() {
   const deletedDescsRef = useRef<Set<string>>(new Set());
   const editedItemsRef = useRef<Map<string, LineItem>>(new Map());
   const normDesc = (s: string) => s.trim().toLowerCase();
-  // Cumulative offset for Web Speech result indices across browser auto-restarts.
-  // Each restart's `event.resultIndex` becomes `offset + index` for monotone tracking.
-  const speechIndexOffsetRef = useRef<number>(0);
   const LIVE_PAUSE_MS = 2000;
+
+  // Per-phrase failure tracking: surface a clear error after consecutive
+  // generateFn failures so the user isn't talking into the void when the AI
+  // backend hiccups. Reset on first success.
+  const voiceFailCountRef = useRef(0);
+  // Tracks whether SR hit an unrecoverable error (not-allowed, etc.) so onend
+  // doesn't restart-loop. Recoverable ones (no-speech, aborted) are ignored.
+  const srFatalRef = useRef(false);
 
   // Kept as inert ref so nothing from older code paths leaks.
   const sharedStreamRef = useRef<MediaStream | null>(null);
