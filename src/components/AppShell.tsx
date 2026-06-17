@@ -89,23 +89,17 @@ export function PageHeader({
     <>
       <header
         className={[
-          "sticky top-0 z-30 bg-surface text-paper relative overflow-hidden transition-[padding,border-radius] duration-200 motion-reduce:transition-none",
+          "sticky top-0 z-30 bg-ink text-paper relative overflow-hidden transition-[padding,border-radius] duration-200 motion-reduce:transition-none",
           condensed
             ? "rounded-b-[1rem] px-4 pt-2 pb-2"
-            : "rounded-b-[1.5rem] px-5 pt-5 pb-4",
+            : "rounded-b-[2rem] px-5 pt-5 pb-8",
         ].join(" ")}
       >
         {!condensed && (
-          <>
-            <span
-              aria-hidden
-              className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-paper/5 blur-3xl pointer-events-none"
-            />
-            <span
-              aria-hidden
-              className="absolute left-0 top-0 h-full w-1.5 bg-paper/20"
-            />
-          </>
+          <span
+            aria-hidden
+            className="absolute left-0 top-0 h-full w-1.5 bg-lime/60"
+          />
         )}
 
         <div className="relative flex items-center gap-3">
@@ -138,24 +132,23 @@ export function PageHeader({
             )}
             <h1
               className={[
-                "text-paper uppercase leading-[0.95] tracking-[0.04em] truncate transition-[font-size] duration-200 motion-reduce:transition-none",
+                "text-lime uppercase leading-[0.95] tracking-tight truncate transition-[font-size] duration-200 motion-reduce:transition-none",
               ].join(" ")}
               style={{
                 fontFamily: "'Bebas Neue', sans-serif",
-                fontSize: condensed ? "1.1rem" : "1.9rem",
+                fontSize: condensed ? "1.1rem" : "2rem",
               }}
             >
               {title}
             </h1>
             {subtitle && !condensed && (
-              <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-paper/55 font-medium truncate">
-                <span
-                  aria-hidden
-                  className={[
-                    "h-1.5 w-1.5 rounded-full shrink-0",
-                    urgent ? "bg-status-overdue" : "bg-paper/30",
-                  ].join(" ")}
-                />
+              <span className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-paper/55 font-bold uppercase tracking-[0.18em] truncate">
+                {urgent && (
+                  <span
+                    aria-hidden
+                    className="h-1.5 w-1.5 rounded-full shrink-0 bg-status-overdue"
+                  />
+                )}
                 <span className="truncate">{subtitle}</span>
               </span>
             )}
