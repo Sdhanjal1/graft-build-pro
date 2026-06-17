@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, FileText, Users, Clock, Inbox } from "lucide-react";
+import { Home, FileText, Users, Clock, Inbox, Plus } from "lucide-react";
+
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { feedback, playSample } from "@/lib/feedback";
@@ -46,7 +47,19 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 safe-bottom">
-      <div className="mx-auto max-w-md px-3 pb-3 pt-2">
+      <div className="mx-auto max-w-md px-3 pb-3 pt-2 relative">
+        {/* Centre + FAB — sits above the nav pill, matches active lime accent */}
+        <Link
+          to="/quotes/new"
+          onPointerDown={() => {
+            feedback("tap");
+            playSample("tick");
+          }}
+          aria-label="New quote"
+          className="absolute left-1/2 -translate-x-1/2 -top-5 z-10 h-14 w-14 rounded-full bg-lime text-ink flex items-center justify-center ring-4 ring-ink/90 shadow-[0_4px_0_0_#9db23a,0_14px_28px_-8px_rgba(200,224,74,0.65)] transition-transform duration-150 active:translate-y-0.5 active:scale-95 active:shadow-[0_2px_0_0_#9db23a,0_8px_18px_-8px_rgba(200,224,74,0.55)]"
+        >
+          <Plus className="h-6 w-6" strokeWidth={3} />
+        </Link>
         <div
           className="relative rounded-full flex items-center justify-around gap-0.5 h-16 px-1.5 overflow-hidden ring-1 ring-white/15 shadow-[0_10px_28px_-10px_rgba(0,0,0,0.55)] backdrop-blur-2xl backdrop-saturate-150 [-webkit-backdrop-filter:blur(24px)_saturate(1.5)]"
           style={{
@@ -58,6 +71,7 @@ export function BottomNav() {
           {items.map((it) => (
             <NavItem
               key={it.to}
+
               {...it}
               active={isActive(it.to)}
               unreadCount={it.to === "/messages" ? unreadCount : 0}
@@ -106,14 +120,11 @@ function NavItem({
             className={active ? "h-[18px] w-[18px]" : "h-5 w-5"}
             strokeWidth={active ? 2.75 : 2}
           />
-          {hasUnread && (
-            <span
-              aria-hidden
-              className={[
-                "absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-ink",
-                active ? "bg-ink" : "bg-lime animate-pulse",
-              ].join(" ")}
-            />
+          {hasUnread && !active && (
+            <span aria-hidden className="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5">
+              <span className="absolute inset-0 rounded-full bg-lime/70 animate-ping" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-lime ring-2 ring-ink" />
+            </span>
           )}
         </span>
         {active && (
