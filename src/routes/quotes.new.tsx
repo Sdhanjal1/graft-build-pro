@@ -817,11 +817,13 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       const name = (err as DOMException | undefined)?.name ?? "";
       let msg: string;
       if (name === "NotAllowedError" || name === "SecurityError" || name === "PermissionDeniedError") {
-        msg = "Microphone access is blocked. Allow mic access in your browser settings, or type the job below.";
+        msg = "Mic access is blocked — allow it in your browser settings, or type the job below.";
       } else if (name === "NotFoundError" || name === "OverconstrainedError" || name === "DevicesNotFoundError") {
-        msg = "No microphone found on this device. Type the job below instead.";
+        msg = "No mic found on this device — type the job below instead.";
+      } else if (name === "TimeoutError") {
+        msg = "Mic didn't respond — try again, or type the job below.";
       } else {
-        msg = "Couldn't start the microphone. Try again, or type the job below.";
+        msg = "Couldn't start the mic — try again, or type the job below.";
       }
       setVoiceError(msg);
       setVoiceOpening(false);
