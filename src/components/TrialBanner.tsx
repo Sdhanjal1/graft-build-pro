@@ -81,7 +81,7 @@ export function TrialBanner() {
   const isSticky = variant !== "warn";
 
   const wrapper = isSticky
-    ? "fixed inset-x-0 bottom-0 z-[55] px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2 pointer-events-none"
+    ? "fixed inset-x-0 bottom-0 z-[55] px-3 pb-[calc(env(safe-area-inset-bottom)+84px)] pt-2 pointer-events-none"
     : "mx-4 my-3";
 
   const panelTone =
