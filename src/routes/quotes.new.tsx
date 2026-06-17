@@ -789,6 +789,8 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     lastLiveGenRef.current = null;
     deletedDescsRef.current = new Set();
     editedItemsRef.current = new Map();
+    srFatalRef.current = false;
+    voiceFailCountRef.current = 0;
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setVoiceError("This browser can't use the mic — open Quottr in Safari or Chrome.");
       setVoiceOpening(false);
