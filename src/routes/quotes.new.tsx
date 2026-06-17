@@ -217,10 +217,15 @@ function NewQuotePage() {
   const deletedDescsRef = useRef<Set<string>>(new Set());
   const editedItemsRef = useRef<Map<string, LineItem>>(new Map());
   const normDesc = (s: string) => s.trim().toLowerCase();
-  // Cumulative offset for Web Speech result indices across browser auto-restarts.
-  // Each restart's `event.resultIndex` becomes `offset + index` for monotone tracking.
-  const speechIndexOffsetRef = useRef<number>(0);
   const LIVE_PAUSE_MS = 2000;
+
+  // Per-phrase failure tracking: surface a clear error after consecutive
+  // generateFn failures so the user isn't talking into the void when the AI
+  // backend hiccups. Reset on first success.
+  const voiceFailCountRef = useRef(0);
+  // Tracks whether SR hit an unrecoverable error (not-allowed, etc.) so onend
+  // doesn't restart-loop. Recoverable ones (no-speech, aborted) are ignored.
+  const srFatalRef = useRef(false);
 
   // Kept as inert ref so nothing from older code paths leaks.
   const sharedStreamRef = useRef<MediaStream | null>(null);
@@ -386,8 +391,37 @@ function NewQuotePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editId]);
 
+  // Classify an error from generateFn / transcribeFn into a plain-English
+  // message + whether to retry. Status codes come from the Error message text
+  // (server functions throw `new Error("... (429)")`-style messages) plus
+  // common transport failures (fetch TypeError / AbortError).
+  const classifyAIError = (err: unknown): { msg: string; subBlocked: boolean } => {
+    const raw = err instanceof Error ? err.message : String(err ?? "");
+    const lower = raw.toLowerCase();
+    if (lower.includes("trial") || lower.includes("subscription") || lower.includes("403")) {
+      return { msg: "Trial ended — add a card to keep using voice quoting.", subBlocked: true };
+    }
+    if (lower.includes("401") || lower.includes("unauthorized") || lower.includes("auth")) {
+      return { msg: "Couldn't reach Quottr's AI — refresh and sign in again.", subBlocked: false };
+    }
+    if (lower.includes("429") || lower.includes("rate")) {
+      return { msg: "Too many requests just now — wait a few seconds and keep talking.", subBlocked: false };
+    }
+    if (lower.includes("timeout") || lower.includes("abort") || lower.includes("network") || lower.includes("failed to fetch")) {
+      return { msg: "Couldn't reach the AI — check your signal, or type the job instead.", subBlocked: false };
+    }
+    if (lower.includes("5")) {
+      // 500-ish; fall through to generic
+    }
+    return { msg: "Couldn't reach the AI — try again, or type the job instead.", subBlocked: false };
+  };
+
   const handleVoiceStart = async () => {
     if (saving) return;
+    if (subBlocked) {
+      setVoiceError("Your trial has ended — add a card to use voice quoting.");
+      return;
+    }
     closeRequestedRef.current = false;
     setVoiceError(null);
     setLastTranscript(null);
@@ -405,6 +439,11 @@ function NewQuotePage() {
   };
   const handleEditByVoice = async () => {
     if (saving || recording || transcribing) return;
+    if (subBlocked) {
+      setVoiceError("Your trial has ended — add a card to use voice quoting.");
+      setEditVoiceOpen(true);
+      return;
+    }
     feedback("tap");
     recordTargetRef.current = "edit";
     setEditVoiceOpen(true);
@@ -453,7 +492,8 @@ function NewQuotePage() {
     liveItemsRef.current = [];
     phraseSeqRef.current = 0;
     lastFinalIdxRef.current = -1;
-    speechIndexOffsetRef.current = 0;
+    srFatalRef.current = false;
+    voiceFailCountRef.current = 0;
     setEditVoiceOpen(false);
     recordTargetRef.current = "desc";
   };
@@ -510,13 +550,17 @@ function NewQuotePage() {
     return { combinedDesc: combined, target: "desc" };
   };
 
-  const runTranscribe = async (blob: Blob, mimeType: string) => {
+  const runTranscribe = async (blob: Blob, mimeType: string, sessionId?: number) => {
+    const sid = sessionId ?? voiceSessionRef.current;
     setTranscribing(true);
     setVoiceError(null);
     clearPendingItems();
     try {
       const audioBase64 = await blobToBase64(blob);
       const { text } = await transcribeFn({ data: { audioBase64, mimeType } });
+      // Bail if the user closed the overlay / started a new session while
+      // Whisper was running — otherwise stale results overwrite the form.
+      if (closeRequestedRef.current || sid !== voiceSessionRef.current) return;
       const { combinedDesc, target } = appendTranscript(text);
       lastBlobRef.current = null;
       if (target === "edit") {
@@ -525,21 +569,24 @@ function NewQuotePage() {
       }
       if (target === "desc" && mode === "speak" && combinedDesc.trim() && !draft) {
         if (subBlocked) {
-          const msg = "Trial ended — add a payment method to generate quotes.";
+          const msg = "Your trial has ended — add a card to keep generating quotes.";
           setVoiceError(msg);
           setError(msg);
           return;
         }
+        if (closeRequestedRef.current || sid !== voiceSessionRef.current) return;
         await generate(combinedDesc);
       }
     } catch (err) {
-      console.error(err);
-      const msg = err instanceof Error
+      if (closeRequestedRef.current || sid !== voiceSessionRef.current) return;
+      console.error("[voice] transcribe failed", err);
+      const { msg } = classifyAIError(err);
+      const finalMsg = err instanceof Error && err.message && !/\(\d{3}\)/.test(err.message)
         ? err.message
-        : "Could not transcribe. Check your connection and retry.";
-      setVoiceError(msg);
+        : msg;
+      setVoiceError(finalMsg);
       // Mirror to the main form error so failures aren't silent after the overlay closes.
-      setError(msg);
+      setError(finalMsg);
     } finally {
       setTranscribing(false);
       setLivePreview("");
@@ -625,11 +672,21 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     setBuilding(true);
     try {
       const ctx = prefetchedContextRef.current;
-      const g = await generateFn({
-        data: { description: transcript, trade, vatRegistered: vat, ...(ctx ? { prefetchedContext: ctx } : {}) },
-      });
+      // Bound the per-phrase call so a stalled AI doesn't strand the
+      // overlay in "building…" or block waitForPendingPhraseProcessing.
+      const timeoutMs = 20_000;
+      const g = await Promise.race<Awaited<ReturnType<typeof generateFn>>>([
+        generateFn({
+          data: { description: transcript, trade, vatRegistered: vat, ...(ctx ? { prefetchedContext: ctx } : {}) },
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), timeoutMs),
+        ) as Promise<never>,
+      ]);
       if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
       if (genId !== phraseSeqRef.current) return;
+      // Successful response — clear the failure streak.
+      voiceFailCountRef.current = 0;
       if (g.line_items?.length) {
         const filtered = g.line_items
           .filter((li) => !deletedDescsRef.current.has(normDesc(li.description)))
@@ -685,7 +742,17 @@ Re-output the FULL updated list of line items for this quote, applying the chang
         }
       }
     } catch (err) {
+      // Always log full detail for debugging — don't swallow silently.
       console.warn("[voice] live regenerate failed", err);
+      if (sessionId !== voiceSessionRef.current || closeRequestedRef.current) return;
+      voiceFailCountRef.current += 1;
+      // Surface a clear, specific error after two consecutive failures so the
+      // user knows to stop talking. Don't stop the recorder — the Whisper
+      // fallback at stop-time may still rescue the session.
+      if (voiceFailCountRef.current >= 2) {
+        const { msg } = classifyAIError(err);
+        setVoiceError(msg);
+      }
     } finally {
       pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
       // Only clear the spinner when nothing else is in flight — otherwise
@@ -722,20 +789,29 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     lastLiveGenRef.current = null;
     deletedDescsRef.current = new Set();
     editedItemsRef.current = new Map();
+    srFatalRef.current = false;
+    voiceFailCountRef.current = 0;
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      setVoiceError("Microphone not supported on this device.");
+      setVoiceError("This browser can't use the mic — open Quottr in Safari or Chrome.");
       setVoiceOpening(false);
       return;
     }
     let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+      // 10s timeout — some locked-down browsers (corporate MDM, in-app
+      // webviews) hang on getUserMedia indefinitely. Better to fail clearly.
+      stream = await Promise.race<MediaStream>([
+        navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        }),
+        new Promise<MediaStream>((_, reject) =>
+          setTimeout(() => reject(new DOMException("Timed out", "TimeoutError")), 10_000),
+        ),
+      ]);
     } catch (err) {
       console.error(err);
       // Distinguish the failure modes so the user gets actionable guidance
@@ -743,11 +819,13 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       const name = (err as DOMException | undefined)?.name ?? "";
       let msg: string;
       if (name === "NotAllowedError" || name === "SecurityError" || name === "PermissionDeniedError") {
-        msg = "Microphone access is blocked. Allow mic access in your browser settings, or type the job below.";
+        msg = "Mic access is blocked — allow it in your browser settings, or type the job below.";
       } else if (name === "NotFoundError" || name === "OverconstrainedError" || name === "DevicesNotFoundError") {
-        msg = "No microphone found on this device. Type the job below instead.";
+        msg = "No mic found on this device — type the job below instead.";
+      } else if (name === "TimeoutError") {
+        msg = "Mic didn't respond — try again, or type the job below.";
       } else {
-        msg = "Couldn't start the microphone. Try again, or type the job below.";
+        msg = "Couldn't start the mic — try again, or type the job below.";
       }
       setVoiceError(msg);
       setVoiceOpening(false);
@@ -779,7 +857,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     } catch (err) {
       console.error(err);
       stream.getTracks().forEach((t) => t.stop());
-      setVoiceError("Could not start recorder on this browser.");
+      setVoiceError("This browser can't record audio — open Quottr in Safari or Chrome.");
       return;
     }
     mediaRecorderRef.current = mr;
@@ -810,7 +888,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           return;
         }
         lastBlobRef.current = { blob, mimeType: blobType };
-        await runTranscribe(blob, blobType);
+        await runTranscribe(blob, blobType, sessionId);
         return;
       }
 
@@ -926,7 +1004,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
         return;
       }
       lastBlobRef.current = { blob, mimeType: blobType };
-      await runTranscribe(blob, blobType);
+      await runTranscribe(blob, blobType, sessionId);
     };
 
     // Web Speech API: drives live preview AND per-phrase processing.
@@ -967,8 +1045,22 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           // It must NEVER be rendered in the overlay — use MicLevelBars there.
           setLivePreview(`${liveFinalRef.current} ${interim}`.trim());
         };
-        rec.onerror = () => { /* silent: pipeline only */ };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        rec.onerror = (event: any) => {
+          const type = event?.error ?? "unknown";
+          // Recoverable: SR auto-restarts via onend; ignore silently.
+          if (type === "no-speech" || type === "aborted") return;
+          // Unrecoverable: permission revoked, no mic, browser killed
+          // recognition. Stop the restart loop and surface a hint. The
+          // Whisper fallback at stop-time can still produce tiles.
+          console.warn("[voice] SpeechRecognition fatal error", type);
+          srFatalRef.current = true;
+          if (type === "not-allowed" || type === "service-not-allowed") {
+            setVoiceError("Mic access was blocked — check your browser permissions, then try again.");
+          }
+        };
         rec.onend = () => {
+          if (srFatalRef.current) return;
           if (!stopRequestedRef.current && mediaRecorderRef.current?.state === "recording") {
             lastFinalIdxRef.current = -1; // new session, fresh result indices
             try { rec.start(); } catch { /* noop */ }
