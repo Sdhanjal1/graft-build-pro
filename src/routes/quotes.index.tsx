@@ -117,35 +117,55 @@ function QuotesPage() {
         action={{ to: "/quotes/new", search: { voice: 1 }, label: "+ New" }}
       />
 
-      {/* HERO PIPELINE STRIP */}
-      <div className="px-5 mt-5">
-        <div className="rounded-2xl bg-lime text-ink p-5 relative overflow-hidden">
+      {/* FOCAL CASHBOARD — ink panel overlapping the header */}
+      <div className="px-4 -mt-6 relative z-20">
+        <div className="rounded-[1.75rem] bg-ink text-paper p-6 border border-lime/15 shadow-[0_20px_40px_-20px_rgba(0,0,0,0.45)] relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-ink/70">Pipeline</p>
-            <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-ink/70 tabular-nums">
+            <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-paper/45">Pipeline</p>
+            <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-paper/45 tabular-nums">
               {pipelineCount} quote{pipelineCount === 1 ? "" : "s"}
             </p>
           </div>
           <p
-            className="mt-2 leading-[0.85] tabular-nums text-ink"
+            className="mt-2 leading-[0.85] tabular-nums text-lime"
             style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.5rem, 14vw, 5rem)" }}
           >
             <CountUpGBP value={pipelineTotal} />
           </p>
-          <p className="text-[10px] uppercase tracking-widest font-bold text-ink/55 mt-0.5">
-            Active pipeline value
-          </p>
           {toCollectCount > 0 && (
-            <Link
-              to="/chaser"
-              className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold text-ink/70 hover:text-ink"
-            >
-              {formatGBP(toCollectTotal)} to collect
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            <>
+              <div className="mt-5 pt-4 border-t border-paper/10 grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-paper/45">Awaiting</p>
+                  <p
+                    className="mt-1 leading-none tabular-nums text-paper"
+                    style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.75rem" }}
+                  >
+                    {formatGBP(awaitingTile.total)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-status-overdue/80">Overdue</p>
+                  <p
+                    className="mt-1 leading-none tabular-nums text-status-overdue"
+                    style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.75rem" }}
+                  >
+                    {formatGBP(overdueTile.total)}
+                  </p>
+                </div>
+              </div>
+              <Link
+                to="/chaser"
+                className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-lime hover:text-lime/80"
+              >
+                {formatGBP(toCollectTotal)} to collect
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </>
           )}
         </div>
       </div>
+
 
 
       {/* Secondary tiles */}
