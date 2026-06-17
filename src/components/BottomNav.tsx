@@ -48,18 +48,6 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 safe-bottom">
       <div className="mx-auto max-w-md px-3 pb-3 pt-2 relative">
-        {/* Centre + FAB — sits above the nav pill, matches active lime accent */}
-        <Link
-          to="/quotes/new"
-          onPointerDown={() => {
-            feedback("tap");
-            playSample("tick");
-          }}
-          aria-label="New quote"
-          className="absolute left-1/2 -translate-x-1/2 -top-5 z-10 h-14 w-14 rounded-full bg-lime text-ink flex items-center justify-center ring-4 ring-ink/90 shadow-[0_4px_0_0_#9db23a,0_14px_28px_-8px_rgba(200,224,74,0.65)] transition-transform duration-150 active:translate-y-0.5 active:scale-95 active:shadow-[0_2px_0_0_#9db23a,0_8px_18px_-8px_rgba(200,224,74,0.55)]"
-        >
-          <Plus className="h-6 w-6" strokeWidth={3} />
-        </Link>
         <div
           className="relative rounded-full flex items-center justify-around gap-0.5 h-16 px-1.5 overflow-hidden ring-1 ring-white/15 shadow-[0_10px_28px_-10px_rgba(0,0,0,0.55)] backdrop-blur-2xl backdrop-saturate-150 [-webkit-backdrop-filter:blur(24px)_saturate(1.5)]"
           style={{
