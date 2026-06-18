@@ -1,87 +1,50 @@
-# Visual Polish — Bolder & More Confident
+## Scope
 
-The home screen reads well because it has clear hierarchy, generous spacing and one hero moment (the big lime number). The rest of the app reads "busy" because every card competes — same weight, same radius, same chip styling, low contrast on the cream background. This plan brings the home-screen confidence to every other screen, then mirrors it on the portal and marketing.
+Refactor two screens to match the picked prototypes. Frontend/presentation only. No data, routing, or business-logic changes.
 
-No functional changes. CSS tokens + component-level styling only.
+- `src/routes/quotes.index.tsx` → "Focal status card" direction
+- `src/routes/chaser.tsx` → "Brutalist focal card" direction
 
----
+Existing tokens in `src/styles.css` (ink/paper/lime, Bebas, DM Sans) are already aligned with the prototypes, so no new tokens — only verify the lime hex matches (`#D9FF00` quotes / `#D4FF00` chaser → snap both to the existing `--lime` token) and reuse it.
 
-## 1. Tighten the design system (foundation — affects everything)
+## Quotes list (`quotes.index.tsx`)
 
-`**src/styles.css**`
+1. **Hero card** — keep ink card; inside it stack: `QUOTES` eyebrow, lime-pill status (`1 PENDING` / dynamic count), `+ NEW` lime pill on the right, then `PIPELINE` eyebrow with the £ total in lime Bebas (60–64px). Single source of truth for the total (already computed).
+2. **Stat tiles** — two equal cream/white tiles below: `AWAITING SENT` and `ACCEPTED`, each with a Bebas 24px £ value. Replace current bordered tiles.
+3. **Search** — plain rounded muted input (no border, soft fill), keeps existing controlled state.
+4. **Section header** — `DRAFTS & SENT` left, `{n} TOTAL` right, both 10px black uppercase at 40% opacity.
+5. **Row card** — white rounded-3xl card containing rows. Each row is the numbers-lead layout:
+   - left: Bebas £ amount, fixed-width column
+   - middle: customer name (bold) + job title (muted) + status chip top-right
+   - right: lime circular chevron button (acts as row tap affordance / link to quote detail)
+   Existing row data wiring stays; only the JSX layout changes.
+6. Keep bottom nav untouched.
 
-- **Surface stack.** Today everything sits on cream paper with hairline borders. Introduce three explicit surfaces so cards stop blending into the page:
-  - `--paper` (page bg) — slightly cooler, marginally darker so white cards lift
-  - `--card` — pure cream, what most cards sit on
-  - `--card-elev` — for the focal card on each screen (one per view)
-- **Stronger ink.** Bump primary text to near-black for crisper headings; add `--ink-soft` for body so the contrast hierarchy is obvious at a glance.
-- **Lime, used with intent.** Keep `--lime` as the hero accent, add `--lime-soft` (15% tint) for chips/highlights so we stop using grey for "good news". Promote `bg-lime` to mean "money / positive action" only.
-- **Status colour clean-up.** Status chips currently mix lime/grey/red at the same weight. Re-tune to three tiers: positive (lime), awaiting (warm sand, not grey), urgent (red). Updated tokens flow through `STATUS_CHIP` / `STATUS_DOT` automatically.
-- **Radii.** Tighten card radius from `1rem` to `0.875rem`, pills stay full. Modern, less template-y.
-- **Shadow.** Single elevation token `--shadow-card` (soft, warm, ~8% opacity) used by `.card-focal` only. Replaces the heavier existing shadow.
-- **Type scale.** Add `.display-xl` / `.display-lg` / `.display-md` Bebas helpers so big numbers and section titles share a rhythm across screens.
+## Chaser (`chaser.tsx`)
 
-## 2. Screen-level rhythm (where "not easy on the eye" lives)
+1. **Header** — small ink uppercase `CHASER — REPLIES & PAYMENTS`, no big ink card.
+2. **Focal "Next Chase" card** — white with `border-2 border-ink` and the brutalist offset shadow `shadow-[4px_4px_0_0_hsl(var(--ink))]`. Contains:
+   - top row: `NEXT CHASE` eyebrow + status chip (`URGENT` red pill when >7 days overdue, `WAITING` neutral otherwise)
+   - Bebas 80px £ amount
+   - customer name • days-overdue line (red when overdue, ink/60 when waiting reply)
+   - full-width lime `SEND REMINDER` button with matching offset shadow and active-press transform
+3. **"Other outstanding" list** — section header + compact rows: white/50 bg, hairline ink/10 border, customer + invoice/age on the left, Bebas 24px £ + small status label on the right (`PENDING REPLY` blue / `UPCOMING` muted, using existing status palette).
+4. **Empty state** — keep the existing "Nothing to chase" card but restyle to match (white, border, brutalist offset shadow) so empty and populated states feel of-a-piece.
+5. Data: reuse whatever chaser query already returns; pick the first/most-overdue item for the focal card and render the rest in the list. No backend changes.
 
-Same pattern applied to **Quotes list, Chaser, Clients, Settings, New Quote**:
+## Tokens / style notes
 
-1. **One focal block per screen** using `card-focal` (e.g. the totals strip on Quotes, the overdue summary on Chaser, the profile card on Settings). Everything else uses flat `card-surface` — kills visual competition.
-2. **Section headers** become small uppercase Bebas labels with a thin lime underline rule, instead of the current bold sans headings. Gives the editorial confidence the home screen has.
-3. **Row density.** Lists currently use `py-4` with hairline borders that wash out. Switch to `py-3.5` rows on a true card with internal dividers (`divide-y divide-ink/5`) — feels structured instead of floating.
-4. **Numbers lead.** Money/counters move to Bebas display weight on the right of each row (mirrors home screen). The label is the secondary element.
-5. **Sticky header polish.** `PageHeader` already condenses on scroll; tighten the un-condensed state — slightly smaller title (1.75rem), add a subtle 1px lime hairline along the bottom curve when scrolled, drop the blurred paper blob (reads noisy on small screens).
-
-## 3. New Quote / Voice screen (the flattest screen today)
-
-- Replace the current flat form stack with a single elevated quote-preview card on top + flat input rows below — same "one focal" rule.
-- Voice FAB: keep the lime pulse, but seat it on a slim ink pedestal so it reads as the primary action even when content scrolls behind it.
-- Live transcript tiles get a left lime bar + warmer paper background so they look generated, not pasted in.
-
-## 4. Empty & loading states
-
-- `EmptyState` icon circle: switch the celebrate tint from `bg-lime/30` to a soft lime gradient with a thin ring; default tint goes from flat grey to `card-elev`. Small change, big "considered" feel.
-- Skeletons get the same warm tone as cards (currently cool grey — looks foreign on cream).
-
-## 5. Bottom nav
-
-- Active item: lime dot under the icon + ink label (instead of full lime pill) — quieter, more confident, matches the editorial direction.
-- Pedestal: slight blur + warm tint behind the pill so it floats over content without the current hard edge.
-
-## 6. Portal & request pages (cohesion pass)
-
-- Lift the same surface stack, type scale, and "one focal card" rule.
-- Customer-facing money number uses the home-screen display treatment so accepting a quote feels like the payoff moment.
-
-## 7. Marketing site (Home / Features / Pricing / Trades)
-
-- Already strong — apply only: matching radii, matching status colours in any embedded UI mocks, and the new Bebas section-label treatment so the marketing → app transition feels seamless.
-
----
-
-## Technical notes
-
-- All changes go through `src/styles.css` tokens + the components listed; no route logic touched.
-- `STATUS_CHIP` / `STATUS_DOT` in `src/lib/status-styles.ts` get re-tuned values — single source of truth, propagates everywhere.
-- `AppShell` `PageHeader` gets the header tweaks; the `condensed` behaviour stays.
-- No new fonts (Bebas + DM Sans stay). No new dependencies.
-- Dark portal/auth surfaces unchanged.
+- Use `bg-ink text-paper` / `bg-paper text-ink` / `bg-lime text-ink` from `styles.css` — no hard-coded hexes in JSX.
+- The brutalist offset shadow becomes a small utility class in `styles.css` (`.shadow-brutal` → `4px 4px 0 0 hsl(var(--ink))`) so both the focal card and the CTA share it.
+- Bebas sizes used: 64px hero total, 80px chaser focal, 24px row totals, 20–24px stat tiles.
+- Active state on the chaser CTA: `active:translate-x-[2px] active:translate-y-[2px] active:shadow-none`.
 
 ## Out of scope
 
-- No copy changes, no information-architecture changes, no new screens.
-- No animation overhaul beyond the existing tokens (the home screen's motion already works).
-- Voice flow logic untouched — visual only.
+- Bottom nav, home screen, quote/invoice detail screens.
+- Any data fetching, server functions, or DB changes.
+- Notifications, real-time, animations beyond press-state and existing lime pulse.
 
-## Files expected to change
+## Verification
 
-- `src/styles.css` (tokens, utilities)
-- `src/lib/status-styles.ts` (re-tuned chips/dots)
-- `src/components/AppShell.tsx` (header polish)
-- `src/components/BottomNav.tsx` (active state)
-- `src/components/EmptyState.tsx`, `src/components/Skeletons.tsx`
-- `src/routes/quotes.index.tsx`, `chaser.tsx`, `clients.index.tsx`, `settings.tsx`, `quotes.new.tsx` (apply focal/flat pattern, section labels, row rhythm)
-- `src/routes/portal.$token.tsx`, `request.$proId.tsx` (cohesion pass)
-
-Marketing pages (`index.tsx`, `features.tsx`, `pricing.tsx`, `trades.tsx`) only inherit token changes — no structural edits.
-
-Can you instead show me some mock up design alternatives rather than change anything on the app itself 
+After edits: open `/quotes` and `/chaser` in Playwright at 390px, screenshot both, compare to the chosen prototypes, and confirm the existing seed quote ("John Smith — Boiler replacement — £2,185") still renders correctly and the chaser empty state still appears when there's nothing to chase.
