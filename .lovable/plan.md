@@ -1,34 +1,64 @@
-# Redesign the Quotes Pipeline tile
+# Auto-accept on deposit + sandbox webhook test
 
-The current tile is a dark ink slab with a lime number that overlaps the header. Since we just moved every page header to a calm paper-on-paper treatment, the ink slab now feels like a leftover — heavy, glossy, and visually disconnected from the rest of the screen.
+## Scope
 
-## New direction: editorial paper card
+You confirmed:
 
-Replace the ink slab with a flat paper card that reads as part of the same surface as the header — numbers lead, ink type, lime used only as a small accent.
+- Billing settings: keep as-is (already wired in Settings → Account & billing).
+- Webhook quote status: add **auto-mark `accepted` when a deposit is paid**; everything else already works.
+- Verification: scripted sandbox end-to-end test against the webhook handler.
 
-**Composition**
-- Container: `bg-paper` with `border border-ink/10`, `rounded-2xl`, no shadow (or a single hairline `border-b-2 border-ink` for weight). No more `-mt-6` overlap; sits naturally below the header with normal `mt-2` spacing.
-- Top row: small uppercase eyebrow `PIPELINE` on the left (ink/55), `{n} quotes` on the right (ink/55, tabular). Same `text-[10px] tracking-[0.22em]` rhythm we already use.
-- Hero number: Bebas, `text-ink` (not lime), `clamp(3.25rem, 13vw, 4.75rem)`, tight leading, tabular. The number is the focal point; color isn't doing the work.
-- A thin lime underline accent (`h-1 w-12 bg-lime rounded-full`) sits under the number as the only chromatic moment.
+## 1. Auto-mark `accepted` on deposit payment
 
-**Awaiting / Overdue split (when present)**
-- Divider becomes `border-t border-ink/10` instead of `border-paper/10`.
-- Labels: ink/55 uppercase eyebrows.
-- Values: Bebas `text-ink` at `1.75rem`. Overdue value stays `text-status-overdue` so the warning still pops against the calmer card.
+In `src/lib/payments-webhook-shared.server.ts`, inside `handlePaidEvent`, the current `requestType !== "deposit"` block flips the quote to `paid`. Add the deposit branch right after it:
 
-**"to collect" link**
-- Flat pill: `inline-flex h-8 px-3 rounded-full bg-ink text-paper text-[11px] font-bold uppercase tracking-[0.15em]`, chevron after. Sits flush-left under the split. No lime text-link.
+```ts
+if (requestType === "deposit") {
+  // Treat a successful deposit as implicit client acceptance.
+  // Don't overwrite a quote that's already further along
+  // (paid / completed / cancelled).
+  try {
+    await supabaseAdmin
+      .from("quotes")
+      .update({ status: "accepted" })
+      .eq("id", quoteId)
+      .eq("user_id", userId)
+      .in("status", ["draft", "sent", "viewed"]);
+  } catch (e) {
+    console.error("[payments/webhook] failed to mark quote accepted", e);
+  }
+}
+```
+
+The `.in("status", […])` guard makes the update idempotent and avoids regressing a quote that's already `accepted` or `paid` (Stripe retries the same event multiple times).
+
+I'll first run a quick `select distinct status from quotes` so the allow-list matches the real status vocabulary in this DB — if the project uses different intermediate states (e.g. `pending`), I'll widen the list accordingly before shipping.
+
+## 2. Sandbox end-to-end webhook test
+
+I can't run a real live card charge from here (it would charge a real card real money), so the verification is a scripted sandbox round-trip against the deployed webhook endpoint. Three signed POSTs hitting `https://project--e4be6907-c837-4e5e-9461-63fadfdad91e.lovable.app/api/public/payments/webhook?env=sandbox`, each carrying a valid Stripe-style `stripe-signature` header computed with `PAYMENTS_SANDBOX_WEBHOOK_SECRET`:
+
+1. **Seed** — insert a throwaway `quotes` row owned by my signed-in user with `status='sent'`, capture its id.
+2. **Deposit paid** — POST a synthetic `checkout.session.completed` event with `metadata.quote_id`, `metadata.user_id`, `metadata.request_type='deposit'`. Re-read the quote and assert `status === 'accepted'` and a matching `invoice_payments` row exists with `status='paid'`.
+3. **Full paid** — POST a second `checkout.session.completed` with `request_type='full'` and a different `session_id`. Assert the quote flips to `paid` and a second `invoice_payments` row lands.
+4. **Idempotency** — replay event #2 a second time. Assert no duplicate `invoice_payments` row (dedup by `stripe_session_id`) and the quote stays `paid`.
+5. **Cleanup** — delete the seeded `invoice_payments` and `quotes` rows.
+
+The script will live at `/tmp/webhook-e2e.ts` (not committed), reads `PAYMENTS_SANDBOX_WEBHOOK_SECRET` from project env, and prints pass/fail per step. I'll report the assertions back to you.
 
 ## Files
 
-- `src/routes/quotes.index.tsx` — replace the `rounded-[1.75rem] bg-ink text-paper …` block (lines ~120–167) with the paper version above. Remove the `-mt-6 relative z-20` overlap wrapper; use `px-4 mt-3`.
+- `src/lib/payments-webhook-shared.server.ts` — add deposit → accepted branch.
+
+That's the only code change; everything else (Billing Portal button, webhook signature verification, paid-row write, branded invoice email, push notification, subscription lifecycle) is already in place.
 
 ## Out of scope
 
-- Header, bottom nav, secondary tile grid, quote row cards, Chaser brutalist card — all untouched.
-- No changes to data, filters, or routing.
+- New `/billing` route — you said keep as-is.
+- Overdue cron — you said paid flow is enough.
+- Real live card test — would mean charging a real card; I can't safely do that for you. If you want, after the sandbox test passes you can run one £1 quote yourself end-to-end and I'll tail logs in real time.
 
-## Verification
+**Two confirmations to send back:**
 
-Open `/quotes` at mobile width: the card reads as paper, the £ number is ink with a small lime underline, Awaiting/Overdue split is legible, and the "to collect" pill leads to `/chaser`.
+1. **Confirm the** `accepted` **status flip doesn't break anything downstream.** Adding a new `accepted` state into the quote lifecycle — make sure nothing in the UI or other logic assumes a quote goes straight `sent → paid` and chokes on an intermediate `accepted`. Ask Lovable: "does anything in the app's quote-status handling not account for an `accepted` state, now that deposits will produce it?" You don't want a quote in `accepted` to render oddly or break a filter.
+2. **The allow-list should probably include** `accepted` **itself getting overwritten by full payment.** When a deposit flips it to `accepted`, then the customer pays the balance, the `full` branch flips it to `paid`. Confirm the `full`/`paid` branch's own status guard *allows* `accepted` → `paid` (the deposit case), or a deposited-then-fully-paid quote could get stuck at `accepted`. Worth checking the full-payment branch's guard, not just the deposit one.

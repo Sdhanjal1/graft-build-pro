@@ -230,8 +230,21 @@ export async function handlePaidEvent(evt: any): Promise<void> {
     });
   }
 
-  // Flip quote status -> "paid" for full payments. Deposits keep "accepted".
-  if (requestType !== "deposit") {
+  // Flip quote status -> "paid" for full payments; deposits imply acceptance.
+  if (requestType === "deposit") {
+    try {
+      // Only nudge forward — don't regress a quote that's already accepted,
+      // paid, completed, or declined (Stripe replays the same event).
+      await supabaseAdmin
+        .from("quotes")
+        .update({ status: "accepted" })
+        .eq("id", quoteId)
+        .eq("user_id", userId)
+        .in("status", ["pending", "sent"]);
+    } catch (e) {
+      console.error("[payments/webhook] failed to mark quote accepted", e);
+    }
+  } else {
     try {
       await supabaseAdmin
         .from("quotes")
