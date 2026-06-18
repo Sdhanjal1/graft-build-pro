@@ -340,26 +340,6 @@ function AppHomePage() {
           </section>
         )}
 
-        {/* Customer book */}
-        <section className="px-5 mt-4">
-          <Link
-            to="/clients"
-            className="card-surface p-4 flex items-center gap-3 active:scale-[0.99] transition"
-          >
-            <div className="h-10 w-10 rounded-full bg-ink/10 flex items-center justify-center shrink-0">
-              <Users className="h-5 w-5 text-ink" strokeWidth={2.25} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
-                Customer book
-              </p>
-              <p className="text-sm font-semibold mt-0.5">
-                {userClients.length} {userClients.length === 1 ? "customer" : "customers"}
-              </p>
-            </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </Link>
-        </section>
 
         {/* Connect Stripe banner: after first quote, until connected or dismissed */}
         {showStripeBanner && (
