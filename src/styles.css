@@ -36,7 +36,9 @@
   --color-lime: var(--lime);
   --color-paper: var(--paper);
   --color-status-pending: var(--status-pending);
+  --color-status-amber: var(--status-amber);
   --color-status-accepted: var(--status-accepted);
+  --color-status-green: var(--status-green);
   --color-status-booked: var(--status-booked);
   --color-status-completed: var(--status-completed);
   --color-status-paid: var(--status-paid);
