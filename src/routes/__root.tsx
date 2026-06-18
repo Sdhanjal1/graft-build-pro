@@ -16,7 +16,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { Splash } from "@/components/Splash";
 import { BannerSlot } from "@/components/BannerSlot";
 import { useSession } from "@/lib/auth";
-import { hydrateUserData, clearUserData } from "@/lib/user-data";
+import { hydrateUserData, clearUserData, userProfile } from "@/lib/user-data";
 import { registerServiceWorker } from "@/lib/sw-register";
 
 function NotFoundComponent() {
@@ -115,12 +115,18 @@ function RootComponent() {
   const router = useRouter();
   const path = router.state.location.pathname;
   const MARKETING_PATHS = new Set(["/", "/welcome", "/pricing", "/about", "/features", "/faqs", "/trades", "/merch"]);
+  const NO_CHROME_PATHS = new Set([
+    "/onboarding", "/welcome", "/confirmed",
+    "/forgot-password", "/reset-password", "/auth",
+  ]);
   const isMarketing = MARKETING_PATHS.has(path);
-  const isAuth = path === "/auth";
-  const isPortal = path.startsWith("/portal/") || path.startsWith("/request/");
-  const isFullScreenFlow = path === "/onboarding" || path === "/welcome";
+  const isNoChrome = NO_CHROME_PATHS.has(path);
+  const isPortal =
+    path.startsWith("/portal/") ||
+    path.startsWith("/request/") ||
+    path.startsWith("/q/");
   const isOps = path === "/ops" || path.startsWith("/ops/");
-  const showAppChrome = !isMarketing && !isAuth && !isPortal && !isFullScreenFlow && !isOps;
+  const showAppChrome = !isMarketing && !isNoChrome && !isPortal && !isOps;
   React.useEffect(() => { registerServiceWorker(); }, []);
   return (
     <QueryClientProvider client={queryClient}>
@@ -168,7 +174,16 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       void hydrateUserData()
         .catch((error) => console.error(error))
         .finally(() => {
-          if (!cancelled) setHydratedForUserId(userId);
+          if (cancelled) return;
+          setHydratedForUserId(userId);
+          // Onboarding gate — applies to every signed-in app route, not
+          // just /app. Skip on public/auth pages, the onboarding screen
+          // itself, and /ops (admin-only dashboard).
+          const onOnboarding = path === "/onboarding";
+          const onOps = path === "/ops" || path.startsWith("/ops/");
+          if (!isPublic && !onOnboarding && !onOps && !userProfile.business_name) {
+            router.navigate({ to: "/onboarding" });
+          }
         });
     } else {
       // Signed out, clear cached user data so it doesn't bleed into the next session.
@@ -176,7 +191,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       setHydratedForUserId(null);
     }
     return () => { cancelled = true; };
-  }, [session, loading, isPublic, router, hydratedForUserId]);
+  }, [session, loading, isPublic, router, hydratedForUserId, path]);
 
   // Re-hydrate when the window regains focus, so external changes
   // (portal acceptance, payments) appear without a manual reload.
