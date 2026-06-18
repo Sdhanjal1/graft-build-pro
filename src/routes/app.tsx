@@ -16,7 +16,8 @@ import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
 import { HomeSkeleton } from "@/components/Skeletons";
 
-const STRIPE_BANNER_DISMISS_KEY = "quottr.dismiss.connect_stripe_banner";
+const STRIPE_BANNER_DISMISS_KEY = "quottr.dismiss.connect_stripe_banner_until";
+const STRIPE_BANNER_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
 
 function greetingFor(d = new Date()) {
   const h = d.getHours();
