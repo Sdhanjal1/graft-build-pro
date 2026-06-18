@@ -78,8 +78,8 @@ function ClientsPage() {
             <EmptyState
               icon={Users}
               title="No customers yet"
-              body="Add your first customer to start sending quotes."
-              cta={{ label: "Add your first customer", to: "/clients/new" }}
+              body="They'll be added automatically when you create quotes, or add one manually."
+              cta={{ label: "New customer", to: "/clients/new" }}
             />
           ) : (
             <EmptyState

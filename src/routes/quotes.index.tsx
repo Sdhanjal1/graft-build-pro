@@ -294,16 +294,14 @@ function QuotesPage() {
       <div className="px-5 mt-4 space-y-2.5">
 
         {filtered.length === 0 && (
-          mockQuotes.length === 0 ? (() => {
-            const trade = resolveTrade(userProfile.trade_type);
-            return (
+          mockQuotes.length === 0 ? (
               <EmptyState
                 icon={FileText}
-                title={`No ${trade.noun.jobPlural} yet`}
-                body="Tap the mic on Home to make your first one."
+                title="No quotes yet"
+                body="Tap the mic to create your first quote in seconds."
+                cta={{ label: "New quote", to: "/quotes/new", search: { voice: 1 } }}
               />
-            );
-          })() : (
+          ) : (
             <div>
               <EmptyState
                 icon={Inbox}
