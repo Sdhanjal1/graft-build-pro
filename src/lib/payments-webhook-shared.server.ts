@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { notifyUser } from "@/lib/push.server";
+import { logErrorEvent } from "@/lib/ops-errors.server";
 
 async function notifyTraderOfPayment(opts: {
   userId: string;
@@ -136,6 +137,8 @@ export async function handlePaidEvent(evt: any): Promise<void> {
     obj.customer_details?.email ?? obj.customer_email ?? obj.receipt_email;
   const amountCents: number | undefined =
     obj.amount_total ?? obj.amount_received ?? obj.amount;
+  const platformFeeCents: number | null =
+    typeof obj.application_fee_amount === "number" ? obj.application_fee_amount : null;
   const currency: string = (obj.currency ?? "gbp").toLowerCase();
 
   // Subscription checkout sessions land here too (mode=subscription).
@@ -165,6 +168,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
           stripe_payment_intent: paymentIntent ?? null,
           paid_at: new Date().toISOString(),
           customer_email: customerEmail ?? null,
+          ...(platformFeeCents !== null ? { platform_fee_cents: platformFeeCents } : {}),
         })
         .eq("id", existing.id);
     } else {
@@ -180,6 +184,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
         stripe_payment_intent: paymentIntent ?? null,
         payment_method: "card",
         paid_at: new Date().toISOString(),
+        platform_fee_cents: platformFeeCents,
       });
     }
   } else if (paymentIntent) {
@@ -198,6 +203,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
           status: "paid",
           paid_at: new Date().toISOString(),
           customer_email: customerEmail ?? null,
+          ...(platformFeeCents !== null ? { platform_fee_cents: platformFeeCents } : {}),
         })
         .eq("id", existingPi.id);
       // Early return: the original session already fired email + push when
@@ -215,6 +221,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
       stripe_payment_intent: paymentIntent,
       payment_method: "card",
       paid_at: new Date().toISOString(),
+      platform_fee_cents: platformFeeCents,
     });
   } else {
     await supabaseAdmin.from("invoice_payments").insert({
@@ -227,6 +234,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
       status: "paid",
       payment_method: "card",
       paid_at: new Date().toISOString(),
+      platform_fee_cents: platformFeeCents,
     });
   }
 
@@ -283,6 +291,11 @@ export async function handleFailedEvent(evt: any): Promise<void> {
   const piId: string | undefined =
     obj.payment_intent ?? (obj.id?.startsWith?.("pi_") ? obj.id : undefined);
   const newStatus = type === "checkout.session.expired" ? "expired" : "failed";
+  const userIdMeta: string | undefined = obj.metadata?.user_id;
+  const failureMessage: string =
+    obj.last_payment_error?.message ??
+    obj.failure_message ??
+    `Stripe event ${type}`;
   if (sessId) {
     await supabaseAdmin
       .from("invoice_payments")
@@ -296,4 +309,9 @@ export async function handleFailedEvent(evt: any): Promise<void> {
       .eq("stripe_payment_intent", piId)
       .eq("status", "pending");
   }
+  await logErrorEvent({
+    userId: userIdMeta ?? null,
+    context: `payments.webhook.${type}`,
+    message: failureMessage,
+  });
 }

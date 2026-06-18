@@ -79,6 +79,11 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
 
         if (!verify(rawBody, sig, secret)) {
           console.warn("[payments/webhook] invalid signature");
+          const { logErrorEvent } = await import("@/lib/ops-errors.server");
+          await logErrorEvent({
+            context: "payments.webhook.invalid_signature",
+            message: `env=${env ?? "?"}`,
+          });
           return new Response("Invalid signature", { status: 401 });
         }
 

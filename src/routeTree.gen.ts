@@ -16,6 +16,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as OpsRouteImport } from './routes/ops'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as MerchRouteImport } from './routes/merch'
@@ -78,6 +79,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpsRoute = OpsRouteImport.update({
+  id: '/ops',
+  path: '/ops',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -237,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/merch': typeof MerchRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
+  '/ops': typeof OpsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -274,6 +281,7 @@ export interface FileRoutesByTo {
   '/merch': typeof MerchRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
+  '/ops': typeof OpsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -312,6 +320,7 @@ export interface FileRoutesById {
   '/merch': typeof MerchRoute
   '/messages': typeof MessagesRoute
   '/onboarding': typeof OnboardingRoute
+  '/ops': typeof OpsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -351,6 +360,7 @@ export interface FileRouteTypes {
     | '/merch'
     | '/messages'
     | '/onboarding'
+    | '/ops'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
@@ -388,6 +398,7 @@ export interface FileRouteTypes {
     | '/merch'
     | '/messages'
     | '/onboarding'
+    | '/ops'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
@@ -425,6 +436,7 @@ export interface FileRouteTypes {
     | '/merch'
     | '/messages'
     | '/onboarding'
+    | '/ops'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
@@ -463,6 +475,7 @@ export interface RootRouteChildren {
   MerchRoute: typeof MerchRoute
   MessagesRoute: typeof MessagesRoute
   OnboardingRoute: typeof OnboardingRoute
+  OpsRoute: typeof OpsRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -536,6 +549,13 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ops': {
+      id: '/ops'
+      path: '/ops'
+      fullPath: '/ops'
+      preLoaderRoute: typeof OpsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -761,6 +781,7 @@ const rootRouteChildren: RootRouteChildren = {
   MerchRoute: MerchRoute,
   MessagesRoute: MessagesRoute,
   OnboardingRoute: OnboardingRoute,
+  OpsRoute: OpsRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,

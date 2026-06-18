@@ -57,6 +57,13 @@ export const transcribeAudio = createServerFn({ method: "POST" })
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
       console.error("OpenAI Whisper error", res.status, errText);
+      try {
+        const { logErrorEvent } = await import("@/lib/ops-errors.server");
+        await logErrorEvent({
+          context: "voice.transcribe",
+          message: `whisper ${res.status}: ${errText.slice(0, 500)}`,
+        });
+      } catch {}
       if (res.status === 401 || res.status === 403) {
         throw new Error("Voice isn't set up right now. Try again in a moment.");
       }
