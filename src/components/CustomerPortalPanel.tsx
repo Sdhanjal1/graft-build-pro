@@ -224,9 +224,9 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
             Customer portal
           </p>
         </div>
-        <div className="bg-secondary rounded-xl px-3 py-2.5 text-xs font-mono break-all">
-          {url}
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Share this private link with {info.name ?? "your customer"} so they can view their documents and reminders.
+        </p>
         {canNativeShare ? (
           <button
             onClick={share}
