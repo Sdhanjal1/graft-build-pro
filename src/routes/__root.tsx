@@ -115,12 +115,18 @@ function RootComponent() {
   const router = useRouter();
   const path = router.state.location.pathname;
   const MARKETING_PATHS = new Set(["/", "/welcome", "/pricing", "/about", "/features", "/faqs", "/trades", "/merch"]);
+  const NO_CHROME_PATHS = new Set([
+    "/onboarding", "/welcome", "/confirmed",
+    "/forgot-password", "/reset-password", "/auth",
+  ]);
   const isMarketing = MARKETING_PATHS.has(path);
-  const isAuth = path === "/auth";
-  const isPortal = path.startsWith("/portal/") || path.startsWith("/request/");
-  const isFullScreenFlow = path === "/onboarding" || path === "/welcome";
+  const isNoChrome = NO_CHROME_PATHS.has(path);
+  const isPortal =
+    path.startsWith("/portal/") ||
+    path.startsWith("/request/") ||
+    path.startsWith("/q/");
   const isOps = path === "/ops" || path.startsWith("/ops/");
-  const showAppChrome = !isMarketing && !isAuth && !isPortal && !isFullScreenFlow && !isOps;
+  const showAppChrome = !isMarketing && !isNoChrome && !isPortal && !isOps;
   React.useEffect(() => { registerServiceWorker(); }, []);
   return (
     <QueryClientProvider client={queryClient}>
