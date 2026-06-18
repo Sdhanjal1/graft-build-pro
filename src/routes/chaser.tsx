@@ -148,14 +148,27 @@ function ChaserPage() {
 
 
       <section className="px-5 mt-3">
-        <div className="card-focal bg-status-overdue/10 border border-status-overdue/30 p-5">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-status-overdue font-bold">You are owed</p>
-          <p className="num text-5xl mt-1 text-status-overdue tabular-nums leading-[0.9]">{formatGBP(total)}</p>
-          <p className="text-xs text-muted-foreground mt-1.5">
+        <div className="bg-paper border-2 border-ink rounded-2xl p-5 shadow-brutal">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-ink/60 font-bold">You are owed</p>
+            {overdue.some((q) => q.status === "overdue") && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-status-overdue text-paper">
+                Urgent
+              </span>
+            )}
+          </div>
+          <p
+            className="mt-1 leading-[0.85] tabular-nums text-ink"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.25rem, 13vw, 4.75rem)" }}
+          >
+            {formatGBP(total)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">
             {overdue.length} {overdue.length === 1 ? "invoice" : "invoices"} awaiting payment
           </p>
         </div>
       </section>
+
 
       {/* Auto-chase queue */}
       {(due.length > 0 || upcoming.length > 0) && (

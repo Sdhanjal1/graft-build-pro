@@ -123,6 +123,18 @@
     border: 1px solid color-mix(in oklab, var(--ink) 10%, transparent);
     box-shadow: 0 2px 4px rgb(0 0 0 / 0.05), 0 16px 36px -18px rgb(0 0 0 / 0.22);
   }
+  /* Brutalist offset shadow — focal cards / CTAs that want a tactile, stamped feel. */
+  .shadow-brutal {
+    box-shadow: 4px 4px 0 0 var(--ink);
+  }
+  .shadow-brutal-sm {
+    box-shadow: 3px 3px 0 0 var(--ink);
+  }
+  .shadow-brutal:active,
+  .shadow-brutal-sm:active {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+  }
   /* Consistent primary CTA — lime on ink/paper. h-12, bold, tight radius. */
   .btn-lime {
     display: inline-flex;
