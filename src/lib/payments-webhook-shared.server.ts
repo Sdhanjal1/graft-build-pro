@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { notifyUser } from "@/lib/push.server";
+import { logErrorEvent } from "@/lib/ops-errors.server";
 
 async function notifyTraderOfPayment(opts: {
   userId: string;
