@@ -137,6 +137,30 @@ export type Database = {
         }
         Relationships: []
       }
+      error_events: {
+        Row: {
+          context: string
+          created_at: string
+          id: string
+          message: string
+          user_id: string | null
+        }
+        Insert: {
+          context: string
+          created_at?: string
+          id?: string
+          message: string
+          user_id?: string | null
+        }
+        Update: {
+          context?: string
+          created_at?: string
+          id?: string
+          message?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       invoice_payments: {
         Row: {
           amount_cents: number
@@ -146,6 +170,7 @@ export type Database = {
           id: string
           paid_at: string | null
           payment_method: string | null
+          platform_fee_cents: number | null
           quote_id: string
           request_type: string
           status: string
@@ -162,6 +187,7 @@ export type Database = {
           id?: string
           paid_at?: string | null
           payment_method?: string | null
+          platform_fee_cents?: number | null
           quote_id: string
           request_type?: string
           status?: string
@@ -178,6 +204,7 @@ export type Database = {
           id?: string
           paid_at?: string | null
           payment_method?: string | null
+          platform_fee_cents?: number | null
           quote_id?: string
           request_type?: string
           status?: string
@@ -228,6 +255,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_admin: boolean
           labour_day_rate: number | null
           labour_hourly_rate: number | null
           logo_url: string | null
@@ -266,6 +294,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          is_admin?: boolean
           labour_day_rate?: number | null
           labour_hourly_rate?: number | null
           logo_url?: string | null
@@ -304,6 +333,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_admin?: boolean
           labour_day_rate?: number | null
           labour_hourly_rate?: number | null
           logo_url?: string | null
@@ -786,6 +816,7 @@ export type Database = {
     }
     Functions: {
       generate_portal_code: { Args: never; Returns: string }
+      is_admin: { Args: { _uid: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
