@@ -230,7 +230,7 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
         {canNativeShare ? (
           <button
             onClick={share}
-            className="w-full rounded-full bg-lime text-ink py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5"
+            className="w-full btn-secondary-outline py-2.5 text-xs"
           >
             <Share2 className="h-3.5 w-3.5" />
             Share link
@@ -238,7 +238,7 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
         ) : (
           <button
             onClick={copy}
-            className="w-full rounded-full bg-lime text-ink py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5"
+            className="w-full btn-secondary-outline py-2.5 text-xs"
           >
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? "Copied" : "Copy link"}
@@ -290,7 +290,7 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
         </div>
         <button
           onClick={onSaveReminder}
-          className="w-full rounded-full bg-lime text-ink py-2.5 text-xs font-bold"
+          className="w-full btn-secondary-outline py-2.5 text-xs"
         >
           Save reminder
         </button>
@@ -302,7 +302,7 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
             Documents in portal
           </p>
-          <label className="rounded-full bg-lime text-ink px-3 py-1.5 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer">
+          <label className="btn-secondary-outline px-3 py-1.5 text-xs cursor-pointer">
             {uploading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (

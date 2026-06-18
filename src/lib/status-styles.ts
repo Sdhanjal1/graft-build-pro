@@ -2,15 +2,18 @@ import type { QuoteStatus } from "@/lib/user-data";
 
 /**
  * Single source of truth for quote-status visual language.
- * Used by both quotes.index and chaser so chips, dots and labels
- * read identically across every list.
+ * Used by quotes list, customer detail job history, chaser, inbox.
  *
- * Semantics:
- * - pending / sent       → neutral ink (awaiting customer)
- * - accepted / completed → lime-ish (good, work in flight)
- * - paid                 → solid lime (positive end-state)
- * - overdue              → solid red (urgent)
- * - declined             → muted strike-through
+ * Restrained dot-based status system — a small filled circle precedes
+ * the label, never a full coloured pill. Goal: glanceable triage.
+ *
+ *   Draft     → neutral grey
+ *   Sent      → amber
+ *   Accepted  → lime
+ *   Paid      → green
+ *   Overdue   → red
+ *   Declined  → muted
+ *   Completed → lime
  */
 
 export const STATUS_LABEL: Record<QuoteStatus, string> = {
@@ -23,25 +26,23 @@ export const STATUS_LABEL: Record<QuoteStatus, string> = {
   overdue: "Overdue",
 };
 
-
-// Bold Cashboard: solid pill chips — every status reads at the same weight,
-// the colour does the talking. Tiny tracking-tight uppercase labels.
+// Dot-only treatment. Label rides next to it in muted ink — no full pill fill.
 export const STATUS_CHIP: Record<QuoteStatus, string> = {
-  pending: "bg-secondary text-ink",
-  sent: "bg-secondary text-ink",
-  accepted: "bg-ink text-paper",
-  declined: "bg-secondary text-muted-foreground line-through",
-  completed: "bg-ink text-paper",
-  paid: "bg-lime text-ink",
-  overdue: "bg-status-overdue text-white",
+  pending: "text-muted-foreground",
+  sent: "text-ink",
+  accepted: "text-ink",
+  declined: "text-muted-foreground line-through",
+  completed: "text-ink",
+  paid: "text-ink",
+  overdue: "text-status-overdue",
 };
 
 export const STATUS_DOT: Record<QuoteStatus, string> = {
-  pending: "bg-status-pending",
-  sent: "bg-status-pending",
+  pending: "bg-muted-foreground/60",
+  sent: "bg-status-amber",
   accepted: "bg-lime",
-  declined: "bg-muted-foreground",
+  declined: "bg-muted-foreground/40",
   completed: "bg-lime",
-  paid: "bg-lime",
+  paid: "bg-status-green",
   overdue: "bg-status-overdue",
 };

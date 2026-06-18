@@ -122,13 +122,13 @@ function ChaserPage() {
                   <p className="num text-2xl text-ink tabular-nums">{formatGBP(q.total)}</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2 mt-4">
-                  <a href={wa} target="_blank" rel="noreferrer" className="bg-lime text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition">
+                  <a href={wa} target="_blank" rel="noreferrer" className="btn-secondary-outline py-2.5 text-xs active:scale-95 transition">
                     <MessageCircle className="h-3.5 w-3.5" /> Nudge
                   </a>
                   <a href={`tel:${c?.phone}`} className="bg-ink text-paper rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition">
                     <Phone className="h-3.5 w-3.5" /> Call
                   </a>
-                  <a href={mail} className="bg-card border border-border text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition">
+                  <a href={mail} className="btn-secondary-outline py-2.5 text-xs active:scale-95 transition">
                     <Mail className="h-3.5 w-3.5" /> Email
                   </a>
                 </div>
@@ -295,7 +295,7 @@ function ChaserPage() {
                 <p className={`num text-2xl tabular-nums ${toneText}`}>{formatGBP(q.total)}</p>
               </div>
               <div className="grid grid-cols-3 gap-2 mt-4">
-                <a href={wa} target="_blank" rel="noreferrer" className="bg-lime text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition">
+                <a href={wa} target="_blank" rel="noreferrer" className="btn-secondary-outline py-2.5 text-xs active:scale-95 transition">
                   <MessageCircle className="h-3.5 w-3.5" />
                   WhatsApp
                 </a>
@@ -303,7 +303,7 @@ function ChaserPage() {
                   <Phone className="h-3.5 w-3.5" />
                   Call
                 </a>
-                <a href={mail} className="bg-card border border-border text-ink rounded-full py-2.5 text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition">
+                <a href={mail} className="btn-secondary-outline py-2.5 text-xs active:scale-95 transition">
                   <Mail className="h-3.5 w-3.5" />
                   Email
                 </a>
