@@ -485,7 +485,8 @@ function QuoteCard({
               ? clientName
               : <span className="text-status-pending">Tap to assign client</span>}
           </p>
-          <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold ${STATUS_CHIP[quote.status]}`}>
+          <span className={`shrink-0 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold ${STATUS_CHIP[quote.status]}`}>
+            <span className={`inline-flex h-1.5 w-1.5 rounded-full ${STATUS_DOT[quote.status]}`} />
             {STATUS_LABEL[quote.status]}
           </span>
         </div>
