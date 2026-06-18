@@ -58,7 +58,10 @@ function AppHomePage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setBannerDismissed(window.localStorage.getItem(STRIPE_BANNER_DISMISS_KEY) === "1");
+      const raw = window.localStorage.getItem(STRIPE_BANNER_DISMISS_KEY);
+      // Legacy permanent dismiss ("1") is ignored — banner returns until Stripe is connected.
+      const until = raw && raw !== "1" ? Number(raw) : 0;
+      setBannerDismissed(Number.isFinite(until) && until > Date.now());
     }
   }, []);
 
