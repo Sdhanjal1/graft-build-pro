@@ -5,7 +5,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 
 import { SwipeRow } from "@/components/SwipeRow";
 import { mockQuotes, getClient, formatGBP, deleteQuote, duplicateQuote, setQuoteStatus, useDataVersion, buildChaserMessage, waLink, materialsForQuote, userProfile, markOverdueQuotes, type Quote, type QuoteStatus } from "@/lib/user-data";
-import { STATUS_LABEL, STATUS_CHIP } from "@/lib/status-styles";
+import { STATUS_LABEL, STATUS_CHIP, STATUS_DOT } from "@/lib/status-styles";
 import { resolveTrade } from "@/lib/trades";
 import { Search, FileText, Inbox, ShoppingCart, X, ArrowRight, ChevronRight } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
