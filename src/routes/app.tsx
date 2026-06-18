@@ -3,11 +3,11 @@ import { useEffect, useRef, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
 import {
-  userProfile, stats, formatGBP, getClient, mockQuotes, userClients,
+  userProfile, stats, formatGBP, getClient, mockQuotes,
   todaysJobs, formatTime, getQuote, materialsForQuote,
 } from "@/lib/user-data";
 import { resolveTrade } from "@/lib/trades";
-import { ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X, CheckCircle2, ShoppingCart, Users } from "lucide-react";
+import { ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X, CheckCircle2, ShoppingCart } from "lucide-react";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 
 
@@ -16,7 +16,8 @@ import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
 import { HomeSkeleton } from "@/components/Skeletons";
 
-const STRIPE_BANNER_DISMISS_KEY = "quottr.dismiss.connect_stripe_banner";
+const STRIPE_BANNER_DISMISS_KEY = "quottr.dismiss.connect_stripe_banner_until";
+const STRIPE_BANNER_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
 
 function greetingFor(d = new Date()) {
   const h = d.getHours();
@@ -57,7 +58,10 @@ function AppHomePage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setBannerDismissed(window.localStorage.getItem(STRIPE_BANNER_DISMISS_KEY) === "1");
+      const raw = window.localStorage.getItem(STRIPE_BANNER_DISMISS_KEY);
+      // Legacy permanent dismiss ("1") is ignored — banner returns until Stripe is connected.
+      const until = raw && raw !== "1" ? Number(raw) : 0;
+      setBannerDismissed(Number.isFinite(until) && until > Date.now());
     }
   }, []);
 
@@ -336,26 +340,6 @@ function AppHomePage() {
           </section>
         )}
 
-        {/* Customer book */}
-        <section className="px-5 mt-4">
-          <Link
-            to="/clients"
-            className="card-surface p-4 flex items-center gap-3 active:scale-[0.99] transition"
-          >
-            <div className="h-10 w-10 rounded-full bg-ink/10 flex items-center justify-center shrink-0">
-              <Users className="h-5 w-5 text-ink" strokeWidth={2.25} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
-                Customer book
-              </p>
-              <p className="text-sm font-semibold mt-0.5">
-                {userClients.length} {userClients.length === 1 ? "customer" : "customers"}
-              </p>
-            </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </Link>
-        </section>
 
         {/* Connect Stripe banner: after first quote, until connected or dismissed */}
         {showStripeBanner && (
@@ -378,7 +362,10 @@ function AppHomePage() {
                 aria-label="Dismiss"
                 onClick={() => {
                   if (typeof window !== "undefined") {
-                    window.localStorage.setItem(STRIPE_BANNER_DISMISS_KEY, "1");
+                    window.localStorage.setItem(
+                      STRIPE_BANNER_DISMISS_KEY,
+                      String(Date.now() + STRIPE_BANNER_SNOOZE_MS),
+                    );
                   }
                   setBannerDismissed(true);
                 }}
