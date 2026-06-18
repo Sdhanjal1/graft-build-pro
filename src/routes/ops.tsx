@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, isRedirect } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getOpsDashboard, getIsAdmin, type OpsDashboard } from "@/lib/ops.functions";
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/ops")({
       const { isAdmin } = await getIsAdmin();
       if (!isAdmin) throw redirect({ to: "/app" });
     } catch (e) {
-      // Not signed in or no admin — kick to /auth or /app
+      if (isRedirect(e)) throw e;
       throw redirect({ to: "/auth" });
     }
   },

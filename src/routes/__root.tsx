@@ -118,7 +118,9 @@ function RootComponent() {
   const isMarketing = MARKETING_PATHS.has(path);
   const isAuth = path === "/auth";
   const isPortal = path.startsWith("/portal/") || path.startsWith("/request/");
-  const showAppChrome = !isMarketing && !isAuth && !isPortal;
+  const isFullScreenFlow = path === "/onboarding" || path === "/welcome";
+  const isOps = path === "/ops" || path.startsWith("/ops/");
+  const showAppChrome = !isMarketing && !isAuth && !isPortal && !isFullScreenFlow && !isOps;
   React.useEffect(() => { registerServiceWorker(); }, []);
   return (
     <QueryClientProvider client={queryClient}>
