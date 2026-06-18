@@ -168,6 +168,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
           stripe_payment_intent: paymentIntent ?? null,
           paid_at: new Date().toISOString(),
           customer_email: customerEmail ?? null,
+          ...(platformFeeCents !== null ? { platform_fee_cents: platformFeeCents } : {}),
         })
         .eq("id", existing.id);
     } else {
@@ -183,6 +184,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
         stripe_payment_intent: paymentIntent ?? null,
         payment_method: "card",
         paid_at: new Date().toISOString(),
+        platform_fee_cents: platformFeeCents,
       });
     }
   } else if (paymentIntent) {
@@ -201,6 +203,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
           status: "paid",
           paid_at: new Date().toISOString(),
           customer_email: customerEmail ?? null,
+          ...(platformFeeCents !== null ? { platform_fee_cents: platformFeeCents } : {}),
         })
         .eq("id", existingPi.id);
       // Early return: the original session already fired email + push when
@@ -218,6 +221,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
       stripe_payment_intent: paymentIntent,
       payment_method: "card",
       paid_at: new Date().toISOString(),
+      platform_fee_cents: platformFeeCents,
     });
   } else {
     await supabaseAdmin.from("invoice_payments").insert({
@@ -230,6 +234,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
       status: "paid",
       payment_method: "card",
       paid_at: new Date().toISOString(),
+      platform_fee_cents: platformFeeCents,
     });
   }
 
