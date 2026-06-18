@@ -3,11 +3,11 @@ import { useEffect, useRef, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
 import {
-  userProfile, stats, formatGBP, getClient, mockQuotes, userClients,
+  userProfile, stats, formatGBP, getClient, mockQuotes,
   todaysJobs, formatTime, getQuote, materialsForQuote,
 } from "@/lib/user-data";
 import { resolveTrade } from "@/lib/trades";
-import { ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X, CheckCircle2, ShoppingCart, Users } from "lucide-react";
+import { ArrowRight, FileText, Bell, AlertTriangle, Clock, Send, Settings, CreditCard, X, CheckCircle2, ShoppingCart } from "lucide-react";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 
 
