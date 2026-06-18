@@ -174,7 +174,16 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       void hydrateUserData()
         .catch((error) => console.error(error))
         .finally(() => {
-          if (!cancelled) setHydratedForUserId(userId);
+          if (cancelled) return;
+          setHydratedForUserId(userId);
+          // Onboarding gate — applies to every signed-in app route, not
+          // just /app. Skip on public/auth pages, the onboarding screen
+          // itself, and /ops (admin-only dashboard).
+          const onOnboarding = path === "/onboarding";
+          const onOps = path === "/ops" || path.startsWith("/ops/");
+          if (!isPublic && !onOnboarding && !onOps && !userProfile.business_name) {
+            router.navigate({ to: "/onboarding" });
+          }
         });
     } else {
       // Signed out, clear cached user data so it doesn't bleed into the next session.
@@ -182,7 +191,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       setHydratedForUserId(null);
     }
     return () => { cancelled = true; };
-  }, [session, loading, isPublic, router, hydratedForUserId]);
+  }, [session, loading, isPublic, router, hydratedForUserId, path]);
 
   // Re-hydrate when the window regains focus, so external changes
   // (portal acceptance, payments) appear without a manual reload.
