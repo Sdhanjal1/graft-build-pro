@@ -70,7 +70,7 @@ export function PageHeader({
       <Link
         to={action.to}
         search={action.search as never}
-        className="shrink-0 h-9 px-4 rounded-full bg-lime text-ink inline-flex items-center font-bold text-[12px] uppercase tracking-tight active:translate-y-0.5 active:shadow-none transition shadow-[0_3px_0_0_#9db23a]"
+        className="shrink-0 h-9 px-4 rounded-full bg-lime text-ink inline-flex items-center font-bold text-[12px] uppercase tracking-tight active:scale-[0.97] transition"
       >
         {action.label}
       </Link>
@@ -78,7 +78,7 @@ export function PageHeader({
       <button
         type="button"
         onClick={action.onClick}
-        className="shrink-0 h-9 px-4 rounded-full bg-lime text-ink inline-flex items-center font-bold text-[12px] uppercase tracking-tight active:translate-y-0.5 active:shadow-none transition shadow-[0_3px_0_0_#9db23a]"
+        className="shrink-0 h-9 px-4 rounded-full bg-lime text-ink inline-flex items-center font-bold text-[12px] uppercase tracking-tight active:scale-[0.97] transition"
       >
         {action.label}
       </button>
@@ -89,60 +89,51 @@ export function PageHeader({
     <>
       <header
         className={[
-          "sticky top-0 z-30 bg-ink text-paper relative overflow-hidden transition-[padding,border-radius] duration-200 motion-reduce:transition-none",
+          "sticky top-0 z-30 bg-paper text-ink relative transition-[padding,border-color] duration-200 motion-reduce:transition-none border-b",
           condensed
-            ? "rounded-b-[1rem] px-4 pt-2 pb-2"
-            : "rounded-b-[2rem] px-5 pt-5 pb-8",
+            ? "px-4 pt-2 pb-2 border-border"
+            : "px-5 pt-5 pb-4 border-transparent",
         ].join(" ")}
       >
-        {!condensed && (
-          <span
-            aria-hidden
-            className="absolute left-0 top-0 h-full w-1.5 bg-lime/60"
-          />
-        )}
-
         <div className="relative flex items-center gap-3">
           {showBack && (
             <Link
               to={backTo}
               className={[
-                "shrink-0 rounded-full bg-paper/10 border border-paper/15 flex items-center justify-center transition-[height,width] duration-200 motion-reduce:transition-none",
+                "shrink-0 rounded-full bg-secondary text-ink flex items-center justify-center transition-[height,width] duration-200 motion-reduce:transition-none",
                 condensed ? "h-7 w-7" : "h-8 w-8",
               ].join(" ")}
               aria-label="Back"
             >
-              <ChevronLeft className="h-4 w-4 text-paper" />
+              <ChevronLeft className="h-4 w-4" />
             </Link>
           )}
 
           <div className="flex-1 min-w-0">
             {trail && !condensed && (
-              <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-paper/45 truncate">
+              <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-muted-foreground truncate">
                 {trail.slice(0, -1).map((c, i) => (
                   <span key={i}>
                     {truncate(c, 18)}
-                    <span aria-hidden className="mx-1.5 text-paper/30">/</span>
+                    <span aria-hidden className="mx-1.5 text-ink/30">/</span>
                   </span>
                 ))}
-                <span className="text-paper/70">
+                <span className="text-ink/70">
                   {truncate(trail[trail.length - 1], 18)}
                 </span>
               </p>
             )}
             <h1
-              className={[
-                "text-lime uppercase leading-[0.95] tracking-tight truncate transition-[font-size] duration-200 motion-reduce:transition-none",
-              ].join(" ")}
+              className="text-ink uppercase leading-[0.95] tracking-tight truncate transition-[font-size] duration-200 motion-reduce:transition-none"
               style={{
                 fontFamily: "'Bebas Neue', sans-serif",
-                fontSize: condensed ? "1.1rem" : "2rem",
+                fontSize: condensed ? "1.1rem" : "1.875rem",
               }}
             >
               {title}
             </h1>
             {subtitle && !condensed && (
-              <span className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-paper/55 font-bold uppercase tracking-[0.18em] truncate">
+              <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground font-bold uppercase tracking-[0.18em] truncate">
                 {urgent && (
                   <span
                     aria-hidden
@@ -165,6 +156,7 @@ export function PageHeader({
     </>
   );
 }
+
 
 function truncate(value: string, max: number) {
   if (!value) return value;

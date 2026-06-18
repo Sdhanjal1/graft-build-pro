@@ -49,7 +49,7 @@ export function BottomNav() {
     <nav className="fixed bottom-0 inset-x-0 z-40 safe-bottom">
       <div className="mx-auto max-w-md px-3 pb-3 pt-2 relative">
         <div
-          className="relative rounded-full flex items-center justify-around gap-0.5 h-16 px-1.5 overflow-hidden ring-1 ring-white/15 shadow-[0_10px_28px_-10px_rgba(0,0,0,0.55)] backdrop-blur-2xl backdrop-saturate-150 [-webkit-backdrop-filter:blur(24px)_saturate(1.5)]"
+          className="relative rounded-full flex items-center justify-around gap-0.5 h-16 px-1.5 overflow-hidden ring-1 ring-white/15 shadow-[0_6px_18px_-10px_rgba(0,0,0,0.5)] backdrop-blur-2xl backdrop-saturate-150 [-webkit-backdrop-filter:blur(24px)_saturate(1.5)]"
           style={{
             background: "linear-gradient(180deg, rgba(30,31,25,0.72) 0%, rgba(22,23,15,0.82) 100%)",
           }}
@@ -97,10 +97,10 @@ function NavItem({
     >
       <span
         className={[
-          "relative flex items-center gap-1.5 rounded-full transition-all duration-200 ease-out min-w-0",
+          "relative flex items-center gap-1.5 rounded-full transition-colors duration-200 ease-out min-w-0",
           active
-            ? "bg-lime text-ink px-3 py-2 -translate-y-0.5 shadow-[0_4px_0_0_#9db23a,0_10px_22px_-8px_rgba(200,224,74,0.6)]"
-            : "text-paper/55 px-2.5 py-2 scale-95 group-hover:text-paper/85",
+            ? "bg-lime text-ink px-3 py-2 ring-1 ring-ink/10"
+            : "text-paper/55 px-2.5 py-2 group-hover:text-paper/85",
         ].join(" ")}
       >
         <span className="relative inline-flex">
@@ -119,12 +119,6 @@ function NavItem({
           <span className="text-[12px] font-bold tracking-tight leading-none whitespace-nowrap truncate min-w-0">
             {label}
           </span>
-        )}
-        {!active && (
-          <span
-            aria-hidden
-            className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-0.5 w-0 rounded-full bg-lime transition-all duration-200 group-hover:w-3"
-          />
         )}
       </span>
       <span className="sr-only">
