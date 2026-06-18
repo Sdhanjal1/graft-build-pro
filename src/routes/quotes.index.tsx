@@ -7,7 +7,7 @@ import { SwipeRow } from "@/components/SwipeRow";
 import { mockQuotes, getClient, formatGBP, deleteQuote, duplicateQuote, setQuoteStatus, useDataVersion, buildChaserMessage, waLink, materialsForQuote, userProfile, markOverdueQuotes, type Quote, type QuoteStatus } from "@/lib/user-data";
 import { STATUS_LABEL, STATUS_CHIP } from "@/lib/status-styles";
 import { resolveTrade } from "@/lib/trades";
-import { Search, FileText, Inbox, ShoppingCart, X, ArrowRight } from "lucide-react";
+import { Search, FileText, Inbox, ShoppingCart, X, ArrowRight, ChevronRight } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { QuotesListSkeleton } from "@/components/Skeletons";
 
@@ -439,7 +439,7 @@ function QuoteCard({
     ? "active:bg-lime/20"
     : "active:bg-lime/15";
 
-  const className = `rounded-2xl py-4 px-4 flex items-start gap-3 transition-all duration-150 active:scale-[0.985] active:shadow-[0_0_0_3px_color-mix(in_oklab,var(--lime,#c8ff3e)_25%,transparent)] touch-manipulation ${activeTint} ${
+  const className = `rounded-2xl py-4 px-4 flex items-center gap-3 transition-all duration-150 active:scale-[0.985] active:shadow-[0_0_0_3px_color-mix(in_oklab,var(--lime,#c8ff3e)_25%,transparent)] touch-manipulation ${activeTint} ${
     isOverdue
       ? "bg-ink text-paper border-l-4 border-status-overdue"
       : isPaid
@@ -467,43 +467,47 @@ function QuoteCard({
 
   const inner = (
     <>
+      {/* Numbers lead — Bebas £ amount as the left anchor */}
+      <div
+        className={`shrink-0 leading-none tabular-nums ${isOverdue ? "text-lime" : "text-ink"}`}
+        style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.875rem", letterSpacing: "0.01em", minWidth: "5.5rem" }}
+      >
+        {formatGBP(quote.total)}
+      </div>
+
+      {/* Middle: client + job + status chips */}
       <div className="flex-1 min-w-0">
-        {/* Primary: client name */}
-        <p className={`text-sm font-semibold truncate ${isOverdue ? "text-paper" : "text-ink"}`}>
-          {hasClient
-            ? clientName
-            : <span className="text-status-pending">Tap to assign client</span>}
-        </p>
-        {/* Secondary: job title */}
+        <div className="flex items-start justify-between gap-2">
+          <p className={`text-sm font-semibold truncate ${isOverdue ? "text-paper" : "text-ink"}`}>
+            {hasClient
+              ? clientName
+              : <span className="text-status-pending">Tap to assign client</span>}
+          </p>
+          <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold ${STATUS_CHIP[quote.status]}`}>
+            {STATUS_LABEL[quote.status]}
+          </span>
+        </div>
         <p className={`text-[12px] truncate mt-0.5 ${isOverdue ? "text-paper/70" : "text-muted-foreground"}`}>
           {quote.title}
         </p>
-        {/* Status / hint chip row */}
-        <div className="mt-2 flex items-center gap-2 flex-wrap">
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold ${STATUS_CHIP[quote.status]}`}>
-            {STATUS_LABEL[quote.status]}
-          </span>
-          {acceptedMaterials > 0 && (
+        {acceptedMaterials > 0 && (
+          <div className="mt-1.5">
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold ${isOverdue ? "bg-paper/15 text-paper/80" : "bg-secondary text-ink/80"}`}>
               <ShoppingCart className="h-3 w-3" />
               {acceptedMaterials} material{acceptedMaterials === 1 ? "" : "s"}
             </span>
-          )}
-        </div>
-      </div>
-      {/* Right: amount */}
-      <div className="shrink-0 text-right">
-        <p
-          className={`leading-none tabular-nums ${isOverdue ? "text-lime" : "text-ink"}`}
-          style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.75rem", letterSpacing: "0.01em" }}
-        >
-          {formatGBP(quote.total)}
-        </p>
-        {isOverdue && (
-          <p className="text-[10px] uppercase tracking-widest font-bold text-paper/60 mt-1">
-            Swipe to chase
-          </p>
+          </div>
         )}
+      </div>
+
+      {/* Right: lime chevron — primary tap affordance */}
+      <div
+        className={`shrink-0 h-8 w-8 rounded-full inline-flex items-center justify-center ${
+          isOverdue ? "bg-lime text-ink" : "bg-lime text-ink"
+        }`}
+        aria-hidden
+      >
+        <ChevronRight className="h-4 w-4" strokeWidth={3} />
       </div>
     </>
   );
