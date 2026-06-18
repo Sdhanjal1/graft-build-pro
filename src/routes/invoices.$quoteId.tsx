@@ -236,6 +236,7 @@ function InvoicePage() {
               try {
                 await setQuoteStatus(quote.id, "paid");
                 feedback("success");
+                playSample("cash");
                 toast.success("Marked as paid");
                 router.invalidate();
               } catch (e) {
