@@ -231,7 +231,7 @@ function MessagesInbox() {
         </section>
       )}
 
-      {!loading && threads.length === 0 && requests.length === 0 && (
+      {showEmpty && (
         <section className="px-5 mt-4">
           <EmptyState
             icon={Inbox}
@@ -241,7 +241,7 @@ function MessagesInbox() {
         </section>
       )}
 
-      {!loading && threads.length > 0 && (
+      {!loading && !showEmpty && threads.length > 0 && (
         <section className="px-5 mt-4">
           <div className="flex items-baseline justify-between mb-2.5">
             <h2 className="text-xl">Messages</h2>
