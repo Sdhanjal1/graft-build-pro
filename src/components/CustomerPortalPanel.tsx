@@ -302,7 +302,7 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
             Documents in portal
           </p>
-          <label className="rounded-full bg-lime text-ink px-3 py-1.5 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer">
+          <label className="btn-secondary-outline px-3 py-1.5 text-xs cursor-pointer">
             {uploading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
