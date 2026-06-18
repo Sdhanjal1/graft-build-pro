@@ -17,7 +17,7 @@ export const Route = createFileRoute("/ops")({
       const { isAdmin } = await getIsAdmin();
       if (!isAdmin) throw redirect({ to: "/app" });
     } catch (e) {
-      // Not signed in or no admin — kick to /auth or /app
+      if (isRedirect(e)) throw e;
       throw redirect({ to: "/auth" });
     }
   },
