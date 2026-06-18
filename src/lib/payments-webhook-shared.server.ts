@@ -291,6 +291,11 @@ export async function handleFailedEvent(evt: any): Promise<void> {
   const piId: string | undefined =
     obj.payment_intent ?? (obj.id?.startsWith?.("pi_") ? obj.id : undefined);
   const newStatus = type === "checkout.session.expired" ? "expired" : "failed";
+  const userIdMeta: string | undefined = obj.metadata?.user_id;
+  const failureMessage: string =
+    obj.last_payment_error?.message ??
+    obj.failure_message ??
+    `Stripe event ${type}`;
   if (sessId) {
     await supabaseAdmin
       .from("invoice_payments")
@@ -304,4 +309,9 @@ export async function handleFailedEvent(evt: any): Promise<void> {
       .eq("stripe_payment_intent", piId)
       .eq("status", "pending");
   }
+  await logErrorEvent({
+    userId: userIdMeta ?? null,
+    context: `payments.webhook.${type}`,
+    message: failureMessage,
+  });
 }
