@@ -1,54 +1,34 @@
-## Scope
+# Redesign the Quotes Pipeline tile
 
-Two presentation-only refactors. No data, routing, or behaviour changes.
+The current tile is a dark ink slab with a lime number that overlaps the header. Since we just moved every page header to a calm paper-on-paper treatment, the ink slab now feels like a leftover — heavy, glossy, and visually disconnected from the rest of the screen.
 
-- `src/components/BottomNav.tsx` — remove the 3D lift on the active item and the chunky lime drop-shadow.
-- `src/components/AppShell.tsx` (`PageHeader`) — replace the dark ink slab used on every non-home screen with a calmer paper header. Home screen (`/app`) doesn't use `PageHeader`, so it's untouched.
-- `ActionPill` (lives inside `PageHeader`) — drop the 3D `shadow-[0_3px_0_0_#9db23a]` + `translate-y-0.5` press for a flat lime pill.
+## New direction: editorial paper card
 
-## Bottom nav
+Replace the ink slab with a flat paper card that reads as part of the same surface as the header — numbers lead, ink type, lime used only as a small accent.
 
-Keep: the ink glass pill, item layout, active-shows-label, unread dot pulse, hide rules.
+**Composition**
+- Container: `bg-paper` with `border border-ink/10`, `rounded-2xl`, no shadow (or a single hairline `border-b-2 border-ink` for weight). No more `-mt-6` overlap; sits naturally below the header with normal `mt-2` spacing.
+- Top row: small uppercase eyebrow `PIPELINE` on the left (ink/55), `{n} quotes` on the right (ink/55, tabular). Same `text-[10px] tracking-[0.22em]` rhythm we already use.
+- Hero number: Bebas, `text-ink` (not lime), `clamp(3.25rem, 13vw, 4.75rem)`, tight leading, tabular. The number is the focal point; color isn't doing the work.
+- A thin lime underline accent (`h-1 w-12 bg-lime rounded-full`) sits under the number as the only chromatic moment.
 
-Change:
-- Active item: solid lime pill, ink text. No `-translate-y-0.5`, no `shadow-[0_4px_0_0_#9db23a,...]`. Add a hairline `ring-1 ring-ink/10` only.
-- Inactive item: same muted paper colour, but drop the bottom hover bar (the tiny lime line) — it adds noise.
-- Outer pill: keep the dark glass background and `ring-1 ring-white/15`, but soften the outer shadow from `0_10px_28px_-10px` to `0_6px_18px_-10px` so the nav reads as resting on the surface, not floating like a button.
+**Awaiting / Overdue split (when present)**
+- Divider becomes `border-t border-ink/10` instead of `border-paper/10`.
+- Labels: ink/55 uppercase eyebrows.
+- Values: Bebas `text-ink` at `1.75rem`. Overdue value stays `text-status-overdue` so the warning still pops against the calmer card.
 
-## PageHeader (every screen except `/app`)
+**"to collect" link**
+- Flat pill: `inline-flex h-8 px-3 rounded-full bg-ink text-paper text-[11px] font-bold uppercase tracking-[0.15em]`, chevron after. Sits flush-left under the split. No lime text-link.
 
-New look — paper, not ink:
+## Files
 
-```text
-┌─ paper background (no rounded bottom slab) ────────┐
-│  ‹  QUOTES                                  + NEW  │   ← row 1
-│     1 pending · 2 booked                            │   ← row 2 subtitle
-└─────────────────────────────────────────────────────┘
-hairline divider in ink/10
-```
-
-- Background: `bg-paper` (no `bg-ink`, no `rounded-b-[2rem]`, no left lime stripe).
-- Title: Bebas, `text-ink`, `text-3xl` expanded / `text-xl` condensed.
-- Subtitle: `text-[11px] uppercase tracking-[0.18em] text-muted-foreground`; urgent dot retained as a small `bg-status-overdue` dot.
-- Back chevron: small circular `bg-secondary text-ink` button (no `bg-paper/10` on ink).
-- Crumb trail: `text-muted-foreground` with ink/40 separators.
-- Sticky + IntersectionObserver-driven condense behaviour kept exactly as-is; only the visual treatment changes. When condensed the divider becomes a stronger `border-b border-border` so the sticky bar reads as a clear shelf.
-- Bottom edge: hairline `border-b border-border` instead of the ink slab's natural separation.
-
-### ActionPill (used by Quotes "+ New", etc.)
-
-- Flat lime pill: `h-9 px-4 rounded-full bg-lime text-ink font-bold text-[12px] uppercase tracking-tight active:scale-[0.97] transition`.
-- Remove `shadow-[0_3px_0_0_#9db23a]` and `active:translate-y-0.5 active:shadow-none`.
+- `src/routes/quotes.index.tsx` — replace the `rounded-[1.75rem] bg-ink text-paper …` block (lines ~120–167) with the paper version above. Remove the `-mt-6 relative z-20` overlap wrapper; use `px-4 mt-3`.
 
 ## Out of scope
 
-- The home screen ink hero (`/app`) — left alone, it's the one place the dark editorial slab is signature.
-- The Quotes ink "Pipeline" focal card and the new brutalist Chaser focal card — those are page content, not chrome.
-- The lime-pulse + status-overdue dot behaviour, sticky/condense logic, hide-on-keyboard logic.
+- Header, bottom nav, secondary tile grid, quote row cards, Chaser brutalist card — all untouched.
+- No changes to data, filters, or routing.
 
 ## Verification
 
-Open `/quotes`, `/clients`, `/messages`, `/chaser`, `/settings` and a deep route (`/quotes/$id`) at mobile width; confirm:
-- Headers read as paper-on-paper, with title + optional subtitle, back affordance, and `+ New` where applicable.
-- Active nav item is a flat lime pill with no vertical lift or chunky shadow.
-- Home (`/app`) is unchanged.
+Open `/quotes` at mobile width: the card reads as paper, the £ number is ink with a small lime underline, Awaiting/Overdue split is legible, and the "to collect" pill leads to `/chaser`.
