@@ -9,7 +9,7 @@ import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
-import { feedback } from "@/lib/feedback";
+import { feedback, playSample } from "@/lib/feedback";
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -236,6 +236,7 @@ function InvoicePage() {
               try {
                 await setQuoteStatus(quote.id, "paid");
                 feedback("success");
+                playSample("cash");
                 toast.success("Marked as paid");
                 router.invalidate();
               } catch (e) {
