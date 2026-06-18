@@ -232,9 +232,8 @@ function MessagesInbox() {
         <section className="px-5 mt-4">
           <EmptyState
             icon={Inbox}
-            title="Quiet out there"
-            body="Share your QR code and let customers come to you while you're on the tools."
-            cta={{ label: "Get your QR code", to: "/settings" }}
+            title="No messages yet"
+            body="When a customer replies to a quote or accepts one, it shows up here."
           />
         </section>
       )}
