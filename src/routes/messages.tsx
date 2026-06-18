@@ -128,15 +128,18 @@ function MessagesInbox() {
 
   const newRequests = requests.filter((r) => !r.read_at);
   const unreadThreadTotal = threads.reduce((n, t) => n + (t.unread || 0), 0);
+  const hasRealThread = threads.some((t) => t.last.sender !== "system");
+  const showEmpty = !loading && !hasRealThread && requests.length === 0;
 
   const subtitle = useMemo(() => {
     if (loading) return "Loading…";
+    if (showEmpty) return "All caught up";
     const parts: string[] = [];
     if (requests.length) parts.push(`${requests.length} request${requests.length === 1 ? "" : "s"}`);
     if (newRequests.length) parts.push(`${newRequests.length} new`);
     if (threads.length) parts.push(`${threads.length} chat${threads.length === 1 ? "" : "s"}`);
     return parts.length ? parts.join(" · ") : "All caught up";
-  }, [loading, requests.length, newRequests.length, threads.length]);
+  }, [loading, showEmpty, requests.length, newRequests.length, threads.length]);
 
   const handleMarkRead = async (id: string) => {
     await markRead({ data: { id } }).catch(() => {});
