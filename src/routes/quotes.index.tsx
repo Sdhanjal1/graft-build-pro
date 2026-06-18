@@ -169,40 +169,43 @@ function QuotesPage() {
 
 
 
-      {/* Secondary tiles */}
-      <div className="px-5 mt-3 grid grid-cols-2 gap-2">
-        {secondaryTiles.map((t) => {
-          const active = tile === t.key;
-          return (
-            <button
-              key={t.key}
-              onClick={() => setTile(active ? null : t.key)}
-              className={`text-left rounded-2xl px-4 py-3 border transition ${
-                active
-                  ? "bg-secondary text-ink border-ink"
-                  : "bg-card text-ink border-border hover:border-ink/30"
-              }`}
-              aria-pressed={active}
-            >
-              <div className="flex items-start justify-between gap-1">
-                <span className="text-[10px] tracking-wide uppercase font-bold text-muted-foreground inline-flex items-start gap-1 min-w-0">
-                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 mt-1 ${TILE_DOT[t.key]}`} />
-                  <span className="leading-tight">{GROUP_LABEL[t.key]}</span>
-                </span>
-                <span className={`text-[10px] font-bold tabular-nums shrink-0 ${active ? "bg-ink text-paper rounded-full px-1.5 min-w-[18px] text-center" : "text-ink/60"}`}>
-                  {t.count}
-                </span>
-              </div>
-              <span
-                className="mt-1.5 block leading-none tabular-nums text-ink"
-                style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.875rem" }}
+      {/* Secondary tiles — only when Booked > 0 and there's an actual split to show */}
+      {bookedTile.total > 0 && bookedTile.total !== pipelineTotal && (
+        <div className="px-5 mt-3 grid grid-cols-2 gap-2">
+          {secondaryTiles.map((t) => {
+            const active = tile === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTile(active ? null : t.key)}
+                className={`text-left rounded-2xl px-4 py-3 border transition ${
+                  active
+                    ? "bg-secondary text-ink border-ink"
+                    : "bg-card text-ink border-border hover:border-ink/30"
+                }`}
+                aria-pressed={active}
               >
-                <CountUpGBP value={t.total} />
-              </span>
-            </button>
-          );
-        })}
-      </div>
+                <div className="flex items-start justify-between gap-1">
+                  <span className="text-[10px] tracking-wide uppercase font-bold text-muted-foreground inline-flex items-start gap-1 min-w-0">
+                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 mt-1 ${TILE_DOT[t.key]}`} />
+                    <span className="leading-tight">{GROUP_LABEL[t.key]}</span>
+                  </span>
+                  <span className={`text-[10px] font-bold tabular-nums shrink-0 ${active ? "bg-ink text-paper rounded-full px-1.5 min-w-[18px] text-center" : "text-ink/60"}`}>
+                    {t.count}
+                  </span>
+                </div>
+                <span
+                  className="mt-1.5 block leading-none tabular-nums text-ink"
+                  style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.875rem" }}
+                >
+                  <CountUpGBP value={t.total} />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
 
 
       <div className="px-5 mt-4 flex items-center gap-2">
