@@ -137,6 +137,8 @@ export async function handlePaidEvent(evt: any): Promise<void> {
     obj.customer_details?.email ?? obj.customer_email ?? obj.receipt_email;
   const amountCents: number | undefined =
     obj.amount_total ?? obj.amount_received ?? obj.amount;
+  const platformFeeCents: number | null =
+    typeof obj.application_fee_amount === "number" ? obj.application_fee_amount : null;
   const currency: string = (obj.currency ?? "gbp").toLowerCase();
 
   // Subscription checkout sessions land here too (mode=subscription).
