@@ -362,7 +362,10 @@ function AppHomePage() {
                 aria-label="Dismiss"
                 onClick={() => {
                   if (typeof window !== "undefined") {
-                    window.localStorage.setItem(STRIPE_BANNER_DISMISS_KEY, "1");
+                    window.localStorage.setItem(
+                      STRIPE_BANNER_DISMISS_KEY,
+                      String(Date.now() + STRIPE_BANNER_SNOOZE_MS),
+                    );
                   }
                   setBannerDismissed(true);
                 }}
