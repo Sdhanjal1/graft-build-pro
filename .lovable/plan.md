@@ -1,50 +1,54 @@
 ## Scope
 
-Refactor two screens to match the picked prototypes. Frontend/presentation only. No data, routing, or business-logic changes.
+Two presentation-only refactors. No data, routing, or behaviour changes.
 
-- `src/routes/quotes.index.tsx` → "Focal status card" direction
-- `src/routes/chaser.tsx` → "Brutalist focal card" direction
+- `src/components/BottomNav.tsx` — remove the 3D lift on the active item and the chunky lime drop-shadow.
+- `src/components/AppShell.tsx` (`PageHeader`) — replace the dark ink slab used on every non-home screen with a calmer paper header. Home screen (`/app`) doesn't use `PageHeader`, so it's untouched.
+- `ActionPill` (lives inside `PageHeader`) — drop the 3D `shadow-[0_3px_0_0_#9db23a]` + `translate-y-0.5` press for a flat lime pill.
 
-Existing tokens in `src/styles.css` (ink/paper/lime, Bebas, DM Sans) are already aligned with the prototypes, so no new tokens — only verify the lime hex matches (`#D9FF00` quotes / `#D4FF00` chaser → snap both to the existing `--lime` token) and reuse it.
+## Bottom nav
 
-## Quotes list (`quotes.index.tsx`)
+Keep: the ink glass pill, item layout, active-shows-label, unread dot pulse, hide rules.
 
-1. **Hero card** — keep ink card; inside it stack: `QUOTES` eyebrow, lime-pill status (`1 PENDING` / dynamic count), `+ NEW` lime pill on the right, then `PIPELINE` eyebrow with the £ total in lime Bebas (60–64px). Single source of truth for the total (already computed).
-2. **Stat tiles** — two equal cream/white tiles below: `AWAITING SENT` and `ACCEPTED`, each with a Bebas 24px £ value. Replace current bordered tiles.
-3. **Search** — plain rounded muted input (no border, soft fill), keeps existing controlled state.
-4. **Section header** — `DRAFTS & SENT` left, `{n} TOTAL` right, both 10px black uppercase at 40% opacity.
-5. **Row card** — white rounded-3xl card containing rows. Each row is the numbers-lead layout:
-   - left: Bebas £ amount, fixed-width column
-   - middle: customer name (bold) + job title (muted) + status chip top-right
-   - right: lime circular chevron button (acts as row tap affordance / link to quote detail)
-   Existing row data wiring stays; only the JSX layout changes.
-6. Keep bottom nav untouched.
+Change:
+- Active item: solid lime pill, ink text. No `-translate-y-0.5`, no `shadow-[0_4px_0_0_#9db23a,...]`. Add a hairline `ring-1 ring-ink/10` only.
+- Inactive item: same muted paper colour, but drop the bottom hover bar (the tiny lime line) — it adds noise.
+- Outer pill: keep the dark glass background and `ring-1 ring-white/15`, but soften the outer shadow from `0_10px_28px_-10px` to `0_6px_18px_-10px` so the nav reads as resting on the surface, not floating like a button.
 
-## Chaser (`chaser.tsx`)
+## PageHeader (every screen except `/app`)
 
-1. **Header** — small ink uppercase `CHASER — REPLIES & PAYMENTS`, no big ink card.
-2. **Focal "Next Chase" card** — white with `border-2 border-ink` and the brutalist offset shadow `shadow-[4px_4px_0_0_hsl(var(--ink))]`. Contains:
-   - top row: `NEXT CHASE` eyebrow + status chip (`URGENT` red pill when >7 days overdue, `WAITING` neutral otherwise)
-   - Bebas 80px £ amount
-   - customer name • days-overdue line (red when overdue, ink/60 when waiting reply)
-   - full-width lime `SEND REMINDER` button with matching offset shadow and active-press transform
-3. **"Other outstanding" list** — section header + compact rows: white/50 bg, hairline ink/10 border, customer + invoice/age on the left, Bebas 24px £ + small status label on the right (`PENDING REPLY` blue / `UPCOMING` muted, using existing status palette).
-4. **Empty state** — keep the existing "Nothing to chase" card but restyle to match (white, border, brutalist offset shadow) so empty and populated states feel of-a-piece.
-5. Data: reuse whatever chaser query already returns; pick the first/most-overdue item for the focal card and render the rest in the list. No backend changes.
+New look — paper, not ink:
 
-## Tokens / style notes
+```text
+┌─ paper background (no rounded bottom slab) ────────┐
+│  ‹  QUOTES                                  + NEW  │   ← row 1
+│     1 pending · 2 booked                            │   ← row 2 subtitle
+└─────────────────────────────────────────────────────┘
+hairline divider in ink/10
+```
 
-- Use `bg-ink text-paper` / `bg-paper text-ink` / `bg-lime text-ink` from `styles.css` — no hard-coded hexes in JSX.
-- The brutalist offset shadow becomes a small utility class in `styles.css` (`.shadow-brutal` → `4px 4px 0 0 hsl(var(--ink))`) so both the focal card and the CTA share it.
-- Bebas sizes used: 64px hero total, 80px chaser focal, 24px row totals, 20–24px stat tiles.
-- Active state on the chaser CTA: `active:translate-x-[2px] active:translate-y-[2px] active:shadow-none`.
+- Background: `bg-paper` (no `bg-ink`, no `rounded-b-[2rem]`, no left lime stripe).
+- Title: Bebas, `text-ink`, `text-3xl` expanded / `text-xl` condensed.
+- Subtitle: `text-[11px] uppercase tracking-[0.18em] text-muted-foreground`; urgent dot retained as a small `bg-status-overdue` dot.
+- Back chevron: small circular `bg-secondary text-ink` button (no `bg-paper/10` on ink).
+- Crumb trail: `text-muted-foreground` with ink/40 separators.
+- Sticky + IntersectionObserver-driven condense behaviour kept exactly as-is; only the visual treatment changes. When condensed the divider becomes a stronger `border-b border-border` so the sticky bar reads as a clear shelf.
+- Bottom edge: hairline `border-b border-border` instead of the ink slab's natural separation.
+
+### ActionPill (used by Quotes "+ New", etc.)
+
+- Flat lime pill: `h-9 px-4 rounded-full bg-lime text-ink font-bold text-[12px] uppercase tracking-tight active:scale-[0.97] transition`.
+- Remove `shadow-[0_3px_0_0_#9db23a]` and `active:translate-y-0.5 active:shadow-none`.
 
 ## Out of scope
 
-- Bottom nav, home screen, quote/invoice detail screens.
-- Any data fetching, server functions, or DB changes.
-- Notifications, real-time, animations beyond press-state and existing lime pulse.
+- The home screen ink hero (`/app`) — left alone, it's the one place the dark editorial slab is signature.
+- The Quotes ink "Pipeline" focal card and the new brutalist Chaser focal card — those are page content, not chrome.
+- The lime-pulse + status-overdue dot behaviour, sticky/condense logic, hide-on-keyboard logic.
 
 ## Verification
 
-After edits: open `/quotes` and `/chaser` in Playwright at 390px, screenshot both, compare to the chosen prototypes, and confirm the existing seed quote ("John Smith — Boiler replacement — £2,185") still renders correctly and the chaser empty state still appears when there's nothing to chase.
+Open `/quotes`, `/clients`, `/messages`, `/chaser`, `/settings` and a deep route (`/quotes/$id`) at mobile width; confirm:
+- Headers read as paper-on-paper, with title + optional subtitle, back affordance, and `+ New` where applicable.
+- Active nav item is a flat lime pill with no vertical lift or chunky shadow.
+- Home (`/app`) is unchanged.
