@@ -290,7 +290,7 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
         </div>
         <button
           onClick={onSaveReminder}
-          className="w-full rounded-full bg-lime text-ink py-2.5 text-xs font-bold"
+          className="w-full btn-secondary-outline py-2.5 text-xs"
         >
           Save reminder
         </button>
