@@ -45,6 +45,41 @@ import {
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
+const LABOUR_HINT = /\b(labour|labor|fitting|installation|install|day rate|hr|hrs|hour|hours)\b/i;
+
+function isLabourLine(li: LineItem): boolean {
+  if (li.category === "labour" || li.category === "cis_labour") return true;
+  if (li.category && li.category !== "other") return false;
+  return LABOUR_HINT.test(li.description ?? "");
+}
+
+function normalizeLineItems(items: LineItem[]): LineItem[] {
+  const materials: LineItem[] = [];
+  let labourTotal = 0;
+  let sawLabour = false;
+  for (const li of items) {
+    if (isLabourLine(li)) {
+      sawLabour = true;
+      labourTotal += (li.qty || 0) * (li.unit_price || 0);
+    } else {
+      materials.push(li);
+    }
+  }
+  if (!sawLabour) return materials;
+  const labourLine: LineItem = {
+    description: "Labour",
+    qty: 1,
+    unit_price: +labourTotal.toFixed(2),
+    category: "labour",
+    unit: "qty",
+  };
+  return [...materials, labourLine];
+}
+
+function normalizeDescriptionKey(s: string): string {
+  return (s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
 
 function formatMMSS(s: number) {
   const m = Math.floor(s / 60);
@@ -597,22 +632,26 @@ function NewQuotePage() {
 
   const applyVoiceEdit = async (transcript: string) => {
     if (!draft || !transcript.trim()) return;
-    const existingItems = draft.line_items
-      .map((li, idx) => `${idx + 1}. ${li.description} — qty ${li.qty}, £${li.unit_price} each`)
-      .join("\n");
-    const editPrompt = `EXISTING QUOTE — these are the items currently on this quote:
-${existingItems}
-
-CHANGE REQUEST FROM THE TRADESPERSON: ${transcript}
-
-Re-output the FULL updated list of line items for this quote, applying the change above. Keep unchanged items exactly as written (same description, qty, unit_price). Add, remove, or modify only what the change request asks for.`;
     try {
-      const g = await generateFn({ data: { description: editPrompt, trade, vatRegistered: vat } });
-      if (g.line_items?.length) {
-        setDraft({ title: draft.title, line_items: g.line_items });
-        originalDraftRef.current = JSON.stringify(g.line_items);
-        // Let the seeding effect re-derive payment timing from the new total
-        // (only for fresh quotes — don't auto-flip a saved quote's timing).
+      const g = await generateFn({ data: { description: transcript, trade, vatRegistered: vat } });
+      const newItems = g.line_items ?? [];
+      if (newItems.length) {
+        const existing = draft.line_items;
+        const existingMatKeys = new Set(
+          existing.filter((li) => !isLabourLine(li)).map((li) => normalizeDescriptionKey(li.description))
+        );
+        const additions: LineItem[] = [];
+        for (const li of newItems) {
+          if (isLabourLine(li)) {
+            additions.push(li);
+          } else if (!existingMatKeys.has(normalizeDescriptionKey(li.description))) {
+            additions.push(li);
+            existingMatKeys.add(normalizeDescriptionKey(li.description));
+          }
+        }
+        const merged = normalizeLineItems([...existing, ...additions]);
+        setDraft({ title: draft.title, line_items: merged });
+        originalDraftRef.current = JSON.stringify(merged);
         if (!editId) paymentSeededRef.current = false;
         feedback("success");
         playSample("ding");
@@ -908,7 +947,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
         const meta = lastLiveGenRef.current;
         const built = {
           title: meta?.title?.trim() || deriveTitle(items),
-          line_items: items,
+          line_items: normalizeLineItems(items),
         };
         setDraft(built);
         // Set the baseline BEFORE kicking off background work so an untouched
@@ -954,7 +993,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
               appended = true;
             }
             if (!appended) return prev;
-            const merged = { ...prev, line_items: next };
+            const merged = { ...prev, line_items: normalizeLineItems(next) };
             originalDraftRef.current = JSON.stringify(merged.line_items);
             return merged;
           });
@@ -975,10 +1014,10 @@ Re-output the FULL updated list of line items for this quote, applying the chang
         const meta = lastLiveGenRef.current;
         const built = {
           title: meta?.title?.trim() || deriveTitle(items),
-          line_items: items,
+          line_items: normalizeLineItems(items),
         };
         setDraft(built);
-        originalDraftRef.current = JSON.stringify(items);
+        originalDraftRef.current = JSON.stringify(built.line_items);
         setDesc(meta?.clean_description?.trim() || transcript);
         const ec = meta?.extracted_customer;
         if (ec?.name && !clientName.trim()) setClientName(ec.name);
@@ -1133,8 +1172,9 @@ Re-output the FULL updated list of line items for this quote, applying the chang
     setLoading(true);
     try {
       const g = await generateFn({ data: { description: text, trade, vatRegistered: vat } });
-      setDraft(g);
-      originalDraftRef.current = JSON.stringify(g.line_items);
+      const normalized = normalizeLineItems(g.line_items ?? []);
+      setDraft({ ...g, line_items: normalized });
+      originalDraftRef.current = JSON.stringify(normalized);
       // Prefer the AI-cleaned job description over the raw transcript.
       setDesc(g.clean_description?.trim() || text);
       // Auto-populate customer details extracted from the transcript when fields are empty.
