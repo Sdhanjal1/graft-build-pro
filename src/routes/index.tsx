@@ -34,12 +34,12 @@ function HomePage() {
                 className="text-paper leading-[0.82]"
                 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.25rem, 8.5vw, 7rem)", letterSpacing: "0.005em" }}
               >
-                Speak it. <span className="text-lime">Quote it.</span><br />
-                Send it. <span className="text-lime">Get paid.</span>
+                Speak it. <span className="text-lime">Send it.</span><br />
+                <span className="text-lime">Get paid.</span>
               </h1>
 
               <p className="mt-5 text-lg md:text-xl text-paper/75 leading-snug max-w-md">
-                Talk through the job on site. Quottr writes the quote, sends it on WhatsApp, and takes the payment. No more quoting in the evenings.
+                Talk through the job on site. Quottr writes the quote, sends it on WhatsApp, and takes the payment — so you win it before the other guy's even quoted.
               </p>
 
               <div className="mt-8 flex items-center gap-4 flex-wrap">
