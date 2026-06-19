@@ -1,33 +1,56 @@
-## Goal
+## Diagnosis
 
-Copy-only updates in `src/routes/index.tsx`. No layout or logic changes.
+Both `/trades` and `/trades/$tradeSlug` already live OUTSIDE the protected route group — they use `createFileRoute("/trades")` / `createFileRoute("/trades/$tradeSlug")`, and each page renders inside `<MarketingShell>`. The redirect-to-login isn't coming from a route guard.
 
-## Changes
+The actual gate is in `src/routes/__root.tsx`:
 
-### 1. Hero headline (lines 37–38)
-Drop "Quote it." — match the locked three-beat brand tagline. Keep "Get paid." on the lime accent so the visual rhythm stays intact.
+- Line 153: `PUBLIC_ROUTES = new Set([..., "/trades", ...])`
+- Line 156: `isPublicPath` does `PUBLIC_ROUTES.has(path)` — **exact string match**.
 
-```tsx
-Speak it. <span className="text-lime">Send it.</span><br />
-<span className="text-lime">Get paid.</span>
+So `/trades` is public but `/trades/plumbers` is not, and `AuthGate` (line 169) navigates it to `/auth`. The same string-match issue affects chrome selection: `MARKETING_PATHS.has(path)` on line 122 only matches `/trades` exactly, so `/trades/plumbers` would also flip `showAppChrome = true` and render the in-app `<BottomNav />` over a marketing page.
+
+## Change (single file: `src/routes/__root.tsx`, copy-only — no layout/logic restructuring)
+
+Update both helpers so `/trades` and any `/trades/...` child are treated as public marketing routes.
+
+### 1. `isPublicPath` (line 155–157)
+
+```ts
+function isPublicPath(path: string) {
+  return (
+    PUBLIC_ROUTES.has(path) ||
+    path.startsWith("/trades") ||
+    path.startsWith("/portal/") ||
+    path.startsWith("/request/")
+  );
+}
 ```
 
-### 2. Hero sub-copy (line 42)
-Replace the last sentence:
+`startsWith("/trades")` covers `/trades`, `/trades/plumbers`, `/trades/electricians`, etc. It does not match unrelated paths like `/trading` because there is no such route.
 
-```tsx
-Talk through the job on site. Quottr writes the quote, sends it on WhatsApp, and takes the payment — so you win it before the other guy's even quoted.
+### 2. `isMarketing` (line 122)
+
+```ts
+const isMarketing =
+  MARKETING_PATHS.has(path) || path.startsWith("/trades/");
 ```
 
-### 3. Final CTA headline (line 175)
-Replace "Stop quoting in the evenings." with the money-focused line, line-broken to keep the existing two-line visual rhythm:
+Trailing slash here so the bare `/trades` keeps using the existing exact-match entry and any child `/trades/$slug` is also treated as marketing — i.e. `showAppChrome` stays `false`, so the in-app `<BottomNav />` does not render over the trade detail page.
 
-```tsx
-Win the job.<br />Get paid.<br />Move on.
-```
+## What's preserved
 
-Sub-line (line 178) untouched.
+- Per-trade `head()` (title, description, og:url, canonical) on `/trades/$tradeSlug` — already set, not touched.
+- `MarketingShell` rendering inside each page — already there, not touched.
+- All existing route files, route group, and SEO metadata — untouched.
+- `/trades` exact-match entries in `PUBLIC_ROUTES` and `MARKETING_PATHS` — left as-is; the new `startsWith` checks layer on top.
+
+## Verification after build
+
+- Logged out, hit `/trades/plumbers` → renders the plumbers page directly, no redirect to `/auth`.
+- Logged out, hit `/trades` → still renders the listing (unchanged).
+- View source → `<title>`, meta description, canonical, og:url are the per-trade tags from the existing `head()`.
+- No `<BottomNav />` shown on the trade detail page.
 
 ## Out of scope
 
-Demo video, "van to paid" three-step section, "Quottr does the bits other software won't", accounting/CSV section, trust elements — all left as-is.
+- Sitemap, robots.txt, internal links between trades, or any SEO copy changes — not requested.

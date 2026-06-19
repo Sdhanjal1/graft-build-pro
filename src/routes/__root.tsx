@@ -119,7 +119,7 @@ function RootComponent() {
     "/onboarding", "/welcome", "/confirmed",
     "/forgot-password", "/reset-password", "/auth",
   ]);
-  const isMarketing = MARKETING_PATHS.has(path);
+  const isMarketing = MARKETING_PATHS.has(path) || path.startsWith("/trades/");
   const isNoChrome = NO_CHROME_PATHS.has(path);
   const isPortal =
     path.startsWith("/portal/") ||
