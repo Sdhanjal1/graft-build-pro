@@ -210,7 +210,7 @@ function QuoteDetail() {
       }, 800);
     } catch (e) {
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not record deposit");
+      toast.error(e instanceof Error ? e.message : "Couldn't record deposit");
     } finally {
       setRecordingDeposit(false);
     }
@@ -274,7 +274,7 @@ function QuoteDetail() {
       feedback("success");
     } catch (e) {
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not regenerate link");
+      toast.error(e instanceof Error ? e.message : "Couldn't regenerate link");
     } finally {
       setRegenerating(false);
     }
@@ -292,7 +292,7 @@ function QuoteDetail() {
         toast.success("Quote accepted");
       }
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
     }
   };
   const markSent = async () => {
@@ -301,7 +301,7 @@ function QuoteDetail() {
       setStatusState("sent");
       feedback("success"); toast.success("Marked as sent");
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
     }
   };
   const declineQuote = async () => {
@@ -310,7 +310,7 @@ function QuoteDetail() {
       setStatusState("declined");
       feedback("success"); toast.success("Quote declined");
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
     }
   };
   const removeRecordedDeposit = () => setConfirmRemoveDeposit(true);
@@ -322,7 +322,7 @@ function QuoteDetail() {
       setDepositRecorded(false);
       feedback("success"); toast.success("Deposit removed");
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not remove deposit");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't remove deposit");
     }
   };
   const markUnpaid = () => setConfirmMarkUnpaid(true);
@@ -333,7 +333,7 @@ function QuoteDetail() {
       setStatusState("completed");
       feedback("success"); toast.success("Marked as unpaid");
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
     }
   };
 
@@ -348,7 +348,7 @@ function QuoteDetail() {
       invalidatePaidQuoteCount();
     } catch (e) {
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not mark as paid");
+      toast.error(e instanceof Error ? e.message : "Couldn't mark as paid");
     }
   };
   const duplicate = async () => {
@@ -358,7 +358,7 @@ function QuoteDetail() {
       feedback("success"); toast.success(`Quote duplicated as ${copy.ref}`);
       navigate({ to: "/quotes/$quoteId", params: { quoteId: copy.id } });
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not duplicate quote");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't duplicate quote");
     }
   };
   const removeQuote = () => setConfirmDelete(true);
@@ -369,7 +369,7 @@ function QuoteDetail() {
       feedback("success"); toast.success("Quote deleted");
       navigate({ to: "/quotes" });
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not delete quote");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't delete quote");
     }
   };
 
@@ -399,7 +399,7 @@ function QuoteDetail() {
       setAskInvoice(false);
       navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not issue invoice");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't issue invoice");
     }
   };
   const createPaymentRequest = async (type: PaymentRequestType, amount?: number) => {
@@ -434,7 +434,7 @@ function QuoteDetail() {
       setCustomAmt("");
     } catch (e: any) {
       console.error(e);
-      setError(e?.message ?? "Could not create Stripe payment link");
+      setError(e?.message ?? "Couldn't create Stripe payment link");
     } finally {
       setCreating(false);
     }
@@ -470,7 +470,7 @@ function QuoteDetail() {
     } catch (e: any) {
       console.error(e);
       feedback("error");
-      toast.error(e?.message ?? "Could not start payment");
+      toast.error(e?.message ?? "Couldn't start payment");
       setTakingOnSite(false);
     }
   };
@@ -483,7 +483,7 @@ function QuoteDetail() {
       const r = await downloadOrShareQuotePdf(liveQuote, client, "quote");
       if (!r.shared && !r.cancelled) { feedback("success"); toast.success("Quote PDF downloaded"); }
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not generate PDF");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't generate PDF");
     }
   };
   // Mark job physically complete (separate from marking paid).
@@ -494,7 +494,7 @@ function QuoteDetail() {
       feedback("success");
       toast.success("Job marked complete — ready to take payment");
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
     }
   };
 
@@ -554,7 +554,7 @@ function QuoteDetail() {
       icon: RotateCcw,
       onClick: async () => {
         try { await setQuoteStatus(quote.id, "pending"); setStatusState("pending"); }
-        catch (e) { feedback("error"); toast.error(e instanceof Error ? e.message : "Could not reopen"); }
+        catch (e) { feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't reopen"); }
       },
     };
   } else if (status === "sent") {
@@ -659,7 +659,7 @@ function QuoteDetail() {
       {status === "declined" && (
         <section className="px-5 mt-5">
           <div className="card-surface p-3 text-center text-sm text-muted-foreground">
-            Customer declined this quote. <button onClick={async () => { try { await setQuoteStatus(quote.id, "pending"); setStatusState("pending"); } catch (e) { feedback("error"); toast.error(e instanceof Error ? e.message : "Could not reopen"); } }} className="underline font-semibold text-ink ml-1">Reopen</button>
+            Customer declined this quote. <button onClick={async () => { try { await setQuoteStatus(quote.id, "pending"); setStatusState("pending"); } catch (e) { feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't reopen"); } }} className="underline font-semibold text-ink ml-1">Reopen</button>
           </div>
         </section>
       )}
@@ -1409,7 +1409,7 @@ function LineItemsEditor({
     } catch (e) {
       console.error(e);
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not save changes");
+      toast.error(e instanceof Error ? e.message : "Couldn't save changes");
     } finally {
       setSaving(false);
     }

@@ -89,7 +89,7 @@ function SettingsPage() {
       toast.success("Account deleted.");
       navigate({ to: "/" });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not delete account.");
+      toast.error(e instanceof Error ? e.message : "Couldn't delete account.");
       setDeleting(false);
     }
   };

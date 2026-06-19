@@ -35,7 +35,7 @@ export function MaterialListSheet({ open, onClose, quote, customerName }: Props)
     try {
       await setMaterialPurchased(quote.id, itemId, !current);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not save");
+      toast.error(e instanceof Error ? e.message : "Couldn't save");
     } finally {
       setSaving(false);
     }
@@ -47,7 +47,7 @@ export function MaterialListSheet({ open, onClose, quote, customerName }: Props)
     try {
       await removeMaterialItem(quote.id, itemId);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not remove");
+      toast.error(e instanceof Error ? e.message : "Couldn't remove");
     } finally {
       setSaving(false);
     }
@@ -66,7 +66,7 @@ export function MaterialListSheet({ open, onClose, quote, customerName }: Props)
       feedback("success");
     } catch (err) {
       feedback("error");
-      toast.error(err instanceof Error ? err.message : "Could not add item");
+      toast.error(err instanceof Error ? err.message : "Couldn't add item");
     } finally {
       setAdding(false);
     }
@@ -90,7 +90,7 @@ export function MaterialListSheet({ open, onClose, quote, customerName }: Props)
       feedback("success");
     } catch (e) {
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not share list");
+      toast.error(e instanceof Error ? e.message : "Couldn't share list");
     } finally {
       setSharing(false);
     }

@@ -121,7 +121,7 @@ export function PushPermissionCard() {
       toast.success("Push notifications enabled");
     } catch (e: any) {
       console.error(e);
-      toast.error(e?.message || "Could not enable push notifications");
+      toast.error(e?.message || "Couldn't enable push notifications");
     } finally {
       setBusy(false);
     }

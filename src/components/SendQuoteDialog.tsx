@@ -83,7 +83,7 @@ export function SendQuoteDialog({
       setSentVia(null);
       feedback("tap");
     } catch {
-      toast.error("Could not undo. Try again.");
+      toast.error("Couldn't undo. Try again.");
       feedback("error");
     }
   };
@@ -128,7 +128,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       }
     } catch (e) {
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not create portal link");
+      toast.error(e instanceof Error ? e.message : "Couldn't create portal link");
     } finally {
       setBusy(null);
     }
@@ -149,7 +149,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
       setTimeout(() => setCopied(false), 1500);
     } catch (e) {
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not copy link");
+      toast.error(e instanceof Error ? e.message : "Couldn't copy link");
     }
   };
 

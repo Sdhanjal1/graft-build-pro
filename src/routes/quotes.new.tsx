@@ -383,7 +383,7 @@ function NewQuotePage() {
         apply(q);
       } catch (e) {
         if (cancelled) return;
-        setEditError(e instanceof Error ? e.message : "Could not load quote");
+        setEditError(e instanceof Error ? e.message : "Couldn't load quote");
         setEditLoading(false);
       }
     })();
@@ -620,7 +620,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       handleVoiceClose();
     } catch (e) {
       console.error(e);
-      const msg = e instanceof Error ? e.message : "Could not apply voice edit.";
+      const msg = e instanceof Error ? e.message : "Couldn't apply voice edit.";
       setVoiceError(msg);
       feedback("error");
     }
@@ -1292,9 +1292,9 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       return q;
     } catch (e) {
       feedback("error");
-      const message = e instanceof Error ? e.message : "Could not save quote";
+      const message = e instanceof Error ? e.message : "Couldn't save quote";
       setError(message);
-      toast.error(editId ? "Could not save changes" : "Could not save quote", { description: message });
+      toast.error(editId ? "Couldn't save changes" : "Couldn't save quote", { description: message });
       return null;
     } finally {
       setSavingMode(null);

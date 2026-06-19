@@ -146,7 +146,7 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
       setInfo({ ...info, portal_code: r.portal_code });
       toast.success("Portal link regenerated");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not regenerate link");
+      toast.error(e instanceof Error ? e.message : "Couldn't regenerate link");
     }
   };
 
@@ -194,7 +194,7 @@ export function CustomerPortalPanel({ clientId }: { clientId: string }) {
       setDocs(docs.filter((d) => d.id !== id));
       toast.success("Document removed");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not delete");
+      toast.error(e instanceof Error ? e.message : "Couldn't delete");
     }
   };
 

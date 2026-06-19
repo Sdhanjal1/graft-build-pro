@@ -85,7 +85,7 @@ function InvoicePage() {
       const r = await downloadOrShareQuotePdf(quote, client, "invoice");
       if (!r.shared && !r.cancelled) { feedback("success"); toast.success("Invoice PDF downloaded"); }
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not generate PDF");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't generate PDF");
     }
   };
 
@@ -241,7 +241,7 @@ function InvoicePage() {
                 router.invalidate();
               } catch (e) {
                 feedback("error");
-                toast.error(e instanceof Error ? e.message : "Could not mark as paid");
+                toast.error(e instanceof Error ? e.message : "Couldn't mark as paid");
               }
             }}
             className="w-full bg-lime text-ink rounded-full py-4 font-bold inline-flex items-center justify-center gap-2"
