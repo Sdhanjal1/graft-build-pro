@@ -41,7 +41,7 @@ export function QuoteQuickActionsSheet({
           {canMarkSent && (
             <ActionRow
               icon={<Send className="h-5 w-5" />}
-              label="Mark as sent"
+              label="Mark sent"
               onClick={() => handle("mark-sent")}
             />
           )}
