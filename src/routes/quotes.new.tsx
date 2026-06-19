@@ -993,7 +993,7 @@ function NewQuotePage() {
               appended = true;
             }
             if (!appended) return prev;
-            const merged = { ...prev, line_items: next };
+            const merged = { ...prev, line_items: normalizeLineItems(next) };
             originalDraftRef.current = JSON.stringify(merged.line_items);
             return merged;
           });
