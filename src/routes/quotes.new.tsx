@@ -1172,8 +1172,9 @@ function NewQuotePage() {
     setLoading(true);
     try {
       const g = await generateFn({ data: { description: text, trade, vatRegistered: vat } });
-      setDraft(g);
-      originalDraftRef.current = JSON.stringify(g.line_items);
+      const normalized = normalizeLineItems(g.line_items ?? []);
+      setDraft({ ...g, line_items: normalized });
+      originalDraftRef.current = JSON.stringify(normalized);
       // Prefer the AI-cleaned job description over the raw transcript.
       setDesc(g.clean_description?.trim() || text);
       // Auto-populate customer details extracted from the transcript when fields are empty.
