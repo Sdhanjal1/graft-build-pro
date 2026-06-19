@@ -947,7 +947,7 @@ function NewQuotePage() {
         const meta = lastLiveGenRef.current;
         const built = {
           title: meta?.title?.trim() || deriveTitle(items),
-          line_items: items,
+          line_items: normalizeLineItems(items),
         };
         setDraft(built);
         // Set the baseline BEFORE kicking off background work so an untouched
