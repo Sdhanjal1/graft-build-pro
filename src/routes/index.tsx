@@ -172,7 +172,7 @@ function HomePage() {
       <section className="bg-lime text-ink">
         <div className="mx-auto max-w-6xl px-5 md:px-8 py-20 md:py-28">
           <h2 className="leading-[0.85] max-w-4xl" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.5rem, 11vw, 9rem)" }}>
-            Stop quoting<br />in the evenings.
+            Win the job.<br />Get paid.<br />Move on.
           </h2>
           <p className="mt-6 text-ink/75 text-lg md:text-xl max-w-xl">
             Talk through the job, send the quote, get paid. Quottr does the rest.
