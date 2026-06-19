@@ -1014,10 +1014,10 @@ function NewQuotePage() {
         const meta = lastLiveGenRef.current;
         const built = {
           title: meta?.title?.trim() || deriveTitle(items),
-          line_items: items,
+          line_items: normalizeLineItems(items),
         };
         setDraft(built);
-        originalDraftRef.current = JSON.stringify(items);
+        originalDraftRef.current = JSON.stringify(built.line_items);
         setDesc(meta?.clean_description?.trim() || transcript);
         const ec = meta?.extracted_customer;
         if (ec?.name && !clientName.trim()) setClientName(ec.name);
