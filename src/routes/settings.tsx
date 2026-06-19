@@ -187,7 +187,7 @@ function SettingsPage() {
       return;
     }
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      toast.error("You're offline — connect to upload your logo");
+      toast.error("You're offline. Reconnect to upload.");
       return;
     }
     setUploading(true);
@@ -231,7 +231,7 @@ function SettingsPage() {
   const bankComplete = !!bank.account_number;
   const gettingPaidSummary = bankComplete
     ? `${bank.bank_name || "Bank"} ${last4} · ${defaultDepositPct}% deposit${vatRegistered ? " · VAT" : ""}`
-    : "Add bank details so you get paid";
+    : "Add bank details — get paid faster";
   const quoteLookSummary = profile.show_signature
     ? `Signed as ${profile.signature_name || profile.full_name || "you"}`
     : "No signature";
@@ -242,7 +242,7 @@ function SettingsPage() {
     <AppShell>
       <PageHeader
         title="Settings"
-        subtitle="Configuration"
+        subtitle="Your setup"
         right={
           <SaveIndicator
             isSaving={profileSaving}
@@ -272,7 +272,7 @@ function SettingsPage() {
           title="Your business"
           icon={Briefcase}
           defaultOpen
-          summary={profile.business_name || "Add your business details"}
+          summary={profile.business_name || "Finish your business details"}
         >
           <div className="space-y-4">
             {/* Logo first */}
@@ -518,7 +518,7 @@ function SettingsPage() {
         </Section>
 
         {/* 7. DANGER ZONE */}
-        <Section title="Account" icon={AlertOctagon} tone="danger" summary="Permanent account deletion">
+        <Section title="Account" icon={AlertOctagon} tone="danger" summary="Delete your account">
           <div className="rounded-2xl bg-status-overdue/5 border border-status-overdue/20">
             <button
               onClick={() => {
