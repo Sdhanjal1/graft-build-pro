@@ -119,7 +119,7 @@ function RootComponent() {
     "/onboarding", "/welcome", "/confirmed",
     "/forgot-password", "/reset-password", "/auth",
   ]);
-  const isMarketing = MARKETING_PATHS.has(path);
+  const isMarketing = MARKETING_PATHS.has(path) || path.startsWith("/trades/");
   const isNoChrome = NO_CHROME_PATHS.has(path);
   const isPortal =
     path.startsWith("/portal/") ||
@@ -153,7 +153,12 @@ function RootComponent() {
 const PUBLIC_ROUTES = new Set(["/", "/auth", "/welcome", "/confirmed", "/pricing", "/about", "/features", "/faqs", "/trades", "/merch", "/forgot-password", "/reset-password"]);
 
 function isPublicPath(path: string) {
-  return PUBLIC_ROUTES.has(path) || path.startsWith("/portal/") || path.startsWith("/request/");
+  return (
+    PUBLIC_ROUTES.has(path) ||
+    path.startsWith("/trades") ||
+    path.startsWith("/portal/") ||
+    path.startsWith("/request/")
+  );
 }
 
 function AuthGate({ children }: { children: React.ReactNode }) {
