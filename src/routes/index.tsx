@@ -34,7 +34,8 @@ function HomePage() {
                 className="text-paper leading-[0.82]"
                 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.25rem, 8.5vw, 7rem)", letterSpacing: "0.005em" }}
               >
-                Speak it. <span className="text-lime">Send it.</span><br />
+                <span className="text-lime">Speak it.</span><br />
+                Send it.<br />
                 <span className="text-lime">Get paid.</span>
               </h1>
 
