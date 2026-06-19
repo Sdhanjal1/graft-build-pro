@@ -45,7 +45,7 @@ type SectionKey = TileKey | "paid";
 
 const GROUP_LABEL: Record<SectionKey, string> = {
   overdue: "Overdue",
-  awaiting: "Awaiting payment",
+  awaiting: "Waiting to be paid",
   accepted: "Booked",
   pending: "Drafts & sent",
   paid: "Paid",
@@ -299,13 +299,13 @@ function QuotesPage() {
                 icon={FileText}
                 title="Nothing quoted yet."
                 body="Tap, talk, done."
-                cta={{ label: "New quote", to: "/quotes/new", search: { voice: 1 } }}
+                cta={{ label: "Speak a new quote", to: "/quotes/new", search: { voice: 1 } }}
               />
           ) : (
             <div>
               <EmptyState
                 icon={Inbox}
-                title="Nothing here"
+                title="Nothing matches."
                 body={emptyMessage}
               />
               {(tile || q) && (
@@ -351,7 +351,7 @@ function QuotesPage() {
                         const first = c.name?.split(" ")[0] ?? "there";
                         const msg = buildChaserMessage(quote, first);
                         window.open(waLink(c.phone, msg), "_blank");
-                        toast.success("Chaser opened in WhatsApp");
+                        toast.success("Chaser sent to WhatsApp");
                       }
                     : undefined;
                   return (
@@ -401,10 +401,10 @@ function QuotesPage() {
           try {
             if (action === "duplicate") {
               await duplicateQuote(target.id);
-              toast.success("Quote duplicated");
+              toast.success("Copied. Edit and send.");
             } else if (action === "mark-sent") {
               await setQuoteStatus(target.id, "sent");
-              toast.success("Marked as sent");
+              toast.success("Marked sent");
             } else if (action === "delete") {
               await deleteQuote(target.id);
               toast.success("Quote deleted");
