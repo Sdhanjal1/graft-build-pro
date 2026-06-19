@@ -45,6 +45,41 @@ import {
 
 const MAX_RECORD_SECONDS = 180; // 3 minutes
 
+const LABOUR_HINT = /\b(labour|labor|fitting|installation|install|day rate|hr|hrs|hour|hours)\b/i;
+
+function isLabourLine(li: LineItem): boolean {
+  if (li.category === "labour" || li.category === "cis_labour") return true;
+  if (li.category && li.category !== "other") return false;
+  return LABOUR_HINT.test(li.description ?? "");
+}
+
+function normalizeLineItems(items: LineItem[]): LineItem[] {
+  const materials: LineItem[] = [];
+  let labourTotal = 0;
+  let sawLabour = false;
+  for (const li of items) {
+    if (isLabourLine(li)) {
+      sawLabour = true;
+      labourTotal += (li.qty || 0) * (li.unit_price || 0);
+    } else {
+      materials.push(li);
+    }
+  }
+  if (!sawLabour) return materials;
+  const labourLine: LineItem = {
+    description: "Labour",
+    qty: 1,
+    unit_price: +labourTotal.toFixed(2),
+    category: "labour",
+    unit: "qty",
+  };
+  return [...materials, labourLine];
+}
+
+function normalizeDescriptionKey(s: string): string {
+  return (s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
 
 function formatMMSS(s: number) {
   const m = Math.floor(s / 60);
