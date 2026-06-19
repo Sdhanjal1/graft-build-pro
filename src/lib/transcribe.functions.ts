@@ -34,9 +34,13 @@ export const transcribeAudio = createServerFn({ method: "POST" })
 
     const form = new FormData();
     form.append("file", blob, `recording.${ext}`);
-    form.append("model", "whisper-1");
+    form.append("model", "gpt-4o-mini-transcribe");
     form.append("language", "en");
     form.append("response_format", "json");
+    form.append(
+      "prompt",
+      "UK tradesperson describing a job on site. Expect trade terms (boiler, combi, radiator, first-fix, second-fix, Gas Safe, EICR, consumer unit, immersion, soil stack), brand names (Worcester Bosch, Vaillant, Baxi, Ideal, Roca, Geberit, Grohe, Hansgrohe), labour spoken in hours or days, and prices in pounds sterling (e.g. £85, £1,250).",
+    );
 
     let res: Response;
     try {
