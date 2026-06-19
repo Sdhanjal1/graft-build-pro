@@ -146,7 +146,7 @@ function AppHomePage() {
         }
       : s.outstanding > 0
       ? {
-          label: "You are owed",
+          label: "You're owed",
           amount: s.outstanding,
           href: "/chaser",
           sub:
@@ -160,10 +160,10 @@ function AppHomePage() {
 
   // Action cards in priority order
   const cards: Array<{ to: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; tone: "pending" | "neutral" | "overdue" | "accepted"; title: string; count: number; amount: number; cta: string }> = [];
-  if (overdueQuotes.length > 0) cards.push({ to: "/chaser", icon: AlertTriangle, tone: "overdue", title: "Overdue", count: overdueQuotes.length, amount: overdueTotal, cta: "Send reminder" });
-  if (pendingQuotes.length > 0) cards.push({ to: "/quotes", icon: Send, tone: "pending", title: "Quotes to send", count: pendingQuotes.length, amount: pendingTotal, cta: "Send now" });
-  if (acceptedQuotes.length > 0) cards.push({ to: "/quotes", icon: CheckCircle2, tone: "accepted", title: "Booked jobs", count: acceptedQuotes.length, amount: acceptedTotal, cta: "Mark complete" });
-  if (sentQuotes.length > 0) cards.push({ to: "/chaser", icon: Bell, tone: "neutral", title: "Awaiting reply", count: sentQuotes.length, amount: awaitingReplyTotal, cta: "Chase up" });
+  if (overdueQuotes.length > 0) cards.push({ to: "/chaser", icon: AlertTriangle, tone: "overdue", title: "Overdue", count: overdueQuotes.length, amount: overdueTotal, cta: "Chase it" });
+  if (pendingQuotes.length > 0) cards.push({ to: "/quotes", icon: Send, tone: "pending", title: "Ready to send", count: pendingQuotes.length, amount: pendingTotal, cta: "Send it" });
+  if (acceptedQuotes.length > 0) cards.push({ to: "/quotes", icon: CheckCircle2, tone: "accepted", title: "Booked in", count: acceptedQuotes.length, amount: acceptedTotal, cta: "Mark done" });
+  if (sentQuotes.length > 0) cards.push({ to: "/chaser", icon: Bell, tone: "neutral", title: "Waiting on a reply", count: sentQuotes.length, amount: awaitingReplyTotal, cta: "Nudge them" });
 
   const bookedWithMats = mockQuotes
     .filter((q) => q.status === "accepted")
@@ -185,7 +185,7 @@ function AppHomePage() {
               <div className="min-w-0">
                 <p className="text-lg font-semibold text-paper leading-tight truncate">{greeting}, {firstName}</p>
                 <p className="mt-0.5 text-[11px] uppercase tracking-[0.16em] font-bold text-paper/55 truncate">
-                  {userProfile.business_name || "Set up your business"}
+                  {userProfile.business_name || "Finish setup"}
                 </p>
               </div>
             </div>
@@ -263,7 +263,7 @@ function AppHomePage() {
                 <X className="h-4 w-4 text-ink" strokeWidth={2.5} />
               </button>
               <p className="text-sm font-semibold pr-7">
-                Welcome, {firstName}. Tap the mic to speak your first quote.
+                Right {firstName} — tap the mic and talk through your first job.
               </p>
               <p className="mt-1 text-xs text-ink/75">
                 Try: &ldquo;{resolveTrade(userProfile.trade_type).homeMicExample}&rdquo;
@@ -290,7 +290,7 @@ function AppHomePage() {
               <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
                 Tap to start
               </p>
-              <p className="text-2xl font-semibold leading-tight mt-1">New voice quote</p>
+              <p className="text-2xl font-semibold leading-tight mt-1">Speak a new quote</p>
 
               <div className="flex items-center justify-center my-3">
                 <span className="relative h-32 w-32 rounded-full bg-lime flex items-center justify-center shadow-[0_20px_48px_-14px_rgba(200,224,74,0.8)]">
@@ -329,7 +329,7 @@ function AppHomePage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
-                  Materials needed
+                  Need to pick up
                 </p>
                 <p className="text-sm font-semibold mt-0.5">
                   {totalMatItems} item{totalMatItems === 1 ? "" : "s"} across {bookedWithMats.length} booked job{bookedWithMats.length === 1 ? "" : "s"}
