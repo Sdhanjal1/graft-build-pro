@@ -119,7 +119,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
           await navigator.share({ title: `Quote ${quoteRef}`, text });
         } catch { /* user cancelled or unsupported — still mark as sent */ }
       } else {
-        try { await navigator.clipboard.writeText(text); toast.message("Message copied — paste it into your chat or email"); } catch { /* ignore */ }
+        try { await navigator.clipboard.writeText(text); toast.message("Copied. Paste it in chat or email."); } catch { /* ignore */ }
       }
       if (updatedLinkPortalCode) {
         onClose();

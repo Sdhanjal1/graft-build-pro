@@ -83,7 +83,7 @@ function InvoicePage() {
     try {
       await markInvoiced(quote.id);
       const r = await downloadOrShareQuotePdf(quote, client, "invoice");
-      if (!r.shared && !r.cancelled) { feedback("success"); toast.success("Invoice PDF downloaded"); }
+      if (!r.shared && !r.cancelled) { feedback("success"); toast.success("Invoice saved"); }
     } catch (e) {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't generate PDF");
     }

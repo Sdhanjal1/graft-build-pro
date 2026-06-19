@@ -408,12 +408,12 @@ function NewQuotePage() {
       return { msg: "Too many requests just now — wait a few seconds and keep talking.", subBlocked: false };
     }
     if (lower.includes("timeout") || lower.includes("abort") || lower.includes("network") || lower.includes("failed to fetch")) {
-      return { msg: "Couldn't reach the AI — check your signal, or type the job instead.", subBlocked: false };
+      return { msg: "Can't reach the AI — check your signal, or type the job.", subBlocked: false };
     }
     if (lower.includes("5")) {
       // 500-ish; fall through to generic
     }
-    return { msg: "Couldn't reach the AI — try again, or type the job instead.", subBlocked: false };
+    return { msg: "Can't reach the AI — try again, or type the job.", subBlocked: false };
   };
 
   const handleVoiceStart = async () => {
@@ -825,7 +825,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
       } else if (name === "TimeoutError") {
         msg = "Mic didn't respond — try again, or type the job below.";
       } else {
-        msg = "Couldn't start the mic — try again, or type the job below.";
+        msg = "Mic didn't start. Try again, or type the job below.";
       }
       setVoiceError(msg);
       setVoiceOpening(false);
@@ -1395,7 +1395,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
           e.preventDefault();
           if (draft) {
             if (!clientName.trim()) {
-              toast.error("Add a customer to save this quote.");
+              toast.error("Add a customer first.");
               return;
             }
             void save("send");
@@ -1551,7 +1551,7 @@ Re-output the FULL updated list of line items for this quote, applying the chang
                 ) : (
                   <Sparkles className="h-5 w-5" />
                 )}
-                {loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : error ? "Retry generate" : "Generate quote"}
+                {loading ? <RotatingStatus messages={QUOTE_GEN_MESSAGES} /> : error ? "Try again" : "Build the quote"}
               </button>
             </div>
           </div>
@@ -2515,7 +2515,7 @@ function VoiceOverlay({
       {/* PINNED TOP: meta + running total */}
       <div className={`flex flex-col items-center w-full max-w-md mx-auto ${showList ? "shrink-0" : ""}`}>
         <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
-          {transcribing ? "Building your quote" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
+          {transcribing ? "Building it" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
         </p>
         <p className="num text-2xl mt-1 text-paper">
           <span className="text-lime">●</span> <span className="text-paper">{formatMMSS(seconds)}</span>
