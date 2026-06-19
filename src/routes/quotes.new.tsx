@@ -632,22 +632,26 @@ function NewQuotePage() {
 
   const applyVoiceEdit = async (transcript: string) => {
     if (!draft || !transcript.trim()) return;
-    const existingItems = draft.line_items
-      .map((li, idx) => `${idx + 1}. ${li.description} — qty ${li.qty}, £${li.unit_price} each`)
-      .join("\n");
-    const editPrompt = `EXISTING QUOTE — these are the items currently on this quote:
-${existingItems}
-
-CHANGE REQUEST FROM THE TRADESPERSON: ${transcript}
-
-Re-output the FULL updated list of line items for this quote, applying the change above. Keep unchanged items exactly as written (same description, qty, unit_price). Add, remove, or modify only what the change request asks for.`;
     try {
-      const g = await generateFn({ data: { description: editPrompt, trade, vatRegistered: vat } });
-      if (g.line_items?.length) {
-        setDraft({ title: draft.title, line_items: g.line_items });
-        originalDraftRef.current = JSON.stringify(g.line_items);
-        // Let the seeding effect re-derive payment timing from the new total
-        // (only for fresh quotes — don't auto-flip a saved quote's timing).
+      const g = await generateFn({ data: { description: transcript, trade, vatRegistered: vat } });
+      const newItems = g.line_items ?? [];
+      if (newItems.length) {
+        const existing = draft.line_items;
+        const existingMatKeys = new Set(
+          existing.filter((li) => !isLabourLine(li)).map((li) => normalizeDescriptionKey(li.description))
+        );
+        const additions: LineItem[] = [];
+        for (const li of newItems) {
+          if (isLabourLine(li)) {
+            additions.push(li);
+          } else if (!existingMatKeys.has(normalizeDescriptionKey(li.description))) {
+            additions.push(li);
+            existingMatKeys.add(normalizeDescriptionKey(li.description));
+          }
+        }
+        const merged = normalizeLineItems([...existing, ...additions]);
+        setDraft({ title: draft.title, line_items: merged });
+        originalDraftRef.current = JSON.stringify(merged);
         if (!editId) paymentSeededRef.current = false;
         feedback("success");
         playSample("ding");
