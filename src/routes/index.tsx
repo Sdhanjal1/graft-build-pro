@@ -34,12 +34,12 @@ function HomePage() {
                 className="text-paper leading-[0.82]"
                 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.25rem, 8.5vw, 7rem)", letterSpacing: "0.005em" }}
               >
-                Speak it. <span className="text-lime">Quote it.</span><br />
-                Send it. <span className="text-lime">Get paid.</span>
+                Speak it. <span className="text-lime">Send it.</span><br />
+                <span className="text-lime">Get paid.</span>
               </h1>
 
               <p className="mt-5 text-lg md:text-xl text-paper/75 leading-snug max-w-md">
-                Talk through the job on site. Quottr writes the quote, sends it on WhatsApp, and takes the payment. No more quoting in the evenings.
+                Talk through the job on site. Quottr writes the quote, sends it on WhatsApp, and takes the payment — so you win it before the other guy's even quoted.
               </p>
 
               <div className="mt-8 flex items-center gap-4 flex-wrap">
@@ -172,7 +172,7 @@ function HomePage() {
       <section className="bg-lime text-ink">
         <div className="mx-auto max-w-6xl px-5 md:px-8 py-20 md:py-28">
           <h2 className="leading-[0.85] max-w-4xl" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.5rem, 11vw, 9rem)" }}>
-            Stop quoting<br />in the evenings.
+            Win the job.<br />Get paid.<br />Move on.
           </h2>
           <p className="mt-6 text-ink/75 text-lg md:text-xl max-w-xl">
             Talk through the job, send the quote, get paid. Quottr does the rest.
