@@ -18,7 +18,7 @@ async function notifyTraderOfPayment(opts: {
     const amount = ((opts.amountCents ?? 0) / 100).toFixed(2);
     const symbol = (opts.currency || "gbp").toLowerCase() === "gbp" ? "£" : "";
     await notifyUser(opts.userId, {
-      title: "Payment received 💰",
+      title: "Paid. That's in the bank. 💰",
       body: `${title} · ${symbol}${amount}`,
       url: `/quotes/${opts.quoteId}`,
       tag: `quote-${opts.quoteId}-paid`,

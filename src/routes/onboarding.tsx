@@ -122,7 +122,7 @@ function OnboardingWizard() {
       <main className="flex-1 px-5 pt-6 pb-8 flex flex-col">
         {step === 1 && (
           <StepShell>
-            <h1 className="text-4xl leading-tight">7 quick questions. Then quote in seconds.</h1>
+            <h1 className="text-4xl leading-tight">Right — let's get you quoting.</h1>
             <p className="mt-3 text-base text-muted-foreground">
               Set up once, then every quote takes nine seconds.
             </p>
@@ -296,7 +296,7 @@ function OnboardingWizard() {
             <div className="h-16 w-16 rounded-full bg-lime flex items-center justify-center mb-5">
               <Check className="h-8 w-8 text-ink" strokeWidth={3} />
             </div>
-            <h2 className="text-4xl leading-tight">You're ready.</h2>
+            <h2 className="text-4xl leading-tight">Sorted. Go win one.</h2>
             <p className="mt-3 text-base text-muted-foreground">
               Tap below to talk through your first job — your quote will be ready in nine seconds.
             </p>

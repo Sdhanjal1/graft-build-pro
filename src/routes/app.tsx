@@ -352,9 +352,9 @@ function AppHomePage() {
                 to="/settings"
                 className="flex-1 min-w-0 active:opacity-80 transition"
               >
-                <p className="text-sm font-semibold text-ink">Take card payments</p>
+                <p className="text-sm font-semibold text-ink">Take card payments.</p>
                 <p className="text-[11px] text-muted-foreground">
-                  Connect Stripe in 60 seconds.
+                  Get paid on the spot.
                 </p>
               </Link>
               <button

@@ -80,8 +80,8 @@ function ChaserPage() {
         <section className="px-5 mt-5">
           <EmptyState
             icon={ThumbsUp}
-            title="Nothing to chase"
-            body="When an invoice is sent, you can chase payment here."
+            title="Nothing owed. Nice."
+            body="Sent quotes show up here."
           />
         </section>
       )}

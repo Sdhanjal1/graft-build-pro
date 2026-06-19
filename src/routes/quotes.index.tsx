@@ -297,8 +297,8 @@ function QuotesPage() {
           mockQuotes.length === 0 ? (
               <EmptyState
                 icon={FileText}
-                title="No quotes yet"
-                body="Tap the mic to create your first quote in seconds."
+                title="Nothing quoted yet."
+                body="Tap, talk, done."
                 cta={{ label: "New quote", to: "/quotes/new", search: { voice: 1 } }}
               />
           ) : (

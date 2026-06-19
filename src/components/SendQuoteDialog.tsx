@@ -167,9 +167,9 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
               <div className="h-14 w-14 rounded-full bg-lime text-ink flex items-center justify-center mb-3">
                 <CheckCircle2 className="h-7 w-7" />
               </div>
-              <h3 className="text-2xl">Quote sent</h3>
+              <h3 className="text-2xl">Gone. Now go win it.</h3>
               <p className="text-xs text-muted-foreground mt-1">
-                Sent to {customerName ?? firstName}. We'll let you know when they open it.
+                Sent to {customerName ?? firstName}. You'll know when they open it.
               </p>
               <button
                 onClick={undoSent}

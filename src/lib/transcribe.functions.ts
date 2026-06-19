@@ -75,6 +75,6 @@ export const transcribeAudio = createServerFn({ method: "POST" })
 
     const json = (await res.json()) as { text?: string };
     const text = (json.text || "").trim();
-    if (!text) throw new Error("Didn't catch anything — try speaking a bit closer to the mic.");
+    if (!text) throw new Error("Didn't catch that — go again.");
     return { text };
   });

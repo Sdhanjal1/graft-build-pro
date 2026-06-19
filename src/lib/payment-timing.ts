@@ -11,7 +11,7 @@ export type PaymentTiming =
 
 export const PAYMENT_TIMING_OPTIONS: { value: PaymentTiming; label: string; sub: string }[] = [
   { value: "on_completion", label: "On completion", sub: "Customer pays after work is done" },
-  { value: "deposit_then_balance", label: "Deposit then balance", sub: "Deposit upfront, balance on completion" },
+  { value: "deposit_then_balance", label: "Deposit then balance", sub: "Add a deposit. Get paid before you start." },
   { value: "upfront", label: "Upfront", sub: "Full payment before work starts" },
 ];
 
