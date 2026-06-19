@@ -1448,8 +1448,8 @@ Re-output the FULL updated list of line items for this quote, applying the chang
                     <Mic className="h-6 w-6" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-base leading-tight">Speak the job</p>
-                    <p className="text-xs text-ink/70 mt-0.5">Describe it out loud — Quottr writes the quote.</p>
+                    <p className="font-bold text-base leading-tight">Speak the job.</p>
+                    <p className="text-xs text-ink/70 mt-0.5">We'll write it.</p>
                   </div>
                   <ChevronRight className="h-5 w-5 text-ink/60 shrink-0" />
                 </button>
@@ -2546,7 +2546,7 @@ function VoiceOverlay({
         >
           <MicLevelBars streamRef={streamRef} active={recording} />
           <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">
-            Listening…
+            Listening. Talk me through the job.
           </span>
         </div>
       )}

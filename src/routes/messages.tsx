@@ -235,8 +235,8 @@ function MessagesInbox() {
         <section className="px-5 mt-4">
           <EmptyState
             icon={Inbox}
-            title="No messages yet"
-            body="When a customer replies to a quote or accepts one, it shows up here."
+            title="All quiet."
+            body="Replies and accepts show up here."
           />
         </section>
       )}

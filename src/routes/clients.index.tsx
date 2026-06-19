@@ -77,8 +77,8 @@ function ClientsPage() {
           userClients.length === 0 ? (
             <EmptyState
               icon={Users}
-              title="No customers yet"
-              body="They'll be added automatically when you create quotes, or add one manually."
+              title="No customers yet."
+              body="They land here when you quote."
               cta={{ label: "New customer", to: "/clients/new" }}
             />
           ) : (
