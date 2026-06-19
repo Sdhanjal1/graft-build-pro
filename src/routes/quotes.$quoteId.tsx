@@ -210,7 +210,7 @@ function QuoteDetail() {
       }, 800);
     } catch (e) {
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not record deposit");
+      toast.error(e instanceof Error ? e.message : "Couldn't record deposit");
     } finally {
       setRecordingDeposit(false);
     }
@@ -274,7 +274,7 @@ function QuoteDetail() {
       feedback("success");
     } catch (e) {
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not regenerate link");
+      toast.error(e instanceof Error ? e.message : "Couldn't regenerate link");
     } finally {
       setRegenerating(false);
     }
@@ -289,28 +289,28 @@ function QuoteDetail() {
         setAskDeposit(true);
       } else {
         feedback("success");
-        toast.success("Quote accepted");
+        toast.success("Accepted. Nice one.");
       }
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
     }
   };
   const markSent = async () => {
     try {
       await setQuoteStatus(quote.id, "sent");
       setStatusState("sent");
-      feedback("success"); toast.success("Marked as sent");
+      feedback("success"); toast.success("Marked sent");
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
     }
   };
   const declineQuote = async () => {
     try {
       await setQuoteStatus(quote.id, "declined");
       setStatusState("declined");
-      feedback("success"); toast.success("Quote declined");
+      feedback("success"); toast.success("Marked declined");
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
     }
   };
   const removeRecordedDeposit = () => setConfirmRemoveDeposit(true);
@@ -322,7 +322,7 @@ function QuoteDetail() {
       setDepositRecorded(false);
       feedback("success"); toast.success("Deposit removed");
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not remove deposit");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't remove deposit");
     }
   };
   const markUnpaid = () => setConfirmMarkUnpaid(true);
@@ -331,9 +331,9 @@ function QuoteDetail() {
     try {
       await setQuoteStatus(quote.id, "completed");
       setStatusState("completed");
-      feedback("success"); toast.success("Marked as unpaid");
+      feedback("success"); toast.success("Marked unpaid");
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
     }
   };
 
@@ -348,7 +348,7 @@ function QuoteDetail() {
       invalidatePaidQuoteCount();
     } catch (e) {
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not mark as paid");
+      toast.error(e instanceof Error ? e.message : "Couldn't mark as paid");
     }
   };
   const duplicate = async () => {
@@ -358,7 +358,7 @@ function QuoteDetail() {
       feedback("success"); toast.success(`Quote duplicated as ${copy.ref}`);
       navigate({ to: "/quotes/$quoteId", params: { quoteId: copy.id } });
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not duplicate quote");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't duplicate quote");
     }
   };
   const removeQuote = () => setConfirmDelete(true);
@@ -369,7 +369,7 @@ function QuoteDetail() {
       feedback("success"); toast.success("Quote deleted");
       navigate({ to: "/quotes" });
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not delete quote");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't delete quote");
     }
   };
 
@@ -399,7 +399,7 @@ function QuoteDetail() {
       setAskInvoice(false);
       navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not issue invoice");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't issue invoice");
     }
   };
   const createPaymentRequest = async (type: PaymentRequestType, amount?: number) => {
@@ -434,7 +434,7 @@ function QuoteDetail() {
       setCustomAmt("");
     } catch (e: any) {
       console.error(e);
-      setError(e?.message ?? "Could not create Stripe payment link");
+      setError(e?.message ?? "Couldn't create Stripe payment link");
     } finally {
       setCreating(false);
     }
@@ -470,7 +470,7 @@ function QuoteDetail() {
     } catch (e: any) {
       console.error(e);
       feedback("error");
-      toast.error(e?.message ?? "Could not start payment");
+      toast.error(e?.message ?? "Couldn't start payment");
       setTakingOnSite(false);
     }
   };
@@ -481,9 +481,9 @@ function QuoteDetail() {
   const sharePdf = async () => {
     try {
       const r = await downloadOrShareQuotePdf(liveQuote, client, "quote");
-      if (!r.shared && !r.cancelled) { feedback("success"); toast.success("Quote PDF downloaded"); }
+      if (!r.shared && !r.cancelled) { feedback("success"); toast.success("PDF saved"); }
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not generate PDF");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't generate PDF");
     }
   };
   // Mark job physically complete (separate from marking paid).
@@ -492,9 +492,9 @@ function QuoteDetail() {
       await markJobComplete(quote.id);
       setStatusState("completed");
       feedback("success");
-      toast.success("Job marked complete — ready to take payment");
+      toast.success("Job done. Time to get paid.");
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Could not update status");
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
     }
   };
 
@@ -554,7 +554,7 @@ function QuoteDetail() {
       icon: RotateCcw,
       onClick: async () => {
         try { await setQuoteStatus(quote.id, "pending"); setStatusState("pending"); }
-        catch (e) { feedback("error"); toast.error(e instanceof Error ? e.message : "Could not reopen"); }
+        catch (e) { feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't reopen"); }
       },
     };
   } else if (status === "sent") {
@@ -562,7 +562,7 @@ function QuoteDetail() {
   } else if (status === "accepted") {
     primary = { label: "Mark job complete", icon: Check, onClick: completeJob };
   } else if (status === "completed") {
-    primary = { label: "Mark as paid", icon: CheckCircle2, onClick: () => setAskingPaid(true) };
+    primary = { label: "Mark paid", icon: CheckCircle2, onClick: () => setAskingPaid(true) };
   } else if (status === "paid") {
     primary = { label: invoicedAt ? "Share invoice" : "Share receipt", icon: Share2, onClick: sharePdf };
   } else {
@@ -659,7 +659,7 @@ function QuoteDetail() {
       {status === "declined" && (
         <section className="px-5 mt-5">
           <div className="card-surface p-3 text-center text-sm text-muted-foreground">
-            Customer declined this quote. <button onClick={async () => { try { await setQuoteStatus(quote.id, "pending"); setStatusState("pending"); } catch (e) { feedback("error"); toast.error(e instanceof Error ? e.message : "Could not reopen"); } }} className="underline font-semibold text-ink ml-1">Reopen</button>
+            Customer declined this quote. <button onClick={async () => { try { await setQuoteStatus(quote.id, "pending"); setStatusState("pending"); } catch (e) { feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't reopen"); } }} className="underline font-semibold text-ink ml-1">Reopen</button>
           </div>
         </section>
       )}
@@ -819,7 +819,7 @@ function QuoteDetail() {
                 <MoreItem icon={Mail} label="Email customer" onClick={() => { window.location.href = mailHref; }} />
                 <MoreItem icon={Phone} label="Call customer" onClick={() => { window.location.href = `tel:${client?.phone}`; }} />
                 {(status === "sent" || status === "accepted" || invoicedAt) && status !== "paid" && client?.phone && (
-                  <MoreItem icon={MessageCircle} label="Send chaser on WhatsApp" onClick={() => {
+                  <MoreItem icon={MessageCircle} label="Chase on WhatsApp" onClick={() => {
                     const first = client.name.split(" ")[0] ?? "there";
                     const msg = `Hi ${first}, just following up on ${quote.ref} for ${formatGBP(quote.total)}. Could you let me know when payment will be made? Thanks.`;
                     window.open(waLink(client.phone, msg), "_blank");
@@ -831,10 +831,10 @@ function QuoteDetail() {
 
                 <MoreGroup label="Payments" />
                 {status !== "paid" && (
-                  <MoreItem icon={CheckCircle2} label="Mark as paid" onClick={() => setAskingPaid(true)} chevron />
+                  <MoreItem icon={CheckCircle2} label="Mark paid" onClick={() => setAskingPaid(true)} chevron />
                 )}
                 {status === "paid" && (
-                  <MoreItem icon={RotateCcw} label="Mark as unpaid" onClick={markUnpaid} chevron />
+                  <MoreItem icon={RotateCcw} label="Mark unpaid" onClick={markUnpaid} chevron />
                 )}
                 {status !== "paid" && timing === "deposit_then_balance" && configuredDeposit > 0 && (
                   <MoreItem
@@ -845,13 +845,13 @@ function QuoteDetail() {
                   />
                 )}
                 {status !== "paid" && depositPaid > 0 && (
-                  <MoreItem icon={Undo2} label="Remove recorded deposit" onClick={removeRecordedDeposit} chevron />
+                  <MoreItem icon={Undo2} label="Remove deposit" onClick={removeRecordedDeposit} chevron />
                 )}
                 {status === "accepted" && canTakePayment && (
-                  <MoreItem icon={Zap} label="Request payment (send link)" onClick={() => setRequesting(true)} chevron />
+                  <MoreItem icon={Zap} label="Send a payment link" onClick={() => setRequesting(true)} chevron />
                 )}
                 {(status === "accepted" || status === "sent") && canTakePayment && (
-                  <MoreItem icon={Smartphone} label="Take payment on site" onClick={() => takePaymentOnSite("full")} />
+                  <MoreItem icon={Smartphone} label="Take payment now" onClick={() => takePaymentOnSite("full")} />
                 )}
                 {(status === "accepted" || status === "sent") && paymentsBlocked && (
                   <li className="px-3 py-3">
@@ -874,12 +874,12 @@ function QuoteDetail() {
                 )}
 
                 <MoreGroup label="Status" />
-                <MoreItem icon={Copy} label="Duplicate quote" onClick={duplicate} />
+                <MoreItem icon={Copy} label="Copy quote" onClick={duplicate} />
                 {status === "pending" && (
-                  <MoreItem icon={Send} label="Mark as sent" onClick={markSent} />
+                  <MoreItem icon={Send} label="Mark sent" onClick={markSent} />
                 )}
                 {status !== "declined" && status !== "paid" && (
-                  <MoreItem icon={XCircle} label="Mark as declined" onClick={declineQuote} />
+                  <MoreItem icon={XCircle} label="Mark declined" onClick={declineQuote} />
                 )}
 
                 <MoreGroup label="Danger" />
@@ -1409,7 +1409,7 @@ function LineItemsEditor({
     } catch (e) {
       console.error(e);
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not save changes");
+      toast.error(e instanceof Error ? e.message : "Couldn't save changes");
     } finally {
       setSaving(false);
     }

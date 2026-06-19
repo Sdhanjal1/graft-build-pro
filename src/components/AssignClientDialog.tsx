@@ -37,7 +37,7 @@ export function AssignClientDialog({ open, onClose, quoteId, onAssigned }: Props
       onClose();
     } catch (e) {
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not assign client");
+      toast.error(e instanceof Error ? e.message : "Couldn't assign client");
     } finally {
       setBusy(false);
     }
@@ -56,7 +56,7 @@ export function AssignClientDialog({ open, onClose, quoteId, onAssigned }: Props
       onClose();
     } catch (e) {
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not add client");
+      toast.error(e instanceof Error ? e.message : "Couldn't add client");
     } finally {
       setBusy(false);
     }

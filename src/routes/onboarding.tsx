@@ -83,7 +83,7 @@ function OnboardingWizard() {
       setStep((s) => Math.min(TOTAL_STEPS + 1, s + 1));
     } catch (e) {
       feedback("error");
-      toast.error(e instanceof Error ? e.message : "Could not save");
+      toast.error(e instanceof Error ? e.message : "Couldn't save");
     } finally {
       setSavingStep(false);
     }

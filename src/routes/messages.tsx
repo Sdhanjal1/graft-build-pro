@@ -196,7 +196,7 @@ function MessagesInbox() {
                         </span>
                       </div>
                       <p className="text-sm font-semibold text-ink truncate mt-0.5">
-                        {r.customer_name || "Unknown caller"}
+                        {r.customer_name || "New lead"}
                         {r.customer_phone && (
                           <span className="font-normal text-muted-foreground"> · {r.customer_phone}</span>
                         )}
@@ -218,7 +218,7 @@ function MessagesInbox() {
                             onClick={() => void handleMarkRead(r.id)}
                             className="inline-flex items-center text-[11px] font-semibold text-muted-foreground rounded-full px-3 py-1.5 hover:bg-secondary"
                           >
-                            Mark as read
+                            Mark read
                           </button>
                         )}
                       </div>
@@ -305,7 +305,7 @@ function notifyNewRequest(row: QuoteRequest) {
     if (typeof window === "undefined") return;
     if (!("Notification" in window)) return;
     if (Notification.permission !== "granted") return;
-    const title = row.customer_name ? `New quote request from ${row.customer_name}` : "New quote request";
+    const title = row.customer_name ? `${row.customer_name} wants a quote` : "New job request";
     const body = (row.body || "").slice(0, 140);
     new Notification(title, { body, icon: "/app-icon.png", tag: `req-${row.id}` });
   } catch { /* ignore */ }

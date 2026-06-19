@@ -62,7 +62,7 @@ function NewClientPage() {
       });
       navigate({ to: "/clients/$clientId", params: { clientId: c.id } });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Could not save customer";
+      const msg = err instanceof Error ? err.message : "Couldn't save customer";
       console.error("[clients.new] save failed", err);
       setError(msg);
       toast.error(msg);

@@ -561,7 +561,7 @@ export const updateClientFields = async (
   const { error } = await supabase.from("clients").update(next).eq("id", clientId);
   if (error) {
     console.error("[updateClientFields] update failed", error);
-    throw new Error(error.message || "Could not update customer");
+    throw new Error(error.message || "Couldn't update customer");
   }
   Object.assign(existing, localPatch);
   bumpVersion();
@@ -581,7 +581,7 @@ const persistMaterialsList = async (quoteId: string, list: MaterialItem[]) => {
     .eq("id", quoteId);
   if (error) {
     console.error("[persistMaterialsList] update failed", error);
-    throw new Error(error.message || "Could not save materials list");
+    throw new Error(error.message || "Couldn't save materials list");
   }
   bumpVersion();
 };
@@ -1027,7 +1027,7 @@ export const findOrCreateClient = async (name: string, opts?: Partial<Client>): 
   const { data, error } = await supabase.from("clients").insert(insertPayload).select("*").single();
   if (error) {
     console.error("[findOrCreateClient] insert failed", error);
-    throw new Error(error.message || "Could not save customer");
+    throw new Error(error.message || "Couldn't save customer");
   }
   const client = rowToClient(data as DbClient);
   userClients.unshift(client);

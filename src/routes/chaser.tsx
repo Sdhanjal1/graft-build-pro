@@ -16,9 +16,9 @@ import { feedback } from "@/lib/feedback";
 
 /** Tone label + colour for an escalation step. */
 function chaseTone(offset: number, offsets: number[]) {
-  if (offset === offsets[0]) return { label: "Polite reminder", chip: "bg-lime text-ink" };
-  if (offset === offsets[1]) return { label: "Firm follow-up", chip: "bg-status-completed/20 text-status-completed" };
-  return { label: "Final notice", chip: "bg-status-overdue text-paper" };
+  if (offset === offsets[0]) return { label: "Polite nudge", chip: "bg-lime text-ink" };
+  if (offset === offsets[1]) return { label: "Firmer chase", chip: "bg-status-completed/20 text-status-completed" };
+  return { label: "Last chance", chip: "bg-status-overdue text-paper" };
 }
 
 
@@ -89,7 +89,7 @@ function ChaserPage() {
       {hasReplies && (
         <section className="px-5 mt-5 space-y-3">
           <div className="flex items-end justify-between">
-            <h2 className="font-display uppercase tracking-[0.06em] text-ink text-xl leading-none">Awaiting a reply</h2>
+            <h2 className="font-display uppercase tracking-[0.06em] text-ink text-xl leading-none">Waiting on a reply</h2>
             <span className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground tabular-nums">
               {awaitingReply.length} · <span className="num text-ink">{formatGBP(replyTotal)}</span>
             </span>
@@ -141,7 +141,7 @@ function ChaserPage() {
 
       {hasPayments && (
         <>
-          <h2 className="font-display uppercase tracking-[0.06em] text-ink text-xl leading-none px-5 mt-6">Awaiting payment</h2>
+          <h2 className="font-display uppercase tracking-[0.06em] text-ink text-xl leading-none px-5 mt-6">Waiting to be paid</h2>
 
 
 
@@ -214,7 +214,7 @@ function ChaserPage() {
                         onClick={() => { feedback("success"); markChaseSent(chase.id); force((n) => n + 1); }}
                         className="bg-ink text-paper rounded-full py-2 text-xs font-bold inline-flex items-center justify-center gap-1.5"
                       >
-                        <Check className="h-3.5 w-3.5" /> Send now
+                        <Check className="h-3.5 w-3.5" /> Send it
                       </a>
                       <button
                         onClick={() => { feedback("tap"); skipChase(chase.id); force((n) => n + 1); }}
@@ -279,7 +279,7 @@ function ChaserPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
                     <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full ${toneBg}`}>
-                      {isOverdue ? `${days} day${days === 1 ? "" : "s"} overdue` : "Awaiting payment"}
+                      {isOverdue ? `${days} day${days === 1 ? "" : "s"} overdue` : "Waiting to be paid"}
                     </span>
                     {paused && (
                       <span className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">

@@ -79,14 +79,14 @@ function ClientsPage() {
               icon={Users}
               title="No customers yet."
               body="They land here when you quote."
-              cta={{ label: "New customer", to: "/clients/new" }}
+              cta={{ label: "Add customer", to: "/clients/new" }}
             />
           ) : (
             <EmptyState
               icon={Inbox}
-              title="No matches"
+              title="Nothing matches."
               body={`No customers match "${q}".`}
-              cta={{ label: `Add "${q}" as new customer`, to: "/clients/new", search: { name: q } }}
+              cta={{ label: `Add "${q}" as a customer`, to: "/clients/new", search: { name: q } }}
             />
           )
         )}
