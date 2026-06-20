@@ -29,6 +29,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TradesIndexRouteImport } from './routes/trades.index'
 import { Route as QuotesIndexRouteImport } from './routes/quotes.index'
 import { Route as ClientsIndexRouteImport } from './routes/clients.index'
 import { Route as TradesTradeSlugRouteImport } from './routes/trades.$tradeSlug'
@@ -145,6 +146,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TradesIndexRoute = TradesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TradesRoute,
 } as any)
 const QuotesIndexRoute = QuotesIndexRouteImport.update({
   id: '/quotes/',
@@ -263,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/trades/$tradeSlug': typeof TradesTradeSlugRoute
   '/clients/': typeof ClientsIndexRoute
   '/quotes/': typeof QuotesIndexRoute
+  '/trades/': typeof TradesIndexRoute
   '/portal/c/$code': typeof PortalCCodeRoute
   '/api/public/hooks/service-reminders': typeof ApiPublicHooksServiceRemindersRoute
   '/api/public/payments/connect-webhook': typeof ApiPublicPaymentsConnectWebhookRoute
@@ -287,7 +294,6 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
-  '/trades': typeof TradesRouteWithChildren
   '/welcome': typeof WelcomeRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
@@ -301,6 +307,7 @@ export interface FileRoutesByTo {
   '/trades/$tradeSlug': typeof TradesTradeSlugRoute
   '/clients': typeof ClientsIndexRoute
   '/quotes': typeof QuotesIndexRoute
+  '/trades': typeof TradesIndexRoute
   '/portal/c/$code': typeof PortalCCodeRoute
   '/api/public/hooks/service-reminders': typeof ApiPublicHooksServiceRemindersRoute
   '/api/public/payments/connect-webhook': typeof ApiPublicPaymentsConnectWebhookRoute
@@ -340,6 +347,7 @@ export interface FileRoutesById {
   '/trades/$tradeSlug': typeof TradesTradeSlugRoute
   '/clients/': typeof ClientsIndexRoute
   '/quotes/': typeof QuotesIndexRoute
+  '/trades/': typeof TradesIndexRoute
   '/portal/c/$code': typeof PortalCCodeRoute
   '/api/public/hooks/service-reminders': typeof ApiPublicHooksServiceRemindersRoute
   '/api/public/payments/connect-webhook': typeof ApiPublicPaymentsConnectWebhookRoute
@@ -380,6 +388,7 @@ export interface FileRouteTypes {
     | '/trades/$tradeSlug'
     | '/clients/'
     | '/quotes/'
+    | '/trades/'
     | '/portal/c/$code'
     | '/api/public/hooks/service-reminders'
     | '/api/public/payments/connect-webhook'
@@ -404,7 +413,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/settings'
     | '/terms'
-    | '/trades'
     | '/welcome'
     | '/clients/$clientId'
     | '/clients/new'
@@ -418,6 +426,7 @@ export interface FileRouteTypes {
     | '/trades/$tradeSlug'
     | '/clients'
     | '/quotes'
+    | '/trades'
     | '/portal/c/$code'
     | '/api/public/hooks/service-reminders'
     | '/api/public/payments/connect-webhook'
@@ -456,6 +465,7 @@ export interface FileRouteTypes {
     | '/trades/$tradeSlug'
     | '/clients/'
     | '/quotes/'
+    | '/trades/'
     | '/portal/c/$code'
     | '/api/public/hooks/service-reminders'
     | '/api/public/payments/connect-webhook'
@@ -642,6 +652,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/trades/': {
+      id: '/trades/'
+      path: '/'
+      fullPath: '/trades/'
+      preLoaderRoute: typeof TradesIndexRouteImport
+      parentRoute: typeof TradesRoute
+    }
     '/quotes/': {
       id: '/quotes/'
       path: '/quotes'
@@ -759,10 +776,12 @@ declare module '@tanstack/react-router' {
 
 interface TradesRouteChildren {
   TradesTradeSlugRoute: typeof TradesTradeSlugRoute
+  TradesIndexRoute: typeof TradesIndexRoute
 }
 
 const TradesRouteChildren: TradesRouteChildren = {
   TradesTradeSlugRoute: TradesTradeSlugRoute,
+  TradesIndexRoute: TradesIndexRoute,
 }
 
 const TradesRouteWithChildren =
