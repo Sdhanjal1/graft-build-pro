@@ -155,14 +155,14 @@ function depositReceivedHtml(i: SendInvoiceEmailInput): string {
   return shell(i.businessName, "Deposit received", "#C6F33A", inner);
 }
 
-function buildHtml(i: SendInvoiceEmailInput): string {
+export function buildHtml(i: SendInvoiceEmailInput): string {
   if (i.mode === "receipt") return receiptHtml(i);
   if (i.mode === "balance") return balanceHtml(i);
   if (i.mode === "deposit-received") return depositReceivedHtml(i);
   return invoiceHtml(i);
 }
 
-function buildSubject(i: SendInvoiceEmailInput, fromName: string): string {
+export function buildSubject(i: SendInvoiceEmailInput, fromName: string): string {
   if (i.mode === "receipt") return `Invoice ${i.invoiceRef} from ${fromName} — Paid`;
   if (i.mode === "balance") return `Invoice ${i.invoiceRef} from ${fromName} — Balance ${i.amountFormatted} due`;
   if (i.mode === "deposit-received") {
