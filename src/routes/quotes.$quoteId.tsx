@@ -107,6 +107,7 @@ function QuoteDetail() {
   const [askDeposit, setAskDeposit] = useState(false);
   const [confirmJobDone, setConfirmJobDone] = useState(false);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
+  const [completedAt, setCompletedAt] = useState<string | undefined>(quote.completed_at);
   const [sendOpen, setSendOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [actioning, setActioning] = useState(false);
