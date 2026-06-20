@@ -36,9 +36,14 @@ async function sendBrandedInvoiceEmail(opts: {
   currency: string;
   paymentIntent: string | null | undefined;
   paymentMethod: string;
+  requestType: string;
 }) {
   try {
     const { sendAndRecordInvoiceEmail } = await import("@/lib/invoice-email.server");
+    // Deposits get a dedicated "deposit-received" email so the customer sees
+    // an orange "deposit received · balance £Y due" badge instead of a green
+    // PAID-IN-FULL receipt. Full payments stay on the receipt template.
+    const isDeposit = opts.requestType === "deposit";
     await sendAndRecordInvoiceEmail({
       userId: opts.userId,
       quoteId: opts.quoteId,
@@ -47,7 +52,8 @@ async function sendBrandedInvoiceEmail(opts: {
       currency: opts.currency,
       paymentIntent: opts.paymentIntent ?? null,
       paymentMethod: opts.paymentMethod,
-      mode: "receipt",
+      mode: isDeposit ? "deposit-received" : "receipt",
+      depositPaidCents: isDeposit ? opts.amountCents : undefined,
     });
   } catch (e) {
     // NEVER let an email failure break the webhook.
@@ -220,6 +226,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
     currency,
     paymentIntent,
     paymentMethod: "card",
+    requestType,
   });
 
   // Best-effort push to the trader (never throws)
