@@ -1,7 +1,14 @@
 import { createFileRoute, redirect, isRedirect } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getOpsDashboard, getIsAdmin, type OpsDashboard } from "@/lib/ops.functions";
+import { useState } from "react";
+import {
+  getOpsDashboard,
+  getIsAdmin,
+  verifyConnectClientId,
+  type OpsDashboard,
+  type ConnectClientIdCheck,
+} from "@/lib/ops.functions";
 
 const opsQueryOptions = (fn: () => Promise<OpsDashboard>) =>
   queryOptions({
