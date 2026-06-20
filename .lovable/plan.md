@@ -1,91 +1,95 @@
-# Switch preview to Stripe test mode (Approach A)
+## Diagnosis (read-only — nothing changed yet)
 
-## 1. `getStripeEnv()` change — live is the fail-safe default
+### Q1. Does the webhook handler have a deposit branch and does it write status to the quote?
 
-Edit `**src/lib/payments.functions.ts**` (lines 11–17) to:
+**Yes — the branch exists.** `src/lib/payments-webhook-shared.server.ts` lines 189–203:
 
 ```ts
-function getStripeEnv() {
-  // Sandbox is opt-in ONLY when the build was produced with the explicit
-  // preview flag AND a sandbox key is present. Every other code path —
-  // unset flag, unrecognised value, missing sandbox key, production
-  // build — falls through to live. Live is the fail-safe default; we
-  // never silently route real customers to test keys.
-  const flag = import.meta.env.VITE_PAYMENTS_MODE;
-  const sandboxKey = process.env.STRIPE_SANDBOX_API_KEY;
-  if (flag === "sandbox" && sandboxKey) {
-    return { key: sandboxKey, env: "sandbox" as const };
-  }
-  const liveKey =
-    process.env.STRIPE_BYOK_SECRET_KEY ?? process.env.STRIPE_LIVE_API_KEY;
-  if (!liveKey) throw new Error("Stripe is not configured");
-  return { key: liveKey, env: "live" as const };
+if (requestType === "deposit") {
+  await supabaseAdmin
+    .from("quotes")
+    .update({ status: "accepted" })
+    .eq("id", quoteId)
+    .eq("user_id", userId)
+    .in("status", ["pending", "sent"]);
+} else {
+  // full → status: "paid"
 }
 ```
 
-Truth table — confirm before applying:
+So a deposit payment, when the webhook DOES fire, writes `quotes.status = "accepted"` (not a dedicated "deposit-paid" — deposits are modelled as "accepted with a paid deposit row in `invoice_payments`"). The invoice_payments row is upserted earlier in the same handler.
+
+### Q2. Did the "£910 payment received" come from the webhook or from the redirect?
+
+**From the redirect. The webhook did NOT write anything for this payment.**
+
+Evidence from `invoice_payments` for quote `37a48482…` (QTR-001 test deposit):
 
 
-| `VITE_PAYMENTS_MODE`        | sandbox key | live key | Returns                             |
-| --------------------------- | ----------- | -------- | ----------------------------------- |
-| `"sandbox"`                 | ✅           | any      | **sandbox**                         |
-| `"sandbox"`                 | ❌           | ✅        | **live** (fail-safe)                |
-| `"live"`                    | any         | ✅        | **live**                            |
-| unset                       | any         | ✅        | **live**                            |
-| `"prod"`, `"test"`, garbage | any         | ✅        | **live**                            |
-| anything                    | any         | ❌        | throws (no silent sandbox fallback) |
+| id        | status      | stripe_session_id  | stripe_payment_intent | paid_at  | created_at |
+| --------- | ----------- | ------------------ | --------------------- | -------- | ---------- |
+| b5807b4a… | **pending** | `cs_test_a1cuZMM…` | null                  | null     | 14:24:20   |
+| 817cd9ac… | **paid**    | **null**           | **null**              | 14:27:59 | 14:27:59   |
 
 
-Sandbox requires **two** affirmative conditions; everything else is live.
+Two separate rows. The first (pending, with `cs_test_…` session id) was inserted by `createPortalCheckout` at checkout-start. The second (paid, **no Stripe identifiers**) was inserted ~3.5 minutes later when you clicked the manual "deposit received" button — that's the exact shape `recordManualDeposit` writes in `payments.functions.ts` (no session, no PI, payment_method="cash"/"bank").
 
-Set `VITE_PAYMENTS_MODE=sandbox` in `**.env.development**` only. Production builds read no value → live. This is a build-time inline (Vite), so the bundled value is frozen per build — preview deployment will be sandbox, published deployment will be live, regardless of runtime env mutations.
+If the webhook had fired, `handlePaidEvent` would have matched the pending row by `stripe_session_id` and flipped it to `status="paid"` with `paid_at` set — instead, the pending row is **untouched** and a parallel manual row sits beside it.
 
-No other files change in this batch.
+The "£910 payment received" the customer saw on the portal came from `?paid=1` in the Stripe redirect URL → `setPaymentResult("paid")` on the client (`portal.$token.tsx` line 92). That's pure client-side state, no DB writeback required. The 30s poll (lines 110–133) then ran and never observed the status change to "accepted" (because the webhook never wrote it), but the success card stayed visible regardless and the spinner just timed out silently.
 
-## 2. Test-mode Connect account — does not exist yet
+### Q3. Is the test-mode webhook endpoint registered and verifying?
 
-Confirmed by reading `src/lib/connect.functions.ts`: Connect uses **Standard** accounts created via Stripe's hosted onboarding (`/accounts` + `/account_links` with `type=account_onboarding`). The account ID is stored on `profiles.stripe_connect_account_id`. Live and test mode are separate Stripe namespaces — any `acct_…` you have today was minted under the live BYOK key and is invalid under sandbox keys.
+**Almost certainly NOT registered for test-mode Connect events.** I cannot read Stripe's webhook delivery dashboard directly, but the circumstantial evidence is decisive:
 
-**Steps to create one (after this batch lands and preview is on sandbox keys):**
+- The Connect webhook handler (`src/routes/api/public/payments/connect-webhook.ts`) is where connected-account deposit events land (direct charges go to the connected account, not the platform). It uses `STRIPE_CONNECT_WEBHOOK_SECRET`, which is set.
+- `STRIPE_CONNECT_WEBHOOK_SECRET` was provisioned for the **live-mode** Connect webhook endpoint. Stripe test mode and live mode are separate namespaces with separate endpoint registrations and separate signing secrets. The live webhook endpoint cannot receive test-mode events.
+- `error_events` has zero `payments.webhook.*` or `payments.connect.*` rows for the relevant timeframe — but the Connect handler does NOT call `logErrorEvent` on invalid signature OR on missing secret (it just returns 200 with a console warning). So absence of error rows is not exonerating; it's expected even on a silent failure.
+- No row in `invoice_payments` was ever updated by session id for this payment → handler body never executed → either no delivery, or signature rejected silently.
 
-1. In the preview app, sign in as a throwaway test user (or seed one).
-2. Go to the Connect onboarding entry point in Settings — the existing UI calls `createConnectAccountLink` / similar from `connect.functions.ts`. Because the preview now reads sandbox keys, this hits Stripe **test mode** and writes a test-mode `acct_…` to that user's `profiles.stripe_connect_account_id`.
-3. Complete Stripe's hosted onboarding using test values: SSN `000-00-0000`, DOB `01/01/1901`, address `address_full_match`, routing `110000000`, account `000123456789`, phone `0000000000`. These auto-approve and flip `charges_enabled=true` immediately.
-4. On return, the app calls the existing capability-refresh path which writes `stripe_connect_charges_enabled=true`.
-5. Use that user's UUID as `--user` for `scripts/lifecycle-deposit.ts`.
+**Conclusion:** the webhook is firing in test mode (Stripe DOES send), but there is no test-mode Connect webhook endpoint registered to receive it, OR one is registered against a different signing secret than `STRIPE_CONNECT_WEBHOOK_SECRET`. Net result: zero deliveries reach our handler. The platform webhook (`/payments/webhook?env=sandbox`) is unaffected because Connect direct charges don't route through it.
 
-No code changes needed for step 2 — the existing Connect flow works under sandbox keys automatically once `getStripeEnv()` returns sandbox.
+### Summary of where it broke
 
-## 3. `PAYMENTS_WEBHOOK_SECRET` → `PAYMENTS_LIVE_WEBHOOK_SECRET` rename — deferred
+> **Webhook is firing → but never reaching our handler → branch never runs.**
+> It's not (1) handler missing a deposit branch, and not (3b) signature rejection — it's the test-mode Connect webhook endpoint itself not being registered (or registered against the wrong secret).
 
-**Total references in the repo: exactly one.**
+---
 
-```
-src/routes/api/public/payments/webhook.ts:10
-  if (env === "live") return process.env.PAYMENTS_WEBHOOK_SECRET;
-```
+## The "Paid in full" fallback bug (separate issue, same screen)
 
-That's the only occurrence in `src/`, `supabase/`, route files, or anywhere else searched. `PAYMENTS_SANDBOX_WEBHOOK_SECRET` is referenced on the next line and is correct. The Lovable-managed secret store already has `PAYMENTS_LIVE_WEBHOOK_SECRET` populated and `PAYMENTS_WEBHOOK_SECRET` does **not** exist — so today's live webhook verification fails closed (returns 401 invalid signature, or never runs because the secret is undefined and the code drops with 200). Either way, no production traffic depends on the misnamed var; the rename strictly fixes the bug.
+Confirmed in `src/routes/portal.$token.tsx`:
 
-When you greenlight the separate commit, the change is a one-line edit:
+- Line 213: `const isPaid = status === "paid" || paymentResult === "paid";`
+- Line 544: `{isPaid && (<div>… <Check/> Paid in full …</div>)}`
 
-```ts
-if (env === "live") return process.env.PAYMENTS_LIVE_WEBHOOK_SECRET;
-```
+After a deposit redirect, `paymentResult==="paid"` is set from `?paid=1` regardless of whether the actual payment was a deposit or a full payment. `isPaid` becomes `true`, so the bottom "Paid in full" green badge renders — even though `quote.status` is still "accepted" (deposit) or "sent" (webhook never ran). This is the dangerous "default toward customer owes nothing" failure mode you flagged.
 
-No env-var add/delete needed (the correctly-named secret is already present). No staged rollout required because there is no working live webhook path to break.
+### Planned fix (one file, frontend only)
 
-**Not touching this in the current batch.**
+`src/routes/portal.$token.tsx`:
 
-## What I am NOT changing in this batch
+1. Introduce a stricter `isPaidInFull` derived from the **server state only**, not from the redirect param:
+  ```ts
+   const isPaidInFull = status === "paid";
+  ```
+2. Keep the existing `isPaid` for the top success card (so the "Payment received — thank you" copy still appears on redirect), but gate the bottom green "Paid in full" badge (line 544) on `isPaidInFull` instead of `isPaid`.
+3. Add an explicit "deposit paid, balance outstanding" badge that renders when `status === "accepted"` AND a paid deposit row exists, showing `Balance of £X due on completion` — so when the customer revisits the portal after the webhook eventually catches up (or after the manual button), they see the truthful state, never "Paid in full".
+4. The fail-safe rule encoded in code: `**Paid in full` must require `status === "paid"`. Any other state — including `accepted`, `sent`, `pending`, or any unknown value — renders a balance-due affordance, never "Paid in full".**
 
-- `webhook.ts` (rename deferred)
-- Connect onboarding code (works as-is once keys flip)
-- Production env, secrets, or Stripe dashboard
-- The lifecycle script
+No backend changes in this batch. Webhook registration is a Stripe-dashboard / connector-side action and is handled separately once you confirm the diagnosis above.
 
-&nbsp;
+### Not in this batch (call out explicitly)
 
-Apply the `getStripeEnv()` change as written — truth table confirmed, live is the fail-safe default. Then, as a **separate immediate commit** (not deferred, not bundled): the `PAYMENTS_WEBHOOK_SECRET → PAYMENTS_LIVE_WEBHOOK_SECRET` one-line fix. Reason: your analysis shows the live webhook has never verified — that's a launch blocker hiding behind a "typo," and I want it fixed now while we understand it, not rediscovered on go-live.
+- Registering the test-mode Connect webhook endpoint in Stripe and confirming its signing secret matches `STRIPE_CONNECT_WEBHOOK_SECRET` (or wiring a separate `STRIPE_CONNECT_SANDBOX_WEBHOOK_SECRET` and routing by `?env=` like the platform webhook does).
+- Adding `logErrorEvent` on invalid signature / missing secret in `connect-webhook.ts` so the next silent failure is visible.
+- Backfilling QTR-001's pending `invoice_payments` row to paid (you already covered it with the manual button — leaving the orphaned pending row alone for now).
 
-After both land: I'll confirm the preview build is actually hitting Stripe test mode (verify the env call uses the sandbox key) **before** running Connect onboarding — I don't want those test-identity values going to a live account if the flag didn't take. Then create the test Connect account per your steps and run the lifecycle script.
+Approve to apply only the portal fallback change; we'll tackle webhook registration and observability in a follow-up plan.
+
+Approve the portal fallback fix as written — one check: point 3's "paid deposit row exists" must require a row with status="paid", not the orphaned pending row, so an abandoned checkout never renders as deposit-paid.
+
+But the Connect webhook is not a follow-up — it's a launch blocker at the same severity in live. Your own diagnosis shows `connect-webhook.ts` returns 200 and only console-warns on invalid signature or missing secret, with no `logErrorEvent`. That means the **live** Connect webhook could be failing exactly as silently as test mode just did, and we'd never know — a real customer's deposit would land in Stripe, the quote would never update, no error would log. So in the same batch as (or immediately after) the portal fix:
+
+1. Register the test-mode Connect webhook endpoint and wire `STRIPE_CONNECT_SANDBOX_WEBHOOK_SECRET`, routed by `?env=` like the platform webhook — and confirm the live Connect endpoint is correctly registered against `STRIPE_CONNECT_WEBHOOK_SECRET`.
+2. Add `logErrorEvent` on invalid-signature and missing-secret in `connect-webhook.ts` so the next silent failure is visible. Consider whether a signature failure should really return 200.
