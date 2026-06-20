@@ -109,7 +109,7 @@ function ClientDetail() {
       </section>
 
       {/* Merged service summary + cadence */}
-      <section className="px-5 mt-3">
+      <section className="px-5 mt-5">
         <div className="card-surface p-4 divide-y divide-border">
           <div className="flex items-center gap-3 pb-3">
             <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
@@ -144,7 +144,7 @@ function ClientDetail() {
       </section>
 
       {/* Contact block */}
-      <section className="px-5 mt-4">
+      <section className="px-5 mt-5">
         <div className="card-surface p-4 space-y-2.5">
           <EditableRow
             icon={User}
@@ -183,7 +183,7 @@ function ClientDetail() {
 
       {/* Notes — promoted to its own card */}
       {client.notes && (
-        <section className="px-5 mt-3">
+        <section className="px-5 mt-5">
           <div className="card-surface p-4">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Notes</p>
             <p className="text-sm mt-1 whitespace-pre-line">{client.notes}</p>
