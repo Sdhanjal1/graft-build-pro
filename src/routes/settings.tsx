@@ -41,6 +41,14 @@ export const Route = createFileRoute("/settings")({
 });
 
 type LucideIcon = React.ComponentType<{ className?: string }>;
+type SectionId =
+  | "business"
+  | "pricing"
+  | "getting-paid"
+  | "quote-look"
+  | "notifications"
+  | "account"
+  | "danger";
 
 /** Trade-aware label for the "registration number" field. */
 function registrationLabelForTrade(trade: string): string {
@@ -92,6 +100,13 @@ function SettingsPage() {
       toast.error(e instanceof Error ? e.message : "Couldn't delete account.");
       setDeleting(false);
     }
+  };
+
+  // --- Accordion state (one open at a time, all closed by default) ---
+  const [openSection, setOpenSection] = useState<SectionId | null>(null);
+  const toggleSection = (id: SectionId) => {
+    feedback("tap");
+    setOpenSection((curr) => (curr === id ? null : id));
   };
 
   // --- Business profile (editable) ---
@@ -257,7 +272,6 @@ function SettingsPage() {
         ref={fileInputRef}
         type="file"
         accept="image/png,image/jpeg"
-        
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
@@ -266,72 +280,72 @@ function SettingsPage() {
         }}
       />
 
-      <div className="divide-y divide-border/60 border-b border-border/60">
+      <div className="border-y border-border/60 divide-y divide-border/60 bg-paper">
         {/* 1. YOUR BUSINESS */}
         <Section
+          id="business"
           title="Your business"
           icon={Briefcase}
-          defaultOpen
+          open={openSection === "business"}
+          onToggle={toggleSection}
           summary={profile.business_name || "Finish your business details"}
         >
-          <div className="space-y-4">
-            {/* Logo first */}
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-3">Business logo</p>
-              {profile.logo_url ? (
-                <div className="flex items-center gap-4">
-                  <BusinessLogo logoUrl={profile.logo_url} businessName={profile.business_name} size="lg" />
-                  <div className="flex flex-col gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      {uploading ? "Uploading…" : "Change"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={removeLogo}
-                      className="text-xs font-bold bg-secondary text-ink px-4 py-2 rounded-full flex items-center gap-1.5"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Remove
-                    </button>
-                  </div>
+          <FieldGroup label="Business logo">
+            {profile.logo_url ? (
+              <div className="flex items-center gap-4">
+                <BusinessLogo logoUrl={profile.logo_url} businessName={profile.business_name} size="lg" />
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    {uploading ? "Uploading…" : "Change"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={removeLogo}
+                    className="text-xs font-bold bg-secondary text-ink px-4 py-2 rounded-full flex items-center gap-1.5"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Remove
+                  </button>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="w-full rounded-2xl border border-border bg-card px-5 py-5 flex flex-col items-center gap-2 hover:border-ink/30 transition disabled:opacity-50"
-                >
-                  <div className="h-11 w-11 rounded-full bg-lime text-ink flex items-center justify-center">
-                    <Camera className="h-5 w-5" />
-                  </div>
-                  <p className="font-bold text-sm">{uploading ? "Uploading…" : "Add your logo"}</p>
-                  <p className="text-xs text-muted-foreground text-center max-w-[260px]">
-                    Appears on all quotes, invoices and PDFs.
-                  </p>
-                </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full rounded-2xl border border-dashed border-border bg-card/40 px-5 py-6 flex flex-col items-center gap-2 hover:border-ink/30 hover:bg-card/60 transition disabled:opacity-50"
+              >
+                <div className="h-11 w-11 rounded-full bg-lime text-ink flex items-center justify-center">
+                  <Camera className="h-5 w-5" />
+                </div>
+                <p className="font-bold text-sm text-ink">{uploading ? "Uploading…" : "Add your logo"}</p>
+                <p className="text-xs text-muted-foreground text-center max-w-[260px]">
+                  Appears on all quotes, invoices and PDFs.
+                </p>
+              </button>
+            )}
+          </FieldGroup>
 
-            <div className="card-surface divide-y divide-border/60">
-              <FieldRow><EditField label="Business name" value={profile.business_name} onChange={(v) => saveProfile({ business_name: v })} /></FieldRow>
-              <FieldRow><EditField label="Your name"     value={profile.full_name}     onChange={(v) => saveProfile({ full_name: v })} /></FieldRow>
-              <FieldRow><EditField label="Phone"         value={profile.phone}         onChange={(v) => saveProfile({ phone: v })} inputMode="tel" /></FieldRow>
-              <FieldRow><SelectField label="Trade type"  value={profile.trade_type}    onChange={(v) => saveProfile({ trade_type: v })} options={TRADE_TYPES} /></FieldRow>
-            </div>
+          <FieldGroup label="Business details">
+            <FieldList>
+              <EditField label="Business name" value={profile.business_name} onChange={(v) => saveProfile({ business_name: v })} />
+              <EditField label="Your name" value={profile.full_name} onChange={(v) => saveProfile({ full_name: v })} />
+              <EditField label="Phone" value={profile.phone} onChange={(v) => saveProfile({ phone: v })} inputMode="tel" />
+              <SelectField label="Trade type" value={profile.trade_type} onChange={(v) => saveProfile({ trade_type: v })} options={TRADE_TYPES} />
+            </FieldList>
+          </FieldGroup>
 
-            {/* Address sub-group */}
-            <fieldset className="card-surface p-4 space-y-3">
-              <legend className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold px-1">Address</legend>
+          <FieldGroup label="Address">
+            <FieldList>
               <EditField label="Line 1" value={profile.address_line_1} onChange={(v) => saveProfile({ address_line_1: v })} placeholder="e.g. 12 High Street" />
               <EditField label="Line 2" value={profile.address_line_2} onChange={(v) => saveProfile({ address_line_2: v })} placeholder="Optional" />
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-3">
                 <EditField label="Town / City" value={profile.town} onChange={(v) => saveProfile({ town: v })} />
                 <EditField
                   label="Postcode"
@@ -340,48 +354,52 @@ function SettingsPage() {
                   autoCapitalize="characters"
                 />
               </div>
-            </fieldset>
-          </div>
+            </FieldList>
+          </FieldGroup>
         </Section>
 
         {/* 2. YOUR PRICING */}
         <Section
+          id="pricing"
           title="Your pricing"
           icon={PoundSterling}
+          open={openSection === "pricing"}
+          onToggle={toggleSection}
           summary={pricingSummary}
           incomplete={!pricingComplete}
         >
-          <div className="card-surface p-4 space-y-2">
-            <div className="grid grid-cols-2 gap-2.5">
+          <FieldGroup
+            label="Labour rates"
+            hint="Used to price labour on your quotes — so you never have to correct it."
+          >
+            <div className="grid grid-cols-2 gap-3">
               <MoneyField label="Hourly rate" value={labourHourly} onChange={setLabourHourly} placeholder="45" />
-              <MoneyField label="Day rate"    value={labourDay}    onChange={setLabourDay}    placeholder="280" />
+              <MoneyField label="Day rate" value={labourDay} onChange={setLabourDay} placeholder="280" />
             </div>
             {labourHourly > 0 && labourDay === 0 && (
-              <p className="text-[11px] text-muted-foreground">Day rate ≈ 8h × hourly = £{labourHourly * 8}</p>
+              <p className="text-xs text-muted-foreground mt-3">Day rate ≈ 8h × hourly = £{labourHourly * 8}</p>
             )}
             {labourDay > 0 && labourHourly === 0 && (
-              <p className="text-[11px] text-muted-foreground">Hourly ≈ day ÷ 8 = £{Math.round(labourDay / 8)}</p>
+              <p className="text-xs text-muted-foreground mt-3">Hourly ≈ day ÷ 8 = £{Math.round(labourDay / 8)}</p>
             )}
-            <p className="text-[11px] text-muted-foreground">
-              Used to price labour on your quotes — so you never have to correct it.
-            </p>
-          </div>
+          </FieldGroup>
         </Section>
 
         {/* 3. GETTING PAID */}
         <Section
+          id="getting-paid"
           title="Getting paid"
           icon={Landmark}
+          open={openSection === "getting-paid"}
+          onToggle={toggleSection}
           summary={gettingPaidSummary}
           incomplete={!bankComplete}
         >
-          <div className="card-surface divide-y divide-border/60">
-            {/* Bank */}
-            <div className="p-4 space-y-3">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Bank details</p>
+          <FieldGroup label="Bank details">
+            <FieldList>
               <Input label="Bank account name" value={bank.account_name} onChange={(v) => saveBank({ account_name: v })} />
               <Input label="Bank name" value={bank.bank_name} onChange={(v) => saveBank({ bank_name: v })} />
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-3">
                 <Input
                   label="Sort code"
                   value={bank.sort_code}
@@ -391,16 +409,14 @@ function SettingsPage() {
                 <Input label="Account number" value={bank.account_number} onChange={(v) => saveBank({ account_number: v })} inputMode="numeric" />
               </div>
               <Input label="Payment reference instructions" value={bank.payment_reference_note} onChange={(v) => saveBank({ payment_reference_note: v })} multiline rows={2} />
-            </div>
+            </FieldList>
+          </FieldGroup>
 
-            {/* Terms & deposit */}
-            <div className="p-4 space-y-3">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Terms & deposit</p>
+          <FieldGroup label="Terms & deposit">
+            <FieldList>
               <Input label="Payment terms" value={terms} onChange={setTerms} multiline rows={3} />
               <div>
-                <label className="block text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">
-                  Default deposit % (jobs over £500)
-                </label>
+                <FieldLabel>Default deposit % (jobs over £500)</FieldLabel>
                 <input
                   type="number" min={0} max={100} step={1}
                   inputMode="numeric"
@@ -409,22 +425,18 @@ function SettingsPage() {
                     const n = Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)));
                     setDefaultDepositPct(n);
                   }}
-                  className="w-full h-11 bg-card border border-border rounded-2xl px-4 text-sm font-semibold num outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
+                  className={fieldInputClass + " h-11"}
                 />
-                <p className="text-[11px] text-muted-foreground mt-1.5">
-                  Applied to new AI-generated quotes that fall in the deposit-then-balance band.
-                </p>
+                <FieldHint>Applied to new AI-generated quotes that fall in the deposit-then-balance band.</FieldHint>
               </div>
-            </div>
+            </FieldList>
+          </FieldGroup>
 
-            {/* VAT & registration */}
-            <div className="p-4 space-y-3">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">VAT & registration</p>
+          <FieldGroup label="VAT & registration">
+            <FieldList>
               <div>
                 <EditField label={regLabel} value={profile.registration_number} onChange={(v) => saveProfile({ registration_number: v })} />
-                {regHint && (
-                  <p className="text-[11px] text-muted-foreground mt-1.5">{regHint}</p>
-                )}
+                {regHint && <FieldHint>{regHint}</FieldHint>}
               </div>
               <ToggleRow icon={Receipt} label="VAT registered" hint="Adds 20% VAT to every quote" checked={vatRegistered} onChange={setVatRegistered} flush />
               {vatRegistered && (
@@ -436,103 +448,133 @@ function SettingsPage() {
                   autoCapitalize="characters"
                 />
               )}
-            </div>
+            </FieldList>
+          </FieldGroup>
 
-            {/* Card payments via Connect — flush sub-block */}
-            <div className="p-4">
-              <BillingSection show="connect" />
-            </div>
-          </div>
+          <FieldGroup label="Card payments">
+            <BillingSection show="connect" />
+          </FieldGroup>
         </Section>
 
         {/* 4. HOW QUOTES LOOK */}
-        <Section title="How quotes look" icon={FileSignature} summary={quoteLookSummary}>
-          <QuoteLookPreview
-            profile={profile}
-            vatRegistered={vatRegistered}
-            labourDay={labourDay}
-            terms={terms}
-          />
-          <div className="card-surface divide-y divide-border/60 mt-3">
-            <div className="p-4">
+        <Section
+          id="quote-look"
+          title="How quotes look"
+          icon={FileSignature}
+          open={openSection === "quote-look"}
+          onToggle={toggleSection}
+          summary={quoteLookSummary}
+        >
+          <FieldGroup label="Live preview" hint="As your customer sees it.">
+            <QuoteLookPreview
+              profile={profile}
+              vatRegistered={vatRegistered}
+              labourDay={labourDay}
+              terms={terms}
+            />
+          </FieldGroup>
+
+          <FieldGroup label="Quote copy">
+            <FieldList>
               <label className="block">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-                  Opening message on quotes
-                </span>
+                <FieldLabel>Opening message on quotes</FieldLabel>
                 <textarea
                   value={profile.quote_intro}
                   onChange={(e) => saveProfile({ quote_intro: e.target.value })}
                   rows={2}
-                  className="mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30 resize-y leading-snug"
+                  className={fieldInputClass + " resize-y leading-snug py-3"}
                 />
               </label>
-            </div>
-            <div className="p-4">
               <label className="block">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-                  Footer message
-                </span>
+                <FieldLabel>Footer message</FieldLabel>
                 <textarea
                   value={profile.quote_footer}
                   onChange={(e) => saveProfile({ quote_footer: e.target.value })}
                   rows={3}
-                  className="mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30 resize-y leading-snug"
+                  className={fieldInputClass + " resize-y leading-snug py-3"}
                 />
               </label>
-            </div>
-            <div className="p-4">
+            </FieldList>
+          </FieldGroup>
+
+          <FieldGroup label="Signature">
+            <FieldList>
               <EditField label="Your name on quotes" value={profile.signature_name} onChange={(v) => saveProfile({ signature_name: v })} placeholder="e.g. John Smith" />
-            </div>
-            <div className="p-4 space-y-2">
               <ToggleRow icon={PenLine} label="Show signature on quotes" hint="Adds a signature line at the bottom" checked={profile.show_signature} onChange={(v) => saveProfile({ show_signature: v })} flush />
               {profile.show_signature && (
                 <p className="font-serif italic text-muted-foreground text-sm pl-12">
                   — {profile.signature_name || profile.full_name || "your name"}
                 </p>
               )}
-            </div>
-          </div>
+            </FieldList>
+          </FieldGroup>
         </Section>
 
         {/* 5. NOTIFICATIONS */}
-        <Section title="Notifications" icon={Bell} summary="Push & email alerts">
-          <div className="space-y-3">
+        <Section
+          id="notifications"
+          title="Notifications"
+          icon={Bell}
+          open={openSection === "notifications"}
+          onToggle={toggleSection}
+          summary="Push & email alerts"
+        >
+          <FieldGroup label="Device push">
             <PushPermissionCard />
+          </FieldGroup>
+          <FieldGroup label="What to notify me about">
             <NotificationToggles />
-          </div>
+          </FieldGroup>
         </Section>
 
         {/* 6. ACCOUNT & BILLING */}
-        <Section title="Account & billing" icon={CreditCard} summary="Subscription, exports, sign out">
-          <div className="space-y-3">
+        <Section
+          id="account"
+          title="Account & billing"
+          icon={CreditCard}
+          open={openSection === "account"}
+          onToggle={toggleSection}
+          summary="Subscription, exports, sign out"
+        >
+          <FieldGroup label="Subscription">
             <BillingSection show="subscription" />
+          </FieldGroup>
+          <FieldGroup label="Accounting export">
             <AccountingSetup />
+          </FieldGroup>
+          <FieldGroup label="Session">
             <button
               onClick={handleSignOut}
-              className="w-full px-5 py-3.5 flex items-center gap-3 text-sm font-semibold text-muted-foreground hover:text-status-overdue transition text-left rounded-2xl"
+              className="w-full px-1 py-3 flex items-center gap-3 text-sm font-semibold text-muted-foreground hover:text-status-overdue transition text-left"
             >
               <LogOut className="h-5 w-5" />
               Sign out
             </button>
-          </div>
+          </FieldGroup>
         </Section>
 
         {/* 7. DANGER ZONE */}
-        <Section title="Account" icon={AlertOctagon} tone="danger" summary="Delete your account">
-          <div className="rounded-2xl bg-status-overdue/5 border border-status-overdue/20">
-            <button
-              onClick={() => {
-                setDeleteConfirm("");
-                setDeleteOpen(true);
-              }}
-              disabled={deleting}
-              className="px-5 py-4 flex items-center gap-3 text-status-overdue font-semibold w-full text-left disabled:opacity-60"
-            >
-              <Trash2 className="h-5 w-5" />
-              <span className="flex-1">{deleting ? "Deleting…" : "Delete account"}</span>
-              <ChevronRight className="h-4 w-4 text-status-overdue/60" />
-            </button>
-          </div>
+        <Section
+          id="danger"
+          title="Account"
+          icon={AlertOctagon}
+          open={openSection === "danger"}
+          onToggle={toggleSection}
+          tone="danger"
+          summary="Delete your account"
+        >
+          <button
+            onClick={() => {
+              setDeleteConfirm("");
+              setDeleteOpen(true);
+            }}
+            disabled={deleting}
+            className="w-full rounded-2xl bg-status-overdue/5 border border-status-overdue/20 px-5 py-4 flex items-center gap-3 text-status-overdue font-semibold text-left disabled:opacity-60"
+          >
+            <Trash2 className="h-5 w-5" />
+            <span className="flex-1">{deleting ? "Deleting…" : "Delete account"}</span>
+            <ChevronRight className="h-4 w-4 text-status-overdue/60" />
+          </button>
         </Section>
       </div>
 
@@ -549,14 +591,12 @@ function SettingsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <label className="block">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-              Type DELETE to confirm
-            </span>
+            <FieldLabel>Type DELETE to confirm</FieldLabel>
             <input
               value={deleteConfirm}
               onChange={(e) => setDeleteConfirm(e.target.value)}
               placeholder="DELETE"
-              className="mt-1.5 w-full h-11 bg-card border border-border rounded-2xl px-4 text-sm font-semibold outline-none focus:border-status-overdue focus:ring-2 focus:ring-status-overdue/30"
+              className="mt-2 w-full h-11 bg-card border border-border rounded-2xl px-4 text-sm font-semibold outline-none focus:border-status-overdue focus:ring-2 focus:ring-status-overdue/30"
             />
           </label>
           <AlertDialogFooter>
@@ -583,39 +623,45 @@ function SettingsPage() {
   );
 }
 
+/* ============================================================ */
+/*  Section (controlled accordion)                                */
+/* ============================================================ */
+
 function Section({
+  id,
   title,
   children,
-  defaultOpen = false,
+  open,
+  onToggle,
   summary,
   tone = "default",
   icon: Icon,
   incomplete = false,
 }: {
+  id: SectionId;
   title: string;
   children: React.ReactNode;
-  defaultOpen?: boolean;
+  open: boolean;
+  onToggle: (id: SectionId) => void;
   summary?: string;
   tone?: "default" | "danger";
   icon?: LucideIcon;
   incomplete?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen || incomplete);
   const danger = tone === "danger";
   return (
-    <section className="px-5 py-3">
+    <section className={open ? "bg-card/30" : ""}>
       <button
         type="button"
-        onClick={() => {
-          feedback("tap");
-          setOpen((o) => !o);
-        }}
-        className="w-full flex items-center gap-3 py-2 text-left"
+        onClick={() => onToggle(id)}
+        className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors ${
+          open ? "" : "hover:bg-card/40"
+        }`}
         aria-expanded={open}
       >
         {Icon && (
           <div
-            className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
+            className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${
               danger ? "bg-status-overdue/10 text-status-overdue" : "bg-secondary text-ink"
             }`}
           >
@@ -624,9 +670,10 @@ function Section({
         )}
         <div className="min-w-0 flex-1">
           <h2
-            className={`${open ? "text-xl" : "text-base font-bold"} ${
-              danger ? (open ? "text-status-overdue" : "text-status-overdue/80") : ""
-            }`}
+            className={`leading-tight ${
+              open ? "text-2xl" : "text-base font-bold"
+            } ${danger ? (open ? "text-status-overdue" : "text-status-overdue/85") : "text-ink"}`}
+            style={open ? { fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.01em" } : undefined}
           >
             {title}
             {incomplete && !open && (
@@ -644,13 +691,71 @@ function Section({
           style={{ transform: open ? "rotate(90deg)" : "rotate(0deg)" }}
         />
       </button>
-      {open && <div className="mt-2 pb-2">{children}</div>}
+      {open && (
+        <div className="px-5 pb-7 pt-1 space-y-7 border-t border-border/40">
+          <div className="h-1" />
+          {children}
+        </div>
+      )}
     </section>
   );
 }
 
-function FieldRow({ children }: { children: React.ReactNode }) {
-  return <div className="p-4">{children}</div>;
+/* ============================================================ */
+/*  Field primitives                                              */
+/* ============================================================ */
+
+const fieldInputClass =
+  "mt-2 w-full bg-paper border border-border rounded-xl px-4 text-sm font-medium text-ink outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30";
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="block text-sm font-semibold text-ink">{children}</span>
+  );
+}
+
+function FieldHint({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-xs text-muted-foreground mt-2 leading-snug">{children}</p>
+  );
+}
+
+/** A labelled logical group of fields with breathing room above it. */
+function FieldGroup({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="mb-3">
+        <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-muted-foreground">
+          {label}
+        </p>
+        {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Flat list of fields separated by hairlines — no boxes per field. */
+function FieldList({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="divide-y divide-border/50">
+      {Array.isArray(children)
+        ? children.map((child, i) => (
+            <div key={i} className={i === 0 ? "pb-4" : i === children.length - 1 ? "pt-4" : "py-4"}>
+              {child}
+            </div>
+          ))
+        : <div>{children}</div>}
+    </div>
+  );
 }
 
 function NotificationToggles() {
@@ -662,11 +767,11 @@ function NotificationToggles() {
   });
   const update = (patch: Partial<typeof prefs>) => setPrefs((p) => ({ ...p, ...patch }));
   return (
-    <div className="card-surface divide-y divide-border">
-      <ToggleRow icon={FileText}      label="New quote request" checked={prefs.quoteRequest}  onChange={(v) => update({ quoteRequest: v })} />
-      <ToggleRow icon={CheckCircle2}  label="Quote approved"    checked={prefs.quoteApproved} onChange={(v) => update({ quoteApproved: v })} />
-      <ToggleRow icon={MessageSquare} label="New message"       checked={prefs.newMessage}    onChange={(v) => update({ newMessage: v })} />
-      <ToggleRow icon={AlertTriangle} label="Invoice overdue"   checked={prefs.invoiceOverdue} onChange={(v) => update({ invoiceOverdue: v })} />
+    <div className="divide-y divide-border/50">
+      <ToggleRow icon={FileText} label="New quote request" checked={prefs.quoteRequest} onChange={(v) => update({ quoteRequest: v })} />
+      <ToggleRow icon={CheckCircle2} label="Quote approved" checked={prefs.quoteApproved} onChange={(v) => update({ quoteApproved: v })} />
+      <ToggleRow icon={MessageSquare} label="New message" checked={prefs.newMessage} onChange={(v) => update({ newMessage: v })} />
+      <ToggleRow icon={AlertTriangle} label="Invoice overdue" checked={prefs.invoiceOverdue} onChange={(v) => update({ invoiceOverdue: v })} />
     </div>
   );
 }
@@ -675,13 +780,13 @@ function ToggleRow({
   icon: Icon, label, hint, checked, onChange, flush,
 }: { icon: React.ComponentType<{ className?: string }>; label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void; flush?: boolean }) {
   return (
-    <label className={`${flush ? "py-2" : "px-5 py-4"} flex items-center gap-3 cursor-pointer`}>
+    <label className={`${flush ? "py-1" : "py-3"} flex items-center gap-3 cursor-pointer`}>
       <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
         <Icon className="h-4 w-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm">{label}</p>
-        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+        <p className="font-semibold text-sm text-ink">{label}</p>
+        {hint && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
       </div>
       <input
         type="checkbox"
@@ -707,14 +812,14 @@ function EditField({
 }) {
   return (
     <label className="block">
-      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
+      <FieldLabel>{label}</FieldLabel>
       <input
         value={value}
         placeholder={placeholder}
         inputMode={inputMode}
         autoCapitalize={autoCapitalize}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 w-full h-11 bg-card border border-border rounded-2xl px-4 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
+        className={fieldInputClass + " h-11"}
       />
     </label>
   );
@@ -725,11 +830,11 @@ function SelectField({
 }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
     <label className="block">
-      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
+      <FieldLabel>{label}</FieldLabel>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 w-full h-11 bg-card border border-border rounded-2xl px-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
+        className={fieldInputClass + " h-11 pr-3"}
       >
         {options.map((o) => <option key={o}>{o}</option>)}
       </select>
@@ -781,30 +886,30 @@ function AccountingSetup() {
 
   const codeRow = (key: keyof typeof codes, label: string, placeholder: string) => (
     <label className="block">
-      <span className="text-xs text-muted-foreground font-semibold">{label}</span>
+      <FieldLabel>{label}</FieldLabel>
       <input
         value={codes[key]}
         placeholder={placeholder}
         inputMode="numeric"
         onChange={(e) => setCodes((c) => ({ ...c, [key]: e.target.value }))}
-        className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+        className={fieldInputClass + " h-11"}
       />
     </label>
   );
 
   return (
-    <div className="card-surface divide-y divide-border/60">
+    <div className="divide-y divide-border/50">
       {/* Software picker */}
-      <div className="p-4">
+      <div className="pb-4">
         <label className="block">
-          <span className="text-xs text-muted-foreground font-semibold flex items-center justify-between">
-            <span>Accounting software</span>
+          <span className="flex items-center justify-between">
+            <FieldLabel>Accounting software</FieldLabel>
             <SaveIndicator isSaving={acctSaving} isSaved={acctSaved} error={acctError} showLabel={false} />
           </span>
           <select
             value={software}
             onChange={(e) => setSoftware(e.target.value as typeof software)}
-            className="mt-1 w-full bg-secondary rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime/40 font-medium"
+            className={fieldInputClass + " h-11 pr-3"}
           >
             {SOFTWARE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -814,15 +919,15 @@ function AccountingSetup() {
       </div>
 
       {/* Account codes — collapsible row */}
-      <div>
+      <div className="py-2">
         <button
           type="button"
           onClick={() => { feedback("tap"); setCodesOpen((s) => !s); }}
-          className="w-full flex items-center justify-between text-left px-4 py-3"
+          className="w-full flex items-center justify-between text-left py-2"
           aria-expanded={codesOpen}
         >
           <div>
-            <p className="text-sm font-semibold">Account codes</p>
+            <p className="text-sm font-semibold text-ink">Account codes</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {filledCodes === 0 ? "Using default code (200)" : `${filledCodes} of ${totalCodes} codes set`}
             </p>
@@ -833,7 +938,7 @@ function AccountingSetup() {
           />
         </button>
         {codesOpen && (
-          <div className="space-y-3 px-4 pb-4">
+          <div className="space-y-3 pt-3 pb-2">
             <p className="text-xs text-muted-foreground">
               Map line item categories to the income codes used by your accounting software.
             </p>
@@ -847,7 +952,7 @@ function AccountingSetup() {
       </div>
 
       {/* Primary export */}
-      <div className="p-4 space-y-3">
+      <div className="py-4 space-y-3">
         {hasPickedSoftware ? (
           <>
             <AccountingExportButton />
@@ -863,11 +968,11 @@ function AccountingSetup() {
       </div>
 
       {/* Secondary summary CSV — uses Section-style chevron row */}
-      <div>
+      <div className="pt-2">
         <button
           type="button"
           onClick={() => { feedback("tap"); setSummaryOpen((s) => !s); }}
-          className="w-full flex items-center justify-between text-left px-4 py-3"
+          className="w-full flex items-center justify-between text-left py-2"
           aria-expanded={summaryOpen}
         >
           <p className="text-xs text-muted-foreground">
@@ -879,7 +984,7 @@ function AccountingSetup() {
           />
         </button>
         {summaryOpen && (
-          <div className="px-4 pb-4">
+          <div className="pt-3">
             <ExportInvoicesButton />
           </div>
         )}
@@ -903,24 +1008,22 @@ function Input({
   rows?: number;
   inputMode?: "text" | "tel" | "email" | "numeric" | "decimal" | "search" | "url" | "none";
 }) {
-  const fieldClass =
-    "mt-1.5 w-full bg-card border border-border rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30";
   return (
     <label className="block">
-      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
+      <FieldLabel>{label}</FieldLabel>
       {multiline ? (
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
           rows={rows}
-          className={fieldClass + " resize-y leading-snug"}
+          className={fieldInputClass + " resize-y leading-snug py-3"}
         />
       ) : (
         <input
           value={value}
           inputMode={inputMode}
           onChange={(e) => onChange(e.target.value)}
-          className={fieldClass + " h-11"}
+          className={fieldInputClass + " h-11"}
         />
       )}
     </label>
@@ -949,8 +1052,8 @@ function MoneyField({
   };
   return (
     <label className="block">
-      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
-      <div className="relative mt-1.5">
+      <FieldLabel>{label}</FieldLabel>
+      <div className="relative mt-2">
         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground pointer-events-none">£</span>
         <input
           type="number"
@@ -962,7 +1065,7 @@ function MoneyField({
           onChange={(e) => setText(e.target.value)}
           onFocus={(e) => e.currentTarget.select()}
           onBlur={commit}
-          className="w-full h-11 bg-card border border-border rounded-2xl pl-8 pr-4 text-sm font-semibold num outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
+          className="w-full h-11 bg-paper border border-border rounded-xl pl-8 pr-4 text-sm font-semibold num text-ink outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30"
         />
       </div>
     </label>
@@ -1008,23 +1111,16 @@ function QuoteLookPreview({
   const total = subtotal + vat;
 
   return (
-    <div className="card-surface overflow-hidden">
-      <div className="px-3 pt-2 pb-2 bg-secondary/40 border-b border-border/60 flex items-center justify-between">
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-          Live preview
-        </span>
-        <span className="text-[10px] text-muted-foreground">As your customer sees it</span>
+    <div className="rounded-2xl border border-border overflow-hidden bg-paper">
+      <div className="bg-ink text-paper px-4 pt-4 pb-3 flex items-center gap-3">
+        <BusinessLogo logoUrl={profile.logo_url} businessName={businessName} size="md" />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold truncate">{businessName}</p>
+          <p className="text-[10px] text-paper/60 truncate">Quote Q-0001</p>
+        </div>
       </div>
 
       <div className="bg-paper text-ink">
-        <header className="bg-ink text-paper px-4 pt-4 pb-3 flex items-center gap-3">
-          <BusinessLogo logoUrl={profile.logo_url} businessName={businessName} size="md" />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold truncate">{businessName}</p>
-            <p className="text-[10px] text-paper/60 truncate">Quote Q-0001</p>
-          </div>
-        </header>
-
         <section className="px-4 pt-3">
           <h3 className="text-base leading-tight font-semibold">Kitchen tap replacement</h3>
           <p className="text-[11px] text-muted-foreground mt-0.5">For Sample Customer</p>
