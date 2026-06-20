@@ -651,9 +651,20 @@ function QuoteDetail() {
   } else if (status === "sent") {
     primary = { label: "Customer accepted", icon: ThumbsUp, onClick: acceptQuote };
   } else if (status === "accepted") {
-    primary = { label: "Mark job complete", icon: Check, onClick: completeJob };
+    // ONE smart action — handles complete + invoice/balance/receipt together,
+    // dispatched by jobDoneMode (derived from payment_timing).
+    const label =
+      jobDoneMode === "receipt" ? "Job done — send receipt" :
+      jobDoneMode === "balance" ? `Job done — send ${formatGBP(jobDoneAmount)} balance` :
+      "Job done — send invoice";
+    primary = { label, icon: Check, onClick: () => setConfirmJobDone(true) };
+  } else if (status === "paid" && !completedAt) {
+    // Upfront-paid quotes still need a "job done" tap to mark complete + send a receipt.
+    primary = { label: "Job done — send receipt", icon: Check, onClick: () => setConfirmJobDone(true) };
   } else if (status === "completed") {
-    primary = { label: "Mark paid", icon: CheckCircle2, onClick: () => setAskingPaid(true) };
+    // Fallback: customer paid by cash/bank outside the app. Mark Paid is the
+    // only remaining manual step here.
+    primary = { label: "Mark paid (cash / bank)", icon: CheckCircle2, onClick: () => setAskingPaid(true) };
   } else if (status === "paid") {
     primary = { label: invoicedAt ? "Share invoice" : "Share receipt", icon: Share2, onClick: sharePdf };
   } else {
