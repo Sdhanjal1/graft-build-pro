@@ -746,10 +746,10 @@ function QuoteDetail() {
                 <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Subtotal</p>
                 <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP(quote.subtotal || 0)}</p>
               </div>
-              {userProfile.vat_registered && (
+              {(quote.vat_registered ?? userProfile.vat_registered) && (
                 <div>
                   <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">VAT (20%)</p>
-                  <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP((quote.subtotal || 0) * 0.2)}</p>
+                  <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP(Number(quote.vat_amount) || (quote.subtotal || 0) * 0.2)}</p>
                 </div>
               )}
             </div>
