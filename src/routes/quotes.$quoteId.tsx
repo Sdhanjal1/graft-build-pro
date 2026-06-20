@@ -1168,27 +1168,22 @@ function QuoteDetail() {
       </Sheet>
 
 
-      {/* Bottom sheet: send final invoice */}
-      {askInvoice && (
-        <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setAskInvoice(false)}>
-          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-6" onClick={(e) => e.stopPropagation()}>
-            <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
-            <h3 className="text-2xl">Ready to send final invoice?</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              We'll generate a clean INVOICE document with the bank details and payment link at the top, and set a 14-day payment due date.
-            </p>
-            <button
-              onClick={issueInvoice}
-              className="w-full mt-4 bg-lime text-ink rounded-full py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2"
-            >
-              <FileText className="h-4 w-4" /> Generate invoice
-            </button>
-            <button onClick={() => setAskInvoice(false)} className="w-full mt-2 text-sm text-muted-foreground py-2">
-              Not yet
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Confirm: Job done (mark complete + auto-send invoice/balance/receipt) */}
+      <AlertDialog open={confirmJobDone} onOpenChange={setConfirmJobDone}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{jobDonePreview.title}</AlertDialogTitle>
+            <AlertDialogDescription>{jobDonePreview.body}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmJobDone(false); void jobDone(); }}>
+              Yes, do it
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {/* Confirm dialogs — replace native window.confirm for parity with Settings */}
       <AlertDialog open={confirmRemoveDeposit} onOpenChange={setConfirmRemoveDeposit}>
