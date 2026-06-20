@@ -13,6 +13,131 @@ export const getIsAdmin = createServerFn({ method: "GET" })
     return { isAdmin: Boolean(data) };
   });
 
+export type ConnectClientIdCheck = {
+  ok: boolean;
+  mode: "live" | "mismatch" | "unknown";
+  httpStatus: number;
+  stripeError?: string;
+  stripeErrorType?: string;
+  message: string;
+  clientIdPresent: boolean;
+  liveKeyPresent: boolean;
+};
+
+/**
+ * Admin-only: ask Stripe whether STRIPE_CONNECT_CLIENT_ID belongs to the same
+ * platform account as our live secret key. We POST to the OAuth deauthorize
+ * endpoint with a definitely-non-existent stripe_user_id:
+ *
+ *  - Live id + live key   → 400 invalid_request (account not found) → MATCH
+ *  - Wrong id / wrong env → 401 invalid_client  (no such application) → MISMATCH
+ *
+ * The probe never mutates anything — deauthorize on a fake account is a no-op.
+ */
+export const verifyConnectClientId = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<ConnectClientIdCheck> => {
+    const { data: isAdmin } = await context.supabase.rpc("is_admin", {
+      _uid: context.userId,
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const clientId = process.env.STRIPE_CONNECT_CLIENT_ID;
+    const liveKey = process.env.STRIPE_BYOK_SECRET_KEY;
+    const clientIdPresent = !!clientId;
+    const liveKeyPresent = !!liveKey;
+
+    if (!clientId || !liveKey) {
+      return {
+        ok: false,
+        mode: "unknown",
+        httpStatus: 0,
+        message: !clientId
+          ? "STRIPE_CONNECT_CLIENT_ID is not set"
+          : "STRIPE_BYOK_SECRET_KEY (live) is not set",
+        clientIdPresent,
+        liveKeyPresent,
+      };
+    }
+
+    const body = new URLSearchParams({
+      client_id: clientId,
+      stripe_user_id: "acct_lovable_probe_does_not_exist",
+    });
+
+    let res: Response;
+    try {
+      res = await fetch("https://connect.stripe.com/oauth/deauthorize", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${liveKey}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body,
+        signal: AbortSignal.timeout(15_000),
+      });
+    } catch (e) {
+      return {
+        ok: false,
+        mode: "unknown",
+        httpStatus: 0,
+        message: `Network error reaching Stripe: ${e instanceof Error ? e.message : String(e)}`,
+        clientIdPresent,
+        liveKeyPresent,
+      };
+    }
+
+    const text = await res.text();
+    let parsed: { error?: string; error_description?: string } = {};
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      // leave parsed empty; fall through to raw text
+    }
+    const stripeError = parsed.error_description ?? text.slice(0, 300);
+    const stripeErrorType = parsed.error;
+
+    // Match: Stripe accepted the client_id + key pair but the account doesn't exist.
+    if (res.status === 400 && stripeErrorType === "invalid_request") {
+      return {
+        ok: true,
+        mode: "live",
+        httpStatus: res.status,
+        stripeError,
+        stripeErrorType,
+        message: "Live match — client id is on the live platform account.",
+        clientIdPresent,
+        liveKeyPresent,
+      };
+    }
+
+    // Mismatch: client id is unknown to this account (wrong env or wrong platform).
+    if (res.status === 401 || stripeErrorType === "invalid_client") {
+      return {
+        ok: false,
+        mode: "mismatch",
+        httpStatus: res.status,
+        stripeError,
+        stripeErrorType,
+        message:
+          "Mismatch — Stripe doesn't recognise this client id on the live platform. Update STRIPE_CONNECT_CLIENT_ID to the live ca_… from Stripe → Settings → Connect → Onboarding options.",
+        clientIdPresent,
+        liveKeyPresent,
+      };
+    }
+
+    return {
+      ok: false,
+      mode: "unknown",
+      httpStatus: res.status,
+      stripeError,
+      stripeErrorType,
+      message: `Inconclusive — Stripe returned ${res.status} ${stripeErrorType ?? ""}: ${stripeError}`,
+      clientIdPresent,
+      liveKeyPresent,
+    };
+  });
+
 export type OpsDashboard = {
   generatedAt: string;
   revenue: {
