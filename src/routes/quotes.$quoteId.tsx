@@ -147,6 +147,7 @@ function QuoteDetail() {
   const recordDepositFn = useServerFn(recordManualDeposit);
   const removeDepositFn = useServerFn(removeManualDeposit);
   const fetchPaymentsFn = useServerFn(getQuotePaymentStatus);
+  const sendInvoiceEmailFn = useServerFn(sendInvoiceEmailForQuote);
   const [recordingDeposit, setRecordingDeposit] = useState(false);
   const [recordDepositOpen, setRecordDepositOpen] = useState(false);
   const [depositRecorded, setDepositRecorded] = useState(false);
