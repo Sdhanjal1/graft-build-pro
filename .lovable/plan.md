@@ -1,95 +1,68 @@
-## Diagnosis (read-only — nothing changed yet)
+## Why the deposit isn't being marked paid automatically
 
-### Q1. Does the webhook handler have a deposit branch and does it write status to the quote?
+Short version: **Quottr never hears about the payment.** The customer's card does charge on the trader's connected Stripe account, but the event that tells our app "this deposit was paid" is never delivered to our webhook, so the `invoice_payments` row stays `pending` and the "deposit received / balance due" calculation on the invoice never flips.
 
-**Yes — the branch exists.** `src/lib/payments-webhook-shared.server.ts` lines 189–203:
+### How it's supposed to work
 
-```ts
-if (requestType === "deposit") {
-  await supabaseAdmin
-    .from("quotes")
-    .update({ status: "accepted" })
-    .eq("id", quoteId)
-    .eq("user_id", userId)
-    .in("status", ["pending", "sent"]);
-} else {
-  // full → status: "paid"
-}
+```text
+Customer pays deposit on portal
+        │
+        ▼
+Stripe Checkout Session created WITH Stripe-Account header
+   (direct charge on the trader's connected account)
+        │
+        ▼
+Card is charged on the CONNECTED account (not the platform)
+        │
+        ▼
+Stripe fires checkout.session.completed
+   ── on the CONNECTED account, NOT the platform account ──
+        │
+        ▼
+Delivered to a Connect (connected-account) webhook endpoint
+        │
+        ▼
+/api/public/payments/connect-webhook?env=sandbox
+        │
+        ▼
+handlePaidEvent → invoice_payments.status = 'paid'
+        │
+        ▼
+Invoice UI recomputes: deposit paid £X, balance £Y due
 ```
 
-So a deposit payment, when the webhook DOES fire, writes `quotes.status = "accepted"` (not a dedicated "deposit-paid" — deposits are modelled as "accepted with a paid deposit row in `invoice_payments`"). The invoice_payments row is upserted earlier in the same handler.
+### Where it's actually breaking
 
-### Q2. Did the "£910 payment received" come from the webhook or from the redirect?
+Every step up to "Stripe fires the event" is working. The break is at delivery:
 
-**From the redirect. The webhook did NOT write anything for this payment.**
+1. `stripe_connect_charges_enabled = true` on the trader → checkout is created on the connected account (confirmed).
+2. The `invoice_payments` row exists with a `cs_test_…` session id and status `pending` (confirmed — this is the row that should flip to `paid`).
+3. **No POST from Stripe** to `/api/public/payments/connect-webhook` appears in the preview's runtime logs — only the manual health GET. So nothing called `handlePaidEvent`.
+4. No `payments.connect_webhook.no_secret` and no `payments.connect_webhook.invalid_signature` rows in `error_events` since the attempt. That rules out "secret missing" and "signature mismatch" — both of those would have logged. The endpoint simply isn't being hit.
+5. The handler code itself is correct: it verifies the signature, then routes `checkout.session.completed` and `payment_intent.succeeded` into the same shared `handlePaidEvent` that the platform webhook uses. If a real Stripe POST arrived with a matching secret, the row would flip.
 
-Evidence from `invoice_payments` for quote `37a48482…` (QTR-001 test deposit):
+### Why the deposit math depends on this
 
+The invoice's "deposit received · £Y still due" badge is computed from `invoice_payments` rows for that quote where `status = 'paid'`. As long as the row stays `pending`, the invoice considers the deposit unpaid and shows the full balance. There is no other place in the app that marks deposits paid automatically — the only automatic path is the webhook. (The one "paid" deposit row that exists for QTR-001 has no `stripe_session_id` and no `stripe_payment_intent`, which means it was recorded manually, not by Stripe.)
 
-| id        | status      | stripe_session_id  | stripe_payment_intent | paid_at  | created_at |
-| --------- | ----------- | ------------------ | --------------------- | -------- | ---------- |
-| b5807b4a… | **pending** | `cs_test_a1cuZMM…` | null                  | null     | 14:24:20   |
-| 817cd9ac… | **paid**    | **null**           | **null**              | 14:27:59 | 14:27:59   |
+### What's actually missing
 
+A **test-mode Connect webhook endpoint registered in Stripe** that:
 
-Two separate rows. The first (pending, with `cs_test_…` session id) was inserted by `createPortalCheckout` at checkout-start. The second (paid, **no Stripe identifiers**) was inserted ~3.5 minutes later when you clicked the manual "deposit received" button — that's the exact shape `recordManualDeposit` writes in `payments.functions.ts` (no session, no PI, payment_method="cash"/"bank").
+- points at the same preview host the checkout session was created from
+- URL: `https://<preview-host>/api/public/payments/connect-webhook?env=sandbox`
+- listens on **"Events on Connected accounts"** (not the platform account)
+- subscribes to at least: `checkout.session.completed`, `payment_intent.succeeded`, `payment_intent.payment_failed`, `checkout.session.expired`, `account.updated`
+- has its signing secret stored as `STRIPE_CONNECT_SANDBOX_WEBHOOK_SECRET` (already present in secrets)
 
-If the webhook had fired, `handlePaidEvent` would have matched the pending row by `stripe_session_id` and flipped it to `status="paid"` with `paid_at` set — instead, the pending row is **untouched** and a parallel manual row sits beside it.
+Without that endpoint registered on the connected-account scope, Stripe has nowhere to send the event, so it's never delivered — which is exactly the silence we see in logs.
 
-The "£910 payment received" the customer saw on the portal came from `?paid=1` in the Stripe redirect URL → `setPaymentResult("paid")` on the client (`portal.$token.tsx` line 92). That's pure client-side state, no DB writeback required. The 30s poll (lines 110–133) then ran and never observed the status change to "accepted" (because the webhook never wrote it), but the success card stayed visible regardless and the spinner just timed out silently.
+### Recommendation (no code changes needed)
 
-### Q3. Is the test-mode webhook endpoint registered and verifying?
+This is a Stripe-dashboard configuration task, not a code change. The handler, the secret, the trader's Connect status, and the checkout flow are all correct. The next action is to register the test Connect webhook on the correct preview host with the event list above, then re-run a deposit on QTR-001 and confirm:
 
-**Almost certainly NOT registered for test-mode Connect events.** I cannot read Stripe's webhook delivery dashboard directly, but the circumstantial evidence is decisive:
+- a POST to `/api/public/payments/connect-webhook?env=sandbox` shows in preview logs
+- the `invoice_payments` row for that session flips from `pending` to `paid`
+- the invoice UI then shows "deposit received · balance £Y due"
 
-- The Connect webhook handler (`src/routes/api/public/payments/connect-webhook.ts`) is where connected-account deposit events land (direct charges go to the connected account, not the platform). It uses `STRIPE_CONNECT_WEBHOOK_SECRET`, which is set.
-- `STRIPE_CONNECT_WEBHOOK_SECRET` was provisioned for the **live-mode** Connect webhook endpoint. Stripe test mode and live mode are separate namespaces with separate endpoint registrations and separate signing secrets. The live webhook endpoint cannot receive test-mode events.
-- `error_events` has zero `payments.webhook.*` or `payments.connect.*` rows for the relevant timeframe — but the Connect handler does NOT call `logErrorEvent` on invalid signature OR on missing secret (it just returns 200 with a console warning). So absence of error rows is not exonerating; it's expected even on a silent failure.
-- No row in `invoice_payments` was ever updated by session id for this payment → handler body never executed → either no delivery, or signature rejected silently.
-
-**Conclusion:** the webhook is firing in test mode (Stripe DOES send), but there is no test-mode Connect webhook endpoint registered to receive it, OR one is registered against a different signing secret than `STRIPE_CONNECT_WEBHOOK_SECRET`. Net result: zero deliveries reach our handler. The platform webhook (`/payments/webhook?env=sandbox`) is unaffected because Connect direct charges don't route through it.
-
-### Summary of where it broke
-
-> **Webhook is firing → but never reaching our handler → branch never runs.**
-> It's not (1) handler missing a deposit branch, and not (3b) signature rejection — it's the test-mode Connect webhook endpoint itself not being registered (or registered against the wrong secret).
-
----
-
-## The "Paid in full" fallback bug (separate issue, same screen)
-
-Confirmed in `src/routes/portal.$token.tsx`:
-
-- Line 213: `const isPaid = status === "paid" || paymentResult === "paid";`
-- Line 544: `{isPaid && (<div>… <Check/> Paid in full …</div>)}`
-
-After a deposit redirect, `paymentResult==="paid"` is set from `?paid=1` regardless of whether the actual payment was a deposit or a full payment. `isPaid` becomes `true`, so the bottom "Paid in full" green badge renders — even though `quote.status` is still "accepted" (deposit) or "sent" (webhook never ran). This is the dangerous "default toward customer owes nothing" failure mode you flagged.
-
-### Planned fix (one file, frontend only)
-
-`src/routes/portal.$token.tsx`:
-
-1. Introduce a stricter `isPaidInFull` derived from the **server state only**, not from the redirect param:
-  ```ts
-   const isPaidInFull = status === "paid";
-  ```
-2. Keep the existing `isPaid` for the top success card (so the "Payment received — thank you" copy still appears on redirect), but gate the bottom green "Paid in full" badge (line 544) on `isPaidInFull` instead of `isPaid`.
-3. Add an explicit "deposit paid, balance outstanding" badge that renders when `status === "accepted"` AND a paid deposit row exists, showing `Balance of £X due on completion` — so when the customer revisits the portal after the webhook eventually catches up (or after the manual button), they see the truthful state, never "Paid in full".
-4. The fail-safe rule encoded in code: `**Paid in full` must require `status === "paid"`. Any other state — including `accepted`, `sent`, `pending`, or any unknown value — renders a balance-due affordance, never "Paid in full".**
-
-No backend changes in this batch. Webhook registration is a Stripe-dashboard / connector-side action and is handled separately once you confirm the diagnosis above.
-
-### Not in this batch (call out explicitly)
-
-- Registering the test-mode Connect webhook endpoint in Stripe and confirming its signing secret matches `STRIPE_CONNECT_WEBHOOK_SECRET` (or wiring a separate `STRIPE_CONNECT_SANDBOX_WEBHOOK_SECRET` and routing by `?env=` like the platform webhook does).
-- Adding `logErrorEvent` on invalid signature / missing secret in `connect-webhook.ts` so the next silent failure is visible.
-- Backfilling QTR-001's pending `invoice_payments` row to paid (you already covered it with the manual button — leaving the orphaned pending row alone for now).
-
-Approve to apply only the portal fallback change; we'll tackle webhook registration and observability in a follow-up plan.
-
-Approve the portal fallback fix as written — one check: point 3's "paid deposit row exists" must require a row with status="paid", not the orphaned pending row, so an abandoned checkout never renders as deposit-paid.
-
-But the Connect webhook is not a follow-up — it's a launch blocker at the same severity in live. Your own diagnosis shows `connect-webhook.ts` returns 200 and only console-warns on invalid signature or missing secret, with no `logErrorEvent`. That means the **live** Connect webhook could be failing exactly as silently as test mode just did, and we'd never know — a real customer's deposit would land in Stripe, the quote would never update, no error would log. So in the same batch as (or immediately after) the portal fix:
-
-1. Register the test-mode Connect webhook endpoint and wire `STRIPE_CONNECT_SANDBOX_WEBHOOK_SECRET`, routed by `?env=` like the platform webhook — and confirm the live Connect endpoint is correctly registered against `STRIPE_CONNECT_WEBHOOK_SECRET`.
-2. Add `logErrorEvent` on invalid-signature and missing-secret in `connect-webhook.ts` so the next silent failure is visible. Consider whether a signature failure should really return 200.
+If after registering the endpoint we still see no POST in our logs, the next thing to check is whether the preview host the customer paid from matches the host configured on the webhook — a mismatch there is the most common cause of silent non-delivery for Connect webhooks.
