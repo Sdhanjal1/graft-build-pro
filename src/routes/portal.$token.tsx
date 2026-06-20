@@ -336,12 +336,31 @@ function PortalPage() {
               <h2 className="text-2xl leading-tight">
                 {isDepositOnly ? "Deposit received — thank you!" : "Payment received — thank you!"}
               </h2>
-              <p className="text-sm text-muted-foreground mt-2">
-                {isDepositOnly
-                  ? `Balance of ${formatGBP(balanceAmount)} due on completion. Your tradesperson has been notified.`
-                  : "A receipt and invoice have been emailed to you."}
-              </p>
-              <p className="num text-3xl mt-3">{formatGBP(payAmount)}</p>
+              {isDepositOnly ? (
+                <>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Your tradesperson has been notified.
+                  </p>
+                  <div className="mt-3 inline-flex flex-col items-center gap-0.5">
+                    <p className="num text-3xl leading-none">
+                      {formatGBP(payAmount)} <span className="text-base text-muted-foreground font-normal">paid</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      <span className="num font-semibold text-ink">{formatGBP(balanceAmount)}</span> due on completion
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Job total <span className="num text-ink">{formatGBP(total)}</span>
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    A receipt and invoice have been emailed to you.
+                  </p>
+                  <p className="num text-3xl mt-3">{formatGBP(payAmount)}</p>
+                </>
+              )}
               {confirming && !isPaid && !isDepositOnly && (
                 <p className="text-xs text-muted-foreground mt-3 inline-flex items-center gap-1.5">
                   <Loader2 className="h-3 w-3 animate-spin" /> Confirming with your tradesperson…
@@ -624,9 +643,16 @@ function PortalPage() {
                 </button>
               </div>
             ) : isPaid ? (
-              <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
-                <Check className="h-4 w-4" /> Paid
-              </div>
+              isPaidInFull ? (
+                <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
+                  <Check className="h-4 w-4" /> Paid
+                </div>
+              ) : (
+                <div className="h-12 px-4 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
+                  <Check className="h-4 w-4" />
+                  <span className="truncate">Deposit paid · <span className="num">{formatGBP(balanceAmount)}</span> due on completion</span>
+                </div>
+              )
             ) : status === "accepted" ? (
               <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
                 <Check className="h-4 w-4" /> Accepted
