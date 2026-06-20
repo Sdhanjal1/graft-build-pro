@@ -742,6 +742,71 @@ export const buildInvoiceMessage = (quote: Quote, clientFirstName: string) => {
 };
 
 /**
+ * Message used by the "Job done" action. Depending on the payment timing:
+ * - invoice: full final invoice for the total (delegates to buildInvoiceMessage).
+ * - balance: balance due after the recorded deposit (deposit credited line).
+ * - receipt: paid-in-full thank you. NO bank details, NO payment link, NO ask.
+ */
+export const buildJobDoneMessage = (
+  quote: Quote,
+  clientFirstName: string,
+  mode: "invoice" | "balance" | "receipt",
+  amount: number,
+  depositPaid = 0,
+): string => {
+  const first = clientFirstName || "there";
+  const me = userProfile.full_name.split(" ")[0];
+
+  if (mode === "invoice") {
+    return buildInvoiceMessage(quote, first);
+  }
+
+  if (mode === "receipt") {
+    return [
+      `Hi ${first}, all done on "${quote.title}" — thanks again.`,
+      `Your payment of ${formatGBP(quote.total)} is received in full (ref ${quote.ref}). No further payment due.`,
+      `Your receipt is here: ${stripePaymentLink(quote) || ""}`.trim(),
+      "",
+      `Thanks, ${me}, ${userProfile.business_name}`,
+      "",
+      "Sent via Quottr.",
+    ].filter(Boolean).join("\n");
+  }
+
+  // balance
+  const lines: string[] = [
+    `Hi ${first}, the work on "${quote.title}" is complete — thanks for having us.`,
+    `Final balance due: ${formatGBP(amount)} (total ${formatGBP(quote.total)} less deposit ${formatGBP(depositPaid)} received — thank you).`,
+    "",
+  ];
+  if (quote.payment_method === "card" && quote.payment_request?.link) {
+    lines.push(`Pay by card: ${quote.payment_request.link}`);
+  } else if (quote.payment_method === "card") {
+    lines.push(`Pay by card: ${stripePaymentLink(quote)}`);
+  } else if (quote.payment_method === "bank") {
+    lines.push(
+      "Pay by bank transfer:",
+      `  Account name: ${userProfile.bank_account_name}`,
+      `  Bank: ${userProfile.bank_name}`,
+      `  Sort code: ${userProfile.sort_code}`,
+      `  Account number: ${userProfile.account_number}`,
+      `  Reference: ${quote.ref}`,
+    );
+  } else if (quote.payment_method === "cash") {
+    lines.push("Payment method: Cash on completion.");
+  }
+  lines.push(
+    "",
+    `Payment terms: ${userProfile.payment_terms}`,
+    "",
+    `Thanks, ${me}, ${userProfile.business_name}`,
+    "",
+    "Sent via Quottr.",
+  );
+  return lines.join("\n");
+};
+
+/**
  * Standard chaser copy. Tone depends on status:
  * - completed → friendly "hope the job went well" reminder (invoice now due)
  * - overdue → firmer nudge with days-overdue figure

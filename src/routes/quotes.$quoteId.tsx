@@ -5,8 +5,8 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getQuote, getClient, userProfile, formatGBP, waLink,
-  buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
-  duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
+  buildInvoiceMessage, buildJobDoneMessage, stripePaymentLink, buildPaymentRequest,
+  duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor, cancelChasesFor,
   setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming, markQuotePaid,
   
   deleteQuote,
@@ -105,8 +105,9 @@ function QuoteDetail() {
   const [error, setError] = useState<string | null>(null);
   
   const [askDeposit, setAskDeposit] = useState(false);
-  const [askInvoice, setAskInvoice] = useState(false);
+  const [confirmJobDone, setConfirmJobDone] = useState(false);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
+  const [completedAt, setCompletedAt] = useState<string | undefined>(quote.completed_at);
   const [sendOpen, setSendOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [actioning, setActioning] = useState(false);
@@ -344,7 +345,6 @@ function QuoteDetail() {
     try {
       await markQuotePaid(quote.id, m);
       setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
-      setAskInvoice(true);
       feedback("success");
       celebratePaid(quote.total);
       invalidatePaidQuoteCount();
@@ -401,7 +401,6 @@ function QuoteDetail() {
         setInvoicedAt(inv.invoiced_at);
         ensureChasesFor(inv);
       }
-      setAskInvoice(false);
       navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
     } catch (e) {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't issue invoice");
@@ -491,17 +490,104 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't generate PDF");
     }
   };
-  // Mark job physically complete (separate from marking paid).
-  const completeJob = async () => {
+  // Single payment-type-aware "Job done" action.
+  // Mode is derived from payment_timing + current status:
+  //  - "receipt": already-paid-in-full (upfront or otherwise) → thank-you, no chases.
+  //  - "balance": deposit_then_balance → final invoice for the outstanding balance.
+  //  - "invoice": on_completion (default) → full final invoice.
+  const jobDoneMode: "invoice" | "balance" | "receipt" =
+    (status === "paid" || timing === "upfront")
+      ? "receipt"
+      : timing === "deposit_then_balance"
+      ? "balance"
+      : "invoice";
+  const jobDoneAmount =
+    jobDoneMode === "balance"
+      ? Math.max(0, +(Number(quote.total) - Number(depositPaid || 0)).toFixed(2))
+      : Number(quote.total);
+  const jobDoneFirst = client?.name?.split(" ")[0] ?? "the customer";
+  const jobDonePreview = (() => {
+    if (jobDoneMode === "receipt") {
+      return {
+        title: `Mark "${quote.title}" done?`,
+        body: `We'll send ${jobDoneFirst} a paid-in-full receipt (${formatGBP(quote.total)} — already paid). No further payment will be requested.`,
+      };
+    }
+    if (jobDoneMode === "balance") {
+      return {
+        title: `Mark done and send the ${formatGBP(jobDoneAmount)} balance?`,
+        body: `We'll mark the job complete and send ${jobDoneFirst} an invoice for the ${formatGBP(jobDoneAmount)} balance (deposit of ${formatGBP(depositPaid)} credited).${client?.email ? ` Emailed to ${client.email}.` : ""}`,
+      };
+    }
+    return {
+      title: `Mark done and send the ${formatGBP(jobDoneAmount)} invoice?`,
+      body: `We'll mark the job complete and send ${jobDoneFirst} the final ${formatGBP(jobDoneAmount)} invoice.${client?.email ? ` Emailed to ${client.email}.` : ""}`,
+    };
+  })();
+
+  const jobDone = async () => {
     try {
-      await markJobComplete(quote.id);
-      setStatusState("completed");
+      // 1. Mark complete if not already.
+      if (!completedAt && status !== "completed") {
+        const c = await markJobComplete(quote.id);
+        if (c?.completed_at) setCompletedAt(c.completed_at);
+        setStatusState((s) => (s === "paid" ? "paid" : "completed"));
+      }
+
+      // 2. Issue invoice record (gives invoice_due_date, chases, /invoices PDF).
+      //    For receipt mode, skip: no chases on already-paid work.
+      if (jobDoneMode !== "receipt" && !invoicedAt) {
+        const inv = await markInvoiced(quote.id);
+        if (inv?.invoiced_at) setInvoicedAt(inv.invoiced_at);
+        if (inv) ensureChasesFor(inv);
+      } else if (jobDoneMode === "receipt") {
+        // Bulletproof: an already-paid customer must never get chase reminders.
+        cancelChasesFor(quote.id);
+      }
+
+      // 3. Auto-email via Resend (best-effort). The invoice screen shows status.
+      let emailedTo: string | null = null;
+      try {
+        const res = await sendInvoiceEmailFn({ data: { quoteId: quote.id } });
+        if (res && (res as { status?: string }).status === "sent") {
+          emailedTo = (res as { to?: string }).to ?? client?.email ?? null;
+        }
+      } catch {
+        // Surfaced on the invoice screen; don't block the trader.
+      }
+
+      // 4. Tell the trader what happened and offer the right next step.
       feedback("success");
-      toast.success("Job done. Time to get paid.");
+      const hasPhone = !!client?.phone;
+      if (jobDoneMode === "receipt") {
+        if (emailedTo) {
+          toast.success(`Job done. Receipt emailed to ${jobDoneFirst}.`);
+        } else if (hasPhone) {
+          const msg = buildJobDoneMessage(liveQuote, jobDoneFirst, "receipt", jobDoneAmount, depositPaid);
+          window.open(waLink(client.phone, msg), "_blank");
+          toast.success("Job done. Receipt ready to send on WhatsApp.");
+        } else {
+          toast.success("Job done. No email or phone on file — share the receipt manually.");
+        }
+      } else {
+        if (emailedTo) {
+          toast.success(`Job done. Invoice emailed to ${jobDoneFirst}.`);
+        } else if (hasPhone) {
+          const msg = buildJobDoneMessage(liveQuote, jobDoneFirst, jobDoneMode, jobDoneAmount, depositPaid);
+          window.open(waLink(client.phone, msg), "_blank");
+          toast.success("Job done. Invoice ready to send on WhatsApp.");
+        } else {
+          toast.success("Job done. No email or phone on file — share the invoice manually.");
+        }
+      }
+
+      navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
     } catch (e) {
-      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
+      feedback("error");
+      toast.error(e instanceof Error ? e.message : "Couldn't complete the job");
     }
   };
+
 
   // Debounced save of payment timing / deposit changes.
   const timingSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -565,9 +651,20 @@ function QuoteDetail() {
   } else if (status === "sent") {
     primary = { label: "Customer accepted", icon: ThumbsUp, onClick: acceptQuote };
   } else if (status === "accepted") {
-    primary = { label: "Mark job complete", icon: Check, onClick: completeJob };
+    // ONE smart action — handles complete + invoice/balance/receipt together,
+    // dispatched by jobDoneMode (derived from payment_timing).
+    const label =
+      jobDoneMode === "receipt" ? "Job done — send receipt" :
+      jobDoneMode === "balance" ? `Job done — send ${formatGBP(jobDoneAmount)} balance` :
+      "Job done — send invoice";
+    primary = { label, icon: Check, onClick: () => setConfirmJobDone(true) };
+  } else if (status === "paid" && !completedAt) {
+    // Upfront-paid quotes still need a "job done" tap to mark complete + send a receipt.
+    primary = { label: "Job done — send receipt", icon: Check, onClick: () => setConfirmJobDone(true) };
   } else if (status === "completed") {
-    primary = { label: "Mark paid", icon: CheckCircle2, onClick: () => setAskingPaid(true) };
+    // Fallback: customer paid by cash/bank outside the app. Mark Paid is the
+    // only remaining manual step here.
+    primary = { label: "Mark paid (cash / bank)", icon: CheckCircle2, onClick: () => setAskingPaid(true) };
   } else if (status === "paid") {
     primary = { label: invoicedAt ? "Share invoice" : "Share receipt", icon: Share2, onClick: sharePdf };
   } else {
@@ -1169,27 +1266,22 @@ function QuoteDetail() {
       </Sheet>
 
 
-      {/* Bottom sheet: send final invoice */}
-      {askInvoice && (
-        <div className="fixed inset-0 z-50 flex items-end bg-ink/60" onClick={() => setAskInvoice(false)}>
-          <div className="w-full max-w-md mx-auto bg-paper rounded-t-3xl p-5 pb-6" onClick={(e) => e.stopPropagation()}>
-            <div className="h-1 w-10 bg-ink/20 rounded-full mx-auto mb-4" />
-            <h3 className="text-2xl">Ready to send final invoice?</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              We'll generate a clean INVOICE document with the bank details and payment link at the top, and set a 14-day payment due date.
-            </p>
-            <button
-              onClick={issueInvoice}
-              className="w-full mt-4 bg-lime text-ink rounded-full py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2"
-            >
-              <FileText className="h-4 w-4" /> Generate invoice
-            </button>
-            <button onClick={() => setAskInvoice(false)} className="w-full mt-2 text-sm text-muted-foreground py-2">
-              Not yet
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Confirm: Job done (mark complete + auto-send invoice/balance/receipt) */}
+      <AlertDialog open={confirmJobDone} onOpenChange={setConfirmJobDone}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{jobDonePreview.title}</AlertDialogTitle>
+            <AlertDialogDescription>{jobDonePreview.body}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmJobDone(false); void jobDone(); }}>
+              Yes, do it
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {/* Confirm dialogs — replace native window.confirm for parity with Settings */}
       <AlertDialog open={confirmRemoveDeposit} onOpenChange={setConfirmRemoveDeposit}>
