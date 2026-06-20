@@ -166,7 +166,10 @@ function ClientPortalPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 
-  // Fast poll for webhook confirmation after a paid redirect
+  // Fast poll for webhook confirmation after a paid redirect.
+  // Deposit payments set quote.status to "accepted" (not "paid") so we accept
+  // either as a successful confirmation, otherwise the spinner would never
+  // resolve for deposit flows.
   useEffect(() => {
     if (paymentResult !== "paid") return;
     let stopped = false;
@@ -176,8 +179,10 @@ function ClientPortalPage() {
       if (stopped) return;
       attempts++;
       const r = await load();
-      const anyPaid = r?.quotes?.some((q: any) => q.status === "paid");
-      if (anyPaid) {
+      const confirmed = r?.quotes?.some(
+        (q: any) => q.status === "paid" || q.status === "accepted",
+      );
+      if (confirmed) {
         setConfirming(false);
         return;
       }
@@ -197,6 +202,29 @@ function ClientPortalPage() {
     setRespondingId(quoteId);
     try {
       await respondQuote({ data: { code, quoteId, response } });
+      // If the customer accepted a quote that needs payment up front and the
+      // trader has card payments enabled, kick off Stripe checkout. Without
+      // this redirect the "Accept & pay" button on the hub silently did
+      // nothing financial (quote flipped to accepted but no charge).
+      if (response === "accepted") {
+        const quote = data?.quotes?.find((q: any) => q.id === quoteId);
+        const timing = ((quote as any)?.payment_timing as PaymentTiming) ?? "on_completion";
+        const cardEnabled = !!(data?.profile as any)?.stripe_connect_charges_enabled;
+        if ((timing === "upfront" || timing === "deposit_then_balance") && cardEnabled) {
+          const reqType: "deposit" | "full" =
+            timing === "deposit_then_balance" ? "deposit" : "full";
+          try {
+            const origin = typeof window !== "undefined" ? window.location.origin : "";
+            const r = await startCheckoutFromCode({
+              data: { code, quoteId, requestType: reqType, returnOrigin: origin },
+            });
+            window.location.href = r.url;
+            return;
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Could not start payment");
+          }
+        }
+      }
       await load();
       if (response === "accepted") {
         toast.success("Quote accepted — your tradesperson has been notified.");
