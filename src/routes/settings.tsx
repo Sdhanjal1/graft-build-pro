@@ -191,30 +191,70 @@ function SettingsPage() {
       ),
     ]);
 
-  const handleLogoFile = async (file: File) => {
-    if (!file) return;
-    if (!/^image\/(png|jpeg|jpg)$/i.test(file.type)) {
-      toast.error("Use a PNG or JPG image");
+  const handleLogoFile = async (input: File) => {
+    if (!input) return;
+    console.info("[logo] picked", { name: input.name, type: input.type, size: input.size });
+
+    const name = (input.name || "").toLowerCase();
+    const extMatch = name.match(/\.([a-z0-9]+)$/);
+    const ext = extMatch?.[1] ?? "";
+    const mime = (input.type || "").toLowerCase();
+    const isHeic = ext === "heic" || ext === "heif" || mime === "image/heic" || mime === "image/heif";
+    const allowedExt = ["png", "jpg", "jpeg", "webp"];
+    const allowedMime = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+    const looksLikeImage =
+      allowedMime.includes(mime) || (!mime && allowedExt.includes(ext));
+
+    if (!isHeic && !looksLikeImage) {
+      toast.error("Use a PNG, JPG or WebP image", { duration: 6000 });
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Logo must be 5MB or smaller");
+    if (input.size > 8 * 1024 * 1024) {
+      toast.error("Logo must be 8MB or smaller", { duration: 6000 });
       return;
     }
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      toast.error("You're offline. Reconnect to upload.");
+      toast.error("You're offline. Reconnect to upload.", { duration: 6000 });
       return;
     }
+
     setUploading(true);
     try {
+      let file: File = input;
+      let uploadExt = ext || "png";
+      let uploadType = mime || "image/png";
+
+      if (isHeic) {
+        // iPhone HEIC → JPEG, client-side. Lazy-load so the converter
+        // doesn't bloat the initial settings bundle.
+        try {
+          const { default: heic2any } = await import("heic2any");
+          const converted = await heic2any({ blob: input, toType: "image/jpeg", quality: 0.9 });
+          const blob = Array.isArray(converted) ? converted[0] : converted;
+          file = new File([blob], name.replace(/\.(heic|heif)$/, ".jpg"), { type: "image/jpeg" });
+          uploadExt = "jpg";
+          uploadType = "image/jpeg";
+        } catch (convErr) {
+          console.error("[logo] HEIC conversion failed", convErr);
+          toast.error(
+            "Couldn't convert that iPhone photo. In Camera settings choose 'Most Compatible', or pick a PNG/JPG.",
+            { duration: 8000 },
+          );
+          setUploading(false);
+          return;
+        }
+      } else {
+        uploadExt = ext || (mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg");
+        uploadType = mime || (uploadExt === "png" ? "image/png" : uploadExt === "webp" ? "image/webp" : "image/jpeg");
+      }
+
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not signed in");
-      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
-      const path = `${userData.user.id}/logo-${Date.now()}.${ext}`;
+      const path = `${userData.user.id}/logo-${Date.now()}.${uploadExt}`;
       const { error: upErr } = await withTimeout(
         supabase.storage.from("branding").upload(path, file, {
           upsert: true,
-          contentType: file.type,
+          contentType: uploadType,
         }),
       );
       if (upErr) throw upErr;
@@ -222,17 +262,18 @@ function SettingsPage() {
       saveProfile({ logo_url: pub.publicUrl });
       toast.success("Logo updated");
     } catch (e) {
-      console.error(e);
-      const msg = e instanceof Error ? e.message : "";
+      console.error("[logo] upload failed", e);
+      const msg = e instanceof Error ? e.message : String(e);
       if (/timed out/i.test(msg)) {
-        toast.error("Upload timed out — check your connection");
+        toast.error("Upload timed out — check your connection", { duration: 6000 });
       } else {
-        toast.error("Couldn't upload logo");
+        toast.error(`Couldn't upload logo: ${msg || "unknown error"}`, { duration: 8000 });
       }
     } finally {
       setUploading(false);
     }
   };
+
 
   const removeLogo = () => saveProfile({ logo_url: "" });
 
