@@ -28,7 +28,7 @@ export async function sendAndRecordInvoiceEmail(opts: {
     const [{ data: quote }, { data: profile }] = await Promise.all([
       supabaseAdmin
         .from("quotes")
-        .select("id, ref, title, job_description, line_items, subtotal, vat_amount, total, vat_registered, status, created_at, client_id, paid_at")
+        .select("id, ref, title, job_description, line_items, subtotal, vat_amount, total, vat_registered, status, created_at, client_id")
         .eq("id", opts.quoteId)
         .maybeSingle(),
       supabaseAdmin
