@@ -55,25 +55,54 @@ function isLabourLine(li: LineItem): boolean {
 
 function normalizeLineItems(items: LineItem[]): LineItem[] {
   const materials: LineItem[] = [];
-  let labourTotal = 0;
-  let sawLabour = false;
+  const labour: LineItem[] = [];
   for (const li of items) {
-    if (isLabourLine(li)) {
-      sawLabour = true;
-      labourTotal += (li.qty || 0) * (li.unit_price || 0);
-    } else {
-      materials.push(li);
-    }
+    if (isLabourLine(li)) labour.push(li);
+    else materials.push(li);
   }
-  if (!sawLabour) return materials;
-  const labourLine: LineItem = {
-    description: "Labour",
-    qty: 1,
-    unit_price: +labourTotal.toFixed(2),
-    category: "labour",
-    unit: "qty",
-  };
-  return [...materials, labourLine];
+  if (labour.length === 0) return materials;
+
+  const allCis = labour.every((li) => li.category === "cis_labour");
+  const category: LineItem["category"] = allCis ? "cis_labour" : "labour";
+
+  // 1) Exactly one labour line — pass through unchanged (preserve unit/rate/source).
+  if (labour.length === 1) {
+    return [...materials, { ...labour[0], category }];
+  }
+
+  // 2) All labour lines share the same time-based unit AND the same unit_price
+  //    → merge into one line with summed qty, keep unit and per-unit rate.
+  const firstUnit = labour[0].unit;
+  const firstPrice = labour[0].unit_price || 0;
+  const sameTimeUnit =
+    (firstUnit === "hours" || firstUnit === "days") &&
+    labour.every((li) => li.unit === firstUnit && (li.unit_price || 0) === firstPrice);
+  if (sameTimeUnit) {
+    const qty = labour.reduce((s, li) => s + (li.qty || 0), 0);
+    return [
+      ...materials,
+      {
+        description: "Labour",
+        qty: +qty.toFixed(2),
+        unit_price: firstPrice,
+        unit: firstUnit,
+        category,
+      },
+    ];
+  }
+
+  // 3) Mixed units or mixed rates — collapse to a single qty=1 total line.
+  const labourTotal = labour.reduce((s, li) => s + (li.qty || 0) * (li.unit_price || 0), 0);
+  return [
+    ...materials,
+    {
+      description: "Labour",
+      qty: 1,
+      unit_price: +labourTotal.toFixed(2),
+      unit: "qty",
+      category,
+    },
+  ];
 }
 
 function normalizeDescriptionKey(s: string): string {
