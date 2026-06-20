@@ -386,6 +386,3 @@ function InvoicePage() {
     </AppShell>
   );
 }
-    </AppShell>
-  );
-}
