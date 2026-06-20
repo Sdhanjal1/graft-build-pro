@@ -37,7 +37,7 @@ import { SendQuoteDialog } from "@/components/SendQuoteDialog";
 import { AssignClientDialog } from "@/components/AssignClientDialog";
 import { listQuoteMessages, sendProMessage } from "@/lib/messages.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { usePaidQuoteCount, useInvalidatePaidQuoteCount, normalizeSource } from "@/hooks/usePaidQuoteCount";
 import { useScrollVisible } from "@/hooks/use-scroll-direction";
 import { useConnectStatus } from "@/hooks/useConnectStatus";
