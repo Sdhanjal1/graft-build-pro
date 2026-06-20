@@ -1,34 +1,37 @@
-## Fix manual "record deposit paid" — refresh UI + surface the action
+## Fix: `permission denied for function generate_portal_code`
 
-Scope: `src/routes/quotes.$quoteId.tsx` only. Manual/off-platform path (cash/bank) for `deposit_then_balance`. Stripe webhook path untouched.
+### Cause
 
-### 1. Fix the "no refresh" bug (local state refetch, not router invalidation)
+When a quote is saved, the app inserts a new row into `public.clients` (`src/lib/user-data.ts:1088`). That fires the `BEFORE INSERT` trigger `trg_set_client_portal_code`, which runs `set_client_portal_code()` → which calls `generate_portal_code()`.
 
-Approach: **local refetch** of `getQuotePaymentStatus`, not `router.invalidate()`. Reason: `depositPaid` / `depositRecorded` are local `useState` populated by an in-component `useEffect` calling `fetchPaymentsFn` — they aren't loader data, so invalidating the route wouldn't re-run that effect. Refetching directly is the reliable, minimal change and keeps the existing data flow.
+Current grants (from `pg_proc.proacl`):
 
-Changes:
-- Extract the body of the existing `useEffect` (lines 231–245) into a `refreshPayments` callback (`useCallback`, deps `[quote.id, fetchPaymentsFn]`) that sets `depositPaid` and `depositRecorded` from the latest rows. The `useEffect` just calls it on mount.
-- In `handleRecordManualDeposit` (line 206), after `recordDepositFn` succeeds, `await refreshPayments()` before the `setTimeout` that closes the sheets. This guarantees the balance line (`LineItemsEditor depositPaid={...}`) and the new "Deposit received" state both reflect the new row immediately — no reload.
-- Same `refreshPayments()` call added to `removeManualDeposit`'s success handler so reversal also updates instantly (small consistency fix, no behaviour change otherwise).
+```
+generate_portal_code     → postgres, service_role, sandbox_exec   (NO authenticated)
+set_client_portal_code   → postgres, service_role, sandbox_exec   (NO authenticated)
+```
 
-### 2. Surface the action for `deposit_then_balance`
+Neither function is `SECURITY DEFINER`, so both execute as the calling role (`authenticated`). The trigger itself fires because trigger execution doesn't require EXECUTE on the trigger function, but the nested call to `generate_portal_code()` from inside `set_client_portal_code` does — and `authenticated` has none. Hence "permission denied for function generate_portal_code" on quote save.
 
-Today the totals block (lines 741–752) shows "Deposit due / Balance" when `timing === "deposit_then_balance" && configuredDeposit > 0`. Add an inline CTA directly under that block, only when:
+### Fix (minimal, no SECURITY DEFINER needed)
 
-- `timing === "deposit_then_balance"`
-- `configuredDeposit > 0`
-- `status !== "paid"`
-- `depositPaid === 0` (i.e. not yet recorded — covers both card-via-Stripe and manual; once either lands, this disappears)
+Grant EXECUTE on the two functions to `authenticated`. `generate_portal_code` only builds a random 32-char string from a fixed alphabet — no table access, no privilege concerns — so plain EXECUTE is safe and avoids changing the security model.
 
-CTA UI: a single tappable row inside the same card, styled like the existing inline prompts on this screen — left: "Deposit not yet received · Tap to record bank/cash payment"; right: chevron. Tapping it opens the **existing** `recordDepositOpen` sheet (already wired at line 1237 with Cash received / Bank received buttons), so no new sheet, no new server fn, no duplicated logic.
+Migration:
 
-When `depositPaid > 0`, the CTA is replaced by a "Deposit received · £X" confirmation row (same card), and the existing balance line continues to render. The "Cash received / Bank received" buttons in More-actions stay as-is for power users.
+```sql
+GRANT EXECUTE ON FUNCTION public.generate_portal_code() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.set_client_portal_code() TO authenticated;
+```
+
+I'll skip `anon` — portal/public paths don't insert clients, only authenticated traders do.
+
+I am NOT changing either function to `SECURITY DEFINER`, since EXECUTE grants are sufficient and don't elevate privileges.
+
+### Verify
+
+After the migration, re-check `pg_proc.proacl` shows `authenticated=X/...` for both functions, then save a quote with a new client from the app to confirm the trigger runs without error.
 
 ### Files
 
-- `src/routes/quotes.$quoteId.tsx` — extract `refreshPayments`, await it in record/remove handlers, add CTA + received row inside the totals card.
-
-### Out of scope
-
-- No changes to `payments.functions.ts`, webhook, Stripe path, or other routes.
-- No router/loader invalidation; local refetch only.
+- One new migration only. No application code changes.
