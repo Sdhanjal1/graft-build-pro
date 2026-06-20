@@ -504,6 +504,10 @@ export type Database = {
           due_date: string | null
           id: string
           invoice_due_date: string | null
+          invoice_email_error: string | null
+          invoice_email_sent_at: string | null
+          invoice_email_status: string | null
+          invoice_email_to: string | null
           invoiced_at: string | null
           job_description: string | null
           line_items: Json
@@ -535,6 +539,10 @@ export type Database = {
           due_date?: string | null
           id?: string
           invoice_due_date?: string | null
+          invoice_email_error?: string | null
+          invoice_email_sent_at?: string | null
+          invoice_email_status?: string | null
+          invoice_email_to?: string | null
           invoiced_at?: string | null
           job_description?: string | null
           line_items?: Json
@@ -566,6 +574,10 @@ export type Database = {
           due_date?: string | null
           id?: string
           invoice_due_date?: string | null
+          invoice_email_error?: string | null
+          invoice_email_sent_at?: string | null
+          invoice_email_status?: string | null
+          invoice_email_to?: string | null
           invoiced_at?: string | null
           job_description?: string | null
           line_items?: Json
