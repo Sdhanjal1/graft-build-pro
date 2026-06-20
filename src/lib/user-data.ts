@@ -1096,7 +1096,14 @@ export const findOrCreateClient = async (name: string, opts?: Partial<Client>): 
   return client;
 };
 
-/** Compute next QTR reference (zero-padded 3 digits). */
+/**
+ * Compute next QTR reference (zero-padded 3 digits).
+ *
+ * @deprecated Client-side fallback only — used for preview rendering of
+ * unsaved drafts. Real persistence MUST go through `allocateQuoteRef` from
+ * `@/lib/quote-ref.functions` so the SELECT-then-INSERT happens server-side
+ * and the partial UNIQUE index can catch true races.
+ */
 export const nextQuoteRef = () => {
   const nums = mockQuotes
     .map((q) => Number((q.ref || "").replace(/[^0-9]/g, "")))
@@ -1104,6 +1111,35 @@ export const nextQuoteRef = () => {
   const next = (nums.length ? Math.max(...nums) : 0) + 1;
   return `QTR-${String(next).padStart(3, "0")}`;
 };
+
+/**
+ * Insert a quote with a server-allocated ref, retrying on the partial
+ * unique-index 23505 (race between two concurrent saves picking the same
+ * QTR-N).
+ */
+const MAX_REF_ATTEMPTS = 3;
+async function insertQuoteWithUniqueRef(
+  basePayload: Record<string, unknown>,
+): Promise<DbQuote> {
+  const { allocateQuoteRef } = await import("@/lib/quote-ref.functions");
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < MAX_REF_ATTEMPTS; attempt++) {
+    const { ref } = await allocateQuoteRef();
+    const payload = { ...basePayload, ref };
+    const { data, error } = await supabase
+      .from("quotes")
+      .insert(payload as never)
+      .select("*")
+      .single();
+    if (!error) return data as unknown as DbQuote;
+    const code = (error as { code?: string }).code;
+    if (code !== "23505") throw error;
+    lastErr = error;
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error("Could not allocate a unique quote ref. Try again in a moment.");
+}
 
 /** Save a generated quote to Lovable Cloud and return it. */
 export const saveGeneratedQuote = async (input: {
