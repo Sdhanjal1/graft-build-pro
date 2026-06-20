@@ -41,7 +41,7 @@ export async function sendAndRecordInvoiceEmail(opts: {
         .maybeSingle(),
       supabaseAdmin
         .from("profiles")
-        .select("business_name, full_name, phone, email, town, address_line_1, address_line_2, postcode, registration_number, vat_registered, vat_number")
+        .select("business_name, full_name, phone, email, town, address_line_1, address_line_2, postcode, registration_number, vat_registered, vat_number, logo_url")
         .eq("id", opts.userId)
         .maybeSingle(),
     ]);
