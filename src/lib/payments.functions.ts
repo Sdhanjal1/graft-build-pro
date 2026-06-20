@@ -390,6 +390,9 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
       payment_method: "card",
     });
 
+    return { url: json.url, sessionId: json.id, env, amount };
+  });
+
 // ---------- Public: customer pays from the CLIENT HUB portal (/portal/c/$code) ----------
 // Mirrors `createPortalCheckout` but authenticates via the client's portal_code
 // + quoteId combination instead of a quote-specific token. The client hub
@@ -412,7 +415,6 @@ export const createPortalCheckoutFromCode = createServerFn({ method: "POST" })
       ? data.returnOrigin
       : "https://quottr.co.uk";
 
-    // Verify the portal code is valid and active.
     const { data: client } = await supabaseAdmin
       .from("clients")
       .select("id, user_id, portal_active, portal_issued_at, email")
@@ -424,7 +426,6 @@ export const createPortalCheckoutFromCode = createServerFn({ method: "POST" })
       if (ageDays > 90) throw new Error("This portal link has expired. Please ask for a new one.");
     }
 
-    // Verify the quote belongs to this client and is portal-visible.
     const { data: quote } = await supabaseAdmin
       .from("quotes")
       .select("id, ref, title, total, deposit_amount, deposit_percent, status")
@@ -451,7 +452,6 @@ export const createPortalCheckoutFromCode = createServerFn({ method: "POST" })
       throw new Error("Quote total is too low to request payment (minimum 30p).");
     }
 
-    // Idempotency: reuse pending session if one exists.
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: existingPending } = await supabaseAdmin
       .from("invoice_payments")
@@ -550,8 +550,6 @@ export const createPortalCheckoutFromCode = createServerFn({ method: "POST" })
   });
 
 
-    return { url: json.url, sessionId: json.id, env, amount };
-  });
 
 // Record a manual (cash / bank) deposit. Writes the same shape of
 // invoice_payments row the Stripe webhook writes for card deposits, so the
