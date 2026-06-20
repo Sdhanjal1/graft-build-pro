@@ -78,7 +78,7 @@ export async function sendAndRecordInvoiceEmail(opts: {
     const mode: SendInvoiceEmailMode = opts.mode ?? (quote.status === "paid" ? "receipt" : "invoice");
 
     const paidAt = new Date().toISOString();
-    const pdfBytes = generateInvoicePdfBytes(
+    const pdfBytes = await generateInvoicePdfBytes(
       {
         ref: quote.ref,
         title: quote.title,
