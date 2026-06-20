@@ -12,6 +12,7 @@ import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 
 
 import { BusinessLogo } from "@/components/BusinessLogo";
+import { NotificationsBell } from "@/components/NotificationsBell";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
 import { HomeSkeleton } from "@/components/Skeletons";
@@ -189,13 +190,16 @@ function AppHomePage() {
                 </p>
               </div>
             </div>
-            <Link
-              to="/settings"
-              aria-label="Open settings"
-              className="h-10 w-10 shrink-0 grid place-items-center rounded-full bg-paper/10 ring-1 ring-paper/15 text-paper/80 hover:text-lime hover:bg-paper/15 active:text-lime transition"
-            >
-              <Settings className="h-5 w-5" />
-            </Link>
+            <div className="flex items-center gap-2">
+              <NotificationsBell />
+              <Link
+                to="/settings"
+                aria-label="Open settings"
+                className="h-10 w-10 shrink-0 grid place-items-center rounded-full bg-paper/10 ring-1 ring-paper/15 text-paper/80 hover:text-lime hover:bg-paper/15 active:text-lime transition"
+              >
+                <Settings className="h-5 w-5" />
+              </Link>
+            </div>
           </div>
 
           {hero && <HeroNumber {...hero} />}

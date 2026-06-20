@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS public.notifications_user_tag_unique;

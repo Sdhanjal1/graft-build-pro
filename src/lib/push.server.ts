@@ -1,8 +1,32 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendWebPush, type PushPayload } from "@/lib/web-push.server";
+import { recordNotification, type NotificationKind } from "@/lib/notifications.server";
 
-/** Server-internal helper: notify a user across all their devices. */
-export async function notifyUser(userId: string, payload: PushPayload): Promise<void> {
+export type NotifyOptions = {
+  /** Short tag for the inbox row (and push dedupe). Used to prevent duplicate inbox rows on replays. */
+  kind?: NotificationKind | string;
+  /** When true, skip persisting an inbox row (push only). Defaults to false. */
+  skipInbox?: boolean;
+};
+
+/** Server-internal helper: notify a user across all their devices and record an inbox row. */
+export async function notifyUser(
+  userId: string,
+  payload: PushPayload,
+  opts: NotifyOptions = {},
+): Promise<void> {
+  // Persist inbox row first so a missed push is still visible.
+  if (!opts.skipInbox) {
+    await recordNotification({
+      userId,
+      kind: opts.kind ?? payload.tag ?? "general",
+      title: payload.title,
+      body: payload.body,
+      url: payload.url,
+      tag: payload.tag,
+    });
+  }
+
   const { data: subs } = await supabaseAdmin
     .from("push_subscriptions")
     .select("endpoint, p256dh, auth")
