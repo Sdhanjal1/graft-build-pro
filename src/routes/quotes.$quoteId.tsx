@@ -109,8 +109,12 @@ function QuoteDetail() {
   const [jobDoneResult, setJobDoneResult] = useState<{
     mode: "invoice" | "balance" | "receipt";
     emailedTo: string | null;
+    emailFailed: boolean;
+    amountCents: number;
+    depositPaidCents: number;
     waMessage: string | null;
   } | null>(null);
+  const [resending, setResending] = useState(false);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
   const [completedAt, setCompletedAt] = useState<string | undefined>(quote.completed_at);
   const [sendOpen, setSendOpen] = useState(false);
@@ -355,7 +359,7 @@ function QuoteDetail() {
       invalidatePaidQuoteCount();
       // Fire-and-forget branded paid-invoice email; status is shown on
       // the invoice screen.
-      sendInvoiceEmailFn({ data: { quoteId: quote.id } }).catch(() => {});
+      sendInvoiceEmailFn({ data: { quoteId: quote.id, mode: "receipt" } }).catch(() => {});
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Couldn't mark as paid");
@@ -514,18 +518,18 @@ function QuoteDetail() {
   const jobDonePreview = (() => {
     if (jobDoneMode === "receipt") {
       return {
-        title: `Mark "${quote.title}" done?`,
-        body: `We'll send ${jobDoneFirst} a paid-in-full receipt (${formatGBP(quote.total)} — already paid). No further payment will be requested.`,
+        title: `Mark done and send ${jobDoneFirst} a paid-in-full receipt?`,
+        body: `We'll mark "${quote.title}" complete and send ${jobDoneFirst} a paid-in-full receipt (${formatGBP(quote.total)} — already paid). No further payment will be requested.`,
       };
     }
     if (jobDoneMode === "balance") {
       return {
-        title: `Mark done and send the ${formatGBP(jobDoneAmount)} balance?`,
-        body: `We'll mark the job complete and send ${jobDoneFirst} an invoice for the ${formatGBP(jobDoneAmount)} balance (deposit of ${formatGBP(depositPaid)} credited).${client?.email ? ` Emailed to ${client.email}.` : ""}`,
+        title: `Mark done and send the ${formatGBP(jobDoneAmount)} balance to ${jobDoneFirst}?`,
+        body: `We'll mark the job complete and send ${jobDoneFirst} an invoice for the ${formatGBP(jobDoneAmount)} balance (${formatGBP(depositPaid)} deposit already paid).${client?.email ? ` Emailed to ${client.email}.` : ""}`,
       };
     }
     return {
-      title: `Mark done and send the ${formatGBP(jobDoneAmount)} invoice?`,
+      title: `Mark done and send the ${formatGBP(jobDoneAmount)} invoice to ${jobDoneFirst}?`,
       body: `We'll mark the job complete and send ${jobDoneFirst} the final ${formatGBP(jobDoneAmount)} invoice.${client?.email ? ` Emailed to ${client.email}.` : ""}`,
     };
   })();
@@ -551,14 +555,20 @@ function QuoteDetail() {
       }
 
       // 3. Auto-email via Resend (best-effort). The invoice screen shows status.
+      const amountCents = Math.round(jobDoneAmount * 100);
+      const depositPaidCents = jobDoneMode === "balance" ? Math.round(depositPaid * 100) : 0;
       let emailedTo: string | null = null;
+      let emailFailed = false;
       try {
-        const res = await sendInvoiceEmailFn({ data: { quoteId: quote.id } });
-        if (res && (res as { status?: string }).status === "sent") {
-          emailedTo = (res as { to?: string }).to ?? client?.email ?? null;
-        }
+        const res = await sendInvoiceEmailFn({
+          data: { quoteId: quote.id, mode: jobDoneMode, amountCents, depositPaidCents },
+        });
+        const s = (res as { status?: string } | null)?.status;
+        if (s === "sent") emailedTo = (res as { to?: string }).to ?? client?.email ?? null;
+        else if (s === "failed") emailFailed = true;
+        // "skipped" → neither (no email on file); WhatsApp fallback applies.
       } catch {
-        // Surfaced on the invoice screen; don't block the trader.
+        emailFailed = true;
       }
 
       // 4. Tell the trader what happened via the post-send sheet.
@@ -566,7 +576,7 @@ function QuoteDetail() {
       const waMessage = client?.phone
         ? buildJobDoneMessage(liveQuote, jobDoneFirst, jobDoneMode, jobDoneAmount, depositPaid)
         : null;
-      setJobDoneResult({ mode: jobDoneMode, emailedTo, waMessage });
+      setJobDoneResult({ mode: jobDoneMode, emailedTo, emailFailed, amountCents, depositPaidCents, waMessage });
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Couldn't complete the job");
@@ -1291,6 +1301,7 @@ function QuoteDetail() {
             const docLabel = jobDoneResult.mode === "receipt" ? "Receipt" : "Invoice";
             const docLower = docLabel.toLowerCase();
             const emailed = !!jobDoneResult.emailedTo;
+            const failed = jobDoneResult.emailFailed;
             const phone = client?.phone;
             const openWa = () => {
               if (phone && jobDoneResult.waMessage) {
@@ -1301,23 +1312,52 @@ function QuoteDetail() {
               setJobDoneResult(null);
               navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
             };
+            const resend = async () => {
+              setResending(true);
+              try {
+                const res = await sendInvoiceEmailFn({
+                  data: {
+                    quoteId: quote.id,
+                    mode: jobDoneResult.mode,
+                    amountCents: jobDoneResult.amountCents,
+                    depositPaidCents: jobDoneResult.depositPaidCents,
+                  },
+                });
+                const s = (res as { status?: string } | null)?.status;
+                if (s === "sent") {
+                  const to = (res as { to?: string }).to ?? client?.email ?? null;
+                  setJobDoneResult({ ...jobDoneResult, emailedTo: to, emailFailed: false });
+                  toast.success(`${docLabel} emailed to ${jobDoneFirst}.`);
+                } else {
+                  toast.error("Email still didn't send — try WhatsApp.");
+                }
+              } catch {
+                toast.error("Email still didn't send — try WhatsApp.");
+              } finally {
+                setResending(false);
+              }
+            };
             return (
               <>
                 <SheetHeader className="px-5 pt-5 pb-1 text-left">
                   <SheetTitle className="text-base font-semibold">
                     {emailed
                       ? `${docLabel} emailed to ${jobDoneFirst} ✓`
-                      : phone
-                        ? `Send ${docLower} via WhatsApp`
-                        : `${docLabel} ready — no email or phone on file`}
+                      : failed
+                        ? `⚠ Email didn't send`
+                        : phone
+                          ? `Send ${docLower} via WhatsApp`
+                          : `${docLabel} ready — no email or phone on file`}
                   </SheetTitle>
                 </SheetHeader>
                 <div className="px-5 pb-2 text-sm text-muted-foreground">
                   {emailed
                     ? `Sent to ${jobDoneResult.emailedTo}. You're done — nothing else needed.`
-                    : phone
-                      ? `We couldn't email ${jobDoneFirst}${client?.email ? " — the send failed" : " (no email on file)"}. Send it on WhatsApp instead.`
-                      : `Open the invoice screen to share the link manually or retry email.`}
+                    : failed
+                      ? `We couldn't email ${jobDoneFirst}${client?.email ? ` at ${client.email}` : ""}. Send via WhatsApp now, or retry the email.`
+                      : phone
+                        ? `No email on file. Send it on WhatsApp instead.`
+                        : `Open the invoice screen to share the link manually or retry email.`}
                 </div>
                 <div className="px-5 pb-6 pt-3 space-y-2">
                   {emailed ? (
@@ -1336,6 +1376,30 @@ function QuoteDetail() {
                           Also share on WhatsApp (optional)
                         </button>
                       )}
+                      <button
+                        onClick={goToInvoice}
+                        className="w-full py-2 text-sm text-muted-foreground underline"
+                      >
+                        View invoice
+                      </button>
+                    </>
+                  ) : failed ? (
+                    <>
+                      {phone && (
+                        <button
+                          onClick={() => { openWa(); setJobDoneResult(null); }}
+                          className="w-full rounded-full bg-ink text-paper py-3 font-semibold text-sm"
+                        >
+                          Send via WhatsApp
+                        </button>
+                      )}
+                      <button
+                        onClick={resend}
+                        disabled={resending}
+                        className="w-full rounded-full border border-ink/15 py-3 font-semibold text-sm disabled:opacity-50"
+                      >
+                        {resending ? "Resending…" : "Resend email"}
+                      </button>
                       <button
                         onClick={goToInvoice}
                         className="w-full py-2 text-sm text-muted-foreground underline"

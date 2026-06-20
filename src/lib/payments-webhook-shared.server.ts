@@ -47,6 +47,7 @@ async function sendBrandedInvoiceEmail(opts: {
       currency: opts.currency,
       paymentIntent: opts.paymentIntent ?? null,
       paymentMethod: opts.paymentMethod,
+      mode: "receipt",
     });
   } catch (e) {
     // NEVER let an email failure break the webhook.

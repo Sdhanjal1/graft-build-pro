@@ -1,12 +1,15 @@
 /**
- * Server-only helper that sends a branded paid-invoice email for a quote
- * and records the result on the quotes row. Used by both the Stripe
- * webhook and the manual "send invoice email" server function so the
- * tradesperson can see whether the email actually went out.
+ * Server-only helper that sends a branded invoice / balance / receipt email
+ * for a quote and records the result on the quotes row. Used by:
+ *   - the Stripe webhook (always mode="receipt")
+ *   - the manual mark-paid handler (always mode="receipt")
+ *   - the "Job done" action (mode="invoice" | "balance" | "receipt")
+ *   - the manual resend button on the invoice screen (mode inferred from
+ *     quote status when not passed: paid → receipt, else → invoice)
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { generateInvoicePdfBytes } from "@/lib/invoice-pdf.server";
-import { sendInvoiceEmail } from "@/lib/email/send-invoice.server";
+import { sendInvoiceEmail, type SendInvoiceEmailMode } from "@/lib/email/send-invoice.server";
 
 export type InvoiceEmailOutcome =
   | { status: "sent"; to: string }
@@ -18,17 +21,22 @@ export async function sendAndRecordInvoiceEmail(opts: {
   quoteId: string;
   /** Optional override (e.g. from Stripe customer_details.email). Falls back to client.email. */
   customerEmailOverride?: string | null;
+  /** Headline amount in cents. For balance mode this is the BALANCE due (total − deposit paid). */
   amountCents?: number;
+  /** For balance mode: deposit already paid, in cents. Shown in the email body. */
+  depositPaidCents?: number;
   currency?: string;
   paymentIntent?: string | null;
   paymentMethod?: string;
+  /** Email mode. If omitted, inferred from quote.status: 'paid' → receipt, else → invoice. */
+  mode?: SendInvoiceEmailMode;
 }): Promise<InvoiceEmailOutcome> {
   const currency = (opts.currency || "gbp").toLowerCase();
   try {
     const [{ data: quote }, { data: profile }] = await Promise.all([
       supabaseAdmin
         .from("quotes")
-        .select("id, ref, title, job_description, line_items, subtotal, vat_amount, total, vat_registered, status, created_at, client_id")
+        .select("id, ref, title, job_description, line_items, subtotal, vat_amount, total, vat_registered, status, created_at, client_id, invoice_due_date")
         .eq("id", opts.quoteId)
         .maybeSingle(),
       supabaseAdmin
@@ -65,6 +73,10 @@ export async function sendAndRecordInvoiceEmail(opts: {
       return { status: "skipped", reason: "No customer email on file" };
     }
 
+    // Resolve mode — default to receipt when the quote is paid, else an
+    // invoice for the full total. Callers (Job done) pass mode explicitly.
+    const mode: SendInvoiceEmailMode = opts.mode ?? (quote.status === "paid" ? "receipt" : "invoice");
+
     const paidAt = new Date().toISOString();
     const pdfBytes = generateInvoicePdfBytes(
       {
@@ -77,7 +89,9 @@ export async function sendAndRecordInvoiceEmail(opts: {
         total: Number(quote.total) || 0,
         vat_registered: quote.vat_registered,
         created_at: quote.created_at,
-        paid_at: paidAt,
+        // Only stamp paid_at for receipts — invoice/balance PDFs must render
+        // as unpaid (the renderer keys "PAID" stamp off paid_at).
+        paid_at: mode === "receipt" ? paidAt : null,
         payment_method: opts.paymentMethod ?? "card",
         stripe_payment_intent: opts.paymentIntent ?? null,
       },
@@ -87,12 +101,27 @@ export async function sendAndRecordInvoiceEmail(opts: {
 
     const businessName = profile?.business_name || profile?.full_name || "Your tradesperson";
     const ref = quote.ref ?? opts.quoteId.slice(0, 8);
-    const amount = (opts.amountCents ?? Math.round(Number(quote.total) * 100)) / 100;
-    const amountFormatted = new Intl.NumberFormat("en-GB", {
+
+    const totalAmount = Number(quote.total) || 0;
+    const totalCents = Math.round(totalAmount * 100);
+    // Headline amount: receipt/invoice default to total; balance uses caller's amount.
+    const fallbackCents = mode === "balance"
+      ? Math.max(0, totalCents - (opts.depositPaidCents ?? 0))
+      : totalCents;
+    const amount = (opts.amountCents ?? fallbackCents) / 100;
+    const fmt = (n: number) => new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency: currency.toUpperCase(),
-    }).format(amount);
-    const paidDate = new Date(paidAt).toLocaleDateString("en-GB", {
+    }).format(n);
+    const amountFormatted = fmt(amount);
+    const totalFormatted = fmt(totalAmount);
+    const depositPaidFormatted = fmt(((opts.depositPaidCents ?? Math.max(0, totalCents - Math.round(amount * 100))) / 100));
+
+    // Date label: receipt → date paid; invoice/balance → due date (invoice_due_date or +14d fallback).
+    const dueDateIso = quote.invoice_due_date
+      ?? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    const dateForLabel = mode === "receipt" ? paidAt : dueDateIso;
+    const dateFormatted = new Date(dateForLabel).toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -104,9 +133,12 @@ export async function sendAndRecordInvoiceEmail(opts: {
       replyTo: profile?.email ?? null,
       invoiceRef: ref,
       amountFormatted,
-      paidDate,
+      dateFormatted,
       pdfBytes,
       pdfFilename: `Invoice-${ref}.pdf`,
+      mode,
+      depositPaidFormatted,
+      totalFormatted,
     });
 
     if (result.ok) {

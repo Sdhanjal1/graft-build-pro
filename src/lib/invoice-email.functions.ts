@@ -12,6 +12,9 @@ export const sendInvoiceEmailForQuote = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       quoteId: z.string().min(1).max(128),
+      mode: z.enum(["receipt", "invoice", "balance"]).optional(),
+      amountCents: z.number().int().nonnegative().optional(),
+      depositPaidCents: z.number().int().nonnegative().optional(),
     }),
   )
   .handler(async ({ data, context }) => {
@@ -31,6 +34,9 @@ export const sendInvoiceEmailForQuote = createServerFn({ method: "POST" })
       userId,
       quoteId: data.quoteId,
       paymentMethod: "manual",
+      mode: data.mode,
+      amountCents: data.amountCents,
+      depositPaidCents: data.depositPaidCents,
     });
   });
 
