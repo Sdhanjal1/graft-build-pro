@@ -53,6 +53,11 @@ export function SendQuoteDialog({
     feedback("tap");
   };
 
+  // Declared up here so functions defined below (confirmSent, etc.) can
+  // reference it without a TDZ hazard if React ever invokes them during the
+  // same evaluation pass as the component body.
+  const firstName = customerName?.split(" ")[0] ?? "there";
+
   const handleClose = () => {
     setSentVia(null);
     onClose();
