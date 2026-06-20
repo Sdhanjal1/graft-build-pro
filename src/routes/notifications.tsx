@@ -1,7 +1,10 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
+
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { useSession } from "@/lib/auth";
@@ -23,7 +26,18 @@ import {
   Inbox,
 } from "lucide-react";
 
+const STATUSES = ["all", "unread", "read"] as const;
+const CATEGORIES = ["all", "message", "request", "payment", "decision", "reminder", "other"] as const;
+type Status = (typeof STATUSES)[number];
+type Category = (typeof CATEGORIES)[number];
+
+const searchSchema = z.object({
+  status: fallback(z.enum(STATUSES), "all").default("all"),
+  category: fallback(z.enum(CATEGORIES), "all").default("all"),
+});
+
 export const Route = createFileRoute("/notifications")({
+  validateSearch: zodValidator(searchSchema),
   component: NotificationsPage,
   head: () => ({
     meta: [
@@ -47,20 +61,42 @@ function formatRelativeShort(iso: string): string {
   return d.toLocaleDateString([], { day: "numeric", month: "short" });
 }
 
-function iconFor(kind: string) {
-  if (kind.includes("payment") || kind.includes("paid")) return CreditCard;
-  if (kind.includes("accepted")) return CheckCircle2;
-  if (kind.includes("declined")) return XCircle;
-  if (kind.includes("request")) return FileText;
-  if (kind.includes("message") || kind.startsWith("msg") || kind.startsWith("portal-msg")) return MessageSquare;
-  if (kind.includes("reminder") || kind.startsWith("svc")) return CalendarClock;
-  return Bell;
+function categoryFor(kind: string): Category {
+  const k = kind.toLowerCase();
+  if (k.includes("paid") || k.includes("payment")) return "payment";
+  if (k.includes("accepted") || k.includes("declined")) return "decision";
+  if (k.startsWith("req") || k.includes("request")) return "request";
+  if (k.startsWith("msg") || k.startsWith("portal-msg") || k.includes("message")) return "message";
+  if (k.startsWith("svc") || k.includes("reminder")) return "reminder";
+  return "other";
 }
+
+function iconFor(category: Category) {
+  switch (category) {
+    case "payment": return CreditCard;
+    case "decision": return CheckCircle2;
+    case "request": return FileText;
+    case "message": return MessageSquare;
+    case "reminder": return CalendarClock;
+    default: return Bell;
+  }
+}
+
+const CATEGORY_LABEL: Record<Category, string> = {
+  all: "All",
+  message: "Messages",
+  request: "Requests",
+  payment: "Payments",
+  decision: "Decisions",
+  reminder: "Reminders",
+  other: "Other",
+};
 
 function NotificationsPage() {
   const { session, loading } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { status, category } = Route.useSearch();
 
   const list = useServerFn(listMyNotifications);
   const markRead = useServerFn(markNotificationRead);
@@ -73,24 +109,18 @@ function NotificationsPage() {
   const queryKey = ["notifications", "list"] as const;
   const { data, isLoading, refetch } = useQuery({
     queryKey,
-    queryFn: () => list({ data: { limit: 50 } }),
+    queryFn: () => list({ data: { limit: 100 } }),
     enabled: !!session,
     staleTime: 10_000,
   });
 
-  // Realtime: refresh on inserts/updates
   useEffect(() => {
     if (!session?.user?.id) return;
     const channel = supabase
       .channel(`notifications:${session.user.id}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${session.user.id}`,
-        },
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${session.user.id}` },
         () => {
           queryClient.invalidateQueries({ queryKey: ["notifications"] });
           queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
@@ -102,8 +132,26 @@ function NotificationsPage() {
     };
   }, [session?.user?.id, queryClient]);
 
-  const items = data?.items ?? [];
+  const allItems = data?.items ?? [];
   const unreadCount = data?.unreadCount ?? 0;
+
+  // Available categories from current items (always include 'all')
+  const availableCategories = useMemo(() => {
+    const set = new Set<Category>();
+    set.add("all");
+    for (const n of allItems) set.add(categoryFor(n.kind));
+    // Stable order from CATEGORIES list
+    return CATEGORIES.filter((c) => set.has(c));
+  }, [allItems]);
+
+  const items = useMemo(() => {
+    return allItems.filter((n) => {
+      if (status === "unread" && n.read_at) return false;
+      if (status === "read" && !n.read_at) return false;
+      if (category !== "all" && categoryFor(n.kind) !== category) return false;
+      return true;
+    });
+  }, [allItems, status, category]);
 
   const markReadMut = useMutation({
     mutationFn: (id: string) => markRead({ data: { id } }),
@@ -123,8 +171,17 @@ function NotificationsPage() {
 
   const handleOpen = (n: NotificationRow) => {
     if (!n.read_at) markReadMut.mutate(n.id);
-    if (n.url) navigate({ to: n.url });
+    if (n.url) {
+      // n.url is a runtime string from DB (e.g. "/quotes/<id>"); cast for typed router.
+      navigate({ to: n.url as never });
+    }
   };
+
+  type SearchState = { status: Status; category: Category };
+  const setStatus = (next: Status) =>
+    navigate({ from: "/notifications", search: (prev: SearchState) => ({ ...prev, status: next }) });
+  const setCategory = (next: Category) =>
+    navigate({ from: "/notifications", search: (prev: SearchState) => ({ ...prev, category: next }) });
 
   return (
     <AppShell onRefresh={async () => { await refetch(); }}>
@@ -139,6 +196,31 @@ function NotificationsPage() {
         }
       />
 
+      {/* Filters */}
+      <div className="px-5 pt-3 space-y-2">
+        <div className="flex items-center gap-1.5 overflow-x-auto -mx-1 px-1 no-scrollbar">
+          {STATUSES.map((s) => (
+            <FilterChip
+              key={s}
+              active={status === s}
+              onClick={() => setStatus(s)}
+              label={s === "all" ? "All" : s === "unread" ? "Unread" : "Read"}
+              count={s === "unread" ? unreadCount : undefined}
+            />
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5 overflow-x-auto -mx-1 px-1 no-scrollbar">
+          {availableCategories.map((c) => (
+            <FilterChip
+              key={c}
+              active={category === c}
+              onClick={() => setCategory(c)}
+              label={CATEGORY_LABEL[c]}
+            />
+          ))}
+        </div>
+      </div>
+
       <div className="px-5 pt-3 pb-8 space-y-2">
         {isLoading && (
           <div className="space-y-2">
@@ -151,7 +233,7 @@ function NotificationsPage() {
           </div>
         )}
 
-        {!isLoading && items.length === 0 && (
+        {!isLoading && allItems.length === 0 && (
           <EmptyState
             icon={Inbox}
             title="No notifications yet"
@@ -159,10 +241,21 @@ function NotificationsPage() {
           />
         )}
 
+        {!isLoading && allItems.length > 0 && items.length === 0 && (
+          <EmptyState
+            icon={Inbox}
+            title="Nothing matches these filters"
+            body="Try a different status or category."
+          />
+        )}
+
         {!isLoading &&
           items.map((n) => {
-            const Icon = iconFor(n.kind);
+            const cat = categoryFor(n.kind);
+            const Icon = iconFor(cat);
             const unread = !n.read_at;
+            const isDeclined = n.kind.toLowerCase().includes("declined");
+            const RowIcon = isDeclined ? XCircle : Icon;
             const content = (
               <div
                 className={[
@@ -176,7 +269,7 @@ function NotificationsPage() {
                     unread ? "bg-lime/20 text-ink" : "bg-secondary text-ink/70",
                   ].join(" ")}
                 >
-                  <Icon className="h-5 w-5" />
+                  <RowIcon className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
@@ -204,12 +297,54 @@ function NotificationsPage() {
                 {content}
               </button>
             ) : (
-              <div key={n.id} className="block w-full">
+              <button
+                key={n.id}
+                type="button"
+                onClick={() => handleOpen(n)}
+                className="block w-full active:scale-[0.99] transition"
+              >
                 {content}
-              </div>
+              </button>
             );
           })}
       </div>
     </AppShell>
+  );
+}
+
+function FilterChip({
+  label,
+  active,
+  onClick,
+  count,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  count?: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "shrink-0 h-8 px-3 rounded-full text-[12px] font-bold uppercase tracking-tight inline-flex items-center gap-1.5 transition",
+        active
+          ? "bg-ink text-paper"
+          : "bg-secondary text-ink/70 hover:text-ink",
+      ].join(" ")}
+    >
+      <span>{label}</span>
+      {typeof count === "number" && count > 0 && (
+        <span
+          className={[
+            "min-w-[18px] h-[18px] px-1 rounded-full text-[10px] leading-[18px] text-center",
+            active ? "bg-lime text-ink" : "bg-ink/10 text-ink",
+          ].join(" ")}
+        >
+          {count > 99 ? "99+" : count}
+        </span>
+      )}
+    </button>
   );
 }
