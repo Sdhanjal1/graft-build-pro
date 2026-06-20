@@ -334,11 +334,13 @@ function QuoteDetail() {
       await removeDepositFn({ data: { quoteId: quote.id } });
       setDepositPaid(0);
       setDepositRecorded(false);
+      await refreshPayments();
       feedback("success"); toast.success("Deposit removed");
     } catch (e) {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't remove deposit");
     }
   };
+
   const markUnpaid = () => setConfirmMarkUnpaid(true);
   const confirmMarkUnpaidAction = async () => {
     setConfirmMarkUnpaid(false);
