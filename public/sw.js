@@ -1,18 +1,18 @@
-/* Quottr service worker: versioned shell cache + push. */
+/* Quottr service worker: push notifications only. No HTML caching. */
 const VERSION = new URL(self.location.href).searchParams.get("v") || "dev";
-const CACHE_PREFIX = "quottr-cache-";
-const CACHE_NAME = CACHE_PREFIX + VERSION;
+const CACHE_PREFIX = "quottr-cache-v2-";
 
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
+    // Evict every legacy cache (old v1 navigation cache included).
     const names = await caches.keys();
     await Promise.all(
       names
-        .filter((n) => n.startsWith(CACHE_PREFIX) && n !== CACHE_NAME)
+        .filter((n) => n.startsWith("quottr-cache-") && !n.startsWith(CACHE_PREFIX + VERSION))
         .map((n) => caches.delete(n))
     );
     await self.clients.claim();
@@ -29,26 +29,8 @@ self.addEventListener("message", (event) => {
   }
 });
 
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  if (req.method !== "GET") return;
-  if (req.mode !== "navigate") return;
-  event.respondWith((async () => {
-    try {
-      const fresh = await fetch(req);
-      try {
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(req, fresh.clone());
-      } catch {}
-      return fresh;
-    } catch (err) {
-      const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match(req);
-      if (cached) return cached;
-      throw err;
-    }
-  })());
-});
+// Intentionally no `fetch` handler — navigations and assets go straight to
+// the network so deploys never serve stale HTML referencing dead JS chunks.
 
 self.addEventListener("push", (event) => {
   let data = {};
