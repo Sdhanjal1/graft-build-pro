@@ -268,7 +268,7 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
         ? explicit
         : pct > 0
         ? +(total * (pct / 100)).toFixed(2)
-        : +(total * 0.5).toFixed(2);
+        : +(total * DEFAULT_DEPOSIT_FRACTION).toFixed(2);
     }
     const amountCents = Math.round(amount * 100);
     if (amountCents < 30) {

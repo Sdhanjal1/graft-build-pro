@@ -17,24 +17,26 @@
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 const DEFAULT_FROM_DOMAIN = "invoices@quottr.co.uk";
 
-export type SendInvoiceEmailMode = "receipt" | "invoice" | "balance";
+export type SendInvoiceEmailMode = "receipt" | "invoice" | "balance" | "deposit-received";
 
 export type SendInvoiceEmailInput = {
   to: string;
   businessName: string;
   replyTo?: string | null;
   invoiceRef: string;
-  /** Headline amount: for receipt → amount paid; invoice → total due; balance → balance due. */
+  /** Headline amount: receipt → amount paid; invoice → total due; balance → balance due; deposit-received → deposit paid. */
   amountFormatted: string;
-  /** For receipt: date payment received. For invoice/balance: due date. */
+  /** For receipt/deposit-received: date payment received. For invoice/balance: due date. */
   dateFormatted: string;
   pdfBytes: Uint8Array;
   pdfFilename: string;
   mode: SendInvoiceEmailMode;
-  /** Only for "balance" mode — money already paid (deposit). */
+  /** For "balance" and "deposit-received" modes — money already paid (deposit). */
   depositPaidFormatted?: string;
-  /** Only for "balance" mode — full quote total, shown for context. */
+  /** For "balance" and "deposit-received" modes — full quote total, shown for context. */
   totalFormatted?: string;
+  /** For "deposit-received" mode — remaining balance still owed. */
+  balanceDueFormatted?: string;
 };
 
 export type SendInvoiceEmailResult = {
@@ -134,15 +136,39 @@ function balanceHtml(i: SendInvoiceEmailInput): string {
   return shell(i.businessName, "Balance due", "#C6F33A", inner);
 }
 
+function depositReceivedHtml(i: SendInvoiceEmailInput): string {
+  const total = i.totalFormatted ?? "";
+  const balance = i.balanceDueFormatted ?? "";
+  const inner = `
+    <p style="margin:0 0 12px;font-size:16px;line-height:1.5;">Thanks — we've received your deposit of <strong>${escapeHtml(i.amountFormatted)}</strong> on ${escapeHtml(i.dateFormatted)}.</p>
+    <p style="margin:0 0 20px;font-size:14px;line-height:1.55;color:#55554F;">Your itemised invoice <strong>${escapeHtml(i.invoiceRef)}</strong> is attached as a PDF. The balance is payable on completion of the work.</p>
+    <div style="background:#FFF7ED;border:1px solid #C2410C;border-radius:10px;padding:14px 16px;margin:16px 0;">
+      <div style="color:#C2410C;font-weight:700;font-size:14px;">DEPOSIT RECEIVED · ${escapeHtml(i.amountFormatted)}</div>
+      <div style="color:#0E0E0E;font-size:12px;margin-top:6px;line-height:1.5;">
+        Total ${escapeHtml(total)}<br/>
+        Deposit received ${escapeHtml(i.amountFormatted)} — thank you<br/>
+        Balance to pay on completion · <strong>${escapeHtml(balance)}</strong>
+      </div>
+    </div>
+    <p style="margin:18px 0 0;font-size:13px;line-height:1.55;color:#55554F;">We'll send the final invoice for the balance once the work is done. Any questions, just reply to this email.</p>
+    <p style="margin:18px 0 0;font-size:13px;line-height:1.55;">Thanks,<br/><strong>${escapeHtml(i.businessName)}</strong></p>`;
+  return shell(i.businessName, "Deposit received", "#C6F33A", inner);
+}
+
 function buildHtml(i: SendInvoiceEmailInput): string {
   if (i.mode === "receipt") return receiptHtml(i);
   if (i.mode === "balance") return balanceHtml(i);
+  if (i.mode === "deposit-received") return depositReceivedHtml(i);
   return invoiceHtml(i);
 }
 
 function buildSubject(i: SendInvoiceEmailInput, fromName: string): string {
   if (i.mode === "receipt") return `Invoice ${i.invoiceRef} from ${fromName} — Paid`;
   if (i.mode === "balance") return `Invoice ${i.invoiceRef} from ${fromName} — Balance ${i.amountFormatted} due`;
+  if (i.mode === "deposit-received") {
+    const bal = i.balanceDueFormatted ? ` · balance ${i.balanceDueFormatted} due` : "";
+    return `Invoice ${i.invoiceRef} from ${fromName} — Deposit received${bal}`;
+  }
   return `Invoice ${i.invoiceRef} from ${fromName} — ${i.amountFormatted} due`;
 }
 
