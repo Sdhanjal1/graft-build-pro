@@ -19,7 +19,8 @@
 import { describe, expect, test, beforeAll } from "bun:test";
 import { generateInvoicePdfBytes } from "../src/lib/invoice-pdf.server";
 import { computeVatToPenny } from "../src/lib/invoice-amounts";
-import { PDFParse } from "pdf-parse";
+// pdf-parse is dynamic-imported inside beforeAll so bun test's module
+// resolver doesn't trip on pdfjs-dist's mixed ESM during file collection.
 
 const TOTAL_GBP = 1200; // £1,200.00 incl VAT
 const VAT_REG = true;
@@ -62,9 +63,14 @@ function baseQuote(extras: Record<string, unknown> = {}) {
   } as any;
 }
 
+let _PDFParse: any;
 async function renderText(q: any): Promise<string> {
+  if (!_PDFParse) {
+    const mod = await import("pdf-parse");
+    _PDFParse = mod.PDFParse;
+  }
   const bytes = await generateInvoicePdfBytes(q, CLIENT, PROFILE);
-  const parser = new PDFParse({ data: new Uint8Array(bytes) });
+  const parser = new _PDFParse({ data: new Uint8Array(bytes) });
   const out = await parser.getText();
   return out.text;
 }
