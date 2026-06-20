@@ -191,7 +191,7 @@ export async function sendWebPush(
 
   const headers: Record<string, string> = {
     TTL: "60",
-    Authorization: `vapid t=${jwt}, k=${VAPID_PUBLIC_KEY}`,
+    Authorization: `vapid t=${jwt}, k=${getVapidPublicKey()}`,
     Urgency: "high",
   };
 
