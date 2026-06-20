@@ -20,7 +20,7 @@ const faqs = [
   { q: "Do I need to type anything?", a: "Nope. Talk to Quottr like you'd talk to your apprentice. We turn your voice note into a priced, branded quote." },
   { q: "What does it cost?", a: "Free for 14 days, no card needed. After that, one flat subscription, see the Pricing page for current rates." },
   { q: "How do customers pay?", a: "Card, Apple Pay, Google Pay or bank transfer. Deposits land in your account, not next month." },
-  { q: "Will it work in a loft / cellar / no-signal site?", a: "Yes. Capture offline, send when you're back in signal. Nothing gets lost." },
+  { q: "Will it work in a loft / cellar / no-signal site?", a: "Creating a voice quote needs a signal — Quottr transcribes in the cloud — but it only takes a few seconds, so step to the doorway or the van and you're sorted in no time." },
   { q: "Can I use my own branding?", a: "Yes, logo, colours, business details, VAT number. Quotes look like you, not us." },
   { q: "Does it integrate with my accounting?", a: "Yes. From Settings you can export your paid invoices as a CSV formatted for Xero, QuickBooks, FreeAgent or Sage, with the right VAT codes and your nominal codes, by tax year or a custom range." },
   { q: "What about chasing late payers?", a: "Quottr nudges them at day 7, 14 and 21 with polite, on-brand reminders. You never have to send 'just chasing this' again." },
