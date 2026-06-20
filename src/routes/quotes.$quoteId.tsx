@@ -203,6 +203,18 @@ function QuoteDetail() {
     return Math.round((configuredDeposit / total) * 100);
   })();
 
+  const refreshPayments = useCallback(async () => {
+    try {
+      const res = await fetchPaymentsFn({ data: { quoteId: quote.id } });
+      const rows = res?.payments ?? [];
+      const paid = rows
+        .filter((r) => r.status === "paid" && r.request_type === "deposit")
+        .reduce((sum, r) => sum + (Number(r.amount_cents) || 0), 0) / 100;
+      setDepositPaid(paid);
+      setDepositRecorded(paid > 0);
+    } catch { /* non-blocking */ }
+  }, [quote.id, fetchPaymentsFn]);
+
   const handleRecordManualDeposit = async (method: "cash" | "bank") => {
     if (recordingDeposit || depositRecorded) return;
     setRecordingDeposit(true);
@@ -215,6 +227,7 @@ function QuoteDetail() {
           ? "Deposit already recorded"
           : "Deposit recorded",
       );
+      await refreshPayments();
       // Brief delay so the user sees the success state before the sheet closes.
       setTimeout(() => {
         setAskDeposit(false);
@@ -229,20 +242,9 @@ function QuoteDetail() {
   };
 
   useEffect(() => {
-    let cancelled = false;
-    fetchPaymentsFn({ data: { quoteId: quote.id } })
-      .then((res) => {
-        if (cancelled) return;
-        const rows = res?.payments ?? [];
-        const paid = rows
-          .filter((r) => r.status === "paid" && r.request_type === "deposit")
-          .reduce((sum, r) => sum + (Number(r.amount_cents) || 0), 0) / 100;
-        setDepositPaid(paid);
-        if (paid > 0) setDepositRecorded(true);
-      })
-      .catch(() => { /* non-blocking */ });
-    return () => { cancelled = true; };
-  }, [quote.id, fetchPaymentsFn]);
+    void refreshPayments();
+  }, [refreshPayments]);
+
 
   useEffect(() => {
     let cancelled = false;
