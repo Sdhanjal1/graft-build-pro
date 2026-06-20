@@ -1,6 +1,17 @@
-import { AbsoluteFill, useCurrentFrame, interpolate, Sequence } from "remotion";
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Sequence, Series } from "remotion";
 import { TransitionSeries, springTiming } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
+
+const FadeInOut: React.FC<{ children: React.ReactNode; duration: number; edge?: number }> = ({ children, duration, edge = 9 }) => {
+  const frame = useCurrentFrame();
+  const opacity = interpolate(
+    frame,
+    [0, edge, duration - edge, duration],
+    [0, 1, 1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+  return <AbsoluteFill style={{ opacity }}>{children}</AbsoluteFill>;
+};
 import { Scene1Hero } from "./scenes/Scene1Hero";
 import { Scene2Voice } from "./scenes/Scene2Voice";
 import { Scene3Quote } from "./scenes/Scene3Quote";

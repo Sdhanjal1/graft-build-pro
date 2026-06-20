@@ -1,57 +1,39 @@
-## Home hero video — re-cut + presentational polish
+## Fix overlapping scene transitions in the homepage hero video
 
-Two parallel passes against the same video block on the landing page.
+The current "landing" cut uses `fade()` from `@remotion/transitions`, which cross-fades — outgoing and incoming scenes are layered on top of each other for ~0.6s, which is the overlap you're seeing.
 
-### Pass 1 — Re-cut the Remotion source for the landing hero
+Switch to a **fade-through-black** pattern so only one scene is visible at a time.
 
-Current `quottr-how-it-works.mp4` is 23.3s and wastes its first ~4.8s on a brand intro before the value moment.
-| Beat | Now (start) | After |
-|---|---|---|
-| BrandFlash "Quottr." | 0.0s | removed |
-| Scene1Hero (brand title) | 0.6s | removed |
-| Scene2Voice (the hook) | 4.8s | **0.0s** |
-| Scene3Quote | 10.1s | 5.0s (tightened) |
-| Scene4Send | 15.8s | 8.5s |
-| Scene5End wordmark | 20.1s | removed |
-| **Loop length** | **23.3s** | **~12.8s** |
+### Change (single file)
 
-Loop now cuts from "PAID" straight back to the mic — same beat returning visitors first saw.
+`remotion/src/MainVideo.tsx`, inside the `variant === "landing"` branch (lines ~55–79):
 
-**Files:**
+- Wrap each `TransitionSeries.Sequence` child (`Scene2Voice`, `Scene3Quote`, `Scene4Send`) in a small `<FadeInOut>` helper that fades the scene from 0→1 over the first 9 frames and 1→0 over the last 9 frames using `useCurrentFrame()` + `interpolate()`.
+- Remove the two `TransitionSeries.Transition presentation={fade()} ...` entries between the sequences.
+- Replace `<TransitionSeries>` with `<Series>` (back-to-back, no overlap). The dark `<Backdrop />` behind the series shows through during each fade, producing the through-black handoff.
+- Keep durations: 160 / 130 / 130 frames = 420 frames total — matches the existing `main-landing` composition duration in `Root.tsx`, so no Root change needed.
+- Leave the `variant === "full"` branch untouched (used elsewhere).
 
-1. **`remotion/src/MainVideo.tsx`** — landing variant
-   - Remove the `<BrandFlash>` sequence and the `vignette` ramp.
-   - Drop `Scene1Hero` and `Scene5End` from the `TransitionSeries`.
-   - Tighten `Scene3Quote` from 170 → 110 frames.
-   - Keep `Scene2Voice` (160) and `Scene4Send` (130) untouched — they already carry the hook and payoff.
-   - Total: 160 + 18 + 110 + 18 + 130 = **436 frames** (~14.5s with fades; comfortably under the 15s sweet spot).
+### Re-render
 
-2. **`remotion/src/Root.tsx`** — register a second composition `main-landing` with `durationInFrames={436}` pointing at a thin wrapper (or refactor `MainVideo` to accept a `variant` prop: `"full" | "landing"`). Keep the existing `main` composition intact so the longer cut survives for social/other surfaces.
+Re-render only the landing composition and overwrite the homepage asset:
 
-3. **`remotion/src/scenes/Scene2Voice.tsx`** — already shows the typewriter caption "Quote Mrs Jones for a new combi boiler…" so option B (silent captions) is already satisfied. No edit.
+```
+cd remotion && node scripts/render-remotion.mjs main-landing public/quottr-how-it-works.mp4
+```
 
-4. **Re-render** the landing cut and overwrite `public/quottr-how-it-works.mp4`:
-   ```
-   cd remotion && node scripts/render-remotion.mjs   # adjust script to target `main-landing` + outputLocation /dev-server/public/quottr-how-it-works.mp4
-   ```
+(or the equivalent CLI: `bunx remotion render src/index.ts main-landing ../public/quottr-how-it-works.mp4`)
 
-### Pass 2 — Presentational polish on `src/routes/index.tsx` (lines 58–70)
-
-Purely the `<video>` block — no re-encode beyond pass 1.
-
-1. **Poster image** — extract a still of frame 0 of the new cut (the mic moment) to `public/quottr-how-it-works-poster.jpg` via `bunx remotion still` during pass 1, then add `poster="/quottr-how-it-works-poster.jpg"`.
-2. **`preload="metadata"` → `preload="auto"`** — this is the hero, prefetch it.
-3. **Aspect-ratio container** — wrap the `<video>` in a `style={{ aspectRatio: "16 / 9" }}` div (the source is 1920×1080) so the card reserves space and CLS is zero before metadata loads.
-4. **Reduced motion + pause-on-click**:
-   - `useEffect` reads `window.matchMedia("(prefers-reduced-motion: reduce)").matches` → if true, don't autoplay; render with `controls` and show the poster.
-   - Otherwise default to autoplay; clicking the video toggles play/pause via a `ref`. Add an accessible label and a small visually-hidden text cue ("Tap to pause").
-   - This is the only logic addition — small `useRef` + `useState` for paused flag. Keep the existing visual frame (`rounded-[2rem] overflow-hidden border ring-lime/25 shadow-2xl`) untouched.
-
-### Out of scope
-- WebM/AV1 alternate sources (different request — call out separately if wanted).
-- `VideoObject` JSON-LD (different request).
-- Any redesign of the surrounding hero copy.
+Then copy the rendered file into `public/` of the web app if the render script writes to `/mnt/documents/`. Regenerate the poster from frame ~36 only if the first visible frame changed; otherwise keep the existing poster.
 
 ### Verification
-- After render: confirm new mp4 ≤ ~2.5 MB, opens on a phone, loops cleanly.
-- After code edit: load `/` in Playwright at desktop 1280×1800, screenshot the hero — confirm poster visible during load, no layout shift on metadata arrival, click-to-pause works, and reduced-motion media query disables autoplay.
+
+- Spot-check frames at the handoff points (around frames 160 and 290) with `bunx remotion still` to confirm one scene is fully gone before the next appears.
+- Confirm new mp4 is still ≤ ~2.5 MB.
+- Reload `/` and watch the hero loop — no double-exposure moment between scenes.
+
+### Out of scope
+
+- No copy or layout changes to `src/routes/index.tsx`.
+- No changes to the `full` variant, vertical, or social compositions.
+- No re-encoding of individual scenes.
