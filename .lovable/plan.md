@@ -1,28 +1,73 @@
-Use the **Quottr sandbox** (`acct_1TY3mWLC2psBihUH`) — not "Test mode" and not "Sunny".
+## Goal
 
-### Why
+Close the deposit-then-balance gap so a customer can pay the outstanding balance from the portal (and from the balance-due email), without changing any existing money logic.
 
-Your app's `STRIPE_CONNECT_SANDBOX_WEBHOOK_SECRET` and the existing test Connect account that produced QTR-001's `cs_test_…` session both live in whichever sandbox the deposit checkout was created from. The check is simple:
+## Server-side: amount is computed, never trusted
 
-- The connected trader account you onboarded in test mode (the one with `stripe_connect_charges_enabled = true`) lives in **one specific sandbox**. That same sandbox is where the Connect webhook must be registered, because connected-account events only fire in the sandbox that owns the connected account.
-- "Test mode" (the legacy shared test environment, `acct_1TY3m9Q5a2i6zJkA`) is a separate account; webhooks registered there will never see events from a connected account that lives in "Quottr sandbox".
-- "Sunny" is unrelated.
+Extend `createPortalCheckout` (and `createPortalCheckoutFromCode` for the client hub) in `src/lib/payments.functions.ts`:
 
-### How to confirm before you click
+1. Widen the `requestType` enum: `z.enum(["deposit", "full", "balance"])`.
+2. After loading the quote, when `requestType === "balance"`:
+  - Sum all `invoice_payments` rows for that `quote_id` where `status = "paid"` and `request_type = "deposit"`, taking `amount_cents` straight from the database (the same column the invoice/email already read). This is the deposit-paid figure.
+  - Compute the balance via the shared helper:
+    ```
+    const amounts = computeInvoiceAmounts({
+      mode: "balance",
+      totalCents: Math.round(total * 100),
+      depositPaidCents,
+    });
+    ```
+    `headlineCents` is the amount we charge. `amounts.ok === false` (no deposit on file, or balance ≤ 0) → throw a clear error ("No deposit recorded for this quote" / "Balance is already settled"). This is the only place the balance amount is derived — the client sends no number.
+  - Reject if `quote.status === "paid"` (already covered) and also short-circuit if the quote is the `on_completion`/`upfront`/`full` shape — only `deposit_then_balance` quotes get the balance path.
+3. Reuse the existing checkout path verbatim from there (same Connect-direct-charge, same 0.5%/£0.50/£25 application fee on `amountCents`, same pending `invoice_payments` insert with `request_type: "balance"`, same idempotent-reuse-of-pending-session guard).
 
-In the Stripe dashboard, switch into **Quottr sandbox** → Connect → Accounts. You should see the test trader account you used for QTR-001 listed there. If you do, that's the correct sandbox. If it's not there, switch to "Test mode" and check — wherever the connected account appears is the sandbox you must register the webhook in.
+Notes:
 
-### Then
+- `computeInvoiceAmounts` is the same helper the balance email already uses, so the figure the customer pays will always equal the figure the invoice/email show.
+- Idempotency: the existing pending-session lookup already keys on `(quote_id, request_type)` and amount, so a second `balance` tap reuses the open Stripe session instead of stacking rows.
 
-In that same sandbox:
+## Webhook: balance → quote is paid, receipt shows balance only
 
-1. Developers → Webhooks → Add endpoint
-2. **Events from: Connected accounts** (not Your account)
-3. URL: `https://id-preview--e4be6907-c837-4e5e-9461-63fadfdad91e.lovable.app/api/public/payments/connect-webhook?env=sandbox`
-4. Events: `account.updated`, `checkout.session.completed`, `checkout.session.expired`, `payment_intent.succeeded`, `payment_intent.payment_failed`
-5. Copy the signing secret → update `STRIPE_CONNECT_SANDBOX_WEBHOOK_SECRET` in Lovable secrets
-6. Re-run a deposit on QTR-001 and confirm the POST appears in preview logs and `invoice_payments` flips to `paid`
+In `src/lib/payments-webhook-shared.server.ts` (`handlePaidEvent`):
 
-give me the update to add the new WHSEC
+1. `requestType === "balance"` should follow the same "flip to paid" branch as `full` (currently the `else` branch). Change the condition from `if (requestType === "deposit")` / `else` to:
+  - `deposit` → status nudge to `accepted` (unchanged)
+  - `full` or `balance` → status nudge to `paid` (unchanged guards: only from `pending|sent|accepted|overdue`)
+2. `sendBrandedInvoiceEmail`: extend the mode picker so:
+  - `deposit` → `deposit-received` (unchanged)
+  - `balance` → `receipt`, but also pass `depositPaidCents` (looked up from the same paid-deposit sum) so the receipt body shows "balance £Y collected · deposit £X already credited · total £T" instead of pretending the full total was just collected. The `receipt` branch of `computeInvoiceAmounts` already handles this when both `amountCents` and `depositPaidCents` are supplied — this is the existing M6 behaviour. `amountCents` for the receipt is the Stripe `amount_total` for this charge, i.e. the balance.
+  - `full` → `receipt` (unchanged)
 
-&nbsp;
+## Portal UI: "Pay balance £X" button
+
+`src/routes/portal.$token.tsx`:
+
+1. `onPay` accepts `"deposit" | "full" | "balance"` and forwards to `createPortalCheckout`.
+2. The existing `hasPaidDeposit && !isPaidInFull` card (the "Deposit paid · balance £Y due on completion" block) gains a primary `Pay balance £X` button that calls `onPay("balance")`. The button is shown only when `hasCard` is true; bank-only stays as today (instructions in text).
+3. Accept a `?pay=balance` query param so the balance-due email link can auto-open Stripe Checkout on arrival (mirrors the existing `?paid=1` / `?cancelled=1` handling — fire `onPay("balance")` once, then strip the param).
+4. No changes to the deposit/full buttons, the accept flow, or any totals/displays.
+
+Mirror the button (no auto-open) on `src/routes/portal.c.$code.tsx` if that route already shows the deposit-paid state, calling `createPortalCheckoutFromCode` with `requestType: "balance"`.
+
+## Balance-due email: add a Pay button
+
+`src/lib/email/send-invoice.server.ts` `balanceHtml`:
+
+- Add an optional `payNowUrl` field to `SendInvoiceEmailInput` and render a CTA button under the `BALANCE DUE` panel: "Pay £X online" → `payNowUrl`. Falls back to the existing "Payment details are on the attached invoice" copy when `payNowUrl` is missing (e.g. no portal token available, or trader hasn't enabled card).
+
+`src/lib/invoice-email.server.ts`:
+
+- When `mode === "balance"` and the trader's profile has `stripe_connect_charges_enabled`, look up the most recent non-expired row for this `quote_id` in `quote_portal_tokens` and build `payNowUrl = "{appOrigin}/portal/{token}?pay=balance"`. If no live token exists, mint one with the same shape used elsewhere (or simply omit `payNowUrl` — the email still works, the trader can resend the link). No new token-management semantics.
+
+## Out of scope
+
+- The existing deposit and full checkout paths.
+- Any change to displayed totals, deposit math, VAT, or platform-fee logic.
+- The client-hub `?pay=balance` auto-open (we add the button only; the auto-open hook is portal-token-only because the email links there).
+
+## Verification
+
+1. New test in `tests/payments-money.test.ts`: balance via `computeInvoiceAmounts` with a £700 balance returns `headlineCents: 70000` and `balanceDueCents: 70000` with deposit credited.
+2. Manual smoke on QTR-001 (already has a paid deposit) in the Quottr sandbox: tap "Pay balance" → Stripe Checkout shows £700 → succeed with `4242…` → webhook flips quote to `paid`, receipt email lands showing "Balance £700 collected · £300 deposit credited · Total £1,000".
+
+also ensure the visual layout of the invoices stay consistent from deposit paid to final invoice payment
