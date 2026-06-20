@@ -344,13 +344,38 @@ export function generatePortalPdf(
   return doc;
 }
 
+/**
+ * Best-effort fetch of a trader logo URL into a data URL suitable for jsPDF.
+ * Works in both browser and Worker. Returns null on any failure (CORS, 404, etc.)
+ * so the PDF still renders cleanly with the business name only.
+ */
+export async function fetchLogoDataUrl(url: string | null | undefined): Promise<string | null> {
+  if (!url) return null;
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) return null;
+    const ct = res.headers.get("content-type") || "image/png";
+    const buf = new Uint8Array(await res.arrayBuffer());
+    let binary = "";
+    for (let i = 0; i < buf.length; i++) binary += String.fromCharCode(buf[i]);
+    const b64 = typeof btoa !== "undefined" ? btoa(binary) : Buffer.from(buf).toString("base64");
+    return `data:${ct};base64,${b64}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function downloadPortalPdf(
   quote: PortalPdfQuote,
   client: PortalPdfClient,
   profile: PortalPdfProfile,
   variant: Variant = "quote",
 ) {
-  const doc = generatePortalPdf(quote, client, profile, variant);
+  // Prefetch the trader logo so the synchronous PDF renderer can embed it.
+  const logoDataUrl = profile?.logoDataUrl ?? (await fetchLogoDataUrl(profile?.logo_url));
+  const profileWithLogo: PortalPdfProfile = profile ? { ...profile, logoDataUrl } : profile;
+  const doc = generatePortalPdf(quote, client, profileWithLogo, variant);
+
   const filename = `${variant === "invoice" ? "Invoice" : "Quote"}-${quote.ref ?? "Quottr"}.pdf`;
   const blob = doc.output("blob");
   const file = new File([blob], filename, { type: "application/pdf" });
