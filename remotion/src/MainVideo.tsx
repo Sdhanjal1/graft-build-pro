@@ -69,21 +69,23 @@ export const MainVideo: React.FC<{ variant?: Variant }> = ({ variant = "full" })
     return (
       <AbsoluteFill>
         <Backdrop />
-        <TransitionSeries>
-          <TransitionSeries.Sequence durationInFrames={160}>
-            <Scene2Voice />
-          </TransitionSeries.Sequence>
-          <TransitionSeries.Transition presentation={fade()} timing={springTiming({ durationInFrames: 18, config: { damping: 200 } })} />
-
-          <TransitionSeries.Sequence durationInFrames={130}>
-            <Scene3Quote />
-          </TransitionSeries.Sequence>
-          <TransitionSeries.Transition presentation={fade()} timing={springTiming({ durationInFrames: 18, config: { damping: 200 } })} />
-
-          <TransitionSeries.Sequence durationInFrames={130}>
-            <Scene4Send />
-          </TransitionSeries.Sequence>
-        </TransitionSeries>
+        <Series>
+          <Series.Sequence durationInFrames={160}>
+            <FadeInOut duration={160}>
+              <Scene2Voice />
+            </FadeInOut>
+          </Series.Sequence>
+          <Series.Sequence durationInFrames={130}>
+            <FadeInOut duration={130}>
+              <Scene3Quote />
+            </FadeInOut>
+          </Series.Sequence>
+          <Series.Sequence durationInFrames={130}>
+            <FadeInOut duration={130}>
+              <Scene4Send />
+            </FadeInOut>
+          </Series.Sequence>
+        </Series>
         <Captions />
       </AbsoluteFill>
     );
