@@ -119,7 +119,7 @@ export async function sendAndRecordInvoiceEmail(opts: {
         depositPaidCents: opts.depositPaidCents,
         amountCents: opts.amountCents,
       });
-      return { ok: false as const, error: "balance amount must be > 0" };
+      return { status: "skipped", reason: "balance amount must be > 0 — check depositPaidCents" };
     }
     const fmt = (n: number) => new Intl.NumberFormat("en-GB", {
       style: "currency",
