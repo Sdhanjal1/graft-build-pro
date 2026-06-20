@@ -514,18 +514,18 @@ function QuoteDetail() {
   const jobDonePreview = (() => {
     if (jobDoneMode === "receipt") {
       return {
-        title: `Mark "${quote.title}" done?`,
-        body: `We'll send ${jobDoneFirst} a paid-in-full receipt (${formatGBP(quote.total)} — already paid). No further payment will be requested.`,
+        title: `Mark done and send ${jobDoneFirst} a paid-in-full receipt?`,
+        body: `We'll mark "${quote.title}" complete and send ${jobDoneFirst} a paid-in-full receipt (${formatGBP(quote.total)} — already paid). No further payment will be requested.`,
       };
     }
     if (jobDoneMode === "balance") {
       return {
-        title: `Mark done and send the ${formatGBP(jobDoneAmount)} balance?`,
-        body: `We'll mark the job complete and send ${jobDoneFirst} an invoice for the ${formatGBP(jobDoneAmount)} balance (deposit of ${formatGBP(depositPaid)} credited).${client?.email ? ` Emailed to ${client.email}.` : ""}`,
+        title: `Mark done and send the ${formatGBP(jobDoneAmount)} balance to ${jobDoneFirst}?`,
+        body: `We'll mark the job complete and send ${jobDoneFirst} an invoice for the ${formatGBP(jobDoneAmount)} balance (${formatGBP(depositPaid)} deposit already paid).${client?.email ? ` Emailed to ${client.email}.` : ""}`,
       };
     }
     return {
-      title: `Mark done and send the ${formatGBP(jobDoneAmount)} invoice?`,
+      title: `Mark done and send the ${formatGBP(jobDoneAmount)} invoice to ${jobDoneFirst}?`,
       body: `We'll mark the job complete and send ${jobDoneFirst} the final ${formatGBP(jobDoneAmount)} invoice.${client?.email ? ` Emailed to ${client.email}.` : ""}`,
     };
   })();
