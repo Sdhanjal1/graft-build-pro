@@ -77,7 +77,7 @@ export const trades: Trade[] = [
       { q: "Does Quottr know plumbing prices?", a: "Quottr learns your prices as you quote. Tell it your rate for a combi swap once, and next time it suggests the same line. You stay in control — every line is editable before the quote goes out." },
       { q: "Can I put my Gas Safe number on the quote?", a: "Yes. Add your Gas Safe registration, business name and logo to your profile once and they appear on every quote and invoice automatically." },
       { q: "Can I take a deposit before I order parts?", a: "Yes. The customer approves the quote on WhatsApp and pays a deposit by card or Apple Pay. You're funded before the merchants' van turns up." },
-      { q: "What if the customer doesn't pay the final invoice?", a: "Quottr chases unpaid invoices for you — automatic, polite reminders by email and SMS — so you don't have to send them yourself after a long day." },
+      { q: "What if the customer doesn't pay the final invoice?", a: "Quottr chases unpaid invoices for you — automatic, polite reminders by email and WhatsApp — so you don't have to send them yourself after a long day." },
     ],
   },
   {
