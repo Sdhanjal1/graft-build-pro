@@ -59,22 +59,39 @@ export type PortalPdfQuote = {
 
 type Variant = "quote" | "invoice";
 
+function detectImageFormat(dataUrl: string): "PNG" | "JPEG" | "WEBP" {
+  const head = dataUrl.slice(0, 40).toLowerCase();
+  if (head.includes("image/jpeg") || head.includes("image/jpg")) return "JPEG";
+  if (head.includes("image/webp")) return "WEBP";
+  return "PNG";
+}
+
 function header(doc: jsPDF, variant: Variant, quote: PortalPdfQuote, profile: PortalPdfProfile) {
   doc.setFillColor(INK);
   doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, "F");
 
-  doc.setFillColor(LIME);
-  doc.roundedRect(40, 22, 38, 38, 8, 8, "F");
-  doc.setTextColor(INK);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
-  doc.text("Q", 52, 49);
-
   const businessName = profile?.business_name ?? profile?.full_name ?? "Your tradesperson";
+  let textX = 40;
+
+  // Trader logo (if provided as data URL). No Quottr placeholder.
+  const logo = profile?.logoDataUrl;
+  if (logo) {
+    try {
+      const size = 44;
+      // White rounded plate so logos with dark glyphs stay readable on the black bar
+      doc.setFillColor("#FFFFFF");
+      doc.roundedRect(40, 18, size, size, 6, 6, "F");
+      doc.addImage(logo, detectImageFormat(logo), 44, 22, size - 8, size - 8, undefined, "FAST");
+      textX = 40 + size + 14;
+    } catch {
+      // ignore decode errors and fall back to name-only header
+    }
+  }
+
   doc.setTextColor("#FFFFFF");
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text(businessName, 92, 38);
+  doc.setFontSize(15);
+  doc.text(businessName, textX, 38);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
@@ -85,7 +102,7 @@ function header(doc: jsPDF, variant: Variant, quote: PortalPdfQuote, profile: Po
   ]
     .filter(Boolean)
     .join("  ·  ");
-  if (meta) doc.text(meta, 92, 54);
+  if (meta) doc.text(meta, textX, 54);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
@@ -109,8 +126,15 @@ function footer(doc: jsPDF, profile: PortalPdfProfile) {
   const businessName = profile?.business_name ?? profile?.full_name ?? "";
   const left = [businessName, profile?.phone, profile?.email].filter(Boolean).join(" · ");
   doc.text(left, 40, h - 32);
-  doc.text("Generated with Quottr", w - 40, h - 32, { align: "right" });
+
+  // "Powered by Quottr" — legible, dark text, right-aligned
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(INK);
+  doc.text("Powered by Quottr", w - 40, h - 32, { align: "right" });
 }
+
+
 
 function traderAddressLines(profile: PortalPdfProfile): string[] {
   if (!profile) return [];
