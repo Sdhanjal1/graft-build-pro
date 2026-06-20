@@ -1308,7 +1308,6 @@ export const duplicateQuote = async (quoteId: string): Promise<Quote | null> => 
   const user_id = await requireUserId();
   const insertPayload = {
     user_id,
-    ref: nextQuoteRef(),
     client_id: src.client_id,
     title: src.title,
     job_description: src.job_description,
@@ -1320,13 +1319,8 @@ export const duplicateQuote = async (quoteId: string): Promise<Quote | null> => 
     due_date: due.toISOString().slice(0, 10),
     payment_method: src.payment_method ?? "card",
   };
-  const { data, error } = await supabase
-    .from("quotes")
-    .insert(insertPayload as never)
-    .select("*")
-    .single();
-  if (error) throw error;
-  const copy = rowToQuote(data as unknown as DbQuote);
+  const data = await insertQuoteWithUniqueRef(insertPayload);
+  const copy = rowToQuote(data);
   mockQuotes.unshift(copy);
   bumpVersion();
   return copy;
