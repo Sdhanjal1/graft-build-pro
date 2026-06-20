@@ -555,14 +555,20 @@ function QuoteDetail() {
       }
 
       // 3. Auto-email via Resend (best-effort). The invoice screen shows status.
+      const amountCents = Math.round(jobDoneAmount * 100);
+      const depositPaidCents = jobDoneMode === "balance" ? Math.round(depositPaid * 100) : 0;
       let emailedTo: string | null = null;
+      let emailFailed = false;
       try {
-        const res = await sendInvoiceEmailFn({ data: { quoteId: quote.id } });
-        if (res && (res as { status?: string }).status === "sent") {
-          emailedTo = (res as { to?: string }).to ?? client?.email ?? null;
-        }
+        const res = await sendInvoiceEmailFn({
+          data: { quoteId: quote.id, mode: jobDoneMode, amountCents, depositPaidCents },
+        });
+        const s = (res as { status?: string } | null)?.status;
+        if (s === "sent") emailedTo = (res as { to?: string }).to ?? client?.email ?? null;
+        else if (s === "failed") emailFailed = true;
+        // "skipped" → neither (no email on file); WhatsApp fallback applies.
       } catch {
-        // Surfaced on the invoice screen; don't block the trader.
+        emailFailed = true;
       }
 
       // 4. Tell the trader what happened via the post-send sheet.
@@ -570,7 +576,7 @@ function QuoteDetail() {
       const waMessage = client?.phone
         ? buildJobDoneMessage(liveQuote, jobDoneFirst, jobDoneMode, jobDoneAmount, depositPaid)
         : null;
-      setJobDoneResult({ mode: jobDoneMode, emailedTo, waMessage });
+      setJobDoneResult({ mode: jobDoneMode, emailedTo, emailFailed, amountCents, depositPaidCents, waMessage });
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Couldn't complete the job");
