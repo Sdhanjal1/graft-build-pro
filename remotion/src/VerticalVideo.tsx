@@ -45,8 +45,8 @@ const BrandFlash: React.FC = () => {
 
 type Cue = { from: number; to: number; text: string; accent?: string };
 const cues: Cue[] = [
-  { from: 110, to: 270, text: "Speak the job", accent: "in plain English" },
-  { from: 270, to: 440, text: "Quote ready", accent: "in 18 seconds" },
+  { from: 110, to: 270, text: "Speak the job" },
+  { from: 270, to: 440, text: "Quote ready", accent: "in seconds" },
   { from: 440, to: 570, text: "Send on WhatsApp", accent: "deposit lands" },
 ];
 
