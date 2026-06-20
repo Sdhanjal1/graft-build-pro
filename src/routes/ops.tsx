@@ -120,6 +120,65 @@ function Stat({
   );
 }
 
+function ConnectClientIdPanel() {
+  const verify = useServerFn(verifyConnectClientId);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<ConnectClientIdCheck | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const run = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await verify();
+      setResult(r);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const tone =
+    result?.mode === "live"
+      ? "bg-lime/30 text-ink"
+      : result?.mode === "mismatch"
+      ? "bg-red-100 text-red-800"
+      : "bg-ink/5 text-ink/70";
+
+  return (
+    <div className="card-surface p-5">
+      <div className="flex items-center justify-between mb-3 gap-3">
+        <div>
+          <h2 className="font-display text-2xl">Stripe Connect client id</h2>
+          <p className="text-xs text-ink/50 mt-0.5">
+            Probes Stripe to confirm STRIPE_CONNECT_CLIENT_ID matches the live platform key.
+          </p>
+        </div>
+        <button
+          onClick={run}
+          disabled={busy}
+          className="text-xs px-3 py-1.5 rounded-full border border-ink/20 hover:bg-ink/5 disabled:opacity-50"
+        >
+          {busy ? "Checking…" : "Verify"}
+        </button>
+      </div>
+      {err && <p className="text-sm text-red-700">{err}</p>}
+      {result && (
+        <div className={`text-sm rounded-md px-3 py-2 ${tone}`}>
+          <div className="font-medium">{result.message}</div>
+          <div className="text-[11px] mt-1 opacity-70">
+            HTTP {result.httpStatus}
+            {result.stripeErrorType ? ` · ${result.stripeErrorType}` : ""} · client id{" "}
+            {result.clientIdPresent ? "set" : "MISSING"} · live key{" "}
+            {result.liveKeyPresent ? "set" : "MISSING"}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OpsPage() {
   const fn = useServerFn(getOpsDashboard);
   const { data } = useSuspenseQuery(opsQueryOptions(() => fn()));
