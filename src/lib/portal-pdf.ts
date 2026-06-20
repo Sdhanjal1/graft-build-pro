@@ -25,7 +25,11 @@ export type PortalPdfProfile = {
   registration_number?: string | null;
   vat_registered?: boolean | null;
   vat_number?: string | null;
+  logo_url?: string | null;
+  /** Optional precomputed data URL for the trader's logo (preferred — sync render). */
+  logoDataUrl?: string | null;
 } | null;
+
 
 export type PortalPdfClient = {
   name?: string | null;
