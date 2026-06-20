@@ -104,8 +104,6 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
 
   if (!open) return null;
 
-  const firstName = customerName?.split(" ")[0] ?? "there";
-
   const portalUrl = (token: string) => shortQuotePortalUrl(token);
 
 
