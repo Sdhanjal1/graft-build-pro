@@ -166,6 +166,82 @@ describe("compute refuses non-positive headlines (no badge ever emitted)", () =>
   });
 });
 
+/**
+ * Send-guard contract — mirrors invoice-email.server.ts:
+ *
+ *   if (!amounts.ok) return { status: "skipped", reason: amounts.reason };
+ *
+ * If compute refuses, the email function MUST return { status: "skipped" }
+ * and never call sendInvoiceEmail. This pins the £0 "deposit received"
+ * regression: a webhook firing with amount=0 must NOT email the customer.
+ */
+describe("send-guard: compute-refused inputs map to { status: 'skipped' } (no email sent)", () => {
+  type SendResult = { status: "sent" } | { status: "skipped"; reason: string };
+
+  // Tiny re-implementation of the guard branch in invoice-email.server.ts:
+  // we test the contract, not the I/O.
+  function guardedSend(opts: {
+    mode: InvoiceMode;
+    totalCents: number;
+    amountCents?: number;
+    depositPaidCents?: number;
+  }): { result: SendResult; sendCalls: number } {
+    let sendCalls = 0;
+    const fakeSend = () => {
+      sendCalls += 1;
+      return { status: "sent" as const };
+    };
+    const amounts = computeInvoiceAmounts(opts);
+    if (!amounts.ok) {
+      return {
+        result: { status: "skipped", reason: amounts.reason },
+        sendCalls,
+      };
+    }
+    return { result: fakeSend(), sendCalls };
+  }
+
+  const skipCases: Array<{
+    label: string;
+    mode: InvoiceMode;
+    amountCents?: number;
+    depositPaidCents?: number;
+  }> = [
+    { label: "deposit-received amount=0", mode: "deposit-received", amountCents: 0 },
+    { label: "deposit-received amount=-100", mode: "deposit-received", amountCents: -100 },
+    { label: "balance amount=0 (deposit==total)", mode: "balance", depositPaidCents: TOTAL },
+    { label: "balance amount=-50 explicit", mode: "balance", amountCents: -50, depositPaidCents: 36000 },
+    { label: "balance deposit > total", mode: "balance", depositPaidCents: TOTAL + 100 },
+  ];
+
+  for (const c of skipCases) {
+    test(`${c.label} → { status: 'skipped' } and sendInvoiceEmail not called`, () => {
+      const { result, sendCalls } = guardedSend({
+        mode: c.mode,
+        totalCents: TOTAL,
+        amountCents: c.amountCents,
+        depositPaidCents: c.depositPaidCents,
+      });
+      expect(result.status).toBe("skipped");
+      if (result.status === "skipped") {
+        expect(typeof result.reason).toBe("string");
+        expect(result.reason.length).toBeGreaterThan(0);
+      }
+      expect(sendCalls).toBe(0);
+    });
+  }
+
+  test("happy path: positive amount → { status: 'sent' } and sendInvoiceEmail called once", () => {
+    const { result, sendCalls } = guardedSend({
+      mode: "deposit-received",
+      totalCents: TOTAL,
+      amountCents: 36000,
+    });
+    expect(result.status).toBe("sent");
+    expect(sendCalls).toBe(1);
+  });
+});
+
 describe("PDF stamp gate — only receipt mode passes paid_at", () => {
   // Mirrors the rule in invoice-email.server.ts:
   //   paid_at: mode === "receipt" ? paidAt : null
