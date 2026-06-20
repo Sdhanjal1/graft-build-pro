@@ -14,6 +14,7 @@ import {
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
 import { createInvoiceCheckout, recordManualDeposit, removeManualDeposit, getQuotePaymentStatus } from "@/lib/payments.functions";
+import { sendInvoiceEmailForQuote } from "@/lib/invoice-email.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
 import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus, ShoppingCart, ChevronDown, ChevronRight, RotateCcw, Undo2, Mic } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
