@@ -224,7 +224,16 @@ Omit extracted_customer entirely if no customer details were mentioned. Unit pri
 
     const payload = (await res.json()) as {
       content?: Array<{ type: string; text?: string }>;
+      stop_reason?: string;
     };
+    // `max_tokens` is set generously (3072) but a complex job list can still
+    // be truncated. When that happens Claude returns `stop_reason: "max_tokens"`
+    // and the JSON is usually unterminated — better to fail loudly than to
+    // try to parse half a quote.
+    if (payload.stop_reason === "max_tokens") {
+      console.error("[ai-capture-quote] Claude hit max_tokens — response truncated");
+      throw new Error("That's a lot of detail — try splitting it into a couple of shorter recordings.");
+    }
     const text = payload.content?.find((c) => c.type === "text")?.text ?? "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("Claude returned no JSON");

@@ -155,7 +155,11 @@ export async function sendInvoiceEmail(
     return { ok: false, error: "RESEND_API_KEY not set" };
   }
 
-  if (!input.to || !/.+@.+\..+/.test(input.to)) {
+  // RFC 5321 caps the address at 254 chars; this regex enforces a local-part
+  // + "@" + domain with at least one dot in the domain, no spaces. Good
+  // enough to catch obvious typos without rejecting legitimate addresses.
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!input.to || input.to.length > 254 || !EMAIL_RE.test(input.to)) {
     console.warn("[send-invoice] invalid recipient", input.to);
     return { ok: false, error: "invalid recipient" };
   }

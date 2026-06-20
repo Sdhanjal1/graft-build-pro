@@ -487,13 +487,36 @@ export function clearUserData() {
 
 // --- Quote builder helper (keeps VAT maths consistent) ----------------------
 const VAT_RATE = 0.2;
+
+/**
+ * Compute subtotal / VAT / total using integer-pence arithmetic so float
+ * accumulation can't drift (e.g. 0.1 + 0.2 = 0.30000000000000004 problems
+ * across N line items at large quantities). All intermediate sums are in
+ * pence; we round to integer pence at every boundary and divide back to
+ * pounds at the very end for the DB columns (which are numeric(10,2)).
+ */
+export function computeQuoteTotals(
+  line_items: { qty: number; unit_price: number }[],
+  vatRegistered: boolean,
+): { subtotal: number; vat_amount: number; total: number } {
+  const subtotalCents = line_items.reduce(
+    (s, li) => s + Math.round(li.qty * li.unit_price * 100),
+    0,
+  );
+  const vatCents = vatRegistered ? Math.round(subtotalCents * VAT_RATE) : 0;
+  const totalCents = subtotalCents + vatCents;
+  return {
+    subtotal: subtotalCents / 100,
+    vat_amount: vatCents / 100,
+    total: totalCents / 100,
+  };
+}
+
 const makeQuote = (q: Omit<Quote, "subtotal" | "vat_amount" | "total"> & { vat?: boolean }): Quote => {
-  const subtotal = +q.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
-  const vat = q.vat === false ? 0 : +(subtotal * VAT_RATE).toFixed(2);
-  const total = +(subtotal + vat).toFixed(2);
+  const { subtotal, vat_amount, total } = computeQuoteTotals(q.line_items, q.vat !== false);
   // Drop the helper-only `vat` field
   const { vat: _vat, ...rest } = q;
-  return { ...rest, subtotal, vat_amount: vat, total };
+  return { ...rest, subtotal, vat_amount, total };
 };
 
 export const mockQuotes: Quote[] = [];
@@ -1096,7 +1119,14 @@ export const findOrCreateClient = async (name: string, opts?: Partial<Client>): 
   return client;
 };
 
-/** Compute next QTR reference (zero-padded 3 digits). */
+/**
+ * Compute next QTR reference (zero-padded 3 digits).
+ *
+ * @deprecated Client-side fallback only — used for preview rendering of
+ * unsaved drafts. Real persistence MUST go through `allocateQuoteRef` from
+ * `@/lib/quote-ref.functions` so the SELECT-then-INSERT happens server-side
+ * and the partial UNIQUE index can catch true races.
+ */
 export const nextQuoteRef = () => {
   const nums = mockQuotes
     .map((q) => Number((q.ref || "").replace(/[^0-9]/g, "")))
@@ -1104,6 +1134,35 @@ export const nextQuoteRef = () => {
   const next = (nums.length ? Math.max(...nums) : 0) + 1;
   return `QTR-${String(next).padStart(3, "0")}`;
 };
+
+/**
+ * Insert a quote with a server-allocated ref, retrying on the partial
+ * unique-index 23505 (race between two concurrent saves picking the same
+ * QTR-N).
+ */
+const MAX_REF_ATTEMPTS = 3;
+async function insertQuoteWithUniqueRef(
+  basePayload: Record<string, unknown>,
+): Promise<DbQuote> {
+  const { allocateQuoteRef } = await import("@/lib/quote-ref.functions");
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < MAX_REF_ATTEMPTS; attempt++) {
+    const { ref } = await allocateQuoteRef();
+    const payload = { ...basePayload, ref };
+    const { data, error } = await supabase
+      .from("quotes")
+      .insert(payload as never)
+      .select("*")
+      .single();
+    if (!error) return data as unknown as DbQuote;
+    const code = (error as { code?: string }).code;
+    if (code !== "23505") throw error;
+    lastErr = error;
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error("Could not allocate a unique quote ref. Try again in a moment.");
+}
 
 /** Save a generated quote to Lovable Cloud and return it. */
 export const saveGeneratedQuote = async (input: {
@@ -1124,9 +1183,7 @@ export const saveGeneratedQuote = async (input: {
       })
     : null;
 
-  const subtotal = +input.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
-  const vat_amount = input.vatRegistered ? +(subtotal * VAT_RATE).toFixed(2) : 0;
-  const total = +(subtotal + vat_amount).toFixed(2);
+  const { subtotal, vat_amount, total } = computeQuoteTotals(input.line_items, input.vatRegistered);
   const due = new Date();
   due.setDate(due.getDate() + 14);
   const user_id = await requireUserId();
@@ -1139,7 +1196,6 @@ export const saveGeneratedQuote = async (input: {
     : (timing === "deposit_then_balance" ? computeDepositAmount(subtotal, depositPct) : 0);
   const insertPayload = {
     user_id,
-    ref: nextQuoteRef(),
     client_id: client?.id ?? null,
     title: input.title,
     job_description: input.description,
@@ -1155,13 +1211,8 @@ export const saveGeneratedQuote = async (input: {
     deposit_amount: depositAmt,
     deposit_percent: depositPct,
   };
-  const { data, error } = await supabase
-    .from("quotes")
-    .insert(insertPayload as never)
-    .select("*")
-    .single();
-  if (error) throw error;
-  const quote = rowToQuote(data as unknown as DbQuote);
+  const data = await insertQuoteWithUniqueRef(insertPayload);
+  const quote = rowToQuote(data);
   mockQuotes.unshift(quote);
   bumpVersion();
   // Fire-and-forget: feed the pricing memory so future quotes learn from this one.
@@ -1204,9 +1255,7 @@ export const updateGeneratedQuote = async (input: {
     });
     client_id = c.id;
   }
-  const subtotal = +input.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
-  const vat_amount = input.vatRegistered ? +(subtotal * VAT_RATE).toFixed(2) : 0;
-  const total = +(subtotal + vat_amount).toFixed(2);
+  const { subtotal, vat_amount, total } = computeQuoteTotals(input.line_items, input.vatRegistered);
   const timing: PaymentTiming = input.payment_timing ?? existing?.payment_timing ?? deriveTimingFromTotal(total);
   const depositPct = input.deposit_percent !== undefined
     ? input.deposit_percent
@@ -1278,7 +1327,6 @@ export const duplicateQuote = async (quoteId: string): Promise<Quote | null> => 
   const user_id = await requireUserId();
   const insertPayload = {
     user_id,
-    ref: nextQuoteRef(),
     client_id: src.client_id,
     title: src.title,
     job_description: src.job_description,
@@ -1290,13 +1338,8 @@ export const duplicateQuote = async (quoteId: string): Promise<Quote | null> => 
     due_date: due.toISOString().slice(0, 10),
     payment_method: src.payment_method ?? "card",
   };
-  const { data, error } = await supabase
-    .from("quotes")
-    .insert(insertPayload as never)
-    .select("*")
-    .single();
-  if (error) throw error;
-  const copy = rowToQuote(data as unknown as DbQuote);
+  const data = await insertQuoteWithUniqueRef(insertPayload);
+  const copy = rowToQuote(data);
   mockQuotes.unshift(copy);
   bumpVersion();
   return copy;
@@ -1559,8 +1602,6 @@ export const setQuoteStatus = async (quoteId: string, status: QuoteStatus): Prom
   return q;
 };
 
-const VAT_RATE_LOCAL = 0.2;
-
 /** Persist edited line items and recompute totals. */
 export const updateQuoteLineItems = async (
   quoteId: string,
@@ -1569,9 +1610,7 @@ export const updateQuoteLineItems = async (
 ): Promise<Quote | null> => {
   const q = getQuote(quoteId);
   if (!q) return null;
-  const subtotal = +line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
-  const vat_amount = vatRegistered ? +(subtotal * VAT_RATE_LOCAL).toFixed(2) : 0;
-  const total = +(subtotal + vat_amount).toFixed(2);
+  const { subtotal, vat_amount, total } = computeQuoteTotals(line_items, vatRegistered);
   const { error } = await supabase
     .from("quotes")
     .update({

@@ -5,16 +5,27 @@
  * Reference: RFC 8030 (Web Push), RFC 8291 (encryption), RFC 8292 (VAPID).
  */
 
-// VAPID keys must be supplied via environment variables. The private key is
-// security-sensitive, never hardcode a fallback in source.
-export const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY ?? "";
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY ?? "";
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:hello@quottr.app";
+// VAPID keys must be supplied via environment variables. Read inside helpers
+// (not at module scope) so the secret isn't evaluated at import time — that
+// would risk surfacing it in any chunk that pulls this module into a shared
+// graph, and trips secret-scanning tools that flag module-scope reads.
 
-function assertVapidConfigured() {
-  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+// Public key is published in headers to every push endpoint and is exposed to
+// the browser via getVapidPublicKey() — safe to expose, but still read lazily
+// to keep the pattern uniform.
+function readVapidEnv() {
+  const pub = process.env.VAPID_PUBLIC_KEY ?? "";
+  const priv = process.env.VAPID_PRIVATE_KEY ?? "";
+  const sub = process.env.VAPID_SUBJECT || "mailto:hello@quottr.app";
+  if (!pub || !priv) {
     throw new Error("VAPID keys are not configured (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY).");
   }
+  return { pub, priv, sub };
+}
+
+/** Public accessor for callers that need to advertise the VAPID public key. */
+export function getVapidPublicKey(): string {
+  return process.env.VAPID_PUBLIC_KEY ?? "";
 }
 
 // ---------------- base64url helpers ----------------
@@ -40,33 +51,44 @@ function concat(...arrs: Uint8Array[]): Uint8Array {
 }
 
 // ---------------- VAPID JWT (ES256) ----------------
-async function importVapidPrivateKey(): Promise<CryptoKey> {
-  assertVapidConfigured();
-  // Build JWK from the public (uncompressed) + private d
-  const pub = b64uToBytes(VAPID_PUBLIC_KEY);
+async function importVapidPrivateKey(pubB64u: string, privB64u: string): Promise<CryptoKey> {
+  const pub = b64uToBytes(pubB64u);
   if (pub.length !== 65 || pub[0] !== 0x04) throw new Error("Bad VAPID public key");
   const x = bytesToB64u(pub.slice(1, 33));
   const y = bytesToB64u(pub.slice(33, 65));
-  const jwk: JsonWebKey = { kty: "EC", crv: "P-256", x, y, d: VAPID_PRIVATE_KEY, ext: true };
+  const jwk: JsonWebKey = { kty: "EC", crv: "P-256", x, y, d: privB64u, ext: true };
   return crypto.subtle.importKey("jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
 }
 
+// JWT cache: minted JWTs are valid for 12h. We refresh ~1h early to be safe.
+// Keyed by audience (origin) so each push service gets a stable signed token
+// for the bulk of its life instead of paying ECDH+sign per push.
+type CachedJwt = { token: string; expiresAt: number };
+const jwtCache = new Map<string, CachedJwt>();
+const JWT_TTL_SECONDS = 12 * 3600;
+const JWT_REFRESH_BEFORE_SECONDS = 3600;
+
 async function signVapidJwt(audience: string): Promise<string> {
+  const cached = jwtCache.get(audience);
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (cached && cached.expiresAt - nowSec > JWT_REFRESH_BEFORE_SECONDS) {
+    return cached.token;
+  }
+  const { pub, priv, sub } = readVapidEnv();
   const header = { typ: "JWT", alg: "ES256" };
-  const payload = {
-    aud: audience,
-    exp: Math.floor(Date.now() / 1000) + 12 * 3600,
-    sub: VAPID_SUBJECT,
-  };
+  const exp = nowSec + JWT_TTL_SECONDS;
+  const payload = { aud: audience, exp, sub };
   const enc = new TextEncoder();
   const head64 = bytesToB64u(enc.encode(JSON.stringify(header)));
   const pay64 = bytesToB64u(enc.encode(JSON.stringify(payload)));
   const data = enc.encode(`${head64}.${pay64}`);
-  const key = await importVapidPrivateKey();
+  const key = await importVapidPrivateKey(pub, priv);
   const sig = new Uint8Array(
     await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, data),
   );
-  return `${head64}.${pay64}.${bytesToB64u(sig)}`;
+  const token = `${head64}.${pay64}.${bytesToB64u(sig)}`;
+  jwtCache.set(audience, { token, expiresAt: exp });
+  return token;
 }
 
 // ---------------- aes128gcm payload encryption (RFC 8291) ----------------
@@ -169,7 +191,7 @@ export async function sendWebPush(
 
   const headers: Record<string, string> = {
     TTL: "60",
-    Authorization: `vapid t=${jwt}, k=${VAPID_PUBLIC_KEY}`,
+    Authorization: `vapid t=${jwt}, k=${getVapidPublicKey()}`,
     Urgency: "high",
   };
 

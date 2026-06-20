@@ -598,6 +598,16 @@ function QuoteDetail() {
       });
     }, 500);
   };
+  // Clear any pending debounce on unmount so a write doesn't fire against a
+  // stale quote ref after the user navigates away.
+  useEffect(() => {
+    return () => {
+      if (timingSaveTimer.current) {
+        clearTimeout(timingSaveTimer.current);
+        timingSaveTimer.current = null;
+      }
+    };
+  }, []);
   const onTimingChange = (next: PaymentTiming) => {
     setTimingState(next);
     if (next === "deposit_then_balance") {

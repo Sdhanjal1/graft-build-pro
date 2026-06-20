@@ -1,6 +1,4 @@
 /* Quottr service worker: push notifications only. No HTML caching. */
-const VERSION = new URL(self.location.href).searchParams.get("v") || "dev";
-const CACHE_PREFIX = "quottr-cache-v2-";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -8,17 +6,15 @@ self.addEventListener("install", () => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
-    // Evict every legacy cache (old v1 navigation cache included).
+    // Evict every legacy cache from the pre-network-only worker.
     const names = await caches.keys();
     await Promise.all(
-      names
-        .filter((n) => n.startsWith("quottr-cache-") && !n.startsWith(CACHE_PREFIX + VERSION))
-        .map((n) => caches.delete(n))
+      names.filter((n) => n.startsWith("quottr-cache-")).map((n) => caches.delete(n)),
     );
     await self.clients.claim();
     const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     for (const c of clients) {
-      try { c.postMessage({ type: "QUOTTR_SW_ACTIVATED", version: VERSION }); } catch {}
+      try { c.postMessage({ type: "QUOTTR_SW_ACTIVATED" }); } catch {}
     }
   })());
 });

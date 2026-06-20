@@ -67,9 +67,14 @@ export const getClientPortalData = createServerFn({ method: "POST" })
 
     const [{ data: profile }, { data: quotes }, { data: documents }, { data: messages }] =
       await Promise.all([
+        // Only fields needed for the public portal header / branding. The
+        // pro's phone and email are intentionally NOT exposed here — a leaked
+        // portal code shouldn't double as a directory lookup for the trader's
+        // personal contact details. Customers reach the pro via the in-portal
+        // messaging thread.
         supabaseAdmin
           .from("profiles")
-          .select("id, business_name, full_name, logo_url, phone, email")
+          .select("id, business_name, full_name, logo_url")
           .eq("id", client.user_id)
           .maybeSingle(),
         supabaseAdmin
@@ -95,7 +100,9 @@ export const getClientPortalData = createServerFn({ method: "POST" })
       client: {
         id: client.id,
         name: client.name,
-        address: client.address,
+        // address intentionally omitted — the portal greets the customer by
+        // name; their own address being mirrored back to anyone holding the
+        // code adds no UX value and is sensitive PII.
         service_due_date: client.service_due_date,
         service_type: client.service_type,
       },
@@ -157,6 +164,16 @@ export const postClientPortalMessage = createServerFn({ method: "POST" })
   });
 
 // ---------- Public: customer accepts or declines a quote ----------
+//
+// Intentional behaviour: this endpoint is unauthenticated — the portal_code
+// IS the credential. Anyone holding a valid client portal code can flip any
+// of that client's portal-visible quotes between accepted/declined exactly
+// once (the `status in ("pending","sent")` guard prevents replays). This is
+// by design: customers shouldn't have to sign in to accept a quote. The
+// portal code is high-entropy (32 chars, alphabet avoids ambiguous
+// glyphs), TTL-bounded (90 days), and revocable via regeneratePortalCode /
+// togglePortalActive. Do NOT add `requireSupabaseAuth` here — that would
+// break the customer flow.
 export const respondQuoteFromPortal = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({

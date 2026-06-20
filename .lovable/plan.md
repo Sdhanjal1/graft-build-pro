@@ -1,49 +1,99 @@
-## Why the logo upload silently does nothing — and how to fix it
+# Batch 1 — Payment & Data Integrity (plan for approval)
 
-### What I checked
+Good news on data state before we touch anything:
 
-- `branding` storage bucket exists and is public; INSERT/UPDATE/DELETE RLS policies on `storage.objects` are correctly scoped (`auth.uid()::text = first folder segment`) and apply to authenticated users.
-- `storage.objects` where `bucket_id='branding'` → **0 rows**. No file has ever been uploaded by anyone.
-- `public.profiles` where `logo_url is not null` → **0 rows**.
-- Settings click handler (`fileInputRef.current?.click()`) and `<input type=file accept="image/png,image/jpeg">` are wired correctly.
-- `handleLogoFile` (`src/routes/settings.tsx:194`) does an early-return on file type/size/offline, sets `uploading=true`, calls `supabase.storage.from('branding').upload(...)`, then `saveProfile({ logo_url })`.
+- **No duplicate `(user_id, ref)` rows in `quotes` today** — the partial unique index `quotes_user_ref_idx UNIQUE (user_id, ref) WHERE ref IS NOT NULL` already exists, so the DB has been silently protecting us. The race is still real (client-side `MAX` over `mockQuotes` can collide → insert would now fail with a 23505), but there's no backfill needed.
+- `invoice_payments` already has `UNIQUE (stripe_session_id)` but **nothing** stops an insert when both `stripe_session_id` and `stripe_payment_intent` are NULL (the third branch at line 165) — that's the real dedupe hole.
 
-User reports: file picker opens, file chosen, then **no spinner ("Uploading…") and no toast** — i.e. `handleLogoFile` either returns silently before `setUploading(true)`, or its early-return toasts never render.
+## 1. Webhook full-payment status guard (`payments-webhook-shared.server.ts:194-204`)
 
-### Most likely cause
-
-The early-return type check is too strict:
+Mirror the deposit branch's guard so a replayed `payment_intent.succeeded` can't drag a `completed` / `declined` / already-`paid` quote backwards, and can't resurrect a manually refunded one.
 
 ```ts
-if (!/^image\/(png|jpeg|jpg)$/i.test(file.type)) { toast.error("Use a PNG or JPG image"); return; }
+await supabaseAdmin
+  .from("quotes")
+  .update({ status: "paid" })
+  .eq("id", quoteId)
+  .eq("user_id", userId)
+  .in("status", ["pending", "sent", "accepted", "overdue"]);
 ```
 
-On iOS Safari and some Android browsers, `File.type` is **empty (`""`)** for camera-roll images or when the OS can't infer a MIME — especially HEIC/HEIF from iPhone. The regex fails → function returns immediately. If the toast viewport is off-screen (settings is a long scroll) the user genuinely sees nothing happen.
+Rationale for the allowed set: full payment legitimately moves any of those forward to `paid`. `completed` stays `completed` (job done bookkeeping is downstream of payment status in this app — we don't want to overwrite it). `declined` and `paid` are terminal; no-op. This is a code-only change.
 
-Zero files ever uploaded across all users is consistent with the check rejecting many real-world picks.
+## 2. Quote-ref race — server-side generation + keep the unique index (`user-data.ts:1100`)
 
-### Fix (frontend only — no DB or storage changes needed)
+The current `nextQuoteRef()` walks the in-memory `mockQuotes` array. Two tabs / two voice captures racing both compute the same `QTR-007` and the second insert 23505s on `quotes_user_ref_idx`. Fix:
 
-In `src/routes/settings.tsx` `handleLogoFile`:
+**a. New server fn `allocateQuoteRef**` in a new file `src/lib/quote-ref.functions.ts`:
 
-1. **Validate by extension when MIME is empty/unknown**, and explicitly reject HEIC with a useful message:
-  - Accept if `file.type` is `image/png|jpeg|jpg|webp`, OR if `file.type` is empty and the filename ends in `.png/.jpg/.jpeg/.webp`.
-  - If the extension is `.heic`/`.heif` (iPhone default), toast: "iPhone HEIC photos aren't supported — choose 'Most Compatible' in iPhone Camera settings, or pick a PNG/JPG."
-  - Add `webp` to the accept list (it's universal now) and update the `<input accept="...">` to match.
-2. **Surface real errors** instead of the generic catch-all:
-  - In the `catch`, include `err.message` in the toast (e.g. "Couldn't upload logo: &nbsp;"), and `console.error` with full context.
-  - Add a `console.info("[logo] picked", { name, type, size })` at the top so we can see what the browser handed us if the user retries.
-3. **Make the upload feedback visible immediately**: set `uploading=true` *before* the validation early-returns return (or move the picker button so the "Uploading…" / error state is in view) — actually simpler: render any rejected-file toast with `duration: 6000` and `richColors` so it's hard to miss.
-4. **Reset the hidden input on the same render** (already done) — keep as-is.
+- `.middleware([requireSupabaseAuth])`, no input.
+- Inside handler: `SELECT ref FROM quotes WHERE user_id = $userId AND ref ~ '^QTR-[0-9]+$'`, parse max numeric suffix, return `QTR-${(max+1).toString().padStart(3,"0")}`.
+- Retry loop: on the caller side, if `saveGeneratedQuote`'s insert fails with code `23505` on `quotes_user_ref_idx`, re-call `allocateQuoteRef` and retry once (covers the small TOCTOU window between SELECT and INSERT under true concurrency). Cap at 3 attempts then surface a friendly error.
 
-### Out of scope
+**b. Replace client `nextQuoteRef()` call sites** with `await allocateQuoteRef()`. Audit shows it's used in `user-data.ts` `saveGeneratedQuote` and `quotes.new.tsx` draft flow — I'll grep and update each site.
 
-- No changes to `branding` bucket, RLS, profile schema, or `saveProfileToCloud`. The DB-side path is correct; the upload never reaches it.
+**c. Existing duplicates handling**: confirmed zero duplicates in production data right now (`SELECT user_id, ref, COUNT(*) ... HAVING COUNT(*) > 1` returns 0 rows), and the partial unique index already exists. So **no backfill migration needed**. I'll leave the index as-is.
 
-### Verification
+**d. Keep `nextQuoteRef()` as a deprecated client-side fallback** only for preview rendering (e.g. unsaved drafts showing a placeholder). Real persistence path goes through `allocateQuoteRef`.
 
-After the fix, retry from the user's device. If it's still silent, the new `console.info` line will show exactly what the browser sees (`type`, `size`) and the catch-block toast will display the real error from Supabase Storage. That tells us in one round-trip whether to dig further (e.g. session/auth, bucket policy edge case) or close the issue.
+No schema migration required for this step — purely a server fn + caller refactor.
 
-Approved — great diagnosis, and the "zero files ever uploaded" data point confirms it. One addition: rather than only rejecting HEIC with a message, consider **converting HEIC to JPEG client-side** (e.g. heic2any or a canvas-based conversion) so iPhone photos just work without the user changing settings — since most of our users are on iPhone and a logo upload should be effortless. If client-side HEIC conversion is too heavy/unreliable, then keep the clear rejection message as the fallback. Either way, ship the rest as planned (extension-based validation, webp support, real error surfacing, console logging).
+## 3. Webhook dedupe for the no-id branch (`payments-webhook-shared.server.ts:165-178`)
 
-Also — confirm the rejection/error toasts are actually *visible*: since settings is a long scroll and the logo field is near the top, make sure a toast shows where the user will see it (the plan's `duration: 6000` + richColors helps, but confirm toasts render in a fixed/visible position, not scrolled off).
+The third insert branch fires when Stripe sends an event with no `cs_…` and no `pi_…` (rare but happens for some Connect / test relays). With no `stripe_session_id` and no `stripe_payment_intent`, the existing `UNIQUE (stripe_session_id)` is NULL-permissive and offers no protection — every retry inserts a fresh paid row → double credit, double email, double push.
+
+Two-part fix:
+
+**a. Code (defensive):** in the third branch, refuse to insert without at least one Stripe identifier. Log and return — Stripe will retry, and the retry usually carries the id. If it never does, we'd rather miss one paid row than double-credit.
+
+```ts
+} else {
+  console.error("[payments/webhook] paid event with no session_id and no payment_intent — skipping insert", {
+    type: evt.type, quoteId, userId,
+  });
+  await logErrorEvent({
+    userId, context: "payments.webhook.no_stripe_id",
+    message: `Paid event ${evt.type} had no stripe identifier`,
+  });
+  return;
+}
+```
+
+**b. Migration (belt + braces):** add a partial unique index so even if a future code path slips, the DB rejects the duplicate:
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS invoice_payments_pi_unique
+  ON public.invoice_payments (stripe_payment_intent)
+  WHERE stripe_payment_intent IS NOT NULL;
+```
+
+(The session-id unique is already there. PI-level unique closes the second branch's residual race where two retries arrive before the first commit lands. The third branch is now guarded by code.)
+
+I'll surface this as a single migration through the migration tool.
+
+---
+
+## Files touched in Batch 1
+
+- `src/lib/payments-webhook-shared.server.ts` — status guard + no-id branch refusal
+- `src/lib/quote-ref.functions.ts` — **new** server fn
+- `src/lib/user-data.ts` — replace `nextQuoteRef` usage, keep deprecated fallback, add retry on 23505
+- `src/routes/quotes.new.tsx` — call new server fn where applicable
+- **Migration:** partial unique index on `invoice_payments.stripe_payment_intent`
+
+## What I'm NOT doing in Batch 1 (and why)
+
+- Not adding a `UNIQUE (quote_id, request_type, status)` constraint as originally suggested. That would block legitimate cases like a customer paying a deposit, the deposit row going `paid`, and the same quote later getting a separate balance `paid` row — both legitimately `(quote, "deposit"|"balance", "paid")` and we want both to insert. Stripe-id-based dedupe is the correct primitive.
+- No data backfill (none needed).
+- No change to deposit-branch status flow (already guarded correctly).
+
+Confirm and I'll apply Batch 1, then move straight into Batch 2 (security/reliability) and Batch 3 (hygiene) applied directly with a summary.
+
+Approved — and good catch rejecting the status-based dedupe in favour of Stripe-ID dedupe; that's the correct primitive and avoids blocking legitimate deposit+balance rows. The "zero existing duplicates + index already exists" finding is reassuring. All three fixes are sound:
+
+1. Status guard — the allowed-set (leaving `completed` alone, terminal no-ops) is right.
+2. Server-side ref + retry-on-23505 — correct way to handle the residual race.
+3. No-id refusal + PI-level unique index — right level of protection on the money path.  
+Apply Batch 1, then proceed with Batch 2 and 3 directly and give me the summary.
+
+One thing to confirm after Batch 1: test that a normal quote save still gets a clean sequential ref (no spurious retries firing), and that a real card payment still records correctly through the webhook (the status guard + no-id changes don't block a legitimate payment).
