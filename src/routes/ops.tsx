@@ -368,6 +368,9 @@ function OpsPage() {
           </div>
         </div>
 
+        <ConnectClientIdPanel />
+
+
         <footer className="text-center text-[11px] text-ink/40 pt-6 pb-12">
           Read-only · all financials across all users · do not share
         </footer>
