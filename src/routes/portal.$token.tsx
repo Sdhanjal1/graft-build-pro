@@ -643,9 +643,16 @@ function PortalPage() {
                 </button>
               </div>
             ) : isPaid ? (
-              <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
-                <Check className="h-4 w-4" /> Paid
-              </div>
+              isPaidInFull ? (
+                <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
+                  <Check className="h-4 w-4" /> Paid
+                </div>
+              ) : (
+                <div className="h-12 px-4 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
+                  <Check className="h-4 w-4" />
+                  <span className="truncate">Deposit paid · <span className="num">{formatGBP(balanceAmount)}</span> due on completion</span>
+                </div>
+              )
             ) : status === "accepted" ? (
               <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
                 <Check className="h-4 w-4" /> Accepted
