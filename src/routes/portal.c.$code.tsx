@@ -6,6 +6,7 @@ import {
   getClientPortalData,
   respondQuoteFromPortal,
 } from "@/lib/portal.functions";
+import { createPortalCheckoutFromCode } from "@/lib/payments.functions";
 import { downloadPortalPdf } from "@/lib/portal-pdf";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import {
@@ -114,6 +115,7 @@ function ClientPortalPage() {
   const { code } = Route.useParams();
   const fetchData = useServerFn(getClientPortalData);
   const respondQuote = useServerFn(respondQuoteFromPortal);
+  const startCheckoutFromCode = useServerFn(createPortalCheckoutFromCode);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -164,7 +166,10 @@ function ClientPortalPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 
-  // Fast poll for webhook confirmation after a paid redirect
+  // Fast poll for webhook confirmation after a paid redirect.
+  // Deposit payments set quote.status to "accepted" (not "paid") so we accept
+  // either as a successful confirmation, otherwise the spinner would never
+  // resolve for deposit flows.
   useEffect(() => {
     if (paymentResult !== "paid") return;
     let stopped = false;
@@ -174,8 +179,10 @@ function ClientPortalPage() {
       if (stopped) return;
       attempts++;
       const r = await load();
-      const anyPaid = r?.quotes?.some((q: any) => q.status === "paid");
-      if (anyPaid) {
+      const confirmed = r?.quotes?.some(
+        (q: any) => q.status === "paid" || q.status === "accepted",
+      );
+      if (confirmed) {
         setConfirming(false);
         return;
       }
@@ -195,6 +202,29 @@ function ClientPortalPage() {
     setRespondingId(quoteId);
     try {
       await respondQuote({ data: { code, quoteId, response } });
+      // If the customer accepted a quote that needs payment up front and the
+      // trader has card payments enabled, kick off Stripe checkout. Without
+      // this redirect the "Accept & pay" button on the hub silently did
+      // nothing financial (quote flipped to accepted but no charge).
+      if (response === "accepted") {
+        const quote = data?.quotes?.find((q: any) => q.id === quoteId);
+        const timing = ((quote as any)?.payment_timing as PaymentTiming) ?? "on_completion";
+        const cardEnabled = !!(data?.profile as any)?.stripe_connect_charges_enabled;
+        if ((timing === "upfront" || timing === "deposit_then_balance") && cardEnabled) {
+          const reqType: "deposit" | "full" =
+            timing === "deposit_then_balance" ? "deposit" : "full";
+          try {
+            const origin = typeof window !== "undefined" ? window.location.origin : "";
+            const r = await startCheckoutFromCode({
+              data: { code, quoteId, requestType: reqType, returnOrigin: origin },
+            });
+            window.location.href = r.url;
+            return;
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Could not start payment");
+          }
+        }
+      }
       await load();
       if (response === "accepted") {
         toast.success("Quote accepted — your tradesperson has been notified.");
@@ -254,53 +284,66 @@ function ClientPortalPage() {
       </header>
 
       {paymentResult === "paid" && (() => {
-        const paidQuote = quotes.find((q: any) => q.status === "paid");
+        // After Stripe returns the customer to /portal/c/$code?paid=1 we don't
+        // know which quote was paid. Prefer a fully paid quote; fall back to
+        // the most recent accepted one (deposit flow — webhook flips status to
+        // "accepted", not "paid").
+        const paidQuote =
+          quotes.find((q: any) => q.status === "paid") ??
+          quotes.find((q: any) => q.status === "accepted");
+        const isDepositOnly = paidQuote?.status === "accepted";
         return (
           <section className="px-5 mt-5">
             <div className="card-surface p-6 text-center border-2 border-status-accepted/40 bg-status-accepted/5">
               <div className="h-14 w-14 rounded-full bg-status-accepted text-paper inline-flex items-center justify-center mb-3">
                 <Check className="h-7 w-7" strokeWidth={3} />
               </div>
-              <h2 className="text-2xl leading-tight">Payment received — thank you!</h2>
+              <h2 className="text-2xl leading-tight">
+                {isDepositOnly ? "Deposit received — thank you!" : "Payment received — thank you!"}
+              </h2>
               <p className="text-sm text-muted-foreground mt-2">
-                A receipt and invoice have been emailed to you.
+                {isDepositOnly
+                  ? "Your tradesperson has been notified and will be in touch to schedule the work."
+                  : "A receipt and invoice have been emailed to you."}
               </p>
               {confirming && (
                 <p className="text-xs text-muted-foreground mt-3 inline-flex items-center gap-1.5">
                   <Loader2 className="h-3 w-3 animate-spin" /> Confirming with {businessName}…
                 </p>
               )}
-              <button
-                disabled={!paidQuote}
-                onClick={() => {
-                  if (!paidQuote) return;
-                  try {
-                    void downloadPortalPdf(
-                      {
-                        ref: paidQuote.ref,
-                        title: paidQuote.title,
-                        job_description: paidQuote.job_description,
-                        status: paidQuote.status,
-                        subtotal: Number(paidQuote.subtotal) || 0,
-                        vat_amount: Number(paidQuote.vat_amount) || 0,
-                        total: Number(paidQuote.total) || 0,
-                        vat_registered: paidQuote.vat_registered,
-                        created_at: paidQuote.created_at,
-                        line_items: (paidQuote.line_items as any[]) ?? [],
-                      },
-                      { name: client.name, address: (client as any).address ?? null },
-                      profile as any,
-                      "invoice",
-                    );
-                  } catch (e) {
-                    toast.error(e instanceof Error ? e.message : "Could not generate PDF");
-                  }
-                }}
-                className="mt-4 inline-flex items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold disabled:opacity-60"
-              >
-                <Download className="h-3.5 w-3.5" />
-                {paidQuote ? "Download invoice PDF" : "Preparing your invoice…"}
-              </button>
+              {!isDepositOnly && (
+                <button
+                  disabled={!paidQuote}
+                  onClick={() => {
+                    if (!paidQuote) return;
+                    try {
+                      void downloadPortalPdf(
+                        {
+                          ref: paidQuote.ref,
+                          title: paidQuote.title,
+                          job_description: paidQuote.job_description,
+                          status: paidQuote.status,
+                          subtotal: Number(paidQuote.subtotal) || 0,
+                          vat_amount: Number(paidQuote.vat_amount) || 0,
+                          total: Number(paidQuote.total) || 0,
+                          vat_registered: paidQuote.vat_registered,
+                          created_at: paidQuote.created_at,
+                          line_items: (paidQuote.line_items as any[]) ?? [],
+                        },
+                        { name: client.name, address: (client as any).address ?? null },
+                        profile as any,
+                        "invoice",
+                      );
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Could not generate PDF");
+                    }
+                  }}
+                  className="mt-4 inline-flex items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold disabled:opacity-60"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  {paidQuote ? "Download invoice PDF" : "Preparing your invoice…"}
+                </button>
+              )}
             </div>
           </section>
         );

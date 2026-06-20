@@ -15,7 +15,16 @@ export const PAYMENT_TIMING_OPTIONS: { value: PaymentTiming; label: string; sub:
   { value: "upfront", label: "Upfront", sub: "Full payment before work starts" },
 ];
 
-const DEFAULT_DEPOSIT_PCT_FALLBACK = 30;
+/**
+ * Default deposit fraction (0.30 = 30%) used when a quote is set to
+ * "deposit_then_balance" without an explicit deposit_amount or deposit_percent.
+ * Single source of truth — referenced by both the customer portal UI (what we
+ * SHOW the customer) and the Stripe checkout server fn (what we CHARGE).
+ * Diverging these two has previously caused customers to be billed a different
+ * amount than they saw on screen.
+ */
+export const DEFAULT_DEPOSIT_FRACTION = 0.3;
+const DEFAULT_DEPOSIT_PCT_FALLBACK = DEFAULT_DEPOSIT_FRACTION * 100;
 
 /** Auto-derive a sensible payment timing from a quote total. */
 export function deriveTimingFromTotal(total: number): PaymentTiming {

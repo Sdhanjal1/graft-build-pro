@@ -103,6 +103,9 @@ export type Quote = {
   subtotal: number;
   vat_amount: number;
   total: number;
+  /** Trader's VAT status at the time the quote was saved. May be absent on
+   *  legacy quotes — readers should fall back to live profile.vat_registered. */
+  vat_registered?: boolean;
   status: QuoteStatus;
   due_date?: string;
   notes?: string;

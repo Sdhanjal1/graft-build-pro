@@ -103,7 +103,10 @@ function PortalPage() {
     /* eslint-disable-next-line */
   }, [token]);
 
-  // Poll for webhook confirmation after a paid redirect
+  // Poll for webhook confirmation after a paid redirect.
+  // Deposit payments flip the quote to "accepted" (not "paid"), so we accept
+  // either state — otherwise the spinner runs for 30s and disappears with no
+  // success state for deposit flows.
   useEffect(() => {
     if (paymentResult !== "paid") return;
     let cancelled = false;
@@ -113,7 +116,8 @@ function PortalPage() {
       if (cancelled) return;
       attempts++;
       const r = await load();
-      if (r?.quote?.status === "paid") {
+      const s = r?.quote?.status;
+      if (s === "paid" || s === "accepted") {
         setConfirming(false);
         return;
       }
@@ -307,34 +311,44 @@ function PortalPage() {
         </div>
       </header>
 
-      {paymentResult === "paid" && (
-        <section className="px-5 mt-5">
-          <div className="card-surface p-6 text-center border-2 border-status-accepted/40 bg-status-accepted/5">
-            <div className="h-14 w-14 rounded-full bg-status-accepted text-paper inline-flex items-center justify-center mb-3">
-              <Check className="h-7 w-7" strokeWidth={3} />
-            </div>
-            <h2 className="text-2xl leading-tight">Payment received — thank you!</h2>
-            <p className="text-sm text-muted-foreground mt-2">
-              A receipt and invoice have been emailed to you.
-            </p>
-            <p className="num text-3xl mt-3">{formatGBP(payAmount)}</p>
-            {confirming && !isPaid && (
-              <p className="text-xs text-muted-foreground mt-3 inline-flex items-center gap-1.5">
-                <Loader2 className="h-3 w-3 animate-spin" /> Confirming with your tradesperson…
+      {paymentResult === "paid" && (() => {
+        // Deposit flow: webhook marks the quote "accepted" (not "paid"), so a
+        // returning customer who paid only a deposit should see deposit-
+        // specific copy and no "download invoice" button — there isn't one yet.
+        const isDepositOnly = !isPaid && status === "accepted" && isDepositFlow;
+        return (
+          <section className="px-5 mt-5">
+            <div className="card-surface p-6 text-center border-2 border-status-accepted/40 bg-status-accepted/5">
+              <div className="h-14 w-14 rounded-full bg-status-accepted text-paper inline-flex items-center justify-center mb-3">
+                <Check className="h-7 w-7" strokeWidth={3} />
+              </div>
+              <h2 className="text-2xl leading-tight">
+                {isDepositOnly ? "Deposit received — thank you!" : "Payment received — thank you!"}
+              </h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                {isDepositOnly
+                  ? `Balance of ${formatGBP(balanceAmount)} due on completion. Your tradesperson has been notified.`
+                  : "A receipt and invoice have been emailed to you."}
               </p>
-            )}
-            {isPaid && (
-              <button
-                type="button"
-                onClick={handleDownloadInvoice}
-                className="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-ink text-paper px-5 h-11 text-sm font-bold"
-              >
-                <Download className="h-4 w-4" /> Download invoice PDF
-              </button>
-            )}
-          </div>
-        </section>
-      )}
+              <p className="num text-3xl mt-3">{formatGBP(payAmount)}</p>
+              {confirming && !isPaid && !isDepositOnly && (
+                <p className="text-xs text-muted-foreground mt-3 inline-flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Confirming with your tradesperson…
+                </p>
+              )}
+              {isPaid && (
+                <button
+                  type="button"
+                  onClick={handleDownloadInvoice}
+                  className="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-ink text-paper px-5 h-11 text-sm font-bold"
+                >
+                  <Download className="h-4 w-4" /> Download invoice PDF
+                </button>
+              )}
+            </div>
+          </section>
+        );
+      })()}
 
       {paymentResult === "cancelled" && (
         <section className="px-5 mt-5">

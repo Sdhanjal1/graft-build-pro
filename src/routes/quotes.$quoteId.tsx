@@ -203,7 +203,7 @@ function QuoteDetail() {
     return Math.round((configuredDeposit / total) * 100);
   })();
 
-  const refreshPayments = useCallback(async () => {
+  const refreshPayments = useCallback(async (): Promise<number> => {
     try {
       const res = await fetchPaymentsFn({ data: { quoteId: quote.id } });
       const rows = res?.payments ?? [];
@@ -212,7 +212,8 @@ function QuoteDetail() {
         .reduce((sum, r) => sum + (Number(r.amount_cents) || 0), 0) / 100;
       setDepositPaid(paid);
       setDepositRecorded(paid > 0);
-    } catch { /* non-blocking */ }
+      return paid;
+    } catch { return 0; /* non-blocking */ }
   }, [quote.id, fetchPaymentsFn]);
 
   const handleRecordManualDeposit = async (method: "cash" | "bank") => {
@@ -540,6 +541,17 @@ function QuoteDetail() {
 
   const jobDone = async () => {
     try {
+      // Re-fetch deposit state first — the row may have been written by the
+      // Stripe webhook (or another tab) between mount and now, so the
+      // component state's `depositPaid` can lag. Without this the balance
+      // email can request the full total instead of just the balance.
+      const freshDepositPaid =
+        jobDoneMode === "balance" ? await refreshPayments() : depositPaid;
+      const freshJobDoneAmount =
+        jobDoneMode === "balance"
+          ? Math.max(0, +(Number(quote.total) - Number(freshDepositPaid || 0)).toFixed(2))
+          : jobDoneAmount;
+
       // 1. Mark complete if not already.
       if (!completedAt && status !== "completed") {
         const c = await markJobComplete(quote.id);
@@ -559,8 +571,8 @@ function QuoteDetail() {
       }
 
       // 3. Auto-email via Resend (best-effort). The invoice screen shows status.
-      const amountCents = Math.round(jobDoneAmount * 100);
-      const depositPaidCents = jobDoneMode === "balance" ? Math.round(depositPaid * 100) : 0;
+      const amountCents = Math.round(freshJobDoneAmount * 100);
+      const depositPaidCents = jobDoneMode === "balance" ? Math.round(freshDepositPaid * 100) : 0;
       let emailedTo: string | null = null;
       let emailFailed = false;
       try {
@@ -734,10 +746,10 @@ function QuoteDetail() {
                 <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Subtotal</p>
                 <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP(quote.subtotal || 0)}</p>
               </div>
-              {userProfile.vat_registered && (
+              {(quote.vat_registered ?? userProfile.vat_registered) && (
                 <div>
                   <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">VAT (20%)</p>
-                  <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP((quote.subtotal || 0) * 0.2)}</p>
+                  <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP(Number(quote.vat_amount) || (quote.subtotal || 0) * 0.2)}</p>
                 </div>
               )}
             </div>
