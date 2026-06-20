@@ -10,6 +10,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { generateInvoicePdfBytes } from "@/lib/invoice-pdf.server";
 import { sendInvoiceEmail, type SendInvoiceEmailMode } from "@/lib/email/send-invoice.server";
+import { computeInvoiceAmounts } from "@/lib/invoice-amounts";
 
 export type InvoiceEmailOutcome =
   | { status: "sent"; to: string }
@@ -105,47 +106,31 @@ export async function sendAndRecordInvoiceEmail(opts: {
 
     const totalAmount = Number(quote.total) || 0;
     const totalCents = Math.round(totalAmount * 100);
-    // Headline amount per mode:
-    //   receipt          → amount paid (defaults to total)
-    //   invoice          → total due
-    //   balance          → balance due (total − depositPaid)
-    //   deposit-received → deposit just paid (caller must provide amountCents)
-    const fallbackCents = mode === "balance"
-      ? Math.max(0, totalCents - (opts.depositPaidCents ?? 0))
-      : totalCents;
-    const amount = (opts.amountCents ?? fallbackCents) / 100;
-    // Guard: a balance email rendering £0.00 is almost always a missing
-    // depositPaidCents from the caller. Refuse and let the caller fix the
-    // input rather than send a confusing zero-balance invoice.
-    if (mode === "balance" && amount <= 0) {
-      console.error("[invoice-email] balance mode with non-positive amount — refusing send", {
+    const amounts = computeInvoiceAmounts({
+      mode,
+      totalCents,
+      amountCents: opts.amountCents,
+      depositPaidCents: opts.depositPaidCents,
+    });
+    if (!amounts.ok) {
+      console.error("[invoice-email] refusing send", {
         quoteId: opts.quoteId,
+        mode,
         totalCents,
+        amountCents: opts.amountCents,
         depositPaidCents: opts.depositPaidCents,
-        amountCents: opts.amountCents,
+        reason: amounts.reason,
       });
-      return { status: "skipped", reason: "balance amount must be > 0 — check depositPaidCents" };
-    }
-    if (mode === "deposit-received" && amount <= 0) {
-      console.error("[invoice-email] deposit-received mode with non-positive amount — refusing send", {
-        quoteId: opts.quoteId,
-        amountCents: opts.amountCents,
-      });
-      return { status: "skipped", reason: "deposit amount must be > 0" };
+      return { status: "skipped", reason: amounts.reason };
     }
     const fmt = (n: number) => new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency: currency.toUpperCase(),
     }).format(n);
-    const amountFormatted = fmt(amount);
-    const totalFormatted = fmt(totalAmount);
-    // For balance mode the deposit paid is total − headline. For
-    // deposit-received the deposit paid IS the headline.
-    const depositCents = mode === "deposit-received"
-      ? Math.round(amount * 100)
-      : (opts.depositPaidCents ?? Math.max(0, totalCents - Math.round(amount * 100)));
-    const depositPaidFormatted = fmt(depositCents / 100);
-    const balanceDueFormatted = fmt(Math.max(0, (totalCents - depositCents) / 100));
+    const amountFormatted = fmt(amounts.headlineCents / 100);
+    const totalFormatted = fmt(amounts.totalCents / 100);
+    const depositPaidFormatted = fmt(amounts.depositPaidCents / 100);
+    const balanceDueFormatted = fmt(amounts.balanceDueCents / 100);
 
     // Date label: receipt/deposit-received → date paid; invoice/balance → due date.
     const dueDateIso = quote.invoice_due_date
