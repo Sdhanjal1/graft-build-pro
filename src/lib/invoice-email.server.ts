@@ -89,8 +89,9 @@ export async function sendAndRecordInvoiceEmail(opts: {
         total: Number(quote.total) || 0,
         vat_registered: quote.vat_registered,
         created_at: quote.created_at,
-        // Only stamp paid_at for receipts — invoice/balance PDFs must render
-        // as unpaid (the renderer keys "PAID" stamp off paid_at).
+        // Only stamp paid_at when the FULL invoice is settled — receipts.
+        // Deposit-received, invoice, and balance PDFs must render as unpaid
+        // (the renderer keys "PAID" stamp off paid_at).
         paid_at: mode === "receipt" ? paidAt : null,
         payment_method: opts.paymentMethod ?? "card",
         stripe_payment_intent: opts.paymentIntent ?? null,
@@ -104,7 +105,11 @@ export async function sendAndRecordInvoiceEmail(opts: {
 
     const totalAmount = Number(quote.total) || 0;
     const totalCents = Math.round(totalAmount * 100);
-    // Headline amount: receipt/invoice default to total; balance uses caller's amount.
+    // Headline amount per mode:
+    //   receipt          → amount paid (defaults to total)
+    //   invoice          → total due
+    //   balance          → balance due (total − depositPaid)
+    //   deposit-received → deposit just paid (caller must provide amountCents)
     const fallbackCents = mode === "balance"
       ? Math.max(0, totalCents - (opts.depositPaidCents ?? 0))
       : totalCents;
@@ -121,18 +126,31 @@ export async function sendAndRecordInvoiceEmail(opts: {
       });
       return { status: "skipped", reason: "balance amount must be > 0 — check depositPaidCents" };
     }
+    if (mode === "deposit-received" && amount <= 0) {
+      console.error("[invoice-email] deposit-received mode with non-positive amount — refusing send", {
+        quoteId: opts.quoteId,
+        amountCents: opts.amountCents,
+      });
+      return { status: "skipped", reason: "deposit amount must be > 0" };
+    }
     const fmt = (n: number) => new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency: currency.toUpperCase(),
     }).format(n);
     const amountFormatted = fmt(amount);
     const totalFormatted = fmt(totalAmount);
-    const depositPaidFormatted = fmt(((opts.depositPaidCents ?? Math.max(0, totalCents - Math.round(amount * 100))) / 100));
+    // For balance mode the deposit paid is total − headline. For
+    // deposit-received the deposit paid IS the headline.
+    const depositCents = mode === "deposit-received"
+      ? Math.round(amount * 100)
+      : (opts.depositPaidCents ?? Math.max(0, totalCents - Math.round(amount * 100)));
+    const depositPaidFormatted = fmt(depositCents / 100);
+    const balanceDueFormatted = fmt(Math.max(0, (totalCents - depositCents) / 100));
 
-    // Date label: receipt → date paid; invoice/balance → due date (invoice_due_date or +14d fallback).
+    // Date label: receipt/deposit-received → date paid; invoice/balance → due date.
     const dueDateIso = quote.invoice_due_date
       ?? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-    const dateForLabel = mode === "receipt" ? paidAt : dueDateIso;
+    const dateForLabel = (mode === "receipt" || mode === "deposit-received") ? paidAt : dueDateIso;
     const dateFormatted = new Date(dateForLabel).toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "short",
@@ -151,6 +169,7 @@ export async function sendAndRecordInvoiceEmail(opts: {
       mode,
       depositPaidFormatted,
       totalFormatted,
+      balanceDueFormatted,
     });
 
     if (result.ok) {
