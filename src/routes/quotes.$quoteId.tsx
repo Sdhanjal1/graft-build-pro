@@ -355,7 +355,7 @@ function QuoteDetail() {
       invalidatePaidQuoteCount();
       // Fire-and-forget branded paid-invoice email; status is shown on
       // the invoice screen.
-      sendInvoiceEmailFn({ data: { quoteId: quote.id } }).catch(() => {});
+      sendInvoiceEmailFn({ data: { quoteId: quote.id, mode: "receipt" } }).catch(() => {});
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Couldn't mark as paid");
