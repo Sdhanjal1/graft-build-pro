@@ -487,13 +487,36 @@ export function clearUserData() {
 
 // --- Quote builder helper (keeps VAT maths consistent) ----------------------
 const VAT_RATE = 0.2;
+
+/**
+ * Compute subtotal / VAT / total using integer-pence arithmetic so float
+ * accumulation can't drift (e.g. 0.1 + 0.2 = 0.30000000000000004 problems
+ * across N line items at large quantities). All intermediate sums are in
+ * pence; we round to integer pence at every boundary and divide back to
+ * pounds at the very end for the DB columns (which are numeric(10,2)).
+ */
+export function computeQuoteTotals(
+  line_items: { qty: number; unit_price: number }[],
+  vatRegistered: boolean,
+): { subtotal: number; vat_amount: number; total: number } {
+  const subtotalCents = line_items.reduce(
+    (s, li) => s + Math.round(li.qty * li.unit_price * 100),
+    0,
+  );
+  const vatCents = vatRegistered ? Math.round(subtotalCents * VAT_RATE) : 0;
+  const totalCents = subtotalCents + vatCents;
+  return {
+    subtotal: subtotalCents / 100,
+    vat_amount: vatCents / 100,
+    total: totalCents / 100,
+  };
+}
+
 const makeQuote = (q: Omit<Quote, "subtotal" | "vat_amount" | "total"> & { vat?: boolean }): Quote => {
-  const subtotal = +q.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
-  const vat = q.vat === false ? 0 : +(subtotal * VAT_RATE).toFixed(2);
-  const total = +(subtotal + vat).toFixed(2);
+  const { subtotal, vat_amount, total } = computeQuoteTotals(q.line_items, q.vat !== false);
   // Drop the helper-only `vat` field
   const { vat: _vat, ...rest } = q;
-  return { ...rest, subtotal, vat_amount: vat, total };
+  return { ...rest, subtotal, vat_amount, total };
 };
 
 export const mockQuotes: Quote[] = [];
@@ -1160,9 +1183,7 @@ export const saveGeneratedQuote = async (input: {
       })
     : null;
 
-  const subtotal = +input.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
-  const vat_amount = input.vatRegistered ? +(subtotal * VAT_RATE).toFixed(2) : 0;
-  const total = +(subtotal + vat_amount).toFixed(2);
+  const { subtotal, vat_amount, total } = computeQuoteTotals(input.line_items, input.vatRegistered);
   const due = new Date();
   due.setDate(due.getDate() + 14);
   const user_id = await requireUserId();
