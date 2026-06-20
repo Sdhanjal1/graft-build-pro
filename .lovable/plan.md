@@ -1,67 +1,114 @@
-# Voice → Quote → Customer → Payment → Finish — Issue Audit & Fix Plan
+## Goal
 
-I traced the full chain end-to-end. There are **4 critical correctness bugs** (customers being shown one price and charged another, deposits emailed as "PAID IN FULL", a portal where the pay button doesn't actually charge, and a stuck post-payment spinner), plus a number of important and minor issues. Below is a prioritised plan — I recommend we do Phase 1 immediately, then decide on the rest.
+Lock down deposit/balance/receipt money correctness with three layers of automated checks, plus a one-shot Stripe sandbox lifecycle script that prints raw evidence (PI ids, pence, PDF text, DB rows) rather than pass/fail.
 
----
+## Layer 1 — Unit tests (CI, `bun test`)
 
-## Phase 1 — Critical (must fix before more customers pay)
+New file: `tests/payments-money.test.ts`
 
-**C1. Portal shows 30% deposit but Stripe charges 50%**
-`portal.$token.tsx:220` falls back to `total*0.3`; `payments.functions.ts:269` falls back to `total*0.5`. Customer sees £300, gets billed £500.
-→ Introduce one shared `DEFAULT_DEPOSIT_FRACTION` constant in `src/lib/payment-timing.ts`, used by both UI and server.
+Pure-function coverage of the money pipeline. No network, no DB.
 
-**C2. Deposit payments trigger a "PAID IN FULL" receipt email**
-`payments-webhook-shared.server.ts:215` always passes `mode: "receipt"`, even when `requestType === "deposit"`. PDF gets the green PAID stamp and shows the full total as paid.
-→ Branch on `requestType`: for `deposit`, send a `"deposit-received"` email/PDF variant that shows "Deposit received · balance £X due on completion" and no PAID stamp. For `full`, keep current receipt.
+- `**payment-timing.ts**`
+  - `computeDepositAmount` / `computeDepositPercent` round-trip across 0%, 30%, 50%, 100%, and rounding-edge totals (£99.99, £100.01, £3.33, £0.30).
+  - `parseDepositInput` for `"30%"`, `"£500"`, `"500"`, `"abc"`, `""`.
+  - `DEFAULT_DEPOSIT_FRACTION === 0.3` (locks the C1 fix).
+- **Balance arithmetic per mode** — extract the headline/balance/deposit calc out of `invoice-email.server.ts` into a tiny pure helper `computeInvoiceAmounts({ mode, totalCents, amountCents?, depositPaidCents? })` and unit-test it. Cases:
 
-**C3. Client-hub portal (`/portal/c/$code`) "Accept & pay" button never calls Stripe**
-`portal.c.$code.tsx:448` renders pay labels but `performRespond` only calls `respondQuoteFromPortal` — no `createPortalCheckout`. Customers click "Pay" and nothing financial happens.
-→ Mirror the `portal.$token.tsx` checkout flow: when payment is required, call `createPortalCheckout` and redirect to Stripe.
+  | mode                          | total  | amountCents in | depositPaid in | expect headline | expect balanceDue | expect depositPaid |
+  | ----------------------------- | ------ | -------------- | -------------- | --------------- | ----------------- | ------------------ |
+  | invoice                       | 100000 | –              | –              | 100000          | 100000            | 0                  |
+  | receipt (full)                | 100000 | –              | –              | 100000          | 0                 | 0                  |
+  | receipt (post-deposit)        | 100000 | 70000          | 30000          | 70000           | 0                 | 30000              |
+  | balance                       | 100000 | 70000          | 30000          | 70000           | 70000             | 30000              |
+  | deposit-received              | 100000 | 30000          | –              | 30000           | 70000             | 30000              |
+  | deposit-received 33% rounding | 100000 | 33333          | –              | 33333           | 66667             | 33333              |
+  | zero-deposit edge             | 100000 | 0              | 0              | (refuse)        | –                 | –                  |
+  | balance ≤ 0 edge              | 100000 | 0              | 100000         | (refuse)        | –                 | –                  |
 
-**C4. Post-deposit-payment spinner never resolves**
-Both portals poll for `status === "paid"`, but the webhook sets `status = "accepted"` for deposits. Customer stares at "Confirming…" for 30s then it vanishes with no success state.
-→ Poll for `status in ("paid","accepted")` when `requestType === "deposit"`, and show a deposit-specific success banner.
+- **VAT rounding to the penny** — for the same fixtures, with `vat_registered: true` and a 20% VAT rate, assert `subtotal + vat === total` to the penny across totals £33.33, £99.99, £100.00, £123.45, £1.
 
-## Phase 2 — Important
+Refactor required: extract `computeInvoiceAmounts` from `invoice-email.server.ts` into `src/lib/invoice-amounts.ts` (pure, no I/O) and have the server call it. This makes the test possible without mocking Supabase.
 
-- **I1/M5.** Quote detail VAT row uses live `userProfile.vat_registered` + recomputed `subtotal*0.2` instead of the stored `quote.vat_registered` and `quote.vat_amount`. Use stored values so old quotes don't shift.
-- **I2.** Debounced `regenerateLiveQuote` in `quotes.new.tsx:1110` bypasses `regenerateInFlightRef`, allowing concurrent AI calls that duplicate line items. Wrap the debounced call in `runRegenerate`.
-- **I3.** `q.$code.tsx` client-side `beforeLoad` always redirects to `/portal/c/$code`, even when the code is actually a quote token. Either remove the client-side redirect (let server resolve) or look up the token type first.
-- **I4.** PDF labour lines render with blank Qty/Unit columns. Show e.g. `3 hrs @ £65.00` so the rate is auditable.
-- **I5.** `recordManualDeposit` throws an opaque error when no deposit is configured. Either gate the UI fully or surface a friendly message.
-- **I6.** `applyVoiceEdit` skips `prefetchedContext`, so voice edits ignore the trader's configured hourly/day rates. Pass the same context the initial generation uses.
-- **I7.** "Job done — balance" uses stale `depositPaid` state. Re-fetch payments before computing the balance email.
+## Layer 2 — Badge state-machine matrix (CI)
 
-## Phase 3 — Minor polish
+New file: `tests/invoice-badge-matrix.test.ts`
 
-- **M2.** Portal `?paid=1` banner shows success copy before webhook confirms — gate the headline behind `isPaid`.
-- **M3.** PDF downloaded from `/portal/c/$code` after payment is missing `paid_at`/`payment_method`, so it has no PAID stamp. Pass payment metadata.
-- **M4.** Live-mode fallback title uses first line item description; prefer the AI-generated `title`.
-- **M6.** Manual "Mark paid" on a partially-deposited quote emails the full total as "amount paid". Subtract `depositPaid` for the receipt amount.
-- **M7.** Auto-chase date base diverges between invoice email and `ensureChasesFor`. Use a single source of truth.
-- **M1.** `transcribe.functions.ts` doesn't branch on `audio/aac` / `audio/mpeg`; both fall to `webm`. Add explicit branches.
+Generates the full cartesian product of `{ mode } × { quote.status } × { deposit_paid_cents } × { amount_cents }` for representative values and asserts hard invariants on the email template + PDF stamp:
 
-## Out of scope (flag for later)
+- For every (mode, balanceDue > 0) row: rendered HTML must NOT contain `>PAID`  badge text and the badge color must NOT be `#15803D` (green).
+- `requestType === "deposit"` → mode resolved to `deposit-received` → HTML contains `DEPOSIT RECEIVED` and `BALANCE` line, never `PAID IN FULL`.
+- PDF generator called with `paid_at` must be non-null ONLY when `mode === "receipt"` (asserted via spy on `generateInvoicePdfBytes`).
+- `balance` mode with `amount <= 0` and `deposit-received` with `amount <= 0` return `{status: "skipped"}` (no email sent).
 
-- Server-side totals validation in `saveGeneratedQuote` (trust boundary review).
-- Stripe Connect `account.updated` handling when `charges_enabled` flips to false mid-flight.
+Implementation: import `buildHtml`, `buildSubject` from `send-invoice.server.ts` and the new `computeInvoiceAmounts`. No network. Spy on `generateInvoicePdfBytes` via a vitest-style mock (or plain function override since we use `bun test`).
 
----
+## Layer 3 — Golden PDF tests (CI)
 
-## Recommendation
+New file: `tests/invoice-pdf-golden.test.ts` + fixtures in `tests/__snapshots__/`.
 
-I'd like to **proceed with Phase 1 now** (the four critical issues — financial correctness and stuck UX) in a single batch, and then come back to you with Phase 2 once those land. Phase 3 can be folded into normal polish work.
+For each of the four modes, render the PDF via `generateInvoicePdfBytes` with a fixed fixture quote (£1,200 total, 20% VAT, deposit £360 / 30%):
 
-Approve to implement Phase 1, or tell me to widen the scope (e.g. "do Phase 1 + 2") or cherry-pick specific items.
+1. Extract text with `pdf-parse` (add as devDependency).
+2. Normalise: strip the jsPDF `CreationDate`, lowercase whitespace runs, drop page numbers.
+3. **Snapshot** the normalised text per mode (`invoice.txt`, `receipt.txt`, `balance.txt`, `deposit-received.txt` under `tests/__snapshots__/`).
+4. **Invariant assertions** layered on top of the snapshot, per mode:
+  - `invoice`: contains "£1,200.00", contains "DUE", does NOT contain "PAID", does NOT contain "DEPOSIT RECEIVED".
+  - `receipt`: contains "PAID", contains amount paid, does NOT contain "BALANCE DUE".
+  - `balance`: contains "BALANCE DUE · £840.00", contains "Less deposit received £360.00", does NOT contain "PAID".
+  - `deposit-received`: contains "DEPOSIT RECEIVED · £360.00", contains "Balance to pay on completion · £840.00", PDF stamp is NOT "PAID".
+5. Force deterministic creation date by passing a fixed `created_at` and stubbing `Date.now` via the test harness.
 
-Approve Phase 1 immediately — these four are critical money/trust bugs (showing £300 charging £500, deposit emailing "PAID IN FULL", a pay button that doesn't charge, stuck post-payment spinner). All four must fix before any more customers pay.
+## Layer 4 — On-demand lifecycle script
 
-Also fold these three Phase-2 items into the same batch, because they're money-correctness too, not just "important":
+New file: `scripts/lifecycle-deposit.ts`. Not in CI. Run with `bun scripts/lifecycle-deposit.ts --user <uuid>`.
 
-- I7 (Job-done balance uses stale depositPaid — affects the billed balance amount)
-- M6 (manual Mark-paid on a deposited quote emails the full total as paid — wrong receipt amount)
-- I1/M5 (VAT row recomputes live instead of using stored quote.vat_amount — old quotes must never shift their figures)
+Requires: an existing seeded sandbox user with a connected sandbox Connect account (charges enabled). Reads `STRIPE_SANDBOX_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` from env.
 
-Show me the plan for C1 (the shared deposit fraction) and C2/M6 (the deposit-vs-receipt email branching) before applying — those touch what customers are charged and told, so I want to confirm the approach. The rest of Phase 1 (C3, C4) and I7/I1 you can apply directly.
+Steps, printing raw evidence at each step (no pass/fail summary):
 
-Leave the remaining Phase 2 (I2, I3, I4, I5, I6) and Phase 3 for a follow-up batch.
+1. **Create quote** in DB via service role: £1,200 / 20% VAT / `payment_timing=deposit_then_balance` / `deposit_percent=30`. Print quote row.
+2. **Mint portal token** in `quote_portal_tokens`. Print token + portal URL.
+3. **Read portal page** — fetch `/portal/$token` HTML, regex out the displayed deposit figure. Print the rendered figure.
+4. **Pay deposit**: call `createPortalCheckout({ token, requestType: "deposit" })`, get `amount` (pounds) + Stripe Checkout URL. Print returned amount in pence. **Assert** `portalDisplayedPence === stripeAmountPence` — fail loudly with both values if not equal.
+5. Drive payment via Stripe's testmode `payment_intents` flow on the connected account: create + confirm a PI with the same amount/metadata as Checkout would, or use Stripe's Checkout Session test helper. Print `pi_xxx` id and `amount_received`.
+6. Fire the webhook into `/api/public/payments/webhook?env=sandbox` with a signed payload. Print response status.
+7. Read back: `invoice_payments` row, `quotes.status`, `quotes.invoice_email_status`. Print all three.
+8. Pull the latest sent email PDF (regenerate via `generateInvoicePdfBytes` with same data + `mode: "deposit-received"`), extract text with pdf-parse. Print full text.
+9. **Pay balance**: call manual mark-paid path → `sendInvoiceEmailForQuote({ mode: "receipt" })`. Print the computed `amountCents` and `depositPaidCents` (proves M6 auto-subtract).
+10. Render the resulting receipt PDF, extract text, print. Read back the final `invoice_payments` rows + `quotes.status`. Print.
+
+Output format per step: a labelled block
+
+```
+=== STEP 4: pay deposit ===
+portal.displayed_pence: 36000
+stripe.checkout.amount:  36000
+ASSERT portal == stripe: OK
+stripe.payment_intent.id: pi_3Q...
+stripe.payment_intent.amount: 36000
+db.invoice_payments[0]: { status: 'paid', request_type: 'deposit', amount_cents: 36000, ... }
+pdf.extracted_text: |
+  DEPOSIT RECEIVED · £360.00
+  Total £1,200.00
+  Balance to pay on completion · £840.00
+  ...
+```
+
+## Files
+
+- New: `src/lib/invoice-amounts.ts` (pure helper extracted from `invoice-email.server.ts`)
+- Edit: `src/lib/invoice-email.server.ts` (call the helper instead of inline math)
+- New: `tests/payments-money.test.ts`
+- New: `tests/invoice-badge-matrix.test.ts`
+- New: `tests/invoice-pdf-golden.test.ts`
+- New: `tests/__snapshots__/{invoice,receipt,balance,deposit-received}.txt`
+- New: `scripts/lifecycle-deposit.ts`
+- Edit: `package.json` — add `pdf-parse` devDep; add `"test:lifecycle": "bun scripts/lifecycle-deposit.ts"`.
+
+## Out of scope (explicit)
+
+- No changes to production money logic — only the refactor-extract of `computeInvoiceAmounts`. All existing behavior preserved; tests pin it down.
+- No CI config edits (existing `bun test tests/` already picks up new files).
+- Lifecycle script does NOT auto-create a Connect account; assumes one exists on the chosen test user.
+
+Drop Layer 3 text snapshots entirely — invariant assertions only, no `__snapshots__` files. Confirm the C1 portal figure (step 3) is scraped from the rendered portal page renderer, and the Stripe figure (step 4) from the amount actually sent to Stripe — two independent code paths, not both from createPortalCheckout. Step 5 reads the PI amount from the created Checkout Session object, not recomputed. Add VAT-figure-to-the-penny assertions to the Layer 3 invoice/receipt invariants, using the same rounding the PDF line items use.
