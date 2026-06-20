@@ -177,10 +177,11 @@ function NotificationsPage() {
     }
   };
 
+  type SearchState = { status: Status; category: Category };
   const setStatus = (next: Status) =>
-    navigate({ from: "/notifications", search: (prev) => ({ ...prev, status: next }) });
+    navigate({ from: "/notifications", search: (prev: SearchState) => ({ ...prev, status: next }) });
   const setCategory = (next: Category) =>
-    navigate({ from: "/notifications", search: (prev) => ({ ...prev, category: next }) });
+    navigate({ from: "/notifications", search: (prev: SearchState) => ({ ...prev, category: next }) });
 
   return (
     <AppShell onRefresh={async () => { await refetch(); }}>
