@@ -1,99 +1,62 @@
-## Goal
+## Status: most of this is already shipped — one delta to add
 
-After a quote is `accepted` (or `paid` upfront), the trader sees ONE primary button: **Job done**. Tapping it:
+Last turn I built the single payment-type-aware "Job done" action you described. Quick recap of what's already live on `quotes.$quoteId.tsx`, then the **one new piece** this request adds.
 
-1. Marks the job complete (`status = completed`, `completed_at`).
-2. Sends the right thing to the customer based on `payment_timing`:
-  - `on_completion` → final invoice for the full total (WhatsApp link + email if on file).
-  - `deposit_then_balance` → balance invoice for `total − depositPaid`.
-  - `upfront` → "Paid in full — thank you" receipt, no payment ask.
-3. Issues the invoice record (`markInvoiced`) so chases + the invoice screen wire up, except in the upfront/receipt case where it issues a receipt-only invoice (still calls `markInvoiced` so a clean PDF exists, but the share message is a thank-you, not a payment request).
+## What already exists (shipped last turn)
 
-Existing automatic flows (customer accept, Stripe card webhook auto-mark-paid + receipt email, push notify) are untouched.
+1. **One primary CTA "Job done"** on accepted quotes (and on `paid`-but-not-yet-completed for upfront), with label adapting to payment timing:
+  - `on_completion` → "Job done — send invoice"
+  - `deposit_then_balance` → "Job done — send £{balance} balance"
+  - `upfront` / already paid → "Job done — send receipt"
+2. **Confirmation AlertDialog** ("Mark done and send the £700 balance to John?") before anything runs.
+3. `**jobDone()` handler** that, in order:
+  - marks the job complete (`markJobComplete`),
+  - issues the invoice record (`markInvoiced` + `ensureChasesFor`), **skipped** for receipt mode, which instead calls `cancelChasesFor()` so an already-paid customer never gets chase reminders,
+  - auto-emails via `sendInvoiceEmailForQuote` (Resend, through the existing `invoice-email.functions` path),
+  - navigates to `/invoices/$quoteId` (which already shows live email status: sent ✓ / failed / no email).
+4. **Result toasts**: "Invoice emailed to {first}" / "Receipt emailed to {first}" / fallback to WhatsApp toast / "No email or phone — share manually".
+5. **Mark as paid demoted** — removed from the primary CTA except for the cash/bank-outside-the-app case (status=`completed` and not paid). Still available in More actions → Payments.
+6. `**buildJobDoneMessage(quote, first, mode, amount, depositPaid)**` in `user-data.ts` produces three message variants:
+  - `invoice` → delegates to `buildInvoiceMessage` (full total),
+  - `balance` → "balance of £X due (deposit of £Y received, thank you)" + bank/card details,
+  - `receipt` → "All paid — thank you", **no** bank details, **no** payment link, **no** ask.
+7. All existing auto flows untouched: customer accept push, Stripe card webhook auto-mark-paid + receipt email, the `markPaid` cash/bank handler still triggers `sendInvoiceEmailFn` so manual cash-paid quotes also get an email.
 
-## UX flow on `quotes.$quoteId.tsx`
+## Delta to add now
 
-Primary CTA matrix (replaces the current `status === "accepted" → Mark job complete`, `completed → Mark paid`, `paid → Share receipt` chain):
+Your new ask: when email IS on file and the auto-email goes out, **also surface a WhatsApp backup share** so the trader can nudge the customer through their preferred channel. Today my impl only opens WhatsApp when there's no email. Two small changes do it:
 
+1. **After a successful auto-email**, instead of just a toast, show a **persistent post-send sheet** with:
+  - "✓ Invoice/Receipt emailed to {client.email}"
+  - Secondary button: **"Also share on WhatsApp"** (only if `client.phone` exists) — opens `waLink` with the same `buildJobDoneMessage` body.
+  - Secondary button: **"View invoice"** → navigates to `/invoices/$quoteId`.
+  - Primary "Done" closes the sheet.
+2. **When email fails or is skipped**, the same sheet shows:
+  - "⚠ Email didn't send" / "No email on file"
+  - Primary button: **"Send via WhatsApp"** (one-tap) — opens WhatsApp with the prefilled message.
+  - Link: "View invoice" (where the user can retry the email via the existing Resend button).
 
-| Status before tap                        | Payment timing                              | Primary button                                          | Confirmation copy                                                                |
-| ---------------------------------------- | ------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| accepted                                 | on_completion                               | **Job done — send invoice**                             | "Mark done and send the £{total} invoice to {first}?"                            |
-| accepted                                 | deposit_then_balance                        | **Job done — send balance**                             | "Mark done and send the £{balance} balance to {first}?" (shows deposit credited) |
-| accepted                                 | upfront (rare — paid but not yet completed) | **Job done — send receipt**                             | "Mark done and send {first} a paid-in-full receipt?"                             |
-| paid (upfront, already paid before work) | any                                         | **Job done — send receipt**                             | same as above                                                                    |
-| completed                                | —                                           | **Mark paid (cash/bank)** (fallback, secondary styling) | unchanged                                                                        |
-| paid + completed                         | —                                           | **Share receipt / invoice**                             | unchanged                                                                        |
+The sheet replaces the current fire-and-forget toast + auto-navigate. After it closes (or via "View invoice"), the trader lands on the invoice screen — same destination, just with the explicit channel choice surfaced.
 
+### Files to touch (delta only)
 
-Confirmation = an `AlertDialog` (same component as existing confirms) with one bold "Yes, do it" button + Cancel. No second sheet.
+- `src/routes/quotes.$quoteId.tsx`:
+  - Add `jobDoneResult` state (`{ mode, emailedTo, emailFailed, message } | null`).
+  - In `jobDone()`, replace the toast + immediate `navigate(...)` with `setJobDoneResult(...)`.
+  - Add a `Sheet` (use the existing `@/components/ui/sheet` like the deposit sheet does) with the two-state UI above.
+  - WhatsApp button calls `window.open(waLink(client.phone, message), "_blank")`.
 
-## "Mark as paid" stays — but demoted
-
-- Removed from primary CTA except when status is `completed` AND not paid (the cash/bank-outside-app case).
-- Still available in the "More actions → Payments" accordion as **Mark paid (cash / bank)** so off-platform payments can be recorded.
-- The existing `askingPaid` sheet (cash/bank/card chooser) is reused unchanged.
-
-## Implementation
-
-### 1. New combined handler in `src/routes/quotes.$quoteId.tsx`
-
-Add `jobDone()` that runs sequentially:
-
-```
-const balance = timing === "deposit_then_balance"
-  ? Math.max(0, quote.total - depositPaid)
-  : quote.total;
-const mode: "invoice" | "balance" | "receipt" =
-  timing === "upfront" || status === "paid" ? "receipt"
-  : timing === "deposit_then_balance" ? "balance"
-  : "invoice";
-
-await markJobComplete(quote.id);        // skip if already completed
-const inv = await markInvoiced(quote.id); // idempotent; gives invoice_due_date
-ensureChasesFor(inv);                    // skip for receipt mode
-// Open WhatsApp draft with the right message; mailto fallback if no phone.
-window.open(waLink(client.phone, buildJobDoneMessage(liveQuote, client.first, mode, balance)), "_blank");
-toast.success(mode === "receipt" ? "Job done. Receipt ready to send." : "Job done. Invoice sent.");
-```
-
-Then route the user to `/invoices/$quoteId` (the invoice screen already shows email status + resend).
-
-### 2. New message builder in `src/lib/user-data.ts`
-
-`buildJobDoneMessage(quote, firstName, mode, amount)`:
-
-- `invoice` → existing `buildInvoiceMessage` (full total).
-- `balance` → variant that says "balance of £X due (deposit of £Y received, thank you)" + payment instructions.
-- `receipt` → "All paid — thank you. Your receipt is attached / at this link." NO payment block, NO bank details, NO Stripe link.
-
-### 3. Primary CTA wiring (lines 551–575)
-
-Replace the `accepted`/`completed`/`paid` branches with the matrix above. Use existing `timing`, `status`, `depositPaid`, `configuredDeposit` already in scope. Confirmation alert state: `const [confirmJobDone, setConfirmJobDone] = useState(false)`.
-
-### 4. Remove the now-redundant "Ready to send final invoice?" sheet (`askInvoice`, lines 1172–1192) and its trigger from `markPaid` (line 347). After Stripe card payment, the existing webhook + invoice-email already handle delivery, so no extra prompt is needed.
-
-### 5. Keep all of: `acceptQuote` auto-prompt-deposit, Stripe webhook auto-mark-paid + invoice email, push notifications, `markUnpaid`, deposit recording, "Send a payment link", "Take payment now" on-site.
+No backend, DB, server-fn, webhook, email-template or invoice-screen changes — this is a pure UI delta on the already-built action.
 
 ## Out of scope
 
-- No DB migration (uses existing `status`, `completed_at`, `invoiced_at`, `payment_timing`, `deposit_amount`).
-- No changes to portal, webhooks, or email infrastructure.
-- No copy changes to the invoice screen itself.
+- No changes to `payment_timing`, `markJobComplete`, `markInvoiced`, `markQuotePaid`, the Resend send path, or the Stripe webhook.
+- No changes to `invoices.$quoteId.tsx` — its existing email-status banner + "Resend" button already covers the "Email failed — try again" case.
 
-## Files touched
+Confirm and I'll ship just the post-send sheet delta.
 
-- `src/routes/quotes.$quoteId.tsx` — new `jobDone()`, new confirm dialog, updated primary CTA matrix, remove `askInvoice` sheet, keep "Mark paid" in More actions only.
-- `src/lib/user-data.ts` — add `buildJobDoneMessage` (balance + receipt variants).
+Approved. Two confirmations:
 
-Confirm and I'll build it. - also note - Strong plan, approved with these changes:
-
-1. **Add the auto-email — it's missing.** The `jobDone()` handler currently only opens WhatsApp. As specified, when the customer has an email on file, it must AUTOMATICALLY send the invoice/receipt via Resend (`sendInvoiceEmail`) — no manual step — and surface "Invoice emailed to {first} ✓". WhatsApp share should be the fallback for phone-only customers, or an optional secondary button when email was used. Do NOT auto-open WhatsApp when the email has already been sent automatically.
-2. Confirm the **receipt mode never triggers payment chases** (you noted skip-for-receipt — make it bulletproof; an already-paid customer must never get chase reminders).
-3. Handle the **no-email-no-phone** edge case gracefully: mark complete, generate the PDF, tell the trader "no contact on file — share manually" rather than erroring.
-4. Removing the "Ready to send final invoice?" sheet — approved.
-5. Everything else (CTA matrix, confirmation dialog, demoting Mark-as-paid to More actions, keeping the automatic accept/card-webhook/notify flows) — approved as written.
-
-Rebuild the plan with the auto-email included and confirm before building.
-
-&nbsp;
+1. For the email-sent case, make the sheet feel like a clean confirmation, not an extra task — a single obvious "Done" to close, with WhatsApp clearly *optional* (the email already went). It shouldn't read as "now pick a channel" when the email's already sent.
+2. Gate the "✓ Invoice emailed to {email}" message on the ACTUAL Resend success response — if the send fails, show the failure/WhatsApp state, never a false "emailed ✓".  
+Everything else — the two-state sheet, WhatsApp backup, View invoice, the already-shipped jobDone flow — approved. Ship it.
