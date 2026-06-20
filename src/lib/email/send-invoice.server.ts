@@ -37,6 +37,8 @@ export type SendInvoiceEmailInput = {
   totalFormatted?: string;
   /** For "deposit-received" mode — remaining balance still owed. */
   balanceDueFormatted?: string;
+  /** For "balance" mode — deep link to the portal that auto-opens Stripe Checkout for the balance. */
+  payNowUrl?: string;
 };
 
 export type SendInvoiceEmailResult = {
