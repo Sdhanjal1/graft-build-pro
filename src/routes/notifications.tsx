@@ -127,7 +127,7 @@ function NotificationsPage() {
   };
 
   return (
-    <AppShell onRefresh={() => refetch()}>
+    <AppShell onRefresh={async () => { await refetch(); }}>
       <PageHeader
         title="Notifications"
         subtitle={unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
