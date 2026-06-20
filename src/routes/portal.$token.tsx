@@ -149,6 +149,25 @@ function PortalPage() {
     }
   };
 
+  // Auto-open Stripe Checkout for ?pay=balance email deep-links. Fires once
+  // after the quote loads and only when the deposit-paid + balance-due
+  // state is real (server data, not just the query param).
+  useEffect(() => {
+    if (autoPay !== "balance") return;
+    if (loading || !data?.quote) return;
+    const s = data.quote.status as string | null;
+    const pay = data.payment;
+    const depositPaid = pay?.status === "paid" && pay?.request_type === "deposit";
+    const hasCardEnabled = !!(data.profile as any)?.stripe_connect_charges_enabled;
+    if (s !== "paid" && depositPaid && hasCardEnabled) {
+      setAutoPay(null);
+      void onPay("balance");
+    } else {
+      setAutoPay(null);
+    }
+    /* eslint-disable-next-line */
+  }, [autoPay, loading, data]);
+
   const onRespond = async (response: "accepted" | "declined") => {
     if (response === "declined") {
       setDeclineOpen(true);
