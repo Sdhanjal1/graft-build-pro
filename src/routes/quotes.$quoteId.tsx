@@ -541,6 +541,17 @@ function QuoteDetail() {
 
   const jobDone = async () => {
     try {
+      // Re-fetch deposit state first — the row may have been written by the
+      // Stripe webhook (or another tab) between mount and now, so the
+      // component state's `depositPaid` can lag. Without this the balance
+      // email can request the full total instead of just the balance.
+      const freshDepositPaid =
+        jobDoneMode === "balance" ? await refreshPayments() : depositPaid;
+      const freshJobDoneAmount =
+        jobDoneMode === "balance"
+          ? Math.max(0, +(Number(quote.total) - Number(freshDepositPaid || 0)).toFixed(2))
+          : jobDoneAmount;
+
       // 1. Mark complete if not already.
       if (!completedAt && status !== "completed") {
         const c = await markJobComplete(quote.id);
@@ -560,8 +571,8 @@ function QuoteDetail() {
       }
 
       // 3. Auto-email via Resend (best-effort). The invoice screen shows status.
-      const amountCents = Math.round(jobDoneAmount * 100);
-      const depositPaidCents = jobDoneMode === "balance" ? Math.round(depositPaid * 100) : 0;
+      const amountCents = Math.round(freshJobDoneAmount * 100);
+      const depositPaidCents = jobDoneMode === "balance" ? Math.round(freshDepositPaid * 100) : 0;
       let emailedTo: string | null = null;
       let emailFailed = false;
       try {
