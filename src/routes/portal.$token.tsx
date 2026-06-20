@@ -623,9 +623,21 @@ function PortalPage() {
             <p className="text-xs text-muted-foreground mt-1">
               Balance of <span className="num font-semibold text-ink">{formatGBP(balanceAmount)}</span> due on completion.
             </p>
+            {hasCard && balanceAmount > 0 && (
+              <button
+                onClick={() => onPay("balance")}
+                onPointerDown={() => feedback("tap")}
+                disabled={paying}
+                className="mt-3 w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
+              >
+                {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                <span className="truncate">Pay balance {formatGBP(balanceAmount)}</span>
+              </button>
+            )}
           </div>
         </section>
       )}
+
 
 
       <footer className={`text-center mt-8 text-[10px] text-muted-foreground ${showBottomBar ? "mb-28" : "mb-4"}`}>
