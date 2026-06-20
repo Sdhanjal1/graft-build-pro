@@ -14,26 +14,18 @@ function header(doc: jsPDF, variant: Variant, quote: Quote) {
   doc.setFillColor(INK);
   doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, "F");
 
-  // Brand badge (Q monogram)
-  doc.setFillColor(LIME);
-  doc.roundedRect(40, 22, 38, 38, 8, 8, "F");
-  doc.setTextColor(INK);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
-  doc.text("Q", 52, 49);
-
-  // Business name + meta
+  // Trader business name leads — no Quottr placeholder mark
   doc.setTextColor("#FFFFFF");
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text(userProfile.business_name, 92, 38);
+  doc.setFontSize(15);
+  doc.text(userProfile.business_name, 40, 38);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor("#BBBBBB");
   const meta = [userProfile.registration_number, userProfile.vat_registered ? `VAT ${userProfile.vat_number}` : null]
     .filter(Boolean)
     .join("  ·  ");
-  doc.text(meta, 92, 54);
+  if (meta) doc.text(meta, 40, 54);
 
   // Doc type + ref on the right
   doc.setFont("helvetica", "bold");
@@ -56,8 +48,12 @@ function footer(doc: jsPDF) {
   doc.setFontSize(8);
   doc.setTextColor(MUTED);
   doc.text(`${userProfile.business_name} · ${userProfile.phone} · ${userProfile.email}`, 40, h - 32);
-  doc.text("Generated with Quottr", w - 40, h - 32, { align: "right" });
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(INK);
+  doc.text("Powered by Quottr", w - 40, h - 32, { align: "right" });
 }
+
 
 export function generateQuotePdf(quote: Quote, client: Client | undefined, variant: Variant = "quote"): jsPDF {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
