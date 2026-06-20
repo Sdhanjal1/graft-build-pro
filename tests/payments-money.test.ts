@@ -35,6 +35,7 @@ describe("computeDepositAmount / computeDepositPercent round-trip", () => {
         // pct round-trip is loose: penny-rounding deposits introduces
         // proportionally large pct error on tiny totals (£3.33 × 30% rounds
         // to £1.00, which back-derives as 30.03%).
+        const back = computeDepositPercent(total, amt);
         expect(Math.abs(back - pct)).toBeLessThanOrEqual(0.5);
       });
     }
