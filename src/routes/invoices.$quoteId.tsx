@@ -4,16 +4,17 @@ import {
   getQuote, getClient, userProfile, formatGBP, waLink,
   invoiceRef, buildFinalInvoiceMessage, markInvoiced, setQuoteStatus,
 } from "@/lib/user-data";
-import { MessageCircle, Mail, Share2, CheckCircle2, Check, Download } from "lucide-react";
+import { MessageCircle, Mail, Share2, CheckCircle2, Check, Download, MailCheck, MailX, MailWarning, Loader2 } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import { feedback, playSample } from "@/lib/feedback";
 import { useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getQuotePaymentStatus } from "@/lib/payments.functions";
+import { getInvoiceEmailStatus, sendInvoiceEmailForQuote } from "@/lib/invoice-email.functions";
 
 export const Route = createFileRoute("/invoices/$quoteId")({
   component: InvoicePage,
