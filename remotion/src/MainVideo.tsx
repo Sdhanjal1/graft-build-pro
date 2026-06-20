@@ -9,6 +9,8 @@ import { Scene5End } from "./scenes/Scene5End";
 import { Captions } from "./components/Captions";
 import { colors, display } from "./theme";
 
+type Variant = "full" | "landing";
+
 const Backdrop: React.FC = () => {
   const frame = useCurrentFrame();
   const drift = Math.sin(frame / 80) * 60;
@@ -46,9 +48,36 @@ const BrandFlash: React.FC = () => {
   );
 };
 
-export const MainVideo: React.FC = () => {
+export const MainVideo: React.FC<{ variant?: Variant }> = ({ variant = "full" }) => {
   const frame = useCurrentFrame();
   const vignette = interpolate(frame, [16, 32], [0, 1], { extrapolateLeft: "clamp" });
+
+  if (variant === "landing") {
+    // Landing-hero cut: drop brand intro, Scene1Hero and Scene5End wordmark.
+    // Tightened Scene3Quote so the loop stays under ~15s and re-loops mic → paid → mic.
+    return (
+      <AbsoluteFill>
+        <Backdrop />
+        <TransitionSeries>
+          <TransitionSeries.Sequence durationInFrames={160}>
+            <Scene2Voice />
+          </TransitionSeries.Sequence>
+          <TransitionSeries.Transition presentation={fade()} timing={springTiming({ durationInFrames: 18, config: { damping: 200 } })} />
+
+          <TransitionSeries.Sequence durationInFrames={130}>
+            <Scene3Quote />
+          </TransitionSeries.Sequence>
+          <TransitionSeries.Transition presentation={fade()} timing={springTiming({ durationInFrames: 18, config: { damping: 200 } })} />
+
+          <TransitionSeries.Sequence durationInFrames={130}>
+            <Scene4Send />
+          </TransitionSeries.Sequence>
+        </TransitionSeries>
+        <Captions />
+      </AbsoluteFill>
+    );
+  }
+
   return (
     <AbsoluteFill>
       <Backdrop />
