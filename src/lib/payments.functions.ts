@@ -128,6 +128,15 @@ export const createInvoiceCheckout = createServerFn({ method: "POST" })
       // Quottr platform fee: 0.5% of the transaction, min 50p, max £25.
       // Only applied when routing to a connected account, so funds still
       // go to the pro and Quottr keeps the small platform cut.
+      //
+      // Intentional behaviour: the fee is computed on `amountCents` for
+      // each Stripe checkout independently. For a deposit-then-balance
+      // quote that means we charge 0.5% on the deposit AND 0.5% on the
+      // balance — net the same percentage as a single full charge, but
+      // the per-charge floor (50p) can apply twice. For very small
+      // deposits this means the deposit-then-balance flow can take
+      // slightly more in fees than a single upfront charge. Documented
+      // here so a future reader doesn't "fix" this into a one-off fee.
       const feeAmount = Math.max(50, Math.min(2500, Math.round(amountCents * 0.005)));
       params["payment_intent_data[application_fee_amount]"] = feeAmount;
     }

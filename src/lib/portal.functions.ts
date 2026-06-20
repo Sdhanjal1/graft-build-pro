@@ -164,6 +164,16 @@ export const postClientPortalMessage = createServerFn({ method: "POST" })
   });
 
 // ---------- Public: customer accepts or declines a quote ----------
+//
+// Intentional behaviour: this endpoint is unauthenticated — the portal_code
+// IS the credential. Anyone holding a valid client portal code can flip any
+// of that client's portal-visible quotes between accepted/declined exactly
+// once (the `status in ("pending","sent")` guard prevents replays). This is
+// by design: customers shouldn't have to sign in to accept a quote. The
+// portal code is high-entropy (32 chars, alphabet avoids ambiguous
+// glyphs), TTL-bounded (90 days), and revocable via regeneratePortalCode /
+// togglePortalActive. Do NOT add `requireSupabaseAuth` here — that would
+// break the customer flow.
 export const respondQuoteFromPortal = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({

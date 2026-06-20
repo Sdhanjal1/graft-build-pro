@@ -109,6 +109,18 @@ export async function sendAndRecordInvoiceEmail(opts: {
       ? Math.max(0, totalCents - (opts.depositPaidCents ?? 0))
       : totalCents;
     const amount = (opts.amountCents ?? fallbackCents) / 100;
+    // Guard: a balance email rendering £0.00 is almost always a missing
+    // depositPaidCents from the caller. Refuse and let the caller fix the
+    // input rather than send a confusing zero-balance invoice.
+    if (mode === "balance" && amount <= 0) {
+      console.error("[invoice-email] balance mode with non-positive amount — refusing send", {
+        quoteId: opts.quoteId,
+        totalCents,
+        depositPaidCents: opts.depositPaidCents,
+        amountCents: opts.amountCents,
+      });
+      return { ok: false as const, error: "balance amount must be > 0" };
+    }
     const fmt = (n: number) => new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency: currency.toUpperCase(),
