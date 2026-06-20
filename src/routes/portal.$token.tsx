@@ -83,19 +83,23 @@ function PortalPage() {
     }
   };
 
+  const [autoPay, setAutoPay] = useState<"balance" | null>(null);
+
   useEffect(() => {
-    // Read ?paid / ?cancelled BEFORE first load, then clean URL.
+    // Read ?paid / ?cancelled / ?pay BEFORE first load, then clean URL.
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const paid = params.get("paid");
       const cancelled = params.get("cancelled");
+      const pay = params.get("pay");
       if (paid === "1") {
         setPaymentResult("paid");
         setConfirming(true);
       } else if (cancelled === "1") {
         setPaymentResult("cancelled");
       }
-      if (paid || cancelled) {
+      if (pay === "balance") setAutoPay("balance");
+      if (paid || cancelled || pay) {
         window.history.replaceState(null, "", window.location.pathname);
       }
     }
@@ -133,7 +137,7 @@ function PortalPage() {
   }, [paymentResult]);
 
 
-  const onPay = async (requestType: "deposit" | "full") => {
+  const onPay = async (requestType: "deposit" | "full" | "balance") => {
     setPaying(true);
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -144,6 +148,25 @@ function PortalPage() {
       setPaying(false);
     }
   };
+
+  // Auto-open Stripe Checkout for ?pay=balance email deep-links. Fires once
+  // after the quote loads and only when the deposit-paid + balance-due
+  // state is real (server data, not just the query param).
+  useEffect(() => {
+    if (autoPay !== "balance") return;
+    if (loading || !data?.quote) return;
+    const s = data.quote.status as string | null;
+    const pay = data.payment;
+    const depositPaid = pay?.status === "paid" && pay?.request_type === "deposit";
+    const hasCardEnabled = !!(data.profile as any)?.stripe_connect_charges_enabled;
+    if (s !== "paid" && depositPaid && hasCardEnabled) {
+      setAutoPay(null);
+      void onPay("balance");
+    } else {
+      setAutoPay(null);
+    }
+    /* eslint-disable-next-line */
+  }, [autoPay, loading, data]);
 
   const onRespond = async (response: "accepted" | "declined") => {
     if (response === "declined") {
@@ -600,9 +623,21 @@ function PortalPage() {
             <p className="text-xs text-muted-foreground mt-1">
               Balance of <span className="num font-semibold text-ink">{formatGBP(balanceAmount)}</span> due on completion.
             </p>
+            {hasCard && balanceAmount > 0 && (
+              <button
+                onClick={() => onPay("balance")}
+                onPointerDown={() => feedback("tap")}
+                disabled={paying}
+                className="mt-3 w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
+              >
+                {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                <span className="truncate">Pay balance {formatGBP(balanceAmount)}</span>
+              </button>
+            )}
           </div>
         </section>
       )}
+
 
 
       <footer className={`text-center mt-8 text-[10px] text-muted-foreground ${showBottomBar ? "mb-28" : "mb-4"}`}>

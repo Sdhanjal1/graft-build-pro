@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/lib/require-active-subscription";
 import { DEFAULT_DEPOSIT_FRACTION } from "@/lib/payment-timing";
+import { computeInvoiceAmounts } from "@/lib/invoice-amounts";
 
 
 // Quottr's Stripe platform key. When the pro has completed Connect
@@ -221,7 +222,7 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       token: z.string().min(8).max(128),
-      requestType: z.enum(["deposit", "full"]),
+      requestType: z.enum(["deposit", "full", "balance"]),
       returnOrigin: z.string().url(),
     }),
   )
@@ -270,7 +271,9 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
       .maybeSingle();
 
     const total = Number(quote.total) || 0;
+    const totalCents = Math.round(total * 100);
     let amount = total;
+    let amountCents = totalCents;
     if (data.requestType === "deposit") {
       const explicit = Number(quote.deposit_amount) || 0;
       const pct = Number(quote.deposit_percent) || 0;
@@ -279,11 +282,43 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
         : pct > 0
         ? +(total * (pct / 100)).toFixed(2)
         : +(total * DEFAULT_DEPOSIT_FRACTION).toFixed(2);
+      amountCents = Math.round(amount * 100);
+    } else if (data.requestType === "balance") {
+      // Balance is total − sum of paid deposit rows, computed server-side
+      // from the same `invoice_payments` rows the invoice/email read. The
+      // client never sends the amount.
+      if (quote.payment_timing !== "deposit_then_balance") {
+        throw new Error("This quote isn't a deposit-then-balance quote.");
+      }
+      const { data: depositRows } = await supabaseAdmin
+        .from("invoice_payments")
+        .select("amount_cents")
+        .eq("quote_id", quote.id)
+        .eq("request_type", "deposit")
+        .eq("status", "paid");
+      const depositPaidCents = (depositRows ?? []).reduce(
+        (acc, r) => acc + (Number(r.amount_cents) || 0),
+        0,
+      );
+      const amounts = computeInvoiceAmounts({
+        mode: "balance",
+        totalCents,
+        depositPaidCents,
+      });
+      if (!amounts.ok) {
+        throw new Error(
+          depositPaidCents <= 0
+            ? "No deposit recorded for this quote yet."
+            : "Balance is already settled.",
+        );
+      }
+      amountCents = amounts.headlineCents;
+      amount = +(amountCents / 100).toFixed(2);
     }
-    const amountCents = Math.round(amount * 100);
     if (amountCents < 30) {
       throw new Error("Quote total is too low to request payment (minimum 30p).");
     }
+
 
     if (existingPending?.stripe_session_id && existingPending.amount_cents === amountCents) {
       // Reuse the existing Checkout Session URL.

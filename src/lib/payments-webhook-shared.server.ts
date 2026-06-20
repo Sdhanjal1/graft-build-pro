@@ -37,13 +37,17 @@ async function sendBrandedInvoiceEmail(opts: {
   paymentIntent: string | null | undefined;
   paymentMethod: string;
   requestType: string;
+  depositPaidCents?: number;
 }) {
   try {
     const { sendAndRecordInvoiceEmail } = await import("@/lib/invoice-email.server");
     // Deposits get a dedicated "deposit-received" email so the customer sees
     // an orange "deposit received · balance £Y due" badge instead of a green
-    // PAID-IN-FULL receipt. Full payments stay on the receipt template.
+    // PAID-IN-FULL receipt. Balance payments use a receipt with the prior
+    // deposit credited so the body reads "balance £Y collected · deposit £X
+    // already credited · total £T" rather than re-claiming the full total.
     const isDeposit = opts.requestType === "deposit";
+    const isBalance = opts.requestType === "balance";
     await sendAndRecordInvoiceEmail({
       userId: opts.userId,
       quoteId: opts.quoteId,
@@ -53,7 +57,11 @@ async function sendBrandedInvoiceEmail(opts: {
       paymentIntent: opts.paymentIntent ?? null,
       paymentMethod: opts.paymentMethod,
       mode: isDeposit ? "deposit-received" : "receipt",
-      depositPaidCents: isDeposit ? opts.amountCents : undefined,
+      depositPaidCents: isDeposit
+        ? opts.amountCents
+        : isBalance
+        ? opts.depositPaidCents
+        : undefined,
     });
   } catch (e) {
     // NEVER let an email failure break the webhook.
@@ -186,7 +194,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
   }
 
 
-  // Flip quote status -> "paid" for full payments; deposits imply acceptance.
+  // Flip quote status -> "paid" for full/balance payments; deposits imply acceptance.
   if (requestType === "deposit") {
     try {
       // Only nudge forward — don't regress a quote that's already accepted,
@@ -201,6 +209,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
       console.error("[payments/webhook] failed to mark quote accepted", e);
     }
   } else {
+    // "full" or "balance" — both settle the quote.
     try {
       // Only nudge forward — don't regress `completed` bookkeeping, and
       // don't resurrect a `declined` or already-`paid` quote on a Stripe
@@ -216,6 +225,27 @@ export async function handlePaidEvent(evt: any): Promise<void> {
     }
   }
 
+  // For balance receipts, look up the already-credited deposit so the
+  // email's receipt body shows "balance £Y collected · deposit £X credited
+  // · total £T" rather than re-claiming the full total.
+  let depositPaidCentsForEmail: number | undefined;
+  if (requestType === "balance") {
+    try {
+      const { data: rows } = await supabaseAdmin
+        .from("invoice_payments")
+        .select("amount_cents")
+        .eq("quote_id", quoteId)
+        .eq("request_type", "deposit")
+        .eq("status", "paid");
+      depositPaidCentsForEmail = (rows ?? []).reduce(
+        (acc, r) => acc + (Number(r.amount_cents) || 0),
+        0,
+      );
+    } catch (e) {
+      console.error("[payments/webhook] failed to sum prior deposits for balance receipt", e);
+    }
+  }
+
 
   // Best-effort branded invoice email (never throws)
   await sendBrandedInvoiceEmail({
@@ -227,6 +257,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
     paymentIntent,
     paymentMethod: "card",
     requestType,
+    depositPaidCents: depositPaidCentsForEmail,
   });
 
   // Best-effort push to the trader (never throws)
