@@ -344,7 +344,6 @@ function QuoteDetail() {
     try {
       await markQuotePaid(quote.id, m);
       setPaidViaState(m); setStatusState("paid"); setAskingPaid(false);
-      setAskInvoice(true);
       feedback("success");
       celebratePaid(quote.total);
       invalidatePaidQuoteCount();
