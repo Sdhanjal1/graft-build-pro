@@ -288,9 +288,17 @@ export function generatePortalPdf(
     const paidDate = new Date(quote.paid_at).toLocaleDateString("en-GB", {
       day: "2-digit", month: "short", year: "numeric",
     });
-    const method = (quote.payment_method ?? "card").toLowerCase() === "card"
-      ? "Paid by card via Stripe"
-      : `Paid via ${quote.payment_method ?? "card"}`;
+    const rawMethod = (quote.payment_method ?? "card").toLowerCase();
+    const method =
+      rawMethod === "card"
+        ? "Paid by card"
+        : rawMethod === "manual" || rawMethod === ""
+          ? "Paid"
+          : rawMethod === "cash"
+            ? "Paid — cash"
+            : rawMethod === "bank" || rawMethod === "bank_transfer" || rawMethod === "transfer"
+              ? "Paid — bank transfer"
+              : "Paid";
     doc.text(`${method}`, stampX + 14, stampY + 42);
     doc.text(`on ${paidDate}`, stampX + 14, stampY + 54);
     if (quote.stripe_payment_intent) {
