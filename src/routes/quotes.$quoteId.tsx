@@ -750,10 +750,36 @@ function QuoteDetail() {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Balance</span>
-                <span className="font-bold text-ink num">{formatGBP((quote.total || 0) - configuredDeposit)}</span>
+                <span className="font-bold text-ink num">{formatGBP((quote.total || 0) - Math.max(configuredDeposit, depositPaid))}</span>
               </div>
+              {status !== "paid" && depositPaid === 0 && (
+                <button
+                  type="button"
+                  onClick={() => setRecordDepositOpen(true)}
+                  className="mt-2 w-full flex items-center justify-between gap-3 rounded-2xl border border-dashed border-ink/20 bg-muted/40 px-4 py-3 text-left active:bg-muted"
+                >
+                  <span className="flex items-center gap-2 text-sm">
+                    <Banknote className="h-4 w-4 text-muted-foreground" />
+                    <span>
+                      <span className="font-semibold text-ink">Deposit not yet received</span>
+                      <span className="block text-xs text-muted-foreground">Tap to record a bank or cash payment</span>
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
+              )}
+              {status !== "paid" && depositPaid > 0 && (
+                <div className="mt-2 flex items-center justify-between rounded-2xl bg-status-paid/10 px-4 py-3 text-sm">
+                  <span className="inline-flex items-center gap-2 font-semibold text-status-paid">
+                    <Check className="h-4 w-4" strokeWidth={3} />
+                    Deposit received
+                  </span>
+                  <span className="font-bold num text-status-paid">{formatGBP(depositPaid)}</span>
+                </div>
+              )}
             </div>
           )}
+
         </div>
       </div>
 
