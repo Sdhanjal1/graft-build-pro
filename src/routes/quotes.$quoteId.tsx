@@ -348,6 +348,9 @@ function QuoteDetail() {
       feedback("success");
       celebratePaid(quote.total);
       invalidatePaidQuoteCount();
+      // Fire-and-forget branded paid-invoice email; status is shown on
+      // the invoice screen.
+      sendInvoiceEmailFn({ data: { quoteId: quote.id } }).catch(() => {});
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Couldn't mark as paid");
