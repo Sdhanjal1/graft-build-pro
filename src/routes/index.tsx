@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/MarketingShell";
 import { ArrowRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -18,7 +20,33 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [paused, setPaused] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setReducedMotion(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      void v.play();
+      setPaused(false);
+    } else {
+      v.pause();
+      setPaused(true);
+    }
+  };
+
   return (
+
     <MarketingShell>
       {/* HERO */}
       <section className="bg-ink text-paper relative overflow-hidden">
@@ -56,14 +84,33 @@ function HomePage() {
 
             {/* RIGHT — the real product moment, promoted to co-hero */}
             <div className="relative">
-              <div className="relative mx-auto max-w-sm md:max-w-none rounded-[2rem] overflow-hidden border border-paper/10 bg-ink shadow-2xl ring-1 ring-lime/25">
+              <div
+                className="relative mx-auto max-w-sm md:max-w-none rounded-[2rem] overflow-hidden border border-paper/10 bg-ink shadow-2xl ring-1 ring-lime/25"
+                style={{ aspectRatio: "16 / 9" }}
+              >
+                <button
+                  type="button"
+                  onClick={togglePlay}
+                  className="absolute inset-0 z-10 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-lime"
+                  aria-label={paused ? "Play product demo video" : "Pause product demo video"}
+                >
+                  <span className="sr-only">{paused ? "Tap to play" : "Tap to pause"}</span>
+                </button>
                 <video
+                  ref={videoRef}
                   src="/quottr-how-it-works.mp4"
-                  autoPlay muted loop playsInline preload="metadata"
-                  className="w-full h-auto block"
+                  poster="/quottr-how-it-works-poster.jpg"
+                  autoPlay={!reducedMotion}
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  controls={reducedMotion}
+                  className="absolute inset-0 w-full h-full object-cover block"
                   aria-label="Voice to quote to paid in seconds"
                 />
               </div>
+
               <p className="mt-3 text-center md:text-left text-[11px] text-paper/50 uppercase tracking-widest font-semibold">
                 From voice to paid, in seconds
               </p>
