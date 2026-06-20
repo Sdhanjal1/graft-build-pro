@@ -400,7 +400,6 @@ function QuoteDetail() {
         setInvoicedAt(inv.invoiced_at);
         ensureChasesFor(inv);
       }
-      setAskInvoice(false);
       navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
     } catch (e) {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't issue invoice");
