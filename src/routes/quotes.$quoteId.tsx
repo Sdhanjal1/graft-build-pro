@@ -14,6 +14,7 @@ import {
   type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
 import { createInvoiceCheckout, recordManualDeposit, removeManualDeposit, getQuotePaymentStatus } from "@/lib/payments.functions";
+import { sendInvoiceEmailForQuote } from "@/lib/invoice-email.functions";
 import { getPortalLinkStatusForQuote, regeneratePortalCode } from "@/lib/portal.functions";
 import { MessageCircle, Mail, Phone, CreditCard, Landmark, Banknote, Check, CheckCircle2, Zap, Loader2, ThumbsUp, Copy, FileText, Share2, Send, XCircle, MessageSquare, Smartphone, Nfc, AlertTriangle, Clock, Sparkles, Eye, Trash2, Pencil, Plus, ShoppingCart, ChevronDown, ChevronRight, RotateCcw, Undo2, Mic } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
@@ -146,6 +147,7 @@ function QuoteDetail() {
   const recordDepositFn = useServerFn(recordManualDeposit);
   const removeDepositFn = useServerFn(removeManualDeposit);
   const fetchPaymentsFn = useServerFn(getQuotePaymentStatus);
+  const sendInvoiceEmailFn = useServerFn(sendInvoiceEmailForQuote);
   const [recordingDeposit, setRecordingDeposit] = useState(false);
   const [recordDepositOpen, setRecordDepositOpen] = useState(false);
   const [depositRecorded, setDepositRecorded] = useState(false);
@@ -346,6 +348,9 @@ function QuoteDetail() {
       feedback("success");
       celebratePaid(quote.total);
       invalidatePaidQuoteCount();
+      // Fire-and-forget branded paid-invoice email; status is shown on
+      // the invoice screen.
+      sendInvoiceEmailFn({ data: { quoteId: quote.id } }).catch(() => {});
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Couldn't mark as paid");

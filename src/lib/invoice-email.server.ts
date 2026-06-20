@@ -1,0 +1,151 @@
+/**
+ * Server-only helper that sends a branded paid-invoice email for a quote
+ * and records the result on the quotes row. Used by both the Stripe
+ * webhook and the manual "send invoice email" server function so the
+ * tradesperson can see whether the email actually went out.
+ */
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { generateInvoicePdfBytes } from "@/lib/invoice-pdf.server";
+import { sendInvoiceEmail } from "@/lib/email/send-invoice.server";
+
+export type InvoiceEmailOutcome =
+  | { status: "sent"; to: string }
+  | { status: "skipped"; reason: string }
+  | { status: "failed"; error: string; to?: string };
+
+export async function sendAndRecordInvoiceEmail(opts: {
+  userId: string;
+  quoteId: string;
+  /** Optional override (e.g. from Stripe customer_details.email). Falls back to client.email. */
+  customerEmailOverride?: string | null;
+  amountCents?: number;
+  currency?: string;
+  paymentIntent?: string | null;
+  paymentMethod?: string;
+}): Promise<InvoiceEmailOutcome> {
+  const currency = (opts.currency || "gbp").toLowerCase();
+  try {
+    const [{ data: quote }, { data: profile }] = await Promise.all([
+      supabaseAdmin
+        .from("quotes")
+        .select("id, ref, title, job_description, line_items, subtotal, vat_amount, total, vat_registered, status, created_at, client_id")
+        .eq("id", opts.quoteId)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("profiles")
+        .select("business_name, full_name, phone, email, town, address_line_1, address_line_2, postcode, registration_number, vat_registered, vat_number")
+        .eq("id", opts.userId)
+        .maybeSingle(),
+    ]);
+
+    if (!quote) {
+      return { status: "failed", error: "Quote not found" };
+    }
+
+    let client: { name: string | null; address: string | null; email: string | null; phone: string | null } | null = null;
+    if (quote.client_id) {
+      const { data: c } = await supabaseAdmin
+        .from("clients")
+        .select("name, address, email, phone")
+        .eq("id", quote.client_id)
+        .maybeSingle();
+      client = c;
+    }
+
+    const to = (opts.customerEmailOverride || client?.email || "").trim();
+    if (!to) {
+      await supabaseAdmin
+        .from("quotes")
+        .update({
+          invoice_email_status: "skipped",
+          invoice_email_error: "No customer email on file",
+          invoice_email_to: null,
+        })
+        .eq("id", opts.quoteId);
+      return { status: "skipped", reason: "No customer email on file" };
+    }
+
+    const paidAt = new Date().toISOString();
+    const pdfBytes = generateInvoicePdfBytes(
+      {
+        ref: quote.ref,
+        title: quote.title,
+        job_description: quote.job_description,
+        line_items: (Array.isArray(quote.line_items) ? quote.line_items : []) as Parameters<typeof generateInvoicePdfBytes>[0]["line_items"],
+        subtotal: Number(quote.subtotal) || 0,
+        vat_amount: Number(quote.vat_amount) || 0,
+        total: Number(quote.total) || 0,
+        vat_registered: quote.vat_registered,
+        created_at: quote.created_at,
+        paid_at: paidAt,
+        payment_method: opts.paymentMethod ?? "card",
+        stripe_payment_intent: opts.paymentIntent ?? null,
+      },
+      client as unknown as Parameters<typeof generateInvoicePdfBytes>[1],
+      profile as unknown as Parameters<typeof generateInvoicePdfBytes>[2],
+    );
+
+    const businessName = profile?.business_name || profile?.full_name || "Your tradesperson";
+    const ref = quote.ref ?? opts.quoteId.slice(0, 8);
+    const amount = (opts.amountCents ?? Math.round(Number(quote.total) * 100)) / 100;
+    const amountFormatted = new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    }).format(amount);
+    const paidDate = new Date(paidAt).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+
+    const result = await sendInvoiceEmail({
+      to,
+      businessName,
+      replyTo: profile?.email ?? null,
+      invoiceRef: ref,
+      amountFormatted,
+      paidDate,
+      pdfBytes,
+      pdfFilename: `Invoice-${ref}.pdf`,
+    });
+
+    if (result.ok) {
+      await supabaseAdmin
+        .from("quotes")
+        .update({
+          invoice_email_status: "sent",
+          invoice_email_sent_at: new Date().toISOString(),
+          invoice_email_error: null,
+          invoice_email_to: to,
+        })
+        .eq("id", opts.quoteId);
+      return { status: "sent", to };
+    }
+
+    const errMsg = result.error || "Email provider returned an error";
+    await supabaseAdmin
+      .from("quotes")
+      .update({
+        invoice_email_status: "failed",
+        invoice_email_error: errMsg,
+        invoice_email_to: to,
+      })
+      .eq("id", opts.quoteId);
+    return { status: "failed", error: errMsg, to };
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : "Unexpected error";
+    console.error("[invoice-email] sendAndRecord failed", e);
+    try {
+      await supabaseAdmin
+        .from("quotes")
+        .update({
+          invoice_email_status: "failed",
+          invoice_email_error: errMsg,
+        })
+        .eq("id", opts.quoteId);
+    } catch {
+      // swallow secondary failure
+    }
+    return { status: "failed", error: errMsg };
+  }
+}

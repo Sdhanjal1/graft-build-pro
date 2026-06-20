@@ -4,16 +4,17 @@ import {
   getQuote, getClient, userProfile, formatGBP, waLink,
   invoiceRef, buildFinalInvoiceMessage, markInvoiced, setQuoteStatus,
 } from "@/lib/user-data";
-import { MessageCircle, Mail, Share2, CheckCircle2, Check, Download } from "lucide-react";
+import { MessageCircle, Mail, Share2, CheckCircle2, Check, Download, MailCheck, MailX, MailWarning, Loader2 } from "lucide-react";
 import { QuottrLogo } from "@/components/QuottrLogo";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import { downloadOrShareQuotePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import { feedback, playSample } from "@/lib/feedback";
 import { useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getQuotePaymentStatus } from "@/lib/payments.functions";
+import { getInvoiceEmailStatus, sendInvoiceEmailForQuote } from "@/lib/invoice-email.functions";
 
 export const Route = createFileRoute("/invoices/$quoteId")({
   component: InvoicePage,
@@ -78,6 +79,43 @@ function InvoicePage() {
   const dueDate = quote.invoice_due_date
     ? new Date(quote.invoice_due_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     : "";
+
+  // ---- Paid-invoice email status ----
+  const fetchEmailStatus = useServerFn(getInvoiceEmailStatus);
+  const resendEmail = useServerFn(sendInvoiceEmailForQuote);
+  type EmailStatus = {
+    invoice_email_status: string | null;
+    invoice_email_sent_at: string | null;
+    invoice_email_error: string | null;
+    invoice_email_to: string | null;
+  };
+  const [emailStatus, setEmailStatus] = useState<EmailStatus | null>(null);
+  const [resending, setResending] = useState(false);
+  const loadEmailStatus = useCallback(async () => {
+    if (!isPaid) { setEmailStatus(null); return; }
+    try {
+      const res = await fetchEmailStatus({ data: { quoteId: quote.id } });
+      setEmailStatus(res as EmailStatus);
+    } catch {
+      // ignore — UI just won't show a status line
+    }
+  }, [fetchEmailStatus, quote.id, isPaid]);
+  useEffect(() => { loadEmailStatus(); }, [loadEmailStatus]);
+
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      const res = await resendEmail({ data: { quoteId: quote.id } });
+      if (res.status === "sent") { feedback("success"); toast.success("Invoice email sent"); }
+      else if (res.status === "skipped") { feedback("error"); toast.error("No email on file for this customer"); }
+      else { feedback("error"); toast.error("Email failed — try again"); }
+      await loadEmailStatus();
+    } catch (e) {
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't send email");
+    } finally {
+      setResending(false);
+    }
+  };
 
   const downloadPdf = async () => {
     try {
@@ -238,6 +276,9 @@ function InvoicePage() {
                 feedback("success");
                 playSample("cash");
                 toast.success("Paid. That's in the bank.");
+                // Fire-and-forget branded email; status surfaces in the
+                // "Paid" panel below after refresh.
+                resendEmail({ data: { quoteId: quote.id } }).catch(() => {});
                 router.invalidate();
               } catch (e) {
                 feedback("error");
@@ -256,6 +297,84 @@ function InvoicePage() {
           <div className="rounded-full bg-status-paid/15 text-status-paid font-bold inline-flex items-center justify-center gap-2 w-full py-4">
             <Check className="h-5 w-5" /> Paid
           </div>
+
+          {/* Lightweight email-delivery status */}
+          {emailStatus && (
+            <div className="card-surface px-4 py-3 flex items-start gap-3">
+              {emailStatus.invoice_email_status === "sent" ? (
+                <>
+                  <MailCheck className="h-5 w-5 text-status-paid shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-ink">
+                      Invoice emailed to {emailStatus.invoice_email_to || client?.email} ✓
+                    </p>
+                    {emailStatus.invoice_email_sent_at && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Sent {new Date(emailStatus.invoice_email_sent_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleResend}
+                    disabled={resending}
+                    className="text-xs font-semibold text-ink underline decoration-dotted underline-offset-2 disabled:opacity-50"
+                  >
+                    {resending ? "Sending…" : "Resend"}
+                  </button>
+                </>
+              ) : emailStatus.invoice_email_status === "skipped" ? (
+                <>
+                  <MailWarning className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-ink">No email on file</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Send the invoice link via WhatsApp instead.
+                    </p>
+                  </div>
+                </>
+              ) : emailStatus.invoice_email_status === "failed" ? (
+                <>
+                  <MailX className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-ink">Email failed — try again</p>
+                    {emailStatus.invoice_email_error && (
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {emailStatus.invoice_email_error}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleResend}
+                    disabled={resending}
+                    className="text-xs font-bold bg-ink text-paper rounded-full px-3 py-1.5 disabled:opacity-50 inline-flex items-center gap-1"
+                  >
+                    {resending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                    {resending ? "Sending…" : "Resend"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Mail className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-ink">Send invoice by email</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {client?.email ? `We'll email a branded PDF to ${client.email}.` : "Add an email to the client to send a branded PDF."}
+                    </p>
+                  </div>
+                  {client?.email && (
+                    <button
+                      onClick={handleResend}
+                      disabled={resending}
+                      className="text-xs font-bold bg-lime text-ink rounded-full px-3 py-1.5 disabled:opacity-50"
+                    >
+                      {resending ? "Sending…" : "Send"}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           <button
             onClick={downloadPdf}
             className="w-full bg-card border border-border text-ink rounded-full py-3.5 font-semibold inline-flex items-center justify-center gap-2 text-sm"
