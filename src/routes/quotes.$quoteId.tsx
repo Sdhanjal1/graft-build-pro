@@ -5,8 +5,8 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getQuote, getClient, userProfile, formatGBP, waLink,
-  buildInvoiceMessage, stripePaymentLink, buildPaymentRequest,
-  duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor,
+  buildInvoiceMessage, buildJobDoneMessage, stripePaymentLink, buildPaymentRequest,
+  duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor, cancelChasesFor,
   setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming, markQuotePaid,
   
   deleteQuote,
