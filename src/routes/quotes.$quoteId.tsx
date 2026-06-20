@@ -1301,6 +1301,7 @@ function QuoteDetail() {
             const docLabel = jobDoneResult.mode === "receipt" ? "Receipt" : "Invoice";
             const docLower = docLabel.toLowerCase();
             const emailed = !!jobDoneResult.emailedTo;
+            const failed = jobDoneResult.emailFailed;
             const phone = client?.phone;
             const openWa = () => {
               if (phone && jobDoneResult.waMessage) {
@@ -1311,23 +1312,52 @@ function QuoteDetail() {
               setJobDoneResult(null);
               navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
             };
+            const resend = async () => {
+              setResending(true);
+              try {
+                const res = await sendInvoiceEmailFn({
+                  data: {
+                    quoteId: quote.id,
+                    mode: jobDoneResult.mode,
+                    amountCents: jobDoneResult.amountCents,
+                    depositPaidCents: jobDoneResult.depositPaidCents,
+                  },
+                });
+                const s = (res as { status?: string } | null)?.status;
+                if (s === "sent") {
+                  const to = (res as { to?: string }).to ?? client?.email ?? null;
+                  setJobDoneResult({ ...jobDoneResult, emailedTo: to, emailFailed: false });
+                  toast.success(`${docLabel} emailed to ${jobDoneFirst}.`);
+                } else {
+                  toast.error("Email still didn't send — try WhatsApp.");
+                }
+              } catch {
+                toast.error("Email still didn't send — try WhatsApp.");
+              } finally {
+                setResending(false);
+              }
+            };
             return (
               <>
                 <SheetHeader className="px-5 pt-5 pb-1 text-left">
                   <SheetTitle className="text-base font-semibold">
                     {emailed
                       ? `${docLabel} emailed to ${jobDoneFirst} ✓`
-                      : phone
-                        ? `Send ${docLower} via WhatsApp`
-                        : `${docLabel} ready — no email or phone on file`}
+                      : failed
+                        ? `⚠ Email didn't send`
+                        : phone
+                          ? `Send ${docLower} via WhatsApp`
+                          : `${docLabel} ready — no email or phone on file`}
                   </SheetTitle>
                 </SheetHeader>
                 <div className="px-5 pb-2 text-sm text-muted-foreground">
                   {emailed
                     ? `Sent to ${jobDoneResult.emailedTo}. You're done — nothing else needed.`
-                    : phone
-                      ? `We couldn't email ${jobDoneFirst}${client?.email ? " — the send failed" : " (no email on file)"}. Send it on WhatsApp instead.`
-                      : `Open the invoice screen to share the link manually or retry email.`}
+                    : failed
+                      ? `We couldn't email ${jobDoneFirst}${client?.email ? ` at ${client.email}` : ""}. Send via WhatsApp now, or retry the email.`
+                      : phone
+                        ? `No email on file. Send it on WhatsApp instead.`
+                        : `Open the invoice screen to share the link manually or retry email.`}
                 </div>
                 <div className="px-5 pb-6 pt-3 space-y-2">
                   {emailed ? (
@@ -1346,6 +1376,30 @@ function QuoteDetail() {
                           Also share on WhatsApp (optional)
                         </button>
                       )}
+                      <button
+                        onClick={goToInvoice}
+                        className="w-full py-2 text-sm text-muted-foreground underline"
+                      >
+                        View invoice
+                      </button>
+                    </>
+                  ) : failed ? (
+                    <>
+                      {phone && (
+                        <button
+                          onClick={() => { openWa(); setJobDoneResult(null); }}
+                          className="w-full rounded-full bg-ink text-paper py-3 font-semibold text-sm"
+                        >
+                          Send via WhatsApp
+                        </button>
+                      )}
+                      <button
+                        onClick={resend}
+                        disabled={resending}
+                        className="w-full rounded-full border border-ink/15 py-3 font-semibold text-sm disabled:opacity-50"
+                      >
+                        {resending ? "Resending…" : "Resend email"}
+                      </button>
                       <button
                         onClick={goToInvoice}
                         className="w-full py-2 text-sm text-muted-foreground underline"
