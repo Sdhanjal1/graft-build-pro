@@ -6,6 +6,7 @@ import {
   getClientPortalData,
   respondQuoteFromPortal,
 } from "@/lib/portal.functions";
+import { createPortalCheckoutFromCode } from "@/lib/payments.functions";
 import { downloadPortalPdf } from "@/lib/portal-pdf";
 import { BusinessLogo } from "@/components/BusinessLogo";
 import {
