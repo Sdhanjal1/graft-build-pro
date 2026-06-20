@@ -390,6 +390,166 @@ export const createPortalCheckout = createServerFn({ method: "POST" })
       payment_method: "card",
     });
 
+// ---------- Public: customer pays from the CLIENT HUB portal (/portal/c/$code) ----------
+// Mirrors `createPortalCheckout` but authenticates via the client's portal_code
+// + quoteId combination instead of a quote-specific token. The client hub
+// shows all quotes for a customer and previously had a pay button that did
+// nothing — this powers that flow so deposits/upfront amounts actually charge.
+export const createPortalCheckoutFromCode = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      code: z.string().min(8).max(64),
+      quoteId: z.string().uuid(),
+      requestType: z.enum(["deposit", "full"]),
+      returnOrigin: z.string().url(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { key, env } = getStripeEnv();
+
+    const returnOrigin = ALLOWED_RETURN_ORIGINS.has(data.returnOrigin)
+      ? data.returnOrigin
+      : "https://quottr.co.uk";
+
+    // Verify the portal code is valid and active.
+    const { data: client } = await supabaseAdmin
+      .from("clients")
+      .select("id, user_id, portal_active, portal_issued_at, email")
+      .eq("portal_code", data.code)
+      .maybeSingle();
+    if (!client || !client.portal_active) throw new Error("Portal not available");
+    if (client.portal_issued_at) {
+      const ageDays = (Date.now() - new Date(client.portal_issued_at).getTime()) / 86_400_000;
+      if (ageDays > 90) throw new Error("This portal link has expired. Please ask for a new one.");
+    }
+
+    // Verify the quote belongs to this client and is portal-visible.
+    const { data: quote } = await supabaseAdmin
+      .from("quotes")
+      .select("id, ref, title, total, deposit_amount, deposit_percent, status")
+      .eq("id", data.quoteId)
+      .eq("client_id", client.id)
+      .eq("portal_visible", true)
+      .maybeSingle();
+    if (!quote) throw new Error("Quote not found");
+    if (quote.status === "paid") throw new Error("This quote is already paid");
+
+    const total = Number(quote.total) || 0;
+    let amount = total;
+    if (data.requestType === "deposit") {
+      const explicit = Number(quote.deposit_amount) || 0;
+      const pct = Number(quote.deposit_percent) || 0;
+      amount = explicit > 0
+        ? explicit
+        : pct > 0
+        ? +(total * (pct / 100)).toFixed(2)
+        : +(total * DEFAULT_DEPOSIT_FRACTION).toFixed(2);
+    }
+    const amountCents = Math.round(amount * 100);
+    if (amountCents < 30) {
+      throw new Error("Quote total is too low to request payment (minimum 30p).");
+    }
+
+    // Idempotency: reuse pending session if one exists.
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: existingPending } = await supabaseAdmin
+      .from("invoice_payments")
+      .select("stripe_session_id, amount_cents")
+      .eq("quote_id", quote.id)
+      .eq("request_type", data.requestType)
+      .eq("status", "pending")
+      .not("stripe_session_id", "is", null)
+      .gte("created_at", dayAgo)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("stripe_connect_account_id, stripe_connect_charges_enabled")
+      .eq("id", client.user_id)
+      .maybeSingle();
+    const connectAccountId =
+      profile?.stripe_connect_charges_enabled && profile?.stripe_connect_account_id
+        ? profile.stripe_connect_account_id
+        : null;
+    if (!connectAccountId) {
+      throw new Error("This business hasn't finished setting up payments yet.");
+    }
+
+    if (existingPending?.stripe_session_id && existingPending.amount_cents === amountCents) {
+      try {
+        const sessRes = await fetch(
+          `https://api.stripe.com/v1/checkout/sessions/${existingPending.stripe_session_id}`,
+          { headers: { Authorization: `Bearer ${key}`, "Stripe-Account": connectAccountId } },
+        );
+        const sess = (await sessRes.json()) as { url?: string; status?: string };
+        if (sessRes.ok && sess.url && sess.status === "open") {
+          return { url: sess.url, sessionId: existingPending.stripe_session_id, env, amount };
+        }
+      } catch (e) {
+        console.warn("Failed to reuse pending hub-portal session, creating new", e);
+      }
+    }
+
+    const ref = quote.ref ?? quote.id.slice(0, 8);
+    const params: Record<string, string | number> = {
+      mode: "payment",
+      "line_items[0][quantity]": 1,
+      "line_items[0][price_data][currency]": "gbp",
+      "line_items[0][price_data][unit_amount]": amountCents,
+      "line_items[0][price_data][product_data][name]":
+        `${ref}, ${quote.title}`.slice(0, 250),
+      success_url: `${returnOrigin}/portal/c/${data.code}?paid=1`,
+      cancel_url: `${returnOrigin}/portal/c/${data.code}?cancelled=1`,
+      "metadata[quote_id]": quote.id,
+      "metadata[quote_ref]": ref,
+      "metadata[user_id]": client.user_id,
+      "metadata[request_type]": data.requestType,
+      "payment_intent_data[metadata][quote_id]": quote.id,
+      "payment_intent_data[metadata][user_id]": client.user_id,
+      "payment_intent_data[metadata][request_type]": data.requestType,
+    };
+    if (client.email) params["customer_email"] = client.email;
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Stripe-Account": connectAccountId,
+    };
+    const feeAmount = Math.max(50, Math.min(2500, Math.round(amountCents * 0.005)));
+    params["payment_intent_data[application_fee_amount]"] = feeAmount;
+
+    const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+      method: "POST",
+      headers,
+      body: toFormBody(params),
+    });
+    const json = (await res.json()) as {
+      id?: string; url?: string; error?: { message?: string };
+    };
+    if (!res.ok || !json.url || !json.id) {
+      console.error("Hub-portal Stripe checkout creation failed", json);
+      throw new Error("Payment service error. Please try again or contact support.");
+    }
+
+    await supabaseAdmin.from("invoice_payments").insert({
+      user_id: client.user_id,
+      quote_id: quote.id,
+      request_type: data.requestType,
+      customer_email: client.email ?? null,
+      amount_cents: amountCents,
+      currency: "gbp",
+      status: "pending",
+      stripe_session_id: json.id,
+      payment_method: "card",
+    });
+
+    return { url: json.url, sessionId: json.id, env, amount };
+  });
+
+
     return { url: json.url, sessionId: json.id, env, amount };
   });
 
