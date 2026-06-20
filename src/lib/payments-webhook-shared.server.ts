@@ -163,19 +163,22 @@ export async function handlePaidEvent(evt: any): Promise<void> {
       platform_fee_cents: platformFeeCents,
     });
   } else {
-    await supabaseAdmin.from("invoice_payments").insert({
-      user_id: userId,
-      quote_id: quoteId,
-      request_type: requestType,
-      customer_email: customerEmail ?? null,
-      amount_cents: amountCents ?? 0,
-      currency,
-      status: "paid",
-      payment_method: "card",
-      paid_at: new Date().toISOString(),
-      platform_fee_cents: platformFeeCents,
+    // No Stripe identifier on the event — refuse to insert rather than
+    // create an undeduplicable paid row. Stripe usually retries with the id
+    // attached. Better to miss the row than to double-credit / double-email.
+    console.error("[payments/webhook] paid event with no session_id and no payment_intent — skipping insert", {
+      type: evt.type,
+      quoteId,
+      userId,
     });
+    await logErrorEvent({
+      userId,
+      context: `payments.webhook.no_stripe_id.${evt.type ?? "unknown"}`,
+      message: `Paid event had no session_id and no payment_intent`,
+    });
+    return;
   }
+
 
   // Flip quote status -> "paid" for full payments; deposits imply acceptance.
   if (requestType === "deposit") {
@@ -193,15 +196,20 @@ export async function handlePaidEvent(evt: any): Promise<void> {
     }
   } else {
     try {
+      // Only nudge forward — don't regress `completed` bookkeeping, and
+      // don't resurrect a `declined` or already-`paid` quote on a Stripe
+      // replay or out-of-order event.
       await supabaseAdmin
         .from("quotes")
         .update({ status: "paid" })
         .eq("id", quoteId)
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .in("status", ["pending", "sent", "accepted", "overdue"]);
     } catch (e) {
       console.error("[payments/webhook] failed to mark quote paid", e);
     }
   }
+
 
   // Best-effort branded invoice email (never throws)
   await sendBrandedInvoiceEmail({
