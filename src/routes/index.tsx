@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/MarketingShell";
 import { ArrowRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
 
 export const Route = createFileRoute("/")({
   component: HomePage,
