@@ -103,7 +103,10 @@ function PortalPage() {
     /* eslint-disable-next-line */
   }, [token]);
 
-  // Poll for webhook confirmation after a paid redirect
+  // Poll for webhook confirmation after a paid redirect.
+  // Deposit payments flip the quote to "accepted" (not "paid"), so we accept
+  // either state — otherwise the spinner runs for 30s and disappears with no
+  // success state for deposit flows.
   useEffect(() => {
     if (paymentResult !== "paid") return;
     let cancelled = false;
@@ -113,7 +116,8 @@ function PortalPage() {
       if (cancelled) return;
       attempts++;
       const r = await load();
-      if (r?.quote?.status === "paid") {
+      const s = r?.quote?.status;
+      if (s === "paid" || s === "accepted") {
         setConfirming(false);
         return;
       }
