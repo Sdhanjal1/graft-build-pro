@@ -732,11 +732,7 @@ export const buildInvoiceMessage = (quote: Quote, clientFirstName: string) => {
   }
   lines.push(
     "",
-    `Payment terms: ${userProfile.payment_terms}`,
-    "",
-    `Thanks, ${userProfile.full_name.split(" ")[0]}, ${userProfile.business_name}`,
-    "",
-    "Sent via Quottr.",
+    `Thanks, ${userProfile.full_name.split(" ")[0]}`,
   );
   return lines.join("\n");
 };
