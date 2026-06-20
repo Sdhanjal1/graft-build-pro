@@ -33,24 +33,45 @@ function verify(rawBody: string, sigHeader: string | null, secret: string) {
   });
 }
 
+function getSecretForEnv(env: string | null): string | undefined {
+  // Live is the fail-safe default (matches getStripeEnv): any value other
+  // than the explicit "sandbox" opt-in routes to the live secret.
+  if (env === "sandbox") return process.env.STRIPE_CONNECT_SANDBOX_WEBHOOK_SECRET;
+  return process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
+}
+
 export const Route = createFileRoute("/api/public/payments/connect-webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const secret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
+        const url = new URL(request.url);
+        const env = url.searchParams.get("env");
+        const secret = getSecretForEnv(env);
         if (!secret) {
-          // Return 200 (not 500) so Stripe doesn't retry for 3 days when
-          // the secret hasn't been configured yet. Mirrors the platform
-          // webhook. Signature verification + payment-event routing below
-          // remain intact when the secret IS configured.
-          console.warn("[connect-webhook] STRIPE_CONNECT_WEBHOOK_SECRET not set; ignoring event");
-          return new Response("ok (not configured)", { status: 200 });
+          // No secret configured for this env. Ack 200 so Stripe doesn't
+          // retry for 3 days, but log so a silent misconfiguration surfaces
+          // in ops instead of vanishing as a console line in a Worker log.
+          console.warn("[connect-webhook] no secret configured for env, dropping", env);
+          const { logErrorEvent } = await import("@/lib/ops-errors.server");
+          await logErrorEvent({
+            context: "payments.connect_webhook.no_secret",
+            message: `env=${env ?? "?"} — STRIPE_CONNECT_${env === "sandbox" ? "SANDBOX_" : ""}WEBHOOK_SECRET not set`,
+          });
+          return new Response("ok (env not configured)", { status: 200 });
         }
 
         const rawBody = await request.text();
         const sig = request.headers.get("stripe-signature");
         if (!verify(rawBody, sig, secret)) {
           console.warn("[connect-webhook] invalid signature");
+          const { logErrorEvent } = await import("@/lib/ops-errors.server");
+          await logErrorEvent({
+            context: "payments.connect_webhook.invalid_signature",
+            message: `env=${env ?? "?"}`,
+          });
+          // Return 401 — Stripe will retry, which is what we want when a
+          // signing-secret mismatch is the likely cause. Silent-200 would
+          // mask a real misconfiguration the way it just did for QTR-001.
           return new Response("Invalid signature", { status: 401 });
         }
 

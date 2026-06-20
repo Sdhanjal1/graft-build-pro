@@ -210,7 +210,18 @@ function PortalPage() {
 
   const { quote, profile, client, payment } = data;
   const lineItems = (quote.line_items as any[]) ?? [];
-  const isPaid = status === "paid" || paymentResult === "paid";
+  // "Paid in full" must require an authoritative server signal — never
+  // infer it from the ?paid=1 redirect param (that fires for deposits too).
+  // Any other state renders a balance-due affordance.
+  const isPaidInFull = status === "paid";
+  // Used only for the top-of-page "Payment received — thank you" card,
+  // which is intentionally optimistic on redirect.
+  const isPaid = isPaidInFull || paymentResult === "paid";
+  // A paid deposit exists when the server returned a paid invoice_payments
+  // row whose request_type is "deposit". Pending rows (abandoned checkouts)
+  // are filtered out at the loader (.eq("status","paid")).
+  const hasPaidDeposit =
+    payment?.status === "paid" && payment?.request_type === "deposit";
   const canRespond = status === "pending" || status === "sent";
   const timing: PaymentTiming = (quote.payment_timing as PaymentTiming) ?? "on_completion";
   const total = Number(quote.total) || 0;
@@ -541,7 +552,7 @@ function PortalPage() {
         </section>
       )}
 
-      {isPaid && (
+      {isPaidInFull && (
         <section className="px-5 mt-4">
           <div className="card-surface p-5 border-2 border-status-accepted/30 bg-status-accepted/5">
             <div className="flex items-center gap-2 text-status-accepted font-bold text-sm">
@@ -557,6 +568,19 @@ function PortalPage() {
             >
               <Download className="h-4 w-4" /> Download invoice PDF
             </button>
+          </div>
+        </section>
+      )}
+
+      {!isPaidInFull && hasPaidDeposit && (
+        <section className="px-5 mt-4">
+          <div className="card-surface p-5 border-2 border-status-accepted/40 bg-status-accepted/5">
+            <div className="flex items-center gap-2 text-status-accepted font-bold text-sm">
+              <Check className="h-4 w-4" /> Deposit paid
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Balance of <span className="num font-semibold text-ink">{formatGBP(balanceAmount)}</span> due on completion.
+            </p>
           </div>
         </section>
       )}

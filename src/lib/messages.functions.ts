@@ -133,7 +133,7 @@ export const getPortalData = createServerFn({ method: "POST" })
         .maybeSingle(),
       supabaseAdmin
         .from("invoice_payments")
-        .select("paid_at, payment_method, stripe_payment_intent, amount_cents, currency, status")
+        .select("paid_at, payment_method, stripe_payment_intent, amount_cents, currency, status, request_type")
         .eq("quote_id", tk.quote_id)
         .eq("status", "paid")
         .order("paid_at", { ascending: false })
