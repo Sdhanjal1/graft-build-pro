@@ -1175,7 +1175,6 @@ export const saveGeneratedQuote = async (input: {
     : (timing === "deposit_then_balance" ? computeDepositAmount(subtotal, depositPct) : 0);
   const insertPayload = {
     user_id,
-    ref: nextQuoteRef(),
     client_id: client?.id ?? null,
     title: input.title,
     job_description: input.description,
@@ -1191,13 +1190,8 @@ export const saveGeneratedQuote = async (input: {
     deposit_amount: depositAmt,
     deposit_percent: depositPct,
   };
-  const { data, error } = await supabase
-    .from("quotes")
-    .insert(insertPayload as never)
-    .select("*")
-    .single();
-  if (error) throw error;
-  const quote = rowToQuote(data as unknown as DbQuote);
+  const data = await insertQuoteWithUniqueRef(insertPayload);
+  const quote = rowToQuote(data);
   mockQuotes.unshift(quote);
   bumpVersion();
   // Fire-and-forget: feed the pricing memory so future quotes learn from this one.
