@@ -84,14 +84,33 @@ function HomePage() {
 
             {/* RIGHT — the real product moment, promoted to co-hero */}
             <div className="relative">
-              <div className="relative mx-auto max-w-sm md:max-w-none rounded-[2rem] overflow-hidden border border-paper/10 bg-ink shadow-2xl ring-1 ring-lime/25">
+              <div
+                className="relative mx-auto max-w-sm md:max-w-none rounded-[2rem] overflow-hidden border border-paper/10 bg-ink shadow-2xl ring-1 ring-lime/25"
+                style={{ aspectRatio: "16 / 9" }}
+              >
+                <button
+                  type="button"
+                  onClick={togglePlay}
+                  className="absolute inset-0 z-10 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-lime"
+                  aria-label={paused ? "Play product demo video" : "Pause product demo video"}
+                >
+                  <span className="sr-only">{paused ? "Tap to play" : "Tap to pause"}</span>
+                </button>
                 <video
+                  ref={videoRef}
                   src="/quottr-how-it-works.mp4"
-                  autoPlay muted loop playsInline preload="metadata"
-                  className="w-full h-auto block"
+                  poster="/quottr-how-it-works-poster.jpg"
+                  autoPlay={!reducedMotion}
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  controls={reducedMotion}
+                  className="absolute inset-0 w-full h-full object-cover block"
                   aria-label="Voice to quote to paid in seconds"
                 />
               </div>
+
               <p className="mt-3 text-center md:text-left text-[11px] text-paper/50 uppercase tracking-widest font-semibold">
                 From voice to paid, in seconds
               </p>
