@@ -109,8 +109,12 @@ function QuoteDetail() {
   const [jobDoneResult, setJobDoneResult] = useState<{
     mode: "invoice" | "balance" | "receipt";
     emailedTo: string | null;
+    emailFailed: boolean;
+    amountCents: number;
+    depositPaidCents: number;
     waMessage: string | null;
   } | null>(null);
+  const [resending, setResending] = useState(false);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
   const [completedAt, setCompletedAt] = useState<string | undefined>(quote.completed_at);
   const [sendOpen, setSendOpen] = useState(false);
