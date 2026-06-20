@@ -12,7 +12,7 @@ export const sendInvoiceEmailForQuote = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       quoteId: z.string().min(1).max(128),
-      mode: z.enum(["receipt", "invoice", "balance"]).optional(),
+      mode: z.enum(["receipt", "invoice", "balance", "deposit-received"]).optional(),
       amountCents: z.number().int().nonnegative().optional(),
       depositPaidCents: z.number().int().nonnegative().optional(),
     }),
@@ -22,12 +22,35 @@ export const sendInvoiceEmailForQuote = createServerFn({ method: "POST" })
     // Verify ownership before doing privileged work.
     const { data: owned, error } = await supabase
       .from("quotes")
-      .select("id")
+      .select("id, total")
       .eq("id", data.quoteId)
       .eq("user_id", userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!owned) throw new Error("Quote not found");
+
+    // For a manual mark-paid receipt, subtract any prior paid deposits so
+    // the receipt headline shows the balance JUST received, not the full
+    // quote total a second time.
+    let amountCents = data.amountCents;
+    let depositPaidCents = data.depositPaidCents;
+    if (data.mode === "receipt" && amountCents === undefined) {
+      const { data: deposits } = await supabase
+        .from("invoice_payments")
+        .select("amount_cents")
+        .eq("quote_id", data.quoteId)
+        .eq("request_type", "deposit")
+        .eq("status", "paid");
+      const paidDepositCents = (deposits ?? []).reduce(
+        (sum, r) => sum + (r.amount_cents ?? 0),
+        0,
+      );
+      if (paidDepositCents > 0) {
+        const totalCents = Math.round((Number(owned.total) || 0) * 100);
+        amountCents = Math.max(0, totalCents - paidDepositCents);
+        depositPaidCents = paidDepositCents;
+      }
+    }
 
     const { sendAndRecordInvoiceEmail } = await import("@/lib/invoice-email.server");
     return await sendAndRecordInvoiceEmail({
@@ -35,8 +58,8 @@ export const sendInvoiceEmailForQuote = createServerFn({ method: "POST" })
       quoteId: data.quoteId,
       paymentMethod: "manual",
       mode: data.mode,
-      amountCents: data.amountCents,
-      depositPaidCents: data.depositPaidCents,
+      amountCents,
+      depositPaidCents,
     });
   });
 
