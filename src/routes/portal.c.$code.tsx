@@ -115,6 +115,7 @@ function ClientPortalPage() {
   const { code } = Route.useParams();
   const fetchData = useServerFn(getClientPortalData);
   const respondQuote = useServerFn(respondQuoteFromPortal);
+  const startCheckoutFromCode = useServerFn(createPortalCheckoutFromCode);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
