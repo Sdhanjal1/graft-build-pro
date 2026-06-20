@@ -552,7 +552,7 @@ function PortalPage() {
         </section>
       )}
 
-      {isPaid && (
+      {isPaidInFull && (
         <section className="px-5 mt-4">
           <div className="card-surface p-5 border-2 border-status-accepted/30 bg-status-accepted/5">
             <div className="flex items-center gap-2 text-status-accepted font-bold text-sm">
@@ -568,6 +568,19 @@ function PortalPage() {
             >
               <Download className="h-4 w-4" /> Download invoice PDF
             </button>
+          </div>
+        </section>
+      )}
+
+      {!isPaidInFull && hasPaidDeposit && (
+        <section className="px-5 mt-4">
+          <div className="card-surface p-5 border-2 border-status-accepted/40 bg-status-accepted/5">
+            <div className="flex items-center gap-2 text-status-accepted font-bold text-sm">
+              <Check className="h-4 w-4" /> Deposit paid
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Balance of <span className="num font-semibold text-ink">{formatGBP(balanceAmount)}</span> due on completion.
+            </p>
           </div>
         </section>
       )}
