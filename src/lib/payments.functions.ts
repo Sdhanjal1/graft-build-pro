@@ -5,15 +5,25 @@ import { requireActiveSubscription } from "@/lib/require-active-subscription";
 import { DEFAULT_DEPOSIT_FRACTION } from "@/lib/payment-timing";
 
 
-// Quottr's BYOK Stripe platform key. When the pro has completed Connect
+// Quottr's Stripe platform key. When the pro has completed Connect
 // onboarding, client-invoice payments are routed to their connected
 // account via `Stripe-Account` so funds go straight to them.
+//
+// Sandbox is opt-in ONLY when the build was produced with the explicit
+// preview flag AND a sandbox key is present. Every other code path —
+// unset flag, unrecognised value, missing sandbox key, production build —
+// falls through to live. Live is the fail-safe default; we never silently
+// route real customers to test keys.
 function getStripeEnv() {
-  const byok = process.env.STRIPE_BYOK_SECRET_KEY;
-  if (byok) return { key: byok, env: "live" as const };
-  const sandbox = process.env.STRIPE_SANDBOX_API_KEY;
-  if (!sandbox) throw new Error("Stripe is not configured");
-  return { key: sandbox, env: "sandbox" as const };
+  const flag = import.meta.env.VITE_PAYMENTS_MODE;
+  const sandboxKey = process.env.STRIPE_SANDBOX_API_KEY;
+  if (flag === "sandbox" && sandboxKey) {
+    return { key: sandboxKey, env: "sandbox" as const };
+  }
+  const liveKey =
+    process.env.STRIPE_BYOK_SECRET_KEY ?? process.env.STRIPE_LIVE_API_KEY;
+  if (!liveKey) throw new Error("Stripe is not configured");
+  return { key: liveKey, env: "live" as const };
 }
 
 // Origins we'll accept as success/cancel return URLs for both pro-facing

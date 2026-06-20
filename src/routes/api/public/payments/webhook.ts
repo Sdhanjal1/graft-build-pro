@@ -7,7 +7,7 @@ import { handlePaidEvent, handleFailedEvent } from "@/lib/payments-webhook-share
 // the relevant events. The ?env=sandbox or ?env=live query string tells us
 // which webhook secret to verify against.
 function getSecretForEnv(env: string | null) {
-  if (env === "live") return process.env.PAYMENTS_WEBHOOK_SECRET;
+  if (env === "live") return process.env.PAYMENTS_LIVE_WEBHOOK_SECRET;
   return process.env.PAYMENTS_SANDBOX_WEBHOOK_SECRET;
 }
 
