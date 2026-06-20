@@ -561,32 +561,12 @@ function QuoteDetail() {
         // Surfaced on the invoice screen; don't block the trader.
       }
 
-      // 4. Tell the trader what happened and offer the right next step.
+      // 4. Tell the trader what happened via the post-send sheet.
       feedback("success");
-      const hasPhone = !!client?.phone;
-      if (jobDoneMode === "receipt") {
-        if (emailedTo) {
-          toast.success(`Job done. Receipt emailed to ${jobDoneFirst}.`);
-        } else if (hasPhone) {
-          const msg = buildJobDoneMessage(liveQuote, jobDoneFirst, "receipt", jobDoneAmount, depositPaid);
-          window.open(waLink(client.phone, msg), "_blank");
-          toast.success("Job done. Receipt ready to send on WhatsApp.");
-        } else {
-          toast.success("Job done. No email or phone on file — share the receipt manually.");
-        }
-      } else {
-        if (emailedTo) {
-          toast.success(`Job done. Invoice emailed to ${jobDoneFirst}.`);
-        } else if (hasPhone) {
-          const msg = buildJobDoneMessage(liveQuote, jobDoneFirst, jobDoneMode, jobDoneAmount, depositPaid);
-          window.open(waLink(client.phone, msg), "_blank");
-          toast.success("Job done. Invoice ready to send on WhatsApp.");
-        } else {
-          toast.success("Job done. No email or phone on file — share the invoice manually.");
-        }
-      }
-
-      navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
+      const waMessage = client?.phone
+        ? buildJobDoneMessage(liveQuote, jobDoneFirst, jobDoneMode, jobDoneAmount, depositPaid)
+        : null;
+      setJobDoneResult({ mode: jobDoneMode, emailedTo, waMessage });
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Couldn't complete the job");
