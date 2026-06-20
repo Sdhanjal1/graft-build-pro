@@ -65,7 +65,7 @@ export async function sendAndRecordInvoiceEmail(opts: {
       return { status: "skipped", reason: "No customer email on file" };
     }
 
-    const paidAt = quote.paid_at ?? new Date().toISOString();
+    const paidAt = new Date().toISOString();
     const pdfBytes = generateInvoicePdfBytes(
       {
         ref: quote.ref,
