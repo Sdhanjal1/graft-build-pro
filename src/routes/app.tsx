@@ -12,6 +12,7 @@ import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 
 
 import { BusinessLogo } from "@/components/BusinessLogo";
+import { NotificationsBell } from "@/components/NotificationsBell";
 import { RotatingPrompts } from "@/components/RotatingPrompts";
 import { useSession } from "@/lib/auth";
 import { HomeSkeleton } from "@/components/Skeletons";
