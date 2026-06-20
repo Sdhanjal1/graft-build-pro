@@ -266,7 +266,7 @@ export const trades: Trade[] = [
       deposit: 4000,
     },
     faqs: [
-      { q: "Can I take stage payments on a big build?", a: "Yes. Break the build into stages on the quote (groundworks, walls, roof, second fix) and Quottr invoices each stage as you reach it — customer pays by card or bank transfer." },
+      { q: "Can I take stage payments on a big build?", a: "You can itemise the build by stage on the quote — groundworks, walls, roof, second fix — so the customer sees each phase's cost up front, and take a deposit on approval by card or Apple Pay. Quottr doesn't automatically invoice each stage as you reach it (yet); you'd send the final invoice for the balance at the end." },
       { q: "Won't a £40k quote scare the customer if they see one number?", a: "That's why Quottr itemises by stage. The customer sees what each phase costs and what they're getting — far easier to approve than a single lump sum." },
       { q: "How do I handle variations mid-build?", a: "Send a variation quote in seconds, customer approves on WhatsApp before the work starts. No more 'I never agreed to that' arguments at the end." },
       { q: "Does it handle subcontractor costs?", a: "Yes — quote your subbies (sparks, plumbers, plasterers) as separate lines or roll them into a stage. Either way the cost is on the quote, not coming out of your margin." },
