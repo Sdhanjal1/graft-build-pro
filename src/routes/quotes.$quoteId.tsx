@@ -37,7 +37,7 @@ import { SendQuoteDialog } from "@/components/SendQuoteDialog";
 import { AssignClientDialog } from "@/components/AssignClientDialog";
 import { listQuoteMessages, sendProMessage } from "@/lib/messages.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { usePaidQuoteCount, useInvalidatePaidQuoteCount, normalizeSource } from "@/hooks/usePaidQuoteCount";
 import { useScrollVisible } from "@/hooks/use-scroll-direction";
 import { useConnectStatus } from "@/hooks/useConnectStatus";
@@ -203,6 +203,18 @@ function QuoteDetail() {
     return Math.round((configuredDeposit / total) * 100);
   })();
 
+  const refreshPayments = useCallback(async () => {
+    try {
+      const res = await fetchPaymentsFn({ data: { quoteId: quote.id } });
+      const rows = res?.payments ?? [];
+      const paid = rows
+        .filter((r) => r.status === "paid" && r.request_type === "deposit")
+        .reduce((sum, r) => sum + (Number(r.amount_cents) || 0), 0) / 100;
+      setDepositPaid(paid);
+      setDepositRecorded(paid > 0);
+    } catch { /* non-blocking */ }
+  }, [quote.id, fetchPaymentsFn]);
+
   const handleRecordManualDeposit = async (method: "cash" | "bank") => {
     if (recordingDeposit || depositRecorded) return;
     setRecordingDeposit(true);
@@ -215,6 +227,7 @@ function QuoteDetail() {
           ? "Deposit already recorded"
           : "Deposit recorded",
       );
+      await refreshPayments();
       // Brief delay so the user sees the success state before the sheet closes.
       setTimeout(() => {
         setAskDeposit(false);
@@ -229,20 +242,9 @@ function QuoteDetail() {
   };
 
   useEffect(() => {
-    let cancelled = false;
-    fetchPaymentsFn({ data: { quoteId: quote.id } })
-      .then((res) => {
-        if (cancelled) return;
-        const rows = res?.payments ?? [];
-        const paid = rows
-          .filter((r) => r.status === "paid" && r.request_type === "deposit")
-          .reduce((sum, r) => sum + (Number(r.amount_cents) || 0), 0) / 100;
-        setDepositPaid(paid);
-        if (paid > 0) setDepositRecorded(true);
-      })
-      .catch(() => { /* non-blocking */ });
-    return () => { cancelled = true; };
-  }, [quote.id, fetchPaymentsFn]);
+    void refreshPayments();
+  }, [refreshPayments]);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -332,11 +334,13 @@ function QuoteDetail() {
       await removeDepositFn({ data: { quoteId: quote.id } });
       setDepositPaid(0);
       setDepositRecorded(false);
+      await refreshPayments();
       feedback("success"); toast.success("Deposit removed");
     } catch (e) {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't remove deposit");
     }
   };
+
   const markUnpaid = () => setConfirmMarkUnpaid(true);
   const confirmMarkUnpaidAction = async () => {
     setConfirmMarkUnpaid(false);
@@ -746,10 +750,36 @@ function QuoteDetail() {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Balance</span>
-                <span className="font-bold text-ink num">{formatGBP((quote.total || 0) - configuredDeposit)}</span>
+                <span className="font-bold text-ink num">{formatGBP((quote.total || 0) - Math.max(configuredDeposit, depositPaid))}</span>
               </div>
+              {status !== "paid" && depositPaid === 0 && (
+                <button
+                  type="button"
+                  onClick={() => setRecordDepositOpen(true)}
+                  className="mt-2 w-full flex items-center justify-between gap-3 rounded-2xl border border-dashed border-ink/20 bg-muted/40 px-4 py-3 text-left active:bg-muted"
+                >
+                  <span className="flex items-center gap-2 text-sm">
+                    <Banknote className="h-4 w-4 text-muted-foreground" />
+                    <span>
+                      <span className="font-semibold text-ink">Deposit not yet received</span>
+                      <span className="block text-xs text-muted-foreground">Tap to record a bank or cash payment</span>
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
+              )}
+              {status !== "paid" && depositPaid > 0 && (
+                <div className="mt-2 flex items-center justify-between rounded-2xl bg-status-paid/10 px-4 py-3 text-sm">
+                  <span className="inline-flex items-center gap-2 font-semibold text-status-paid">
+                    <Check className="h-4 w-4" strokeWidth={3} />
+                    Deposit received
+                  </span>
+                  <span className="font-bold num text-status-paid">{formatGBP(depositPaid)}</span>
+                </div>
+              )}
             </div>
           )}
+
         </div>
       </div>
 
