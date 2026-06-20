@@ -23,6 +23,24 @@ import {
 
 export const Route = createFileRoute("/portal/$token")({
   component: PortalPage,
+  head: () => ({
+    meta: [
+      // Private per-customer link — keep the share preview minimal and personal,
+      // and stop the marketing root OG card from bleeding into WhatsApp.
+      { title: "Your quote" },
+      { name: "description", content: "View, accept and pay your quote." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Your quote" },
+      { property: "og:description", content: "View, accept and pay your quote." },
+      { name: "twitter:title", content: "Your quote" },
+      { name: "twitter:description", content: "View, accept and pay your quote." },
+      // Override the root's large banner with a compact, on-brand icon so
+      // WhatsApp renders a small preview instead of the marketing card.
+      { name: "twitter:card", content: "summary" },
+      { property: "og:image", content: "https://quottr.co.uk/app-icon.png" },
+      { name: "twitter:image", content: "https://quottr.co.uk/app-icon.png" },
+    ],
+  }),
 });
 
 function formatGBP(n: number) {
