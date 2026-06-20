@@ -122,6 +122,15 @@ function invoiceHtml(i: SendInvoiceEmailInput): string {
 function balanceHtml(i: SendInvoiceEmailInput): string {
   const deposit = i.depositPaidFormatted ?? "";
   const total = i.totalFormatted ?? "";
+  const payCta = i.payNowUrl
+    ? `<div style="margin:18px 0 0;text-align:center;">
+        <a href="${escapeHtml(i.payNowUrl)}" style="display:inline-block;background:#C6F33A;color:#0E0E0E;font-weight:700;font-size:15px;text-decoration:none;padding:14px 28px;border-radius:999px;">Pay ${escapeHtml(i.amountFormatted)} online</a>
+      </div>
+      <p style="margin:10px 0 0;font-size:11px;line-height:1.5;color:#7A7A72;text-align:center;">Secured payment by Stripe</p>`
+    : "";
+  const fallbackCopy = i.payNowUrl
+    ? `<p style="margin:18px 0 0;font-size:13px;line-height:1.55;color:#55554F;">Or pay by bank transfer using the details on the attached invoice. Any questions, just reply to this email.</p>`
+    : `<p style="margin:18px 0 0;font-size:13px;line-height:1.55;color:#55554F;">Payment details are on the attached invoice. Any questions, just reply to this email.</p>`;
   const inner = `
     <p style="margin:0 0 12px;font-size:16px;line-height:1.5;">Thanks for your deposit. The remaining balance for invoice <strong>${escapeHtml(i.invoiceRef)}</strong> is <strong>${escapeHtml(i.amountFormatted)}</strong>.</p>
     <p style="margin:0 0 20px;font-size:14px;line-height:1.55;color:#55554F;">Itemised invoice attached as a PDF. Payment due by <strong>${escapeHtml(i.dateFormatted)}</strong>.</p>
@@ -133,7 +142,8 @@ function balanceHtml(i: SendInvoiceEmailInput): string {
         Invoice ${escapeHtml(i.invoiceRef)} · by ${escapeHtml(i.dateFormatted)}
       </div>
     </div>
-    <p style="margin:18px 0 0;font-size:13px;line-height:1.55;color:#55554F;">Payment details are on the attached invoice. Any questions, just reply to this email.</p>
+    ${payCta}
+    ${fallbackCopy}
     <p style="margin:18px 0 0;font-size:13px;line-height:1.55;">Thanks,<br/><strong>${escapeHtml(i.businessName)}</strong></p>`;
   return shell(i.businessName, "Balance due", "#C6F33A", inner);
 }
