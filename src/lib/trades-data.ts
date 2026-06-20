@@ -231,7 +231,7 @@ export const trades: Trade[] = [
     headline: "Quoting app for builders.",
     intro: "Extensions, loft conversions and structural work, talk through the build and Quottr turns it into a clear, itemised quote your customer can actually follow.",
     seoTitle: "Quoting App for Builders | Extension & Loft Conversion Quotes — Quottr",
-    seoDescription: "Voice-quote extensions, loft conversions and knock-throughs. Big jobs broken into clear stages. Take stage payments. Free 14-day trial.",
+    seoDescription: "Voice-quote extensions, loft conversions and knock-throughs. Big jobs broken into clear stages on the quote. Deposit on approval. Free 14-day trial.",
     jobTypes: [
       "Single & double-storey extensions",
       "Loft conversions",
