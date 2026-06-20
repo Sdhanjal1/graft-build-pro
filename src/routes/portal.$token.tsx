@@ -210,7 +210,18 @@ function PortalPage() {
 
   const { quote, profile, client, payment } = data;
   const lineItems = (quote.line_items as any[]) ?? [];
-  const isPaid = status === "paid" || paymentResult === "paid";
+  // "Paid in full" must require an authoritative server signal — never
+  // infer it from the ?paid=1 redirect param (that fires for deposits too).
+  // Any other state renders a balance-due affordance.
+  const isPaidInFull = status === "paid";
+  // Used only for the top-of-page "Payment received — thank you" card,
+  // which is intentionally optimistic on redirect.
+  const isPaid = isPaidInFull || paymentResult === "paid";
+  // A paid deposit exists when the server returned a paid invoice_payments
+  // row whose request_type is "deposit". Pending rows (abandoned checkouts)
+  // are filtered out at the loader (.eq("status","paid")).
+  const hasPaidDeposit =
+    payment?.status === "paid" && payment?.request_type === "deposit";
   const canRespond = status === "pending" || status === "sent";
   const timing: PaymentTiming = (quote.payment_timing as PaymentTiming) ?? "on_completion";
   const total = Number(quote.total) || 0;
