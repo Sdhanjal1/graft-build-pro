@@ -106,6 +106,11 @@ function QuoteDetail() {
   
   const [askDeposit, setAskDeposit] = useState(false);
   const [confirmJobDone, setConfirmJobDone] = useState(false);
+  const [jobDoneResult, setJobDoneResult] = useState<{
+    mode: "invoice" | "balance" | "receipt";
+    emailedTo: string | null;
+    waMessage: string | null;
+  } | null>(null);
   const [invoicedAt, setInvoicedAt] = useState<string | undefined>(quote.invoiced_at);
   const [completedAt, setCompletedAt] = useState<string | undefined>(quote.completed_at);
   const [sendOpen, setSendOpen] = useState(false);
@@ -556,32 +561,12 @@ function QuoteDetail() {
         // Surfaced on the invoice screen; don't block the trader.
       }
 
-      // 4. Tell the trader what happened and offer the right next step.
+      // 4. Tell the trader what happened via the post-send sheet.
       feedback("success");
-      const hasPhone = !!client?.phone;
-      if (jobDoneMode === "receipt") {
-        if (emailedTo) {
-          toast.success(`Job done. Receipt emailed to ${jobDoneFirst}.`);
-        } else if (hasPhone) {
-          const msg = buildJobDoneMessage(liveQuote, jobDoneFirst, "receipt", jobDoneAmount, depositPaid);
-          window.open(waLink(client.phone, msg), "_blank");
-          toast.success("Job done. Receipt ready to send on WhatsApp.");
-        } else {
-          toast.success("Job done. No email or phone on file — share the receipt manually.");
-        }
-      } else {
-        if (emailedTo) {
-          toast.success(`Job done. Invoice emailed to ${jobDoneFirst}.`);
-        } else if (hasPhone) {
-          const msg = buildJobDoneMessage(liveQuote, jobDoneFirst, jobDoneMode, jobDoneAmount, depositPaid);
-          window.open(waLink(client.phone, msg), "_blank");
-          toast.success("Job done. Invoice ready to send on WhatsApp.");
-        } else {
-          toast.success("Job done. No email or phone on file — share the invoice manually.");
-        }
-      }
-
-      navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
+      const waMessage = client?.phone
+        ? buildJobDoneMessage(liveQuote, jobDoneFirst, jobDoneMode, jobDoneAmount, depositPaid)
+        : null;
+      setJobDoneResult({ mode: jobDoneMode, emailedTo, waMessage });
     } catch (e) {
       feedback("error");
       toast.error(e instanceof Error ? e.message : "Couldn't complete the job");
@@ -1298,6 +1283,90 @@ function QuoteDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Post-send: confirmation of email + optional WhatsApp backup, OR WhatsApp fallback */}
+      <Sheet open={!!jobDoneResult} onOpenChange={(o) => { if (!o) setJobDoneResult(null); }}>
+        <SheetContent side="bottom" className="rounded-t-3xl border-0 bg-paper p-0">
+          {jobDoneResult && (() => {
+            const docLabel = jobDoneResult.mode === "receipt" ? "Receipt" : "Invoice";
+            const docLower = docLabel.toLowerCase();
+            const emailed = !!jobDoneResult.emailedTo;
+            const phone = client?.phone;
+            const openWa = () => {
+              if (phone && jobDoneResult.waMessage) {
+                window.open(waLink(phone, jobDoneResult.waMessage), "_blank");
+              }
+            };
+            const goToInvoice = () => {
+              setJobDoneResult(null);
+              navigate({ to: "/invoices/$quoteId", params: { quoteId: quote.id } });
+            };
+            return (
+              <>
+                <SheetHeader className="px-5 pt-5 pb-1 text-left">
+                  <SheetTitle className="text-base font-semibold">
+                    {emailed
+                      ? `${docLabel} emailed to ${jobDoneFirst} ✓`
+                      : phone
+                        ? `Send ${docLower} via WhatsApp`
+                        : `${docLabel} ready — no email or phone on file`}
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="px-5 pb-2 text-sm text-muted-foreground">
+                  {emailed
+                    ? `Sent to ${jobDoneResult.emailedTo}. You're done — nothing else needed.`
+                    : phone
+                      ? `We couldn't email ${jobDoneFirst}${client?.email ? " — the send failed" : " (no email on file)"}. Send it on WhatsApp instead.`
+                      : `Open the invoice screen to share the link manually or retry email.`}
+                </div>
+                <div className="px-5 pb-6 pt-3 space-y-2">
+                  {emailed ? (
+                    <>
+                      <button
+                        onClick={() => setJobDoneResult(null)}
+                        className="w-full rounded-full bg-ink text-paper py-3 font-semibold text-sm"
+                      >
+                        Done
+                      </button>
+                      {phone && (
+                        <button
+                          onClick={openWa}
+                          className="w-full rounded-full border border-ink/15 py-3 font-semibold text-sm"
+                        >
+                          Also share on WhatsApp (optional)
+                        </button>
+                      )}
+                      <button
+                        onClick={goToInvoice}
+                        className="w-full py-2 text-sm text-muted-foreground underline"
+                      >
+                        View invoice
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {phone && (
+                        <button
+                          onClick={() => { openWa(); setJobDoneResult(null); }}
+                          className="w-full rounded-full bg-ink text-paper py-3 font-semibold text-sm"
+                        >
+                          Send via WhatsApp
+                        </button>
+                      )}
+                      <button
+                        onClick={goToInvoice}
+                        className="w-full rounded-full border border-ink/15 py-3 font-semibold text-sm"
+                      >
+                        View invoice
+                      </button>
+                    </>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
 
       <AlertDialog open={confirmMarkUnpaid} onOpenChange={setConfirmMarkUnpaid}>
         <AlertDialogContent>
