@@ -83,19 +83,23 @@ function PortalPage() {
     }
   };
 
+  const [autoPay, setAutoPay] = useState<"balance" | null>(null);
+
   useEffect(() => {
-    // Read ?paid / ?cancelled BEFORE first load, then clean URL.
+    // Read ?paid / ?cancelled / ?pay BEFORE first load, then clean URL.
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const paid = params.get("paid");
       const cancelled = params.get("cancelled");
+      const pay = params.get("pay");
       if (paid === "1") {
         setPaymentResult("paid");
         setConfirming(true);
       } else if (cancelled === "1") {
         setPaymentResult("cancelled");
       }
-      if (paid || cancelled) {
+      if (pay === "balance") setAutoPay("balance");
+      if (paid || cancelled || pay) {
         window.history.replaceState(null, "", window.location.pathname);
       }
     }
@@ -133,7 +137,7 @@ function PortalPage() {
   }, [paymentResult]);
 
 
-  const onPay = async (requestType: "deposit" | "full") => {
+  const onPay = async (requestType: "deposit" | "full" | "balance") => {
     setPaying(true);
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
