@@ -180,7 +180,7 @@ function HomePage() {
               {
                 kicker: "Payments",
                 title: "Get paid on the spot",
-                body: "Take card payments on site with tap-to-pay, or let customers pay the second they approve the quote. Money in your account, no awkward calls.",
+                body: "Customers pay by card the second they approve the quote — deposit or balance straight to your account. No awkward calls, no waiting till next month.",
               },
             ].map((f) => (
               <div key={f.title} className="bg-ink p-8 md:p-10">
@@ -190,8 +190,24 @@ function HomePage() {
               </div>
             ))}
           </div>
+
+          {/* Coming soon callout — visually distinct, not part of the live feature grid above */}
+          <div className="mt-8 rounded-2xl border border-dashed border-lime/40 bg-paper/5 p-6 md:p-7 flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+            <span className="inline-flex items-center self-start rounded-full bg-lime/15 text-lime border border-lime/30 px-3 py-1 text-[11px] uppercase tracking-[0.2em] font-bold">
+              Coming soon
+            </span>
+            <div className="flex-1">
+              <h3 className="text-xl md:text-2xl text-paper leading-tight" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                Tap to Pay on iPhone
+              </h3>
+              <p className="mt-1 text-sm md:text-base text-paper/65 leading-relaxed">
+                Tap a customer's card right on your phone, on site. In the works — not available yet.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
+
 
       {/* ACCOUNTING */}
       <section className="bg-paper text-ink">
