@@ -30,14 +30,10 @@ const DEPOSIT_BADGE = "DEPOSIT RECEIVED";
 const BALANCE_BADGE = "BALANCE DUE";
 
 import {
-  // @ts-expect-error — server module imported for HTML/subject builders only.
-  // The builders are pure (string in → string out) and need no env.
+  buildHtml,
+  buildSubject,
+  type SendInvoiceEmailInput,
 } from "../src/lib/email/send-invoice.server";
-
-// We import the actual builders via dynamic require to avoid the
-// `process.env.RESEND_API_KEY` send path. The builders don't touch env.
-type Builder = (i: any) => string;
-const mod = await import("../src/lib/email/send-invoice.server");
 
 function fmtGBP(cents: number) {
   return new Intl.NumberFormat("en-GB", {
@@ -51,7 +47,7 @@ function makeInput(opts: {
   totalCents: number;
   amountCents?: number;
   depositPaidCents?: number;
-}) {
+}): SendInvoiceEmailInput | null {
   const r = computeInvoiceAmounts(opts);
   if (!r.ok) return null;
   return {
@@ -69,15 +65,7 @@ function makeInput(opts: {
   };
 }
 
-// Reach into the module's internal builders via the public sendInvoiceEmail
-// path would require RESEND_API_KEY — instead we re-grab them through the
-// module namespace (they're top-level functions in send-invoice.server.ts).
-const buildHtml: Builder = (mod as any).buildHtml ?? null;
-const buildSubject: ((i: any, name: string) => string) | null =
-  (mod as any).buildSubject ?? null;
-
 describe("badge state-machine — module exports", () => {
-  // If these are unexported, the matrix below would silently no-op. Fail loud.
   test("send-invoice.server exposes buildHtml / buildSubject for testing", () => {
     expect(typeof buildHtml).toBe("function");
     expect(typeof buildSubject).toBe("function");
