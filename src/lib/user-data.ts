@@ -732,11 +732,7 @@ export const buildInvoiceMessage = (quote: Quote, clientFirstName: string) => {
   }
   lines.push(
     "",
-    `Payment terms: ${userProfile.payment_terms}`,
-    "",
-    `Thanks, ${userProfile.full_name.split(" ")[0]}, ${userProfile.business_name}`,
-    "",
-    "Sent via Quottr.",
+    `Thanks, ${userProfile.full_name.split(" ")[0]}`,
   );
   return lines.join("\n");
 };
@@ -1456,16 +1452,11 @@ export const buildQuoteWhatsAppMessage = (
   portalUrl: string,
 ) => {
   const first = client?.name?.split(" ")[0] ?? "there";
+  const vatSuffix = userProfile.vat_registered ? " inc VAT" : "";
   return [
-    `Hi ${first} 👋`,
-    `Your quote from ${userProfile.business_name} is ready.`,
-    `Total: ${formatGBP(quote.total)}${userProfile.vat_registered ? " inc VAT" : ""}`,
-    "",
-    `View, approve and pay your deposit here:`,
-    portalUrl,
-    "",
-    `Quote valid for 30 days. Any questions just reply.`,
-    `${userProfile.business_name} · ${userProfile.phone}`,
+    `Hi ${first}, here's your quote for "${quote.title}" — ${formatGBP(quote.total)}${vatSuffix}.`,
+    `View and accept here: ${portalUrl}`,
+    `Any questions just reply. Thanks, ${userProfile.full_name.split(" ")[0]}`,
   ].join("\n");
 };
 

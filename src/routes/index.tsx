@@ -8,10 +8,10 @@ export const Route = createFileRoute("/")({
   component: HomePage,
   head: () => ({
     meta: [
-      { title: "Quottr: stop quoting in the evenings" },
-      { name: "description", content: "Voice to professional quote in seconds. Sent via WhatsApp. Customer can accept and pay on the spot." },
-      { property: "og:title", content: "Quottr: stop quoting in the evenings" },
-      { property: "og:description", content: "Voice to professional quote in seconds. Sent via WhatsApp. Customer can accept and pay on the spot." },
+      { title: "Quottr — Speak it. Send it. Get paid." },
+      { name: "description", content: "The voice-first quoting app for UK trades. Speak the job, send the quote, get paid." },
+      { property: "og:title", content: "Quottr — Speak it. Send it. Get paid." },
+      { property: "og:description", content: "The voice-first quoting app for UK trades. Speak the job, send the quote, get paid." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.quottr.co.uk/" },
     ],
