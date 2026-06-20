@@ -80,6 +80,43 @@ function InvoicePage() {
     ? new Date(quote.invoice_due_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     : "";
 
+  // ---- Paid-invoice email status ----
+  const fetchEmailStatus = useServerFn(getInvoiceEmailStatus);
+  const resendEmail = useServerFn(sendInvoiceEmailForQuote);
+  type EmailStatus = {
+    invoice_email_status: string | null;
+    invoice_email_sent_at: string | null;
+    invoice_email_error: string | null;
+    invoice_email_to: string | null;
+  };
+  const [emailStatus, setEmailStatus] = useState<EmailStatus | null>(null);
+  const [resending, setResending] = useState(false);
+  const loadEmailStatus = useCallback(async () => {
+    if (!isPaid) { setEmailStatus(null); return; }
+    try {
+      const res = await fetchEmailStatus({ data: { quoteId: quote.id } });
+      setEmailStatus(res as EmailStatus);
+    } catch {
+      // ignore — UI just won't show a status line
+    }
+  }, [fetchEmailStatus, quote.id, isPaid]);
+  useEffect(() => { loadEmailStatus(); }, [loadEmailStatus]);
+
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      const res = await resendEmail({ data: { quoteId: quote.id } });
+      if (res.status === "sent") { feedback("success"); toast.success("Invoice email sent"); }
+      else if (res.status === "skipped") { feedback("error"); toast.error("No email on file for this customer"); }
+      else { feedback("error"); toast.error("Email failed — try again"); }
+      await loadEmailStatus();
+    } catch (e) {
+      feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't send email");
+    } finally {
+      setResending(false);
+    }
+  };
+
   const downloadPdf = async () => {
     try {
       await markInvoiced(quote.id);
