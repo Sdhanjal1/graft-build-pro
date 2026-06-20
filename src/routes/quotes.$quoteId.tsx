@@ -203,7 +203,7 @@ function QuoteDetail() {
     return Math.round((configuredDeposit / total) * 100);
   })();
 
-  const refreshPayments = useCallback(async () => {
+  const refreshPayments = useCallback(async (): Promise<number> => {
     try {
       const res = await fetchPaymentsFn({ data: { quoteId: quote.id } });
       const rows = res?.payments ?? [];
@@ -212,7 +212,8 @@ function QuoteDetail() {
         .reduce((sum, r) => sum + (Number(r.amount_cents) || 0), 0) / 100;
       setDepositPaid(paid);
       setDepositRecorded(paid > 0);
-    } catch { /* non-blocking */ }
+      return paid;
+    } catch { return 0; /* non-blocking */ }
   }, [quote.id, fetchPaymentsFn]);
 
   const handleRecordManualDeposit = async (method: "cash" | "bank") => {
