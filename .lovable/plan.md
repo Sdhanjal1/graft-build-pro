@@ -1,114 +1,91 @@
-## Goal
+# Switch preview to Stripe test mode (Approach A)
 
-Lock down deposit/balance/receipt money correctness with three layers of automated checks, plus a one-shot Stripe sandbox lifecycle script that prints raw evidence (PI ids, pence, PDF text, DB rows) rather than pass/fail.
+## 1. `getStripeEnv()` change — live is the fail-safe default
 
-## Layer 1 — Unit tests (CI, `bun test`)
+Edit `**src/lib/payments.functions.ts**` (lines 11–17) to:
 
-New file: `tests/payments-money.test.ts`
-
-Pure-function coverage of the money pipeline. No network, no DB.
-
-- `**payment-timing.ts**`
-  - `computeDepositAmount` / `computeDepositPercent` round-trip across 0%, 30%, 50%, 100%, and rounding-edge totals (£99.99, £100.01, £3.33, £0.30).
-  - `parseDepositInput` for `"30%"`, `"£500"`, `"500"`, `"abc"`, `""`.
-  - `DEFAULT_DEPOSIT_FRACTION === 0.3` (locks the C1 fix).
-- **Balance arithmetic per mode** — extract the headline/balance/deposit calc out of `invoice-email.server.ts` into a tiny pure helper `computeInvoiceAmounts({ mode, totalCents, amountCents?, depositPaidCents? })` and unit-test it. Cases:
-
-  | mode                          | total  | amountCents in | depositPaid in | expect headline | expect balanceDue | expect depositPaid |
-  | ----------------------------- | ------ | -------------- | -------------- | --------------- | ----------------- | ------------------ |
-  | invoice                       | 100000 | –              | –              | 100000          | 100000            | 0                  |
-  | receipt (full)                | 100000 | –              | –              | 100000          | 0                 | 0                  |
-  | receipt (post-deposit)        | 100000 | 70000          | 30000          | 70000           | 0                 | 30000              |
-  | balance                       | 100000 | 70000          | 30000          | 70000           | 70000             | 30000              |
-  | deposit-received              | 100000 | 30000          | –              | 30000           | 70000             | 30000              |
-  | deposit-received 33% rounding | 100000 | 33333          | –              | 33333           | 66667             | 33333              |
-  | zero-deposit edge             | 100000 | 0              | 0              | (refuse)        | –                 | –                  |
-  | balance ≤ 0 edge              | 100000 | 0              | 100000         | (refuse)        | –                 | –                  |
-
-- **VAT rounding to the penny** — for the same fixtures, with `vat_registered: true` and a 20% VAT rate, assert `subtotal + vat === total` to the penny across totals £33.33, £99.99, £100.00, £123.45, £1.
-
-Refactor required: extract `computeInvoiceAmounts` from `invoice-email.server.ts` into `src/lib/invoice-amounts.ts` (pure, no I/O) and have the server call it. This makes the test possible without mocking Supabase.
-
-## Layer 2 — Badge state-machine matrix (CI)
-
-New file: `tests/invoice-badge-matrix.test.ts`
-
-Generates the full cartesian product of `{ mode } × { quote.status } × { deposit_paid_cents } × { amount_cents }` for representative values and asserts hard invariants on the email template + PDF stamp:
-
-- For every (mode, balanceDue > 0) row: rendered HTML must NOT contain `>PAID`  badge text and the badge color must NOT be `#15803D` (green).
-- `requestType === "deposit"` → mode resolved to `deposit-received` → HTML contains `DEPOSIT RECEIVED` and `BALANCE` line, never `PAID IN FULL`.
-- PDF generator called with `paid_at` must be non-null ONLY when `mode === "receipt"` (asserted via spy on `generateInvoicePdfBytes`).
-- `balance` mode with `amount <= 0` and `deposit-received` with `amount <= 0` return `{status: "skipped"}` (no email sent).
-
-Implementation: import `buildHtml`, `buildSubject` from `send-invoice.server.ts` and the new `computeInvoiceAmounts`. No network. Spy on `generateInvoicePdfBytes` via a vitest-style mock (or plain function override since we use `bun test`).
-
-## Layer 3 — Golden PDF tests (CI)
-
-New file: `tests/invoice-pdf-golden.test.ts` + fixtures in `tests/__snapshots__/`.
-
-For each of the four modes, render the PDF via `generateInvoicePdfBytes` with a fixed fixture quote (£1,200 total, 20% VAT, deposit £360 / 30%):
-
-1. Extract text with `pdf-parse` (add as devDependency).
-2. Normalise: strip the jsPDF `CreationDate`, lowercase whitespace runs, drop page numbers.
-3. **Snapshot** the normalised text per mode (`invoice.txt`, `receipt.txt`, `balance.txt`, `deposit-received.txt` under `tests/__snapshots__/`).
-4. **Invariant assertions** layered on top of the snapshot, per mode:
-  - `invoice`: contains "£1,200.00", contains "DUE", does NOT contain "PAID", does NOT contain "DEPOSIT RECEIVED".
-  - `receipt`: contains "PAID", contains amount paid, does NOT contain "BALANCE DUE".
-  - `balance`: contains "BALANCE DUE · £840.00", contains "Less deposit received £360.00", does NOT contain "PAID".
-  - `deposit-received`: contains "DEPOSIT RECEIVED · £360.00", contains "Balance to pay on completion · £840.00", PDF stamp is NOT "PAID".
-5. Force deterministic creation date by passing a fixed `created_at` and stubbing `Date.now` via the test harness.
-
-## Layer 4 — On-demand lifecycle script
-
-New file: `scripts/lifecycle-deposit.ts`. Not in CI. Run with `bun scripts/lifecycle-deposit.ts --user <uuid>`.
-
-Requires: an existing seeded sandbox user with a connected sandbox Connect account (charges enabled). Reads `STRIPE_SANDBOX_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` from env.
-
-Steps, printing raw evidence at each step (no pass/fail summary):
-
-1. **Create quote** in DB via service role: £1,200 / 20% VAT / `payment_timing=deposit_then_balance` / `deposit_percent=30`. Print quote row.
-2. **Mint portal token** in `quote_portal_tokens`. Print token + portal URL.
-3. **Read portal page** — fetch `/portal/$token` HTML, regex out the displayed deposit figure. Print the rendered figure.
-4. **Pay deposit**: call `createPortalCheckout({ token, requestType: "deposit" })`, get `amount` (pounds) + Stripe Checkout URL. Print returned amount in pence. **Assert** `portalDisplayedPence === stripeAmountPence` — fail loudly with both values if not equal.
-5. Drive payment via Stripe's testmode `payment_intents` flow on the connected account: create + confirm a PI with the same amount/metadata as Checkout would, or use Stripe's Checkout Session test helper. Print `pi_xxx` id and `amount_received`.
-6. Fire the webhook into `/api/public/payments/webhook?env=sandbox` with a signed payload. Print response status.
-7. Read back: `invoice_payments` row, `quotes.status`, `quotes.invoice_email_status`. Print all three.
-8. Pull the latest sent email PDF (regenerate via `generateInvoicePdfBytes` with same data + `mode: "deposit-received"`), extract text with pdf-parse. Print full text.
-9. **Pay balance**: call manual mark-paid path → `sendInvoiceEmailForQuote({ mode: "receipt" })`. Print the computed `amountCents` and `depositPaidCents` (proves M6 auto-subtract).
-10. Render the resulting receipt PDF, extract text, print. Read back the final `invoice_payments` rows + `quotes.status`. Print.
-
-Output format per step: a labelled block
-
-```
-=== STEP 4: pay deposit ===
-portal.displayed_pence: 36000
-stripe.checkout.amount:  36000
-ASSERT portal == stripe: OK
-stripe.payment_intent.id: pi_3Q...
-stripe.payment_intent.amount: 36000
-db.invoice_payments[0]: { status: 'paid', request_type: 'deposit', amount_cents: 36000, ... }
-pdf.extracted_text: |
-  DEPOSIT RECEIVED · £360.00
-  Total £1,200.00
-  Balance to pay on completion · £840.00
-  ...
+```ts
+function getStripeEnv() {
+  // Sandbox is opt-in ONLY when the build was produced with the explicit
+  // preview flag AND a sandbox key is present. Every other code path —
+  // unset flag, unrecognised value, missing sandbox key, production
+  // build — falls through to live. Live is the fail-safe default; we
+  // never silently route real customers to test keys.
+  const flag = import.meta.env.VITE_PAYMENTS_MODE;
+  const sandboxKey = process.env.STRIPE_SANDBOX_API_KEY;
+  if (flag === "sandbox" && sandboxKey) {
+    return { key: sandboxKey, env: "sandbox" as const };
+  }
+  const liveKey =
+    process.env.STRIPE_BYOK_SECRET_KEY ?? process.env.STRIPE_LIVE_API_KEY;
+  if (!liveKey) throw new Error("Stripe is not configured");
+  return { key: liveKey, env: "live" as const };
+}
 ```
 
-## Files
+Truth table — confirm before applying:
 
-- New: `src/lib/invoice-amounts.ts` (pure helper extracted from `invoice-email.server.ts`)
-- Edit: `src/lib/invoice-email.server.ts` (call the helper instead of inline math)
-- New: `tests/payments-money.test.ts`
-- New: `tests/invoice-badge-matrix.test.ts`
-- New: `tests/invoice-pdf-golden.test.ts`
-- New: `tests/__snapshots__/{invoice,receipt,balance,deposit-received}.txt`
-- New: `scripts/lifecycle-deposit.ts`
-- Edit: `package.json` — add `pdf-parse` devDep; add `"test:lifecycle": "bun scripts/lifecycle-deposit.ts"`.
 
-## Out of scope (explicit)
+| `VITE_PAYMENTS_MODE`        | sandbox key | live key | Returns                             |
+| --------------------------- | ----------- | -------- | ----------------------------------- |
+| `"sandbox"`                 | ✅           | any      | **sandbox**                         |
+| `"sandbox"`                 | ❌           | ✅        | **live** (fail-safe)                |
+| `"live"`                    | any         | ✅        | **live**                            |
+| unset                       | any         | ✅        | **live**                            |
+| `"prod"`, `"test"`, garbage | any         | ✅        | **live**                            |
+| anything                    | any         | ❌        | throws (no silent sandbox fallback) |
 
-- No changes to production money logic — only the refactor-extract of `computeInvoiceAmounts`. All existing behavior preserved; tests pin it down.
-- No CI config edits (existing `bun test tests/` already picks up new files).
-- Lifecycle script does NOT auto-create a Connect account; assumes one exists on the chosen test user.
 
-Drop Layer 3 text snapshots entirely — invariant assertions only, no `__snapshots__` files. Confirm the C1 portal figure (step 3) is scraped from the rendered portal page renderer, and the Stripe figure (step 4) from the amount actually sent to Stripe — two independent code paths, not both from createPortalCheckout. Step 5 reads the PI amount from the created Checkout Session object, not recomputed. Add VAT-figure-to-the-penny assertions to the Layer 3 invoice/receipt invariants, using the same rounding the PDF line items use.
+Sandbox requires **two** affirmative conditions; everything else is live.
+
+Set `VITE_PAYMENTS_MODE=sandbox` in `**.env.development**` only. Production builds read no value → live. This is a build-time inline (Vite), so the bundled value is frozen per build — preview deployment will be sandbox, published deployment will be live, regardless of runtime env mutations.
+
+No other files change in this batch.
+
+## 2. Test-mode Connect account — does not exist yet
+
+Confirmed by reading `src/lib/connect.functions.ts`: Connect uses **Standard** accounts created via Stripe's hosted onboarding (`/accounts` + `/account_links` with `type=account_onboarding`). The account ID is stored on `profiles.stripe_connect_account_id`. Live and test mode are separate Stripe namespaces — any `acct_…` you have today was minted under the live BYOK key and is invalid under sandbox keys.
+
+**Steps to create one (after this batch lands and preview is on sandbox keys):**
+
+1. In the preview app, sign in as a throwaway test user (or seed one).
+2. Go to the Connect onboarding entry point in Settings — the existing UI calls `createConnectAccountLink` / similar from `connect.functions.ts`. Because the preview now reads sandbox keys, this hits Stripe **test mode** and writes a test-mode `acct_…` to that user's `profiles.stripe_connect_account_id`.
+3. Complete Stripe's hosted onboarding using test values: SSN `000-00-0000`, DOB `01/01/1901`, address `address_full_match`, routing `110000000`, account `000123456789`, phone `0000000000`. These auto-approve and flip `charges_enabled=true` immediately.
+4. On return, the app calls the existing capability-refresh path which writes `stripe_connect_charges_enabled=true`.
+5. Use that user's UUID as `--user` for `scripts/lifecycle-deposit.ts`.
+
+No code changes needed for step 2 — the existing Connect flow works under sandbox keys automatically once `getStripeEnv()` returns sandbox.
+
+## 3. `PAYMENTS_WEBHOOK_SECRET` → `PAYMENTS_LIVE_WEBHOOK_SECRET` rename — deferred
+
+**Total references in the repo: exactly one.**
+
+```
+src/routes/api/public/payments/webhook.ts:10
+  if (env === "live") return process.env.PAYMENTS_WEBHOOK_SECRET;
+```
+
+That's the only occurrence in `src/`, `supabase/`, route files, or anywhere else searched. `PAYMENTS_SANDBOX_WEBHOOK_SECRET` is referenced on the next line and is correct. The Lovable-managed secret store already has `PAYMENTS_LIVE_WEBHOOK_SECRET` populated and `PAYMENTS_WEBHOOK_SECRET` does **not** exist — so today's live webhook verification fails closed (returns 401 invalid signature, or never runs because the secret is undefined and the code drops with 200). Either way, no production traffic depends on the misnamed var; the rename strictly fixes the bug.
+
+When you greenlight the separate commit, the change is a one-line edit:
+
+```ts
+if (env === "live") return process.env.PAYMENTS_LIVE_WEBHOOK_SECRET;
+```
+
+No env-var add/delete needed (the correctly-named secret is already present). No staged rollout required because there is no working live webhook path to break.
+
+**Not touching this in the current batch.**
+
+## What I am NOT changing in this batch
+
+- `webhook.ts` (rename deferred)
+- Connect onboarding code (works as-is once keys flip)
+- Production env, secrets, or Stripe dashboard
+- The lifecycle script
+
+&nbsp;
+
+Apply the `getStripeEnv()` change as written — truth table confirmed, live is the fail-safe default. Then, as a **separate immediate commit** (not deferred, not bundled): the `PAYMENTS_WEBHOOK_SECRET → PAYMENTS_LIVE_WEBHOOK_SECRET` one-line fix. Reason: your analysis shows the live webhook has never verified — that's a launch blocker hiding behind a "typo," and I want it fixed now while we understand it, not rediscovered on go-live.
+
+After both land: I'll confirm the preview build is actually hitting Stripe test mode (verify the env call uses the sandbox key) **before** running Connect onboarding — I don't want those test-identity values going to a live account if the flag didn't take. Then create the test Connect account per your steps and run the lifecycle script.
