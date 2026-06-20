@@ -67,9 +67,14 @@ export const getClientPortalData = createServerFn({ method: "POST" })
 
     const [{ data: profile }, { data: quotes }, { data: documents }, { data: messages }] =
       await Promise.all([
+        // Only fields needed for the public portal header / branding. The
+        // pro's phone and email are intentionally NOT exposed here — a leaked
+        // portal code shouldn't double as a directory lookup for the trader's
+        // personal contact details. Customers reach the pro via the in-portal
+        // messaging thread.
         supabaseAdmin
           .from("profiles")
-          .select("id, business_name, full_name, logo_url, phone, email")
+          .select("id, business_name, full_name, logo_url")
           .eq("id", client.user_id)
           .maybeSingle(),
         supabaseAdmin
@@ -95,7 +100,9 @@ export const getClientPortalData = createServerFn({ method: "POST" })
       client: {
         id: client.id,
         name: client.name,
-        address: client.address,
+        // address intentionally omitted — the portal greets the customer by
+        // name; their own address being mirrored back to anyone holding the
+        // code adds no UX value and is sensitive PII.
         service_due_date: client.service_due_date,
         service_type: client.service_type,
       },

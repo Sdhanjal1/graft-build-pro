@@ -44,6 +44,9 @@ Return ONLY valid JSON in this exact shape (no markdown, no commentary):
         ],
         response_format: { type: "json_object" },
       }),
+      // Match the other AI callers (e.g. ai-capture-quote). Without this, a
+      // stalled gateway connection can hang the voice → quote flow forever.
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!res.ok) {

@@ -386,10 +386,16 @@ function NewQuotePage() {
     setEditError(null);
     (async () => {
       try {
+        const userId = (await supabase.auth.getUser()).data.user?.id;
+        if (!userId) throw new Error("Not signed in");
         const { data, error } = await supabase
           .from("quotes")
           .select("*")
           .eq("id", editId)
+          // Defence in depth — RLS already scopes to the owner, but explicit
+          // user_id filter ensures we surface "not found" instead of relying
+          // entirely on the policy.
+          .eq("user_id", userId)
           .single();
         if (error) throw error;
         if (cancelled) return;
