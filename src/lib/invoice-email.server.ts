@@ -142,6 +142,28 @@ export async function sendAndRecordInvoiceEmail(opts: {
       year: "numeric",
     });
 
+    // For balance emails, deep-link the "Pay online" button to the portal
+    // so the customer can settle the outstanding balance in one tap.
+    // Falls back to bank-only copy when no live token exists or the trader
+    // hasn't enabled card payments.
+    let payNowUrl: string | undefined;
+    if (mode === "balance" && (profile as any)?.stripe_connect_charges_enabled) {
+      const { data: tokenRow } = await supabaseAdmin
+        .from("quote_portal_tokens")
+        .select("token, expires_at")
+        .eq("quote_id", opts.quoteId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (tokenRow?.token) {
+        const stillLive =
+          !tokenRow.expires_at || new Date(tokenRow.expires_at).getTime() > Date.now();
+        if (stillLive) {
+          payNowUrl = `https://quottr.co.uk/portal/${tokenRow.token}?pay=balance`;
+        }
+      }
+    }
+
     const result = await sendInvoiceEmail({
       to,
       businessName,
@@ -155,6 +177,7 @@ export async function sendAndRecordInvoiceEmail(opts: {
       depositPaidFormatted,
       totalFormatted,
       balanceDueFormatted,
+      payNowUrl,
     });
 
     if (result.ok) {
