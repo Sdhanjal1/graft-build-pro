@@ -155,7 +155,7 @@ function NotificationsPage() {
           <EmptyState
             icon={Inbox}
             title="No notifications yet"
-            description="When you get a new quote request, message, or payment, it'll show up here — even if you missed the push."
+            body="When you get a new quote request, message, or payment, it'll show up here — even if you missed the push."
           />
         )}
 
