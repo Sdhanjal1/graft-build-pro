@@ -1255,9 +1255,7 @@ export const updateGeneratedQuote = async (input: {
     });
     client_id = c.id;
   }
-  const subtotal = +input.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
-  const vat_amount = input.vatRegistered ? +(subtotal * VAT_RATE).toFixed(2) : 0;
-  const total = +(subtotal + vat_amount).toFixed(2);
+  const { subtotal, vat_amount, total } = computeQuoteTotals(input.line_items, input.vatRegistered);
   const timing: PaymentTiming = input.payment_timing ?? existing?.payment_timing ?? deriveTimingFromTotal(total);
   const depositPct = input.deposit_percent !== undefined
     ? input.deposit_percent
@@ -1604,8 +1602,6 @@ export const setQuoteStatus = async (quoteId: string, status: QuoteStatus): Prom
   return q;
 };
 
-const VAT_RATE_LOCAL = 0.2;
-
 /** Persist edited line items and recompute totals. */
 export const updateQuoteLineItems = async (
   quoteId: string,
@@ -1614,9 +1610,7 @@ export const updateQuoteLineItems = async (
 ): Promise<Quote | null> => {
   const q = getQuote(quoteId);
   if (!q) return null;
-  const subtotal = +line_items.reduce((s, li) => s + li.qty * li.unit_price, 0).toFixed(2);
-  const vat_amount = vatRegistered ? +(subtotal * VAT_RATE_LOCAL).toFixed(2) : 0;
-  const total = +(subtotal + vat_amount).toFixed(2);
+  const { subtotal, vat_amount, total } = computeQuoteTotals(line_items, vatRegistered);
   const { error } = await supabase
     .from("quotes")
     .update({
