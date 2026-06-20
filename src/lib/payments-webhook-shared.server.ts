@@ -37,13 +37,17 @@ async function sendBrandedInvoiceEmail(opts: {
   paymentIntent: string | null | undefined;
   paymentMethod: string;
   requestType: string;
+  depositPaidCents?: number;
 }) {
   try {
     const { sendAndRecordInvoiceEmail } = await import("@/lib/invoice-email.server");
     // Deposits get a dedicated "deposit-received" email so the customer sees
     // an orange "deposit received · balance £Y due" badge instead of a green
-    // PAID-IN-FULL receipt. Full payments stay on the receipt template.
+    // PAID-IN-FULL receipt. Balance payments use a receipt with the prior
+    // deposit credited so the body reads "balance £Y collected · deposit £X
+    // already credited · total £T" rather than re-claiming the full total.
     const isDeposit = opts.requestType === "deposit";
+    const isBalance = opts.requestType === "balance";
     await sendAndRecordInvoiceEmail({
       userId: opts.userId,
       quoteId: opts.quoteId,
@@ -53,7 +57,11 @@ async function sendBrandedInvoiceEmail(opts: {
       paymentIntent: opts.paymentIntent ?? null,
       paymentMethod: opts.paymentMethod,
       mode: isDeposit ? "deposit-received" : "receipt",
-      depositPaidCents: isDeposit ? opts.amountCents : undefined,
+      depositPaidCents: isDeposit
+        ? opts.amountCents
+        : isBalance
+        ? opts.depositPaidCents
+        : undefined,
     });
   } catch (e) {
     // NEVER let an email failure break the webhook.
