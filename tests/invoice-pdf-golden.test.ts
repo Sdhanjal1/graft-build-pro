@@ -19,7 +19,7 @@
 import { describe, expect, test, beforeAll } from "bun:test";
 import { generateInvoicePdfBytes } from "../src/lib/invoice-pdf.server";
 import { computeVatToPenny } from "../src/lib/invoice-amounts";
-import pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 
 const TOTAL_GBP = 1200; // £1,200.00 incl VAT
 const VAT_REG = true;
@@ -64,9 +64,8 @@ function baseQuote(extras: Record<string, unknown> = {}) {
 
 async function renderText(q: any): Promise<string> {
   const bytes = await generateInvoicePdfBytes(q, CLIENT, PROFILE);
-  // pdfParse accepts a Buffer
-  const buf = Buffer.from(bytes);
-  const out = await pdfParse(buf);
+  const parser = new PDFParse({ data: new Uint8Array(bytes) });
+  const out = await parser.getText();
   return out.text;
 }
 
