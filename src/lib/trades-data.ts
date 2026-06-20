@@ -77,7 +77,7 @@ export const trades: Trade[] = [
       { q: "Does Quottr know plumbing prices?", a: "Quottr learns your prices as you quote. Tell it your rate for a combi swap once, and next time it suggests the same line. You stay in control — every line is editable before the quote goes out." },
       { q: "Can I put my Gas Safe number on the quote?", a: "Yes. Add your Gas Safe registration, business name and logo to your profile once and they appear on every quote and invoice automatically." },
       { q: "Can I take a deposit before I order parts?", a: "Yes. The customer approves the quote on WhatsApp and pays a deposit by card or Apple Pay. You're funded before the merchants' van turns up." },
-      { q: "What if the customer doesn't pay the final invoice?", a: "Quottr chases unpaid invoices for you — automatic, polite reminders by email and SMS — so you don't have to send them yourself after a long day." },
+      { q: "What if the customer doesn't pay the final invoice?", a: "Quottr chases unpaid invoices for you — automatic, polite reminders by email and WhatsApp — so you don't have to send them yourself after a long day." },
     ],
   },
   {
@@ -231,7 +231,7 @@ export const trades: Trade[] = [
     headline: "Quoting app for builders.",
     intro: "Extensions, loft conversions and structural work, talk through the build and Quottr turns it into a clear, itemised quote your customer can actually follow.",
     seoTitle: "Quoting App for Builders | Extension & Loft Conversion Quotes — Quottr",
-    seoDescription: "Voice-quote extensions, loft conversions and knock-throughs. Big jobs broken into clear stages. Take stage payments. Free 14-day trial.",
+    seoDescription: "Voice-quote extensions, loft conversions and knock-throughs. Big jobs broken into clear stages on the quote. Deposit on approval. Free 14-day trial.",
     jobTypes: [
       "Single & double-storey extensions",
       "Loft conversions",
@@ -266,7 +266,7 @@ export const trades: Trade[] = [
       deposit: 4000,
     },
     faqs: [
-      { q: "Can I take stage payments on a big build?", a: "Yes. Break the build into stages on the quote (groundworks, walls, roof, second fix) and Quottr invoices each stage as you reach it — customer pays by card or bank transfer." },
+      { q: "Can I take stage payments on a big build?", a: "You can itemise the build by stage on the quote — groundworks, walls, roof, second fix — so the customer sees each phase's cost up front, and take a deposit on approval by card or Apple Pay. Quottr doesn't automatically invoice each stage as you reach it (yet); you'd send the final invoice for the balance at the end." },
       { q: "Won't a £40k quote scare the customer if they see one number?", a: "That's why Quottr itemises by stage. The customer sees what each phase costs and what they're getting — far easier to approve than a single lump sum." },
       { q: "How do I handle variations mid-build?", a: "Send a variation quote in seconds, customer approves on WhatsApp before the work starts. No more 'I never agreed to that' arguments at the end." },
       { q: "Does it handle subcontractor costs?", a: "Yes — quote your subbies (sparks, plumbers, plasterers) as separate lines or roll them into a stage. Either way the cost is on the quote, not coming out of your margin." },
