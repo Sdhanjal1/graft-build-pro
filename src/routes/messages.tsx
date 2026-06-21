@@ -1,25 +1,51 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { getInbox } from "@/lib/messages.functions";
+import { getInbox, markThreadRead } from "@/lib/messages.functions";
 import { getMyIncomingRequests, markRequestRead } from "@/lib/quote-requests.functions";
+import {
+  listMyNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  type NotificationRow,
+} from "@/lib/notifications.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/lib/auth";
 import type { Database } from "@/integrations/supabase/types";
-import { MessageSquare, Inbox, FileText, Sparkles } from "lucide-react";
+import {
+  MessageSquare,
+  Inbox,
+  FileText,
+  Sparkles,
+  Bell,
+  CreditCard,
+  CheckCircle2,
+  XCircle,
+  CalendarClock,
+} from "lucide-react";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { EmptyState } from "@/components/EmptyState";
 
 type QuoteMessage = Database["public"]["Tables"]["quote_messages"]["Row"];
 type QuoteRequest = Database["public"]["Tables"]["quote_requests"]["Row"];
 
+const FILTERS = ["all", "unread", "requests", "notifications", "messages"] as const;
+type Filter = (typeof FILTERS)[number];
+
+const searchSchema = z.object({
+  filter: fallback(z.enum(FILTERS), "all").default("all"),
+});
+
 export const Route = createFileRoute("/messages")({
+  validateSearch: zodValidator(searchSchema),
   component: MessagesInbox,
 });
 
-// Short relative timestamp: "2m", "3h", "yesterday", "Mon", "12 Mar"
 function formatRelativeShort(iso: string): string {
   const d = new Date(iso);
   const diff = Date.now() - d.getTime();
@@ -38,6 +64,17 @@ function refShort(quoteId: string): string {
   return `#${quoteId.slice(0, 4).toUpperCase()}`;
 }
 
+function iconForNotification(kind: string) {
+  const k = kind.toLowerCase();
+  if (k.includes("paid") || k.includes("payment")) return CreditCard;
+  if (k.includes("accepted")) return CheckCircle2;
+  if (k.includes("declined")) return XCircle;
+  if (k.includes("reminder") || k.startsWith("svc")) return CalendarClock;
+  if (k.includes("request")) return FileText;
+  if (k.includes("message")) return MessageSquare;
+  return Bell;
+}
+
 function SkeletonCard() {
   return (
     <div className="card-surface p-3 flex items-start gap-3 animate-pulse">
@@ -50,11 +87,53 @@ function SkeletonCard() {
   );
 }
 
+function FilterChip({
+  label,
+  active,
+  onClick,
+  count,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  count?: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "shrink-0 h-8 px-3 rounded-full text-[12px] font-bold uppercase tracking-tight inline-flex items-center gap-1.5 transition",
+        active ? "bg-ink text-paper" : "bg-secondary text-ink/70 hover:text-ink",
+      ].join(" ")}
+    >
+      <span>{label}</span>
+      {typeof count === "number" && count > 0 && (
+        <span
+          className={[
+            "min-w-[18px] h-[18px] px-1 rounded-full text-[10px] leading-[18px] text-center font-bold",
+            active ? "bg-lime text-ink" : "bg-lime text-ink",
+          ].join(" ")}
+        >
+          {count > 99 ? "99+" : count}
+        </span>
+      )}
+    </button>
+  );
+}
+
 function MessagesInbox() {
   const fetchInbox = useServerFn(getInbox);
   const fetchRequests = useServerFn(getMyIncomingRequests);
-  const markRead = useServerFn(markRequestRead);
+  const fetchNotifs = useServerFn(listMyNotifications);
+  const markReqRead = useServerFn(markRequestRead);
+  const markNotifRead = useServerFn(markNotificationRead);
+  const markAllNotifsRead = useServerFn(markAllNotificationsRead);
+  const markThread = useServerFn(markThreadRead);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { session } = useSession();
+  const { filter } = Route.useSearch();
 
   const [messages, setMessages] = useState<QuoteMessage[]>([]);
   const [requests, setRequests] = useState<QuoteRequest[]>([]);
@@ -62,6 +141,14 @@ function MessagesInbox() {
   const knownReqIds = useRef<Set<string>>(new Set());
   const initialized = useRef(false);
   const cancelledRef = useRef(false);
+
+  const notifsQuery = useQuery({
+    queryKey: ["notifications", "list"],
+    queryFn: () => fetchNotifs({ data: { limit: 100 } }),
+    enabled: !!session,
+    staleTime: 10_000,
+  });
+  const notifications: NotificationRow[] = notifsQuery.data?.items ?? [];
 
   const load = async () => {
     try {
@@ -97,6 +184,10 @@ function MessagesInbox() {
           void load();
           void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
         })
+        .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => {
+          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+          void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+        })
         .subscribe();
       cleanup = () => { void supabase.removeChannel(ch); };
     })();
@@ -106,7 +197,6 @@ function MessagesInbox() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
 
   const threads = useMemo(() => {
     const byQuote = new Map<string, { quote_id: string; last: QuoteMessage; unread: number }>();
@@ -128,21 +218,78 @@ function MessagesInbox() {
 
   const newRequests = requests.filter((r) => !r.read_at);
   const unreadThreadTotal = threads.reduce((n, t) => n + (t.unread || 0), 0);
+  const unreadNotifs = notifications.filter((n) => !n.read_at).length;
+  const totalUnread = newRequests.length + unreadThreadTotal + unreadNotifs;
   const hasRealThread = threads.some((t) => t.last.sender !== "system");
-  const showEmpty = !loading && !hasRealThread && requests.length === 0;
+  const isEmpty = !hasRealThread && requests.length === 0 && notifications.length === 0;
+
+  const showRequests = filter === "all" || filter === "requests" || filter === "unread";
+  const showThreads = filter === "all" || filter === "messages" || filter === "unread";
+  const showNotifs = filter === "all" || filter === "notifications" || filter === "unread";
+
+  const filteredRequests = showRequests
+    ? filter === "unread"
+      ? requests.filter((r) => !r.read_at)
+      : requests
+    : [];
+  const filteredThreads = showThreads
+    ? filter === "unread"
+      ? threads.filter((t) => t.unread > 0)
+      : threads
+    : [];
+  const filteredNotifs = showNotifs
+    ? filter === "unread"
+      ? notifications.filter((n) => !n.read_at)
+      : notifications
+    : [];
+
+  const showEmpty =
+    !loading &&
+    filteredRequests.length === 0 &&
+    filteredThreads.length === 0 &&
+    filteredNotifs.length === 0;
 
   const subtitle = useMemo(() => {
     if (loading) return "Loading…";
-    if (showEmpty) return "All caught up";
-    const parts: string[] = [];
-    if (requests.length) parts.push(`${requests.length} request${requests.length === 1 ? "" : "s"}`);
-    if (newRequests.length) parts.push(`${newRequests.length} new`);
-    if (threads.length) parts.push(`${threads.length} chat${threads.length === 1 ? "" : "s"}`);
-    return parts.length ? parts.join(" · ") : "All caught up";
-  }, [loading, showEmpty, requests.length, newRequests.length, threads.length]);
+    if (isEmpty) return "All caught up";
+    return totalUnread > 0 ? `${totalUnread} unread` : "All caught up";
+  }, [loading, isEmpty, totalUnread]);
 
-  const handleMarkRead = async (id: string) => {
-    await markRead({ data: { id } }).catch(() => {});
+  const setFilter = (next: Filter) =>
+    navigate({ from: "/messages", search: () => ({ filter: next }) });
+
+  const handleRequestRead = async (id: string) => {
+    await markReqRead({ data: { id } }).catch(() => {});
+    void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+    void load();
+  };
+
+  const handleOpenThread = async (quoteId: string, unread: number) => {
+    if (unread > 0) {
+      await markThread({ data: { quoteId } }).catch(() => {});
+      void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+      void load();
+    }
+    navigate({ to: "/quotes/$quoteId", params: { quoteId }, search: { tab: "messages" } });
+  };
+
+  const handleOpenNotification = async (n: NotificationRow) => {
+    if (!n.read_at) {
+      await markNotifRead({ data: { id: n.id } }).catch(() => {});
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+    }
+    if (n.url) navigate({ to: n.url as never });
+  };
+
+  const handleMarkAllRead = async () => {
+    const ops: Promise<unknown>[] = [];
+    if (unreadNotifs > 0) ops.push(markAllNotifsRead().catch(() => {}));
+    for (const r of requests) if (!r.read_at) ops.push(markReqRead({ data: { id: r.id } }).catch(() => {}));
+    for (const t of threads) if (t.unread > 0) ops.push(markThread({ data: { quoteId: t.quote_id } }).catch(() => {}));
+    await Promise.all(ops);
+    void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
     void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
     void load();
   };
@@ -152,30 +299,42 @@ function MessagesInbox() {
       <PageHeader
         title="Inbox"
         subtitle={subtitle}
-        action={{
-          label: "Filter",
-          onClick: () => toast.info("Filters coming soon"),
-        }}
+        action={
+          totalUnread > 0
+            ? { label: "Mark all read", onClick: handleMarkAllRead }
+            : { label: "Filter", onClick: () => toast.info("Use the chips below to filter") }
+        }
       />
 
+      {/* Filters */}
+      <div className="px-5 pt-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto -mx-1 px-1 no-scrollbar">
+          <FilterChip label="All" active={filter === "all"} onClick={() => setFilter("all")} />
+          <FilterChip label="Unread" active={filter === "unread"} onClick={() => setFilter("unread")} count={totalUnread} />
+          <FilterChip label="Requests" active={filter === "requests"} onClick={() => setFilter("requests")} count={newRequests.length} />
+          <FilterChip label="Notifications" active={filter === "notifications"} onClick={() => setFilter("notifications")} count={unreadNotifs} />
+          <FilterChip label="Messages" active={filter === "messages"} onClick={() => setFilter("messages")} count={unreadThreadTotal} />
+        </div>
+      </div>
+
       {loading && (
-        <div className="px-5 mt-2 space-y-2">
+        <div className="px-5 mt-3 space-y-2">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
         </div>
       )}
 
-      {!loading && requests.length > 0 && (
-        <section className="px-5 mt-2">
+      {!loading && filteredRequests.length > 0 && (
+        <section className="px-5 mt-3">
           <div className="flex items-baseline justify-between mb-2.5">
             <h2 className="text-xl">
               Quote requests
-              <span className="ml-1.5 text-sm font-normal text-muted-foreground">({requests.length})</span>
+              <span className="ml-1.5 text-sm font-normal text-muted-foreground">({filteredRequests.length})</span>
             </h2>
           </div>
           <ul className="space-y-2">
-            {requests.map((r) => {
+            {filteredRequests.map((r) => {
               const unread = !r.read_at;
               return (
                 <li key={r.id}>
@@ -206,7 +365,7 @@ function MessagesInbox() {
                         <Link
                           to="/quotes/new"
                           search={{ prefill: r.body }}
-                          onClick={() => { if (unread) void handleMarkRead(r.id); }}
+                          onClick={() => { if (unread) void handleRequestRead(r.id); }}
                           className="inline-flex items-center gap-1 text-[11px] font-semibold bg-lime text-ink rounded-full px-3 py-1.5"
                         >
                           <Sparkles className="h-3 w-3" />
@@ -215,7 +374,7 @@ function MessagesInbox() {
                         {unread && (
                           <button
                             type="button"
-                            onClick={() => void handleMarkRead(r.id)}
+                            onClick={() => void handleRequestRead(r.id)}
                             className="inline-flex items-center text-[11px] font-semibold text-muted-foreground rounded-full px-3 py-1.5 hover:bg-secondary"
                           >
                             Mark read
@@ -231,17 +390,53 @@ function MessagesInbox() {
         </section>
       )}
 
-      {showEmpty && (
+      {!loading && filteredNotifs.length > 0 && (
         <section className="px-5 mt-4">
-          <EmptyState
-            icon={Inbox}
-            title="All quiet."
-            body="Replies and accepts show up here."
-          />
+          <div className="flex items-baseline justify-between mb-2.5">
+            <h2 className="text-xl">
+              Notifications
+              {unreadNotifs > 0 && (
+                <span className="ml-1.5 text-sm font-normal text-muted-foreground">({unreadNotifs} unread)</span>
+              )}
+            </h2>
+          </div>
+          <ul className="space-y-2">
+            {filteredNotifs.map((n) => {
+              const Icon = iconForNotification(n.kind);
+              const unread = !n.read_at;
+              return (
+                <li key={n.id}>
+                  <button
+                    type="button"
+                    onClick={() => void handleOpenNotification(n)}
+                    className={`w-full text-left relative card-surface p-3 flex items-start gap-3 active:scale-[0.99] transition ${unread ? "before:absolute before:left-0 before:top-3 before:bottom-3 before:w-0.5 before:bg-lime before:rounded-full" : ""}`}
+                  >
+                    <div className={`h-10 w-10 rounded-full shrink-0 grid place-items-center ${unread ? "bg-lime/30 text-ink" : "bg-secondary text-ink/70"}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-ink truncate inline-flex items-center gap-1.5">
+                          {unread && <span className="h-1.5 w-1.5 rounded-full bg-lime shrink-0" />}
+                          {n.title}
+                        </p>
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {formatRelativeShort(n.created_at)}
+                        </span>
+                      </div>
+                      {n.body && (
+                        <p className="text-[13px] text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
+                      )}
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       )}
 
-      {!loading && !showEmpty && threads.length > 0 && (
+      {!loading && filteredThreads.length > 0 && (
         <section className="px-5 mt-4">
           <div className="flex items-baseline justify-between mb-2.5">
             <h2 className="text-xl">Messages</h2>
@@ -251,16 +446,15 @@ function MessagesInbox() {
           </div>
 
           <ul className="space-y-2 pb-2">
-            {threads.map((t) => {
+            {filteredThreads.map((t) => {
               const unread = t.unread > 0;
               const isSystem = t.last.sender === "system";
               return (
                 <li key={t.quote_id}>
-                  <Link
-                    to="/quotes/$quoteId"
-                    params={{ quoteId: t.quote_id }}
-                    search={{ tab: "messages" }}
-                    className={`relative card-surface p-3 flex items-start gap-3 ${unread ? "before:absolute before:left-0 before:top-3 before:bottom-3 before:w-0.5 before:bg-lime before:rounded-full" : ""}`}
+                  <button
+                    type="button"
+                    onClick={() => void handleOpenThread(t.quote_id, t.unread)}
+                    className={`w-full text-left relative card-surface p-3 flex items-start gap-3 active:scale-[0.99] transition ${unread ? "before:absolute before:left-0 before:top-3 before:bottom-3 before:w-0.5 before:bg-lime before:rounded-full" : ""}`}
                   >
                     <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
                       <MessageSquare className="h-4 w-4 text-ink" />
@@ -289,11 +483,21 @@ function MessagesInbox() {
                         {t.last.body}
                       </p>
                     </div>
-                  </Link>
+                  </button>
                 </li>
               );
             })}
           </ul>
+        </section>
+      )}
+
+      {showEmpty && (
+        <section className="px-5 mt-4">
+          <EmptyState
+            icon={Inbox}
+            title={filter === "unread" ? "Nothing unread." : "All quiet."}
+            body={filter === "unread" ? "You're all caught up." : "Replies, requests and updates show up here."}
+          />
         </section>
       )}
     </AppShell>
