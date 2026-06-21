@@ -149,7 +149,7 @@
 @layer utilities {
   /* ---------- Layout primitives ----------
      Consistent gutters and vertical rhythm across every route. Additive —
-     existing px-*/space-y-* classes keep working; new code should prefer
+     existing px-N and space-y-N classes keep working; new code should prefer
      these tokens so spacing stays in lockstep across breakpoints. */
   :root {
     --gutter-x: 1rem;          /* 16px — mobile default */
