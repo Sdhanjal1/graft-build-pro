@@ -894,7 +894,7 @@ function QuoteDetail() {
             <button
               type="button"
               onClick={sharePdf}
-              className="shrink-0 inline-flex items-center gap-1 rounded-full bg-ink text-bg px-3 py-1.5 text-[11px] font-bold active:scale-95 transition"
+              className="shrink-0 inline-flex items-center gap-1 rounded-full bg-ink text-paper px-3 py-1.5 text-[11px] font-bold active:scale-95 transition"
             >
               <FileText className="h-3.5 w-3.5" />
               View
