@@ -243,21 +243,21 @@ function FeedRow({
           <Check className="h-5 w-5" strokeWidth={3} />
         </div>
       ) : (
-        <div className={`h-11 w-11 rounded-full shrink-0 grid place-items-center ${item.unread ? "bg-lime/30 text-ink" : "bg-secondary text-ink/70"}`}>
+        <div className={`h-11 w-11 rounded-full shrink-0 grid place-items-center ${item.unread ? "bg-lime/30 text-ink" : "bg-secondary text-ink/85"}`}>
           <Icon className="h-5 w-5" />
         </div>
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <p className={`truncate ${item.unread ? "text-[15px] font-bold text-ink" : "text-sm font-medium text-ink/75"}`}>
+          <p className={`truncate ${item.unread ? "text-[15px] font-bold text-ink" : "text-sm font-semibold text-ink"}`}>
             {item.title}
           </p>
-          <span className={`text-[11px] shrink-0 ${item.unread ? "text-ink font-semibold" : "text-muted-foreground"}`}>
+          <span className={`text-[11px] shrink-0 font-medium ${item.unread ? "text-ink font-semibold" : "text-muted-foreground"}`}>
             {formatRelativeShort(item.ts)}
           </span>
         </div>
         {item.body && (
-          <p className={`text-[13px] mt-1 line-clamp-2 ${item.unread ? "text-ink/75" : "text-muted-foreground"}`}>
+          <p className={`text-[13px] mt-1 line-clamp-2 ${item.unread ? "text-ink/85" : "text-muted-foreground"}`}>
             {item.body}
           </p>
         )}
