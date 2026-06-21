@@ -386,7 +386,7 @@ function MessagesInbox() {
                 disabled={visibleUnreadCount === 0}
               >
                 <CheckCheck className="h-4 w-4 mr-2" />
-                <span className="flex-1">Mark {filterLabel[filter]} as read</span>
+                <span className="flex-1">Mark {filterLabel[filter as Filter]} as read</span>
                 {visibleUnreadCount > 0 && (
                   <span className="ml-2 text-[10px] font-bold text-muted-foreground">{visibleUnreadCount}</span>
                 )}
@@ -398,7 +398,7 @@ function MessagesInbox() {
                 className="text-destructive focus:text-destructive"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                <span className="flex-1">Delete {filterLabel[filter]}</span>
+                <span className="flex-1">Delete {filterLabel[filter as Filter]}</span>
                 {visibleDeletableCount > 0 && (
                   <span className="ml-2 text-[10px] font-bold text-muted-foreground">{visibleDeletableCount}</span>
                 )}
