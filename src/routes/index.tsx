@@ -49,9 +49,9 @@ function HomePage() {
 
     <MarketingShell>
       {/* HERO */}
-      <section className="bg-ink text-paper relative overflow-hidden">
+      <section className="bg-paper text-ink relative overflow-hidden">
         {/* off-centre glow, not the templated centred radial */}
-        <div className="absolute -top-40 -left-40 h-[30rem] w-[30rem] rounded-full bg-lime/15 blur-[130px] pointer-events-none" />
+        <div className="absolute -top-40 -left-40 h-[30rem] w-[30rem] rounded-full bg-lime/25 blur-[130px] pointer-events-none" />
 
         <div className="mx-auto max-w-7xl px-5 md:px-8 pt-14 md:pt-24 pb-14 md:pb-20 relative">
           <div className="grid md:grid-cols-[1.05fr_0.95fr] gap-10 md:gap-14 items-center">
@@ -59,33 +59,33 @@ function HomePage() {
             {/* LEFT — thesis, left-aligned, no eyebrow pill */}
             <div className="max-w-xl">
               <h1
-                className="text-paper leading-[0.82]"
+                className="text-ink leading-[0.82]"
                 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.25rem, 8.5vw, 7rem)", letterSpacing: "0.005em" }}
               >
-                <span className="text-lime">Speak it.</span><br />
+                <span className="text-ink bg-lime px-2 box-decoration-clone">Speak it.</span><br />
                 Send it.<br />
-                <span className="text-lime">Get paid.</span>
+                <span className="text-ink bg-lime px-2 box-decoration-clone">Get paid.</span>
               </h1>
 
-              <p className="mt-5 text-lg md:text-xl text-paper/75 leading-snug max-w-md">
+              <p className="mt-5 text-lg md:text-xl text-ink/75 leading-snug max-w-md">
                 Talk through the job on site. Quottr writes the quote, sends it on WhatsApp, and takes the payment — so you win it before the other guy's even quoted.
               </p>
 
               <div className="mt-8 flex items-center gap-4 flex-wrap">
                 <Link
                   to="/auth"
-                  className="inline-flex items-center justify-center gap-2 bg-lime text-ink font-bold px-7 py-4 rounded-full hover:brightness-95 transition text-base"
+                  className="inline-flex items-center justify-center gap-2 bg-ink text-paper font-bold px-7 py-4 rounded-full hover:bg-ink/90 transition text-base"
                 >
                   Start quoting free <ArrowRight className="h-4 w-4" />
                 </Link>
-                <span className="text-sm text-paper/80">14-day trial · no card</span>
+                <span className="text-sm text-ink/70">14-day trial · no card</span>
               </div>
             </div>
 
             {/* RIGHT — the real product moment, promoted to co-hero */}
             <div className="relative">
               <div
-                className="relative mx-auto max-w-sm md:max-w-none rounded-[2rem] overflow-hidden border border-paper/10 bg-ink shadow-2xl ring-1 ring-lime/25"
+                className="relative mx-auto max-w-sm md:max-w-none rounded-[2rem] overflow-hidden border border-ink/10 bg-ink shadow-2xl ring-1 ring-ink/10"
                 style={{ aspectRatio: "16 / 9" }}
               >
                 <button
@@ -111,7 +111,7 @@ function HomePage() {
                 />
               </div>
 
-              <p className="mt-3 text-center md:text-left text-[11px] text-paper/80 uppercase tracking-widest font-semibold">
+              <p className="mt-3 text-center md:text-left text-[11px] text-ink/70 uppercase tracking-widest font-semibold">
                 From voice to paid, in seconds
               </p>
             </div>
