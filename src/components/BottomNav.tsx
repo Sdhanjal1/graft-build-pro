@@ -85,20 +85,19 @@ export function BottomNav() {
   const isActive = (to: string) => (to === "/app" ? pathname === "/app" : pathname.startsWith(to));
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 safe-bottom">
+    <nav className="fixed bottom-0 inset-x-0 z-40 safe-bottom" aria-label="Primary">
       <div className="mx-auto max-w-md px-3 pb-3 pt-2 relative">
         <div
-          className="relative rounded-full flex items-center justify-around gap-0.5 h-16 px-1.5 overflow-hidden ring-1 ring-white/15 shadow-[0_6px_18px_-10px_rgba(0,0,0,0.5)] backdrop-blur-2xl backdrop-saturate-150 [-webkit-backdrop-filter:blur(24px)_saturate(1.5)]"
+          className="relative rounded-full flex items-stretch justify-around gap-0.5 h-[68px] px-1.5 overflow-hidden ring-1 ring-white/15 shadow-[0_10px_28px_-12px_rgba(0,0,0,0.6)] backdrop-blur-2xl backdrop-saturate-150 [-webkit-backdrop-filter:blur(24px)_saturate(1.5)]"
           style={{
-            background: "linear-gradient(180deg, rgba(30,31,25,0.72) 0%, rgba(22,23,15,0.82) 100%)",
+            background: "linear-gradient(180deg, rgba(30,31,25,0.78) 0%, rgba(22,23,15,0.88) 100%)",
           }}
         >
           {/* top edge highlight — sells the glass */}
-          <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+          <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
           {items.map((it) => (
             <NavItem
               key={it.to}
-
               {...it}
               active={isActive(it.to)}
               unreadCount={it.to === "/messages" ? totalUnread : 0}
@@ -132,20 +131,22 @@ function NavItem({
         if (!active) playSample("tick");
       }}
       aria-current={active ? "page" : undefined}
-      className="h-full min-w-0 shrink-0 flex items-center justify-center relative group active:scale-95 transition-transform duration-150"
+      // Each item takes an equal slice of the bar (flex-1) so the entire
+      // 60px-tall pill is tappable — comfortably above Apple's 44pt target.
+      className="flex-1 min-w-0 h-full flex items-center justify-center relative group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-0 active:scale-[0.97] transition-transform duration-150"
     >
       <span
         className={[
-          "relative flex items-center gap-1.5 rounded-full transition-colors duration-200 ease-out min-w-0",
+          "relative flex flex-col items-center justify-center gap-0.5 rounded-full transition-colors duration-200 ease-out min-w-0 w-full h-[52px]",
           active
-            ? "bg-lime text-ink px-3 py-2 ring-1 ring-ink/10"
-            : "text-paper/80 px-2.5 py-2 group-hover:text-paper/85",
+            ? "bg-lime text-ink px-3 ring-1 ring-ink/15 shadow-[0_4px_12px_-4px_color-mix(in_oklab,var(--lime)_55%,transparent)]"
+            : "text-paper px-2 group-hover:bg-paper/10 group-hover:text-paper",
         ].join(" ")}
       >
         <span className="relative inline-flex">
           <Icon
-            className={active ? "h-[18px] w-[18px]" : "h-5 w-5"}
-            strokeWidth={active ? 2.75 : 2}
+            className="h-[22px] w-[22px]"
+            strokeWidth={active ? 2.75 : 2.25}
           />
           {hasUnread && !active && (
             <span
@@ -156,11 +157,14 @@ function NavItem({
             </span>
           )}
         </span>
-        {active && (
-          <span className="text-[12px] font-bold tracking-tight leading-none whitespace-nowrap truncate min-w-0">
-            {label}
-          </span>
-        )}
+        <span
+          className={[
+            "text-[10px] font-bold tracking-tight leading-none whitespace-nowrap truncate max-w-full",
+            active ? "" : "text-paper/90",
+          ].join(" ")}
+        >
+          {label}
+        </span>
       </span>
       <span className="sr-only">
         {hasUnread ? `${label}, ${unreadCount} unread` : label}
