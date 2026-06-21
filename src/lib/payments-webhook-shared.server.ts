@@ -297,7 +297,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
 
 
   // Best-effort branded invoice email (never throws)
-  await sendBrandedInvoiceEmail({
+  const emailOutcome = await sendBrandedInvoiceEmail({
     userId,
     quoteId,
     customerEmail,
@@ -309,9 +309,28 @@ export async function handlePaidEvent(evt: any): Promise<void> {
     depositPaidCents: depositPaidCentsForEmail,
   });
 
+  // Stamp the audit row with the receipt outcome so the trader UI can show
+  // "Receipt sent · 14 Jun 16:02 · alex@example.com".
+  if (auditRowId) {
+    try {
+      await supabaseAdmin
+        .from("payment_webhook_audit")
+        .update({
+          receipt_status: emailOutcome.status,
+          receipt_sent_at: emailOutcome.status === "sent" ? new Date().toISOString() : null,
+          receipt_to: emailOutcome.to ?? null,
+          receipt_error: emailOutcome.error ?? null,
+        })
+        .eq("id", auditRowId);
+    } catch (e) {
+      console.error("[payments/webhook] failed to stamp audit row", e);
+    }
+  }
+
   // Best-effort push to the trader (never throws)
   await notifyTraderOfPayment({ userId, quoteId, amountCents, currency });
 }
+
 
 /**
  * Process a failed/expired Stripe event
