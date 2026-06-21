@@ -44,34 +44,130 @@
   --color-status-paid: var(--status-paid);
   --color-status-overdue: var(--status-overdue);
 
-  --font-display: "Bebas Neue", "Impact", sans-serif;
-  --font-sans: "DM Sans", system-ui, sans-serif;
+  /* Brand scales */
+  --color-lime-50:  var(--lime-50);
+  --color-lime-100: var(--lime-100);
+  --color-lime-200: var(--lime-200);
+  --color-lime-400: var(--lime-400);
+  --color-lime-600: var(--lime-600);
+  --color-lime-800: var(--lime-800);
+  --color-lime-900: var(--lime-900);
+  --color-ink-50:  var(--ink-50);
+  --color-ink-100: var(--ink-100);
+  --color-ink-200: var(--ink-200);
+  --color-ink-300: var(--ink-300);
+  --color-ink-400: var(--ink-400);
+  --color-ink-600: var(--ink-600);
+  --color-ink-800: var(--ink-800);
+  --color-ink-900: var(--ink-900);
+
+  /* Surfaces */
+  --color-surface-canvas: var(--surface-canvas);
+  --color-surface-card:   var(--surface-card);
+  --color-surface-sunken: var(--surface-sunken);
+
+  /* Status pairs (badge token system) */
+  --color-paid:        var(--paid);
+  --color-paid-bg:     var(--paid-bg);
+  --color-paid-text:   var(--paid-text);
+  --color-due:         var(--due);
+  --color-due-bg:      var(--due-bg);
+  --color-due-text:    var(--due-text);
+  --color-failed:      var(--failed);
+  --color-failed-bg:   var(--failed-bg);
+  --color-failed-text: var(--failed-text);
+  --color-sent:        var(--sent);
+  --color-sent-bg:     var(--sent-bg);
+  --color-sent-text:   var(--sent-text);
+
+  /* Borders */
+  --color-border-hover: var(--border-hover);
+  --color-border-lime:  var(--border-lime);
+
+  --font-display: var(--font-display);
+  --font-sans:    var(--font-body);
+  --font-body:    var(--font-body);
+
+  --radius-pill: var(--r-pill);
 }
 
 :root {
   /* Tighter base radius — rounded-lg=8, rounded-xl=12, rounded-2xl=16 — more intentional, less template-y */
   --radius: 0.5rem;
 
+  /* Brand — hex source of truth */
+  --lime:  #c4f432;
+  --ink:   #16170f;
+  --paper: #f5f2ec;
+  --surface: #2b2c22;   /* dark panel surface lifted from ink */
 
-  /* Brand */
-  --ink: oklch(0.18 0.005 80);          /* #1a1a18 */
-  --surface: oklch(0.24 0.006 80);       /* softer dark for panels/cards — lifted from ink */
-  --lime: oklch(0.88 0.18 118);          /* #c8e04a */
-  --paper: oklch(0.945 0.014 85);        /* warm cream, deepened so white cards visibly lift off the page */
+  /* Lime scale */
+  --lime-50:  #f2f9d9;
+  --lime-100: #e9f5d3;
+  --lime-200: #d4f46a;
+  --lime-400: #c4f432;
+  --lime-600: #a3cf1f;
+  --lime-800: #7a9c13;
+  --lime-900: #4f6608;
 
-  --status-pending: oklch(0.50 0.13 70);    /* darker amber — WCAG AA on cream */
-  --status-amber: oklch(0.72 0.16 70);       /* friendlier amber for status dots */
-  --status-accepted: oklch(0.68 0.16 145);  /* green */
-  --status-green: oklch(0.60 0.16 150);      /* deeper paid-green for dots */
-  --status-booked: oklch(0.62 0.17 55);     /* amber/orange — action needed by you */
-  --status-completed: oklch(0.55 0.14 245); /* blue — waiting on customer */
-  --status-paid: var(--lime);
-  --status-overdue: oklch(0.62 0.22 25);    /* red */
+  /* Ink scale */
+  --ink-900: #16170f;
+  --ink-800: #2b2c22;
+  --ink-600: #4a4b40;
+  --ink-400: #6f7064;
+  --ink-300: #9a9b8f;
+  --ink-200: #c7c8bd;
+  --ink-100: #d6d4ca;
+  --ink-50:  #e4e2d9;
+
+  /* Surfaces */
+  --surface-canvas: #f5f2ec;
+  --surface-card:   #ffffff;
+  --surface-sunken: #e4e2d9;
+
+  /* Status pairs */
+  --paid:        #1f9d57;
+  --paid-bg:     #e9f5d3;
+  --paid-text:   #1a5c34;
+  --due:         #e0992a;
+  --due-bg:      #fbeed4;
+  --due-text:    #8a5a10;
+  --failed:      #cf3b3b;
+  --failed-bg:   #fbeaea;
+  --failed-text: #8a2020;
+  --sent:        #2f7dd1;
+  --sent-bg:     #e6f0fb;
+  --sent-text:   #16447c;
+
+  /* Borders */
+  --border-hover: #c7c8bd;
+  --border-lime:  #c4f432;
+
+  /* Fonts */
+  --font-display: "Bebas Neue", "Impact", sans-serif;
+  --font-body:    "DM Sans", system-ui, sans-serif;
+
+  /* Radii */
+  --r-md:   12px;
+  --r-lg:   14px;
+  --r-pill: 26px;
+
+  /* Legacy status tokens — re-mapped onto the new badge palette so
+     existing utilities (bg-status-paid, text-status-amber, …) keep
+     rendering, now using the unified hex system. */
+  --status-pending:   var(--ink-400);          /* draft / pending = neutral */
+  --status-amber:     var(--due);              /* awaiting / sent */
+  --status-accepted:  var(--paid);             /* money-confirmed = green */
+  --status-green:     var(--paid);             /* paid dot */
+  --status-booked:    var(--due);              /* awaiting action */
+  --status-completed: var(--sent);             /* waiting on customer */
+  --status-paid:      var(--paid);             /* never lime — green */
+  --status-overdue:   var(--failed);
 
 
   --background: var(--paper);
   --foreground: var(--ink);
-  --card: oklch(0.995 0.003 85);            /* near-pure white — clear contrast against warm paper */
+  --card: var(--surface-card);              /* pure white card lifts off warm paper */
   --card-foreground: var(--ink);
   --popover: oklch(1 0 0);
   --popover-foreground: var(--ink);
