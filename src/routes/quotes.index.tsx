@@ -254,50 +254,56 @@ function QuotesPage() {
         )}
       </div>
 
-      {/* Quick section chips — jump straight to a standardized status group. */}
+      {/* Status legend + filters. The chips double as the legend: each colour
+          corresponds 1:1 with the section headers below, so the workflow
+          becomes self-explanatory. */}
       {(() => {
         const nonEmptySections = SECTIONS.filter((s) => mockQuotes.some(s.match));
         if (nonEmptySections.length < 2) return null;
         return (
-      <div className="px-5 mt-3 -mx-1 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-1.5 px-1 pb-0.5">
-          {SECTIONS.map((s) => {
-            const count = mockQuotes.filter(s.match).length;
-            if (count === 0) return null;
-            const active = sectionFilter === s.key;
-            const dot = s.key === "paid" ? "bg-lime" : TILE_DOT[s.key];
-            return (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => { setSectionFilter(active ? null : s.key); feedback("tap"); }}
-                aria-pressed={active}
-                className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide border transition active:scale-95 ${
-                  active
-                    ? "bg-ink text-paper border-ink"
-                    : "bg-card text-ink border-border hover:border-ink/30"
-                }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-                {s.label}
-                <span className={`tabular-nums text-[10px] ${active ? "text-paper/70" : "text-muted-foreground"}`}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-          {sectionFilter && (
-            <button
-              type="button"
-              onClick={() => setSectionFilter(null)}
-              className="shrink-0 inline-flex items-center rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground hover:bg-secondary"
-              aria-label="Clear section filter"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      </div>
+          <div className="px-5 mt-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="t-eyebrow">Status</p>
+              {sectionFilter && (
+                <button
+                  type="button"
+                  onClick={() => setSectionFilter(null)}
+                  className="text-[11px] font-semibold text-muted-foreground hover:text-ink underline-offset-2 hover:underline"
+                >
+                  Clear filter
+                </button>
+              )}
+            </div>
+            <div className="-mx-1 overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-1.5 px-1 pb-0.5">
+                {SECTIONS.map((s) => {
+                  const count = mockQuotes.filter(s.match).length;
+                  if (count === 0) return null;
+                  const active = sectionFilter === s.key;
+                  const theme = SECTION_THEME[s.key];
+                  return (
+                    <button
+                      key={s.key}
+                      type="button"
+                      onClick={() => { setSectionFilter(active ? null : s.key); feedback("tap"); }}
+                      aria-pressed={active}
+                      className={`shrink-0 inline-flex items-center gap-2 rounded-full px-3 py-2 text-[11px] font-bold uppercase tracking-wide border transition active:scale-95 ${
+                        active
+                          ? `${theme.activeBg} ${theme.activeBorder} text-ink shadow-[0_2px_0_0_color-mix(in_oklab,var(--ink)_8%,transparent)]`
+                          : `${theme.tintBg} ${theme.tintBorder} text-ink hover:border-ink/40`
+                      }`}
+                    >
+                      <span className={`h-2 w-2 rounded-full ${theme.dot} shrink-0`} aria-hidden />
+                      <span>{s.label}</span>
+                      <span className={`tabular-nums text-[10px] font-bold ${active ? theme.text : "text-muted-foreground"}`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         );
       })()}
 
