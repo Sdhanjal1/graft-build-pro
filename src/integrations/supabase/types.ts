@@ -275,6 +275,63 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_webhook_audit: {
+        Row: {
+          amount_cents: number | null
+          created_at: string
+          currency: string | null
+          event_type: string
+          id: string
+          quote_id: string | null
+          receipt_error: string | null
+          receipt_sent_at: string | null
+          receipt_status: string | null
+          receipt_to: string | null
+          received_at: string
+          request_type: string | null
+          stripe_event_id: string
+          stripe_payment_intent: string | null
+          stripe_session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string
+          currency?: string | null
+          event_type: string
+          id?: string
+          quote_id?: string | null
+          receipt_error?: string | null
+          receipt_sent_at?: string | null
+          receipt_status?: string | null
+          receipt_to?: string | null
+          received_at?: string
+          request_type?: string | null
+          stripe_event_id: string
+          stripe_payment_intent?: string | null
+          stripe_session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string
+          currency?: string | null
+          event_type?: string
+          id?: string
+          quote_id?: string | null
+          receipt_error?: string | null
+          receipt_sent_at?: string | null
+          receipt_status?: string | null
+          receipt_to?: string | null
+          received_at?: string
+          request_type?: string | null
+          stripe_event_id?: string
+          stripe_payment_intent?: string | null
+          stripe_session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           account_number: string | null

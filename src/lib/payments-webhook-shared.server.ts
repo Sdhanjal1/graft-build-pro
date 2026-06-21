@@ -38,17 +38,12 @@ async function sendBrandedInvoiceEmail(opts: {
   paymentMethod: string;
   requestType: string;
   depositPaidCents?: number;
-}) {
+}): Promise<{ status: "sent" | "skipped" | "failed"; to?: string; error?: string }> {
   try {
     const { sendAndRecordInvoiceEmail } = await import("@/lib/invoice-email.server");
-    // Deposits get a dedicated "deposit-received" email so the customer sees
-    // an orange "deposit received · balance £Y due" badge instead of a green
-    // PAID-IN-FULL receipt. Balance payments use a receipt with the prior
-    // deposit credited so the body reads "balance £Y collected · deposit £X
-    // already credited · total £T" rather than re-claiming the full total.
     const isDeposit = opts.requestType === "deposit";
     const isBalance = opts.requestType === "balance";
-    await sendAndRecordInvoiceEmail({
+    const outcome = await sendAndRecordInvoiceEmail({
       userId: opts.userId,
       quoteId: opts.quoteId,
       customerEmailOverride: opts.customerEmail ?? null,
@@ -63,11 +58,16 @@ async function sendBrandedInvoiceEmail(opts: {
         ? opts.depositPaidCents
         : undefined,
     });
+    if (outcome.status === "sent") return { status: "sent", to: outcome.to };
+    if (outcome.status === "skipped") return { status: "skipped", error: outcome.reason };
+    return { status: "failed", error: outcome.error, to: outcome.to };
   } catch (e) {
     // NEVER let an email failure break the webhook.
     console.error("[payments/webhook] sendBrandedInvoiceEmail failed", e);
+    return { status: "failed", error: e instanceof Error ? e.message : "Unknown error" };
   }
 }
+
 
 /**
  * Process a paid Stripe event (checkout.session.completed,
@@ -78,6 +78,8 @@ async function sendBrandedInvoiceEmail(opts: {
 export async function handlePaidEvent(evt: any): Promise<void> {
   // Try to extract identifiers from whichever shape the gateway sends.
   const obj = evt.data?.object ?? evt.data ?? evt.object ?? evt;
+  const stripeEventId: string | undefined = evt.id;
+  const eventType: string = evt.type ?? evt.event_type ?? "unknown";
   const sessionId: string | undefined =
     obj.id?.startsWith?.("cs_") ? obj.id : obj.checkout_session_id ?? obj.session_id;
   const paymentIntent: string | undefined =
@@ -104,6 +106,41 @@ export async function handlePaidEvent(evt: any): Promise<void> {
     console.warn("[payments/webhook] missing quote_id/user_id in metadata", { type: evt.type, sessionId });
     return;
   }
+
+  // ===== IDEMPOTENCY GATE =====
+  // Stripe retries the same event on any non-2xx response (or our own
+  // transient errors). Insert an audit row keyed on the stripe event id;
+  // the UNIQUE constraint guarantees only ONE delivery wins the race and
+  // proceeds to flip status / send receipt. Duplicates short-circuit here.
+  let auditRowId: string | null = null;
+  if (stripeEventId) {
+    const { data: inserted, error: insertErr } = await supabaseAdmin
+      .from("payment_webhook_audit")
+      .insert({
+        stripe_event_id: stripeEventId,
+        event_type: eventType,
+        user_id: userId,
+        quote_id: quoteId,
+        request_type: requestType,
+        amount_cents: amountCents ?? null,
+        currency,
+        stripe_session_id: sessionId ?? null,
+        stripe_payment_intent: paymentIntent ?? null,
+      })
+      .select("id")
+      .maybeSingle();
+    if (insertErr) {
+      // Unique violation → already processed. Anything else is unexpected.
+      if ((insertErr as any).code === "23505") {
+        console.log("[payments/webhook] duplicate event, skipping", stripeEventId);
+        return;
+      }
+      console.error("[payments/webhook] audit insert failed", insertErr);
+    } else {
+      auditRowId = inserted?.id ?? null;
+    }
+  }
+
 
   // Upsert by session id if we have one (created during checkout).
   if (sessionId) {
@@ -260,7 +297,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
 
 
   // Best-effort branded invoice email (never throws)
-  await sendBrandedInvoiceEmail({
+  const emailOutcome = await sendBrandedInvoiceEmail({
     userId,
     quoteId,
     customerEmail,
@@ -272,9 +309,28 @@ export async function handlePaidEvent(evt: any): Promise<void> {
     depositPaidCents: depositPaidCentsForEmail,
   });
 
+  // Stamp the audit row with the receipt outcome so the trader UI can show
+  // "Receipt sent · 14 Jun 16:02 · alex@example.com".
+  if (auditRowId) {
+    try {
+      await supabaseAdmin
+        .from("payment_webhook_audit")
+        .update({
+          receipt_status: emailOutcome.status,
+          receipt_sent_at: emailOutcome.status === "sent" ? new Date().toISOString() : null,
+          receipt_to: emailOutcome.to ?? null,
+          receipt_error: emailOutcome.error ?? null,
+        })
+        .eq("id", auditRowId);
+    } catch (e) {
+      console.error("[payments/webhook] failed to stamp audit row", e);
+    }
+  }
+
   // Best-effort push to the trader (never throws)
   await notifyTraderOfPayment({ userId, quoteId, amountCents, currency });
 }
+
 
 /**
  * Process a failed/expired Stripe event

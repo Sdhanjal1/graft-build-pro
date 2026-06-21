@@ -127,6 +127,11 @@ export type Quote = {
   completed_at?: string;
   /** Last DB write — proxy for when status changed (e.g. accepted today). */
   updated_at?: string;
+  /** Set by the webhook / mark-paid handler when the branded receipt email was delivered. */
+  invoice_email_sent_at?: string;
+  invoice_email_status?: string;
+  invoice_email_to?: string;
+
   /** Tick state for the material shopping list, indexed by line_items position. (legacy) */
   materials_purchased?: boolean[];
   /** Separate materials shopping list for the job — independent of quote line items. */
@@ -286,8 +291,12 @@ type DbQuote = {
   deposit_percent: number | null;
   completed_at: string | null;
   updated_at?: string | null;
+  invoice_email_sent_at?: string | null;
+  invoice_email_status?: string | null;
+  invoice_email_to?: string | null;
   materials_purchased?: boolean[] | null;
   materials_list?: MaterialItem[] | null;
+
 };
 
 const rowToClient = (r: DbClient): Client => ({
@@ -325,6 +334,10 @@ const rowToQuote = (r: DbQuote): Quote => ({
   deposit_percent: Number(r.deposit_percent ?? 0),
   completed_at: r.completed_at ?? undefined,
   updated_at: r.updated_at ?? undefined,
+  invoice_email_sent_at: r.invoice_email_sent_at ?? undefined,
+  invoice_email_status: r.invoice_email_status ?? undefined,
+  invoice_email_to: r.invoice_email_to ?? undefined,
+
   materials_purchased: Array.isArray(r.materials_purchased) ? r.materials_purchased : [],
   materials_list: Array.isArray(r.materials_list)
     ? (r.materials_list as MaterialItem[]).map((m) => ({

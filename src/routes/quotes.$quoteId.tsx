@@ -873,6 +873,37 @@ function QuoteDetail() {
         </div>
       </div>
 
+      {status === "paid" && (quote.invoice_email_sent_at || quote.invoice_email_status) && (
+        <section className="px-5 mt-3">
+          <div className="rounded-2xl bg-status-paid/10 border border-status-paid/30 px-4 py-3 flex items-center gap-3">
+            <span className="h-8 w-8 rounded-full bg-status-paid/20 flex items-center justify-center shrink-0">
+              <Mail className="h-4 w-4 text-status-paid" strokeWidth={2.5} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-ink leading-tight">
+                {quote.invoice_email_status === "sent" ? "Receipt sent" :
+                 quote.invoice_email_status === "skipped" ? "Receipt not sent" :
+                 quote.invoice_email_status === "failed" ? "Receipt failed" : "Receipt"}
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate">
+                {quote.invoice_email_sent_at
+                  ? `${new Date(quote.invoice_email_sent_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}${quote.invoice_email_to ? ` · ${quote.invoice_email_to}` : ""}`
+                  : (quote.invoice_email_to ?? "No customer email on file")}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={sharePdf}
+              className="shrink-0 inline-flex items-center gap-1 rounded-full bg-ink text-bg px-3 py-1.5 text-[11px] font-bold active:scale-95 transition"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              View
+            </button>
+          </div>
+        </section>
+      )}
+
+
       {status === "declined" && (
         <section className="px-5 mt-5">
           <div className="card-surface p-3 text-center text-sm text-muted-foreground">
