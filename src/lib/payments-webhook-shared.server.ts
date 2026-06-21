@@ -21,10 +21,11 @@ async function notifyTraderOfPayment(opts: {
     if (quote?.client_id) {
       const { data: client } = await supabaseAdmin
         .from("clients")
-        .select("first_name")
+        .select("name")
         .eq("id", quote.client_id)
         .maybeSingle();
-      firstName = (client?.first_name ?? "").trim() || null;
+      const fullName = (client?.name ?? "").trim();
+      firstName = fullName ? fullName.split(/\s+/)[0] : null;
     }
     const who = firstName ?? "Customer";
 
