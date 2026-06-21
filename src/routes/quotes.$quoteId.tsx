@@ -744,8 +744,10 @@ function QuoteDetail() {
       "Job done — send invoice";
     primary = { label, icon: Check, onClick: () => setConfirmJobDone(true) };
   } else if (status === "paid" && !completedAt) {
-    // Upfront-paid quotes still need a "job done" tap to mark complete + send a receipt.
-    primary = { label: "Job done — send receipt", icon: Check, onClick: () => setConfirmJobDone(true) };
+    // Safety net only — the webhook + markQuotePaid both stamp completed_at,
+    // so this branch should be unreachable in practice. Falls through to the
+    // share-receipt action below if completed_at lands via realtime.
+    primary = { label: "Share receipt", icon: Share2, onClick: sharePdf };
   } else if (status === "completed") {
     // Fallback: customer paid by cash/bank outside the app. Mark Paid is the
     // only remaining manual step here.
