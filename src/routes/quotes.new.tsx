@@ -2742,7 +2742,7 @@ function VoiceOverlay({
                 className="rounded-lg bg-paper/[0.04] border-l-2 border-paper/20 pl-3 pr-3 py-2 flex items-center gap-3 animate-scale-in"
                 aria-live="polite"
               >
-                <span className="num text-[11px] font-bold text-paper/30 mt-0.5 shrink-0 w-5 text-right">
+                <span className="num text-[11px] font-bold text-paper/70 mt-0.5 shrink-0 w-5 text-right">
                   {liveItems.length + 1}
                 </span>
                 <div className="flex-1 flex items-center gap-2">
