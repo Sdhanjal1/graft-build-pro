@@ -179,12 +179,15 @@ type FeedItem = {
   primary?: { label: string; run: () => void; icon?: React.ComponentType<{ className?: string }> };
   /** Mark-as-read fn used when opening the preview. */
   markRead?: () => void;
-  /** Toggle read state from a swipe — both directions handled per current state. */
-  toggleRead: () => Promise<void> | void;
+  /** Raw server calls (used by optimistic + undo wrappers). */
+  serverMarkRead: () => Promise<unknown>;
+  serverMarkUnread: () => Promise<unknown>;
   /** Whether this item can be deleted (threads can't — would lose history). */
   canDelete: boolean;
-  /** Delete fn (called from swipe). No-op if canDelete is false. */
-  doDelete?: () => Promise<void> | void;
+  /** Raw server delete (used by deferred delete + undo). No-op if canDelete is false. */
+  serverDelete?: () => Promise<unknown>;
+  /** Invalidation keys to refresh after a server-side change. */
+  invalidateKeys: string[][];
 };
 
 function FeedRow({
