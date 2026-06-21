@@ -488,6 +488,37 @@ export function clearUserData() {
   bumpVersion();
 }
 
+/**
+ * Upsert a quote row received from a realtime channel into the in-memory
+ * store and bump the version so all consumer screens re-render. Safe to call
+ * before `mockQuotes` is populated (no-op on missing array).
+ */
+export function applyRealtimeQuoteRow(row: Record<string, unknown>): void {
+  if (!row || typeof row.id !== "string") return;
+  let mapped: Quote;
+  try {
+    mapped = rowToQuote(row as unknown as DbQuote);
+  } catch {
+    return;
+  }
+  const idx = mockQuotes.findIndex((q) => q.id === mapped.id);
+  if (idx >= 0) {
+    // Preserve any client-only fields by merging.
+    mockQuotes[idx] = { ...mockQuotes[idx], ...mapped };
+  } else {
+    mockQuotes.unshift(mapped);
+  }
+  bumpVersion();
+}
+
+/** Remove a quote row from the in-memory store (realtime DELETE event). */
+export function removeRealtimeQuoteRow(id: string): void {
+  const idx = mockQuotes.findIndex((q) => q.id === id);
+  if (idx < 0) return;
+  mockQuotes.splice(idx, 1);
+  bumpVersion();
+}
+
 // --- Quote builder helper (keeps VAT maths consistent) ----------------------
 const VAT_RATE = 0.2;
 
