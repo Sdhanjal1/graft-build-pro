@@ -179,12 +179,15 @@ type FeedItem = {
   primary?: { label: string; run: () => void; icon?: React.ComponentType<{ className?: string }> };
   /** Mark-as-read fn used when opening the preview. */
   markRead?: () => void;
-  /** Toggle read state from a swipe — both directions handled per current state. */
-  toggleRead: () => Promise<void> | void;
+  /** Raw server calls (used by optimistic + undo wrappers). */
+  serverMarkRead: () => Promise<unknown>;
+  serverMarkUnread: () => Promise<unknown>;
   /** Whether this item can be deleted (threads can't — would lose history). */
   canDelete: boolean;
-  /** Delete fn (called from swipe). No-op if canDelete is false. */
-  doDelete?: () => Promise<void> | void;
+  /** Raw server delete (used by deferred delete + undo). No-op if canDelete is false. */
+  serverDelete?: () => Promise<unknown>;
+  /** Invalidation keys to refresh after a server-side change. */
+  invalidateKeys: string[][];
 };
 
 function FeedRow({
@@ -194,6 +197,8 @@ function FeedRow({
   onPreview,
   onToggleSelect,
   onLongPress,
+  onToggleRead,
+  onDelete,
 }: {
   item: FeedItem;
   selected: boolean;
@@ -201,6 +206,8 @@ function FeedRow({
   onPreview: () => void;
   onToggleSelect: () => void;
   onLongPress: () => void;
+  onToggleRead: (item: FeedItem) => void;
+  onDelete: (item: FeedItem) => void;
 }) {
   const Icon = item.icon;
   const lp = useLongPress(onLongPress, 450);
@@ -263,11 +270,12 @@ function FeedRow({
 
   return (
     <SwipeRow
-      onChase={() => item.toggleRead()}
-      chaseLabel={item.unread ? "Read" : "Unread"}
+      actionsLabel={`Actions for ${item.title}`}
+      onChase={() => onToggleRead(item)}
+      chaseLabel={item.unread ? "Mark read" : "Mark unread"}
       chaseIcon={item.unread ? MailOpen : Mail}
       chaseClassName="bg-lime text-ink"
-      onDelete={item.canDelete && item.doDelete ? () => item.doDelete!() : undefined}
+      onDelete={item.canDelete && item.serverDelete ? () => onDelete(item) : undefined}
       confirmLabel="Delete"
     >
       {rowInner}
@@ -300,6 +308,11 @@ function MessagesInbox() {
   const [previewItem, setPreviewItem] = useState<FeedItem | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  /** Optimistic unread override: item.id → unread? */
+  const [optimisticUnread, setOptimisticUnread] = useState<Map<string, boolean>>(new Map());
+  /** Items pending deferred deletion (hidden from feed until timer fires or undo). */
+  const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(new Set());
+  const deleteTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const knownReqIds = useRef<Set<string>>(new Set());
   const initialized = useRef(false);
   const cancelledRef = useRef(false);
@@ -413,34 +426,29 @@ function MessagesInbox() {
   const feed: FeedItem[] = useMemo(() => {
     const items: FeedItem[] = [];
 
+    const resolveUnread = (id: string, raw: boolean) =>
+      optimisticUnread.has(id) ? optimisticUnread.get(id)! : raw;
+
     for (const r of requests) {
-      const wasUnread = !r.read_at;
+      const id = `req-${r.id}`;
+      const unread = resolveUnread(id, !r.read_at);
       items.push({
-        id: `req-${r.id}`,
+        id,
         rawId: r.id,
         kind: "request",
         ts: r.created_at,
-        unread: wasUnread,
+        unread,
         icon: r.source === "voice" ? VoiceWaveform : FileText,
         title: r.customer_name ? `New request · ${r.customer_name}` : "New job request",
         body: r.body || "",
         detailBody: r.body || "",
         meta: r.customer_phone || undefined,
-        markRead: wasUnread ? () => void handleRequestRead(r.id) : undefined,
-        toggleRead: async () => {
-          if (wasUnread) await markReqRead({ data: { id: r.id } }).catch(() => {});
-          else await markReqUnread({ data: { id: r.id } }).catch(() => {});
-          void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
-          void load();
-          toast.success(wasUnread ? "Marked as read" : "Marked as unread");
-        },
+        markRead: unread ? () => void handleRequestRead(r.id) : undefined,
+        serverMarkRead: () => markReqRead({ data: { id: r.id } }),
+        serverMarkUnread: () => markReqUnread({ data: { id: r.id } }),
         canDelete: true,
-        doDelete: async () => {
-          await deleteReq({ data: { id: r.id } }).catch(() => {});
-          void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
-          void load();
-          toast.success("Deleted");
-        },
+        serverDelete: () => deleteReq({ data: { id: r.id } }),
+        invalidateKeys: [["inbox-unread-count"]],
         primary: {
           label: "Create quote",
           icon: Sparkles,
@@ -455,31 +463,28 @@ function MessagesInbox() {
     for (const t of threads) {
       if (t.last.sender === "system" && t.unread === 0) continue;
       const who = t.last.sender === "customer" ? "Customer" : t.last.sender === "system" ? "Auto-reply" : "You";
-      const threadUnread = t.unread > 0;
+      const id = `thread-${t.quote_id}`;
+      const unread = resolveUnread(id, t.unread > 0);
       items.push({
-        id: `thread-${t.quote_id}`,
+        id,
         rawId: t.quote_id,
         kind: "thread",
         ts: t.last.created_at,
-        unread: threadUnread,
+        unread,
         icon: MessageSquare,
         title: `${who} replied`,
         body: t.last.body,
         detailBody: t.last.body,
-        markRead: threadUnread ? () => void handleThreadRead(t.quote_id) : undefined,
-        toggleRead: async () => {
-          if (threadUnread) await markThread({ data: { quoteId: t.quote_id } }).catch(() => {});
-          else await markThreadUn({ data: { quoteId: t.quote_id } }).catch(() => {});
-          void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
-          void load();
-          toast.success(threadUnread ? "Marked as read" : "Marked as unread");
-        },
+        markRead: unread ? () => void handleThreadRead(t.quote_id) : undefined,
+        serverMarkRead: () => markThread({ data: { quoteId: t.quote_id } }),
+        serverMarkUnread: () => markThreadUn({ data: { quoteId: t.quote_id } }),
         canDelete: false,
+        invalidateKeys: [["inbox-unread-count"]],
         primary: {
           label: "Open conversation",
           icon: ArrowRight,
           run: () => {
-            if (threadUnread) void handleThreadRead(t.quote_id);
+            if (unread) void handleThreadRead(t.quote_id);
             navigate({ to: "/quotes/$quoteId", params: { quoteId: t.quote_id }, search: { tab: "messages" } });
           },
         },
@@ -487,32 +492,24 @@ function MessagesInbox() {
     }
 
     for (const n of notifications) {
-      const notifUnread = !n.read_at;
+      const id = `notif-${n.id}`;
+      const unread = resolveUnread(id, !n.read_at);
       items.push({
-        id: `notif-${n.id}`,
+        id,
         rawId: n.id,
         kind: "notification",
         ts: n.created_at,
-        unread: notifUnread,
+        unread,
         icon: iconForNotification(n.kind),
         title: n.title,
         body: n.body || "",
         detailBody: n.body || "",
-        markRead: notifUnread ? () => void handleNotifRead(n.id) : undefined,
-        toggleRead: async () => {
-          if (notifUnread) await markNotifRead({ data: { id: n.id } }).catch(() => {});
-          else await markNotifUnread({ data: { id: n.id } }).catch(() => {});
-          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-          void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
-          toast.success(notifUnread ? "Marked as read" : "Marked as unread");
-        },
+        markRead: unread ? () => void handleNotifRead(n.id) : undefined,
+        serverMarkRead: () => markNotifRead({ data: { id: n.id } }),
+        serverMarkUnread: () => markNotifUnread({ data: { id: n.id } }),
         canDelete: true,
-        doDelete: async () => {
-          await deleteNotif({ data: { id: n.id } }).catch(() => {});
-          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-          void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
-          toast.success("Deleted");
-        },
+        serverDelete: () => deleteNotif({ data: { id: n.id } }),
+        invalidateKeys: [["notifications"], ["notifications-unread"]],
         primary: n.url
           ? {
               label: "Open",
@@ -529,13 +526,127 @@ function MessagesInbox() {
     items.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
     return items;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requests, threads, notifications]);
+  }, [requests, threads, notifications, optimisticUnread]);
 
   const visibleFeed = useMemo(() => {
-    if (filter === "unread") return feed.filter((i) => i.unread);
-    if (filter === "requests") return feed.filter((i) => i.kind === "request");
-    return feed;
-  }, [feed, filter]);
+    const base = feed.filter((i) => !pendingDeletes.has(i.id));
+    if (filter === "unread") return base.filter((i) => i.unread);
+    if (filter === "requests") return base.filter((i) => i.kind === "request");
+    return base;
+  }, [feed, filter, pendingDeletes]);
+
+  /* ---------- Optimistic + undo helpers ---------- */
+  const invalidate = useCallback((keys: string[][]) => {
+    for (const k of keys) void queryClient.invalidateQueries({ queryKey: k });
+  }, [queryClient]);
+
+  const setUnreadOverride = useCallback((id: string, value: boolean | null) => {
+    setOptimisticUnread((prev) => {
+      const next = new Map(prev);
+      if (value === null) next.delete(id);
+      else next.set(id, value);
+      return next;
+    });
+  }, []);
+
+  /** Toggle read state with optimistic UI, error rollback, and Undo toast. */
+  const runToggleRead = useCallback(async (item: FeedItem) => {
+    const wasUnread = item.unread;
+    const target = !wasUnread; // optimistic new state
+    setUnreadOverride(item.id, target);
+
+    try {
+      if (wasUnread) await item.serverMarkRead();
+      else await item.serverMarkUnread();
+      invalidate(item.invalidateKeys);
+      toast.success(wasUnread ? "Marked as read" : "Marked as unread", {
+        duration: 5000,
+        action: {
+          label: "Undo",
+          onClick: () => {
+            // Flip back optimistically, then call the opposite server fn.
+            setUnreadOverride(item.id, wasUnread);
+            const revert = wasUnread ? item.serverMarkUnread() : item.serverMarkRead();
+            Promise.resolve(revert)
+              .then(() => {
+                invalidate(item.invalidateKeys);
+                void load();
+              })
+              .catch(() => {
+                setUnreadOverride(item.id, target);
+                toast.error("Couldn't undo. Please try again.");
+              });
+          },
+        },
+      });
+      // Let the server-truth refresh take over once it lands.
+      void load();
+      // Clear override shortly after; load() will reflect the real state.
+      window.setTimeout(() => setUnreadOverride(item.id, null), 1500);
+    } catch (e) {
+      console.error("toggleRead failed", e);
+      setUnreadOverride(item.id, wasUnread); // rollback
+      toast.error("Couldn't update. Please try again.");
+    }
+  }, [invalidate, setUnreadOverride]);
+
+  const cancelPendingDelete = useCallback((id: string) => {
+    const t = deleteTimers.current.get(id);
+    if (t) {
+      clearTimeout(t);
+      deleteTimers.current.delete(id);
+    }
+    setPendingDeletes((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+
+  /** Hide row immediately; perform server delete after a short delay so Undo works. */
+  const runDelete = useCallback((item: FeedItem) => {
+    if (!item.serverDelete) return;
+    // Hide row immediately.
+    setPendingDeletes((prev) => {
+      const next = new Set(prev);
+      next.add(item.id);
+      return next;
+    });
+
+    const commit = () => {
+      deleteTimers.current.delete(item.id);
+      Promise.resolve(item.serverDelete!())
+        .then(() => {
+          invalidate(item.invalidateKeys);
+          void load();
+        })
+        .catch((e) => {
+          console.error("delete failed", e);
+          cancelPendingDelete(item.id);
+          toast.error("Couldn't delete. Restored.");
+        });
+    };
+
+    const timer = setTimeout(commit, 5000);
+    deleteTimers.current.set(item.id, timer);
+
+    toast("Deleted", {
+      duration: 5000,
+      action: {
+        label: "Undo",
+        onClick: () => cancelPendingDelete(item.id),
+      },
+    });
+  }, [invalidate, cancelPendingDelete]);
+
+  // Clean up any pending timers on unmount — fire-and-forget so deletes still commit.
+  useEffect(() => {
+    return () => {
+      for (const [, t] of deleteTimers.current) clearTimeout(t);
+      deleteTimers.current.clear();
+    };
+  }, []);
 
   // Group visible feed by day
   const grouped = useMemo(() => {
@@ -736,6 +847,8 @@ function MessagesInbox() {
                       onPreview={() => openPreview(it)}
                       onToggleSelect={() => toggleSelect(it)}
                       onLongPress={() => enterSelectionFor(it)}
+                      onToggleRead={runToggleRead}
+                      onDelete={runDelete}
                     />
                   </li>
                 ))}
@@ -814,19 +927,13 @@ function MessagesInbox() {
                     {previewItem.primary.label}
                   </button>
                 )}
-                {previewItem.kind !== "thread" && (
+                {previewItem.kind !== "thread" && previewItem.serverDelete && (
                   <button
                     type="button"
-                    onClick={async () => {
+                    onClick={() => {
                       const item = previewItem;
                       setPreviewItem(null);
-                      if (item.kind === "notification") await deleteNotif({ data: { id: item.rawId } }).catch(() => {});
-                      else if (item.kind === "request") await deleteReq({ data: { id: item.rawId } }).catch(() => {});
-                      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-                      void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
-                      void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
-                      void load();
-                      toast.success("Deleted");
+                      runDelete(item);
                     }}
                     className="w-full h-11 rounded-full bg-secondary text-destructive font-semibold inline-flex items-center justify-center gap-2 active:scale-[0.99]"
                   >
