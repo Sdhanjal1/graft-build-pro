@@ -115,7 +115,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const path = router.state.location.pathname;
-  const MARKETING_PATHS = new Set(["/", "/welcome", "/pricing", "/about", "/features", "/faqs", "/trades", "/merch"]);
+  const MARKETING_PATHS = new Set(["/", "/welcome", "/pricing", "/about", "/features", "/faqs", "/trades", "/merch", "/terms", "/privacy"]);
   const NO_CHROME_PATHS = new Set([
     "/onboarding", "/welcome", "/confirmed",
     "/forgot-password", "/reset-password", "/auth",
@@ -151,7 +151,7 @@ function RootComponent() {
   );
 }
 
-const PUBLIC_ROUTES = new Set(["/", "/auth", "/welcome", "/confirmed", "/pricing", "/about", "/features", "/faqs", "/trades", "/merch", "/forgot-password", "/reset-password"]);
+const PUBLIC_ROUTES = new Set(["/", "/auth", "/welcome", "/confirmed", "/pricing", "/about", "/features", "/faqs", "/trades", "/merch", "/terms", "/privacy", "/forgot-password", "/reset-password"]);
 
 function isPublicPath(path: string) {
   return (

@@ -1,29 +1,32 @@
-## Goal
+## What I found
 
-Remove the bell icon from the home header and fold its unread-count behaviour into the Inbox tab in the bottom nav, with a lime numeric badge instead of the current pulsing dot.
+Audited every file in `src/routes/`. The bottom nav is not rendered by `AppShell` — it's rendered globally in `src/routes/__root.tsx` based on path checks. All authenticated app routes (`/app`, `/quotes*`, `/clients*`, `/chaser`, `/messages`, `/notifications`, `/settings`, `/invoices/*`) correctly show the nav. All marketing/portal/auth pages correctly hide it.
+
+Two real bugs, both rooted in `src/routes/__root.tsx`:
+
+### Bug 1 — `/terms` and `/privacy` show the bottom nav
+`MARKETING_PATHS` (~line 118) lists `/`, `/welcome`, `/pricing`, `/about`, `/features`, `/faqs`, `/trades`, `/merch` — but not `/terms` or `/privacy`. Both pages use `MarketingShell`, so the bottom app nav overlays the footer/content. Bug.
+
+### Bug 2 — `/terms` and `/privacy` bounce unauthenticated visitors to `/auth`
+`PUBLIC_ROUTES` (~line 154), used by `AuthGate` to decide whether to redirect, also omits these two paths. Anyone not signed in who follows a "Terms" / "Privacy" link from the footer gets kicked to `/auth`. Bug.
 
 ## Changes
 
-### 1. `src/routes/app.tsx`
-- Drop the `<NotificationsBell />` render and its import. No replacement in the header.
+Single file: `src/routes/__root.tsx`.
 
-### 2. `src/components/BottomNav.tsx`
-- Add a second query: `useQuery({ queryKey: ["notifications-unread"], queryFn: () => getUnreadNotificationCount(), ... })` using the same options as the bell (refetch 60s, focus refetch, retry false).
-- Combine into `totalUnread = quoteRequestsUnread + notificationsUnread`. Pass that to the `/messages` `NavItem`.
-- Add a realtime subscription mirroring the bell:
-  - channel `inbox-nav:{userId}` on `public.notifications` filter `user_id=eq.{userId}`, invalidates `["notifications-unread"]`.
-  - Tear down on unmount. Only run when `session` exists and nav isn't hidden.
-- Replace the dot indicator inside `NavItem` with a numeric badge styled like the bell's: `min-w-[18px] h-[18px] px-1 rounded-full bg-lime text-ink text-[10px] font-bold ring-2 ring-ink`, positioned `-top-1 -right-1.5`. Show `99+` when over 99. Keep the existing rule that hides the badge while the tab is `active`.
-- Update the `sr-only` label to use `totalUnread`.
+1. Add `"/terms"` and `"/privacy"` to the `MARKETING_PATHS` set so `showAppChrome` evaluates to `false` and `BottomNav` doesn't render on them.
+2. Add `"/terms"` and `"/privacy"` to the `PUBLIC_ROUTES` set so `AuthGate` lets unauthenticated visitors view them.
 
-### 3. `src/components/NotificationsBell.tsx`
-- Delete the file (no other importers after step 1 — verified: only `src/routes/app.tsx` imports it).
-
-## Routing
-
-Tapping the Inbox tab continues to navigate to `/messages` (unchanged). The `/notifications` route stays reachable directly; nothing currently links to it from the home header any more, but the page itself isn't deleted.
+No other route files need to change. No component logic changes. No edits to `BottomNav.tsx` or `AppShell.tsx`.
 
 ## Out of scope
 
-- No change to the notifications page, the notifications server functions, or the messages page contents.
-- No change to how unread state is marked read (each surface keeps its own read-tracking).
+- `/quotes/new` intentionally hides the nav for its full-screen flow (handled inside `BottomNav.tsx`) — leaving as-is.
+- `AppShell` keeps `pb-nav` padding on `/quotes/new` even though the nav is hidden; cosmetic, not part of this fix.
+- No console/runtime errors related to nav rendering were found in the recent logs.
+
+## Verification after the fix
+
+- Visit `/terms` and `/privacy` signed out → page renders, no redirect, no bottom nav.
+- Visit `/terms` and `/privacy` signed in → still no bottom nav (marketing page).
+- Spot-check `/app`, `/quotes`, `/clients`, `/chaser`, `/messages`, `/notifications`, `/settings` → bottom nav still present.
