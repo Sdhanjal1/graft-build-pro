@@ -179,6 +179,12 @@ type FeedItem = {
   primary?: { label: string; run: () => void; icon?: React.ComponentType<{ className?: string }> };
   /** Mark-as-read fn used when opening the preview. */
   markRead?: () => void;
+  /** Toggle read state from a swipe — both directions handled per current state. */
+  toggleRead: () => Promise<void> | void;
+  /** Whether this item can be deleted (threads can't — would lose history). */
+  canDelete: boolean;
+  /** Delete fn (called from swipe). No-op if canDelete is false. */
+  doDelete?: () => Promise<void> | void;
 };
 
 function FeedRow({
@@ -208,7 +214,7 @@ function FeedRow({
     else onPreview();
   };
 
-  return (
+  const rowInner = (
     <button
       type="button"
       onClick={handleClick}
@@ -250,6 +256,22 @@ function FeedRow({
         )}
       </div>
     </button>
+  );
+
+  // In selection mode we disable swipe so taps don't conflict with selection.
+  if (selectionMode) return rowInner;
+
+  return (
+    <SwipeRow
+      onChase={() => item.toggleRead()}
+      chaseLabel={item.unread ? "Read" : "Unread"}
+      chaseIcon={item.unread ? MailOpen : Mail}
+      chaseClassName="bg-lime text-ink"
+      onDelete={item.canDelete && item.doDelete ? () => item.doDelete!() : undefined}
+      confirmLabel="Delete"
+    >
+      {rowInner}
+    </SwipeRow>
   );
 }
 
