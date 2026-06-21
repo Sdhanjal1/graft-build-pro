@@ -78,6 +78,8 @@ async function sendBrandedInvoiceEmail(opts: {
 export async function handlePaidEvent(evt: any): Promise<void> {
   // Try to extract identifiers from whichever shape the gateway sends.
   const obj = evt.data?.object ?? evt.data ?? evt.object ?? evt;
+  const stripeEventId: string | undefined = evt.id;
+  const eventType: string = evt.type ?? evt.event_type ?? "unknown";
   const sessionId: string | undefined =
     obj.id?.startsWith?.("cs_") ? obj.id : obj.checkout_session_id ?? obj.session_id;
   const paymentIntent: string | undefined =
@@ -104,6 +106,41 @@ export async function handlePaidEvent(evt: any): Promise<void> {
     console.warn("[payments/webhook] missing quote_id/user_id in metadata", { type: evt.type, sessionId });
     return;
   }
+
+  // ===== IDEMPOTENCY GATE =====
+  // Stripe retries the same event on any non-2xx response (or our own
+  // transient errors). Insert an audit row keyed on the stripe event id;
+  // the UNIQUE constraint guarantees only ONE delivery wins the race and
+  // proceeds to flip status / send receipt. Duplicates short-circuit here.
+  let auditRowId: string | null = null;
+  if (stripeEventId) {
+    const { data: inserted, error: insertErr } = await supabaseAdmin
+      .from("payment_webhook_audit")
+      .insert({
+        stripe_event_id: stripeEventId,
+        event_type: eventType,
+        user_id: userId,
+        quote_id: quoteId,
+        request_type: requestType,
+        amount_cents: amountCents ?? null,
+        currency,
+        stripe_session_id: sessionId ?? null,
+        stripe_payment_intent: paymentIntent ?? null,
+      })
+      .select("id")
+      .maybeSingle();
+    if (insertErr) {
+      // Unique violation → already processed. Anything else is unexpected.
+      if ((insertErr as any).code === "23505") {
+        console.log("[payments/webhook] duplicate event, skipping", stripeEventId);
+        return;
+      }
+      console.error("[payments/webhook] audit insert failed", insertErr);
+    } else {
+      auditRowId = inserted?.id ?? null;
+    }
+  }
+
 
   // Upsert by session id if we have one (created during checkout).
   if (sessionId) {
