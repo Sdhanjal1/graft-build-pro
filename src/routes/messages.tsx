@@ -927,19 +927,13 @@ function MessagesInbox() {
                     {previewItem.primary.label}
                   </button>
                 )}
-                {previewItem.kind !== "thread" && (
+                {previewItem.kind !== "thread" && previewItem.serverDelete && (
                   <button
                     type="button"
-                    onClick={async () => {
+                    onClick={() => {
                       const item = previewItem;
                       setPreviewItem(null);
-                      if (item.kind === "notification") await deleteNotif({ data: { id: item.rawId } }).catch(() => {});
-                      else if (item.kind === "request") await deleteReq({ data: { id: item.rawId } }).catch(() => {});
-                      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-                      void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
-                      void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
-                      void load();
-                      toast.success("Deleted");
+                      runDelete(item);
                     }}
                     className="w-full h-11 rounded-full bg-secondary text-destructive font-semibold inline-flex items-center justify-center gap-2 active:scale-[0.99]"
                   >
