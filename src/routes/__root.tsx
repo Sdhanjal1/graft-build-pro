@@ -151,7 +151,7 @@ function RootComponent() {
   );
 }
 
-const PUBLIC_ROUTES = new Set(["/", "/auth", "/welcome", "/confirmed", "/pricing", "/about", "/features", "/faqs", "/trades", "/merch", "/forgot-password", "/reset-password"]);
+const PUBLIC_ROUTES = new Set(["/", "/auth", "/welcome", "/confirmed", "/pricing", "/about", "/features", "/faqs", "/trades", "/merch", "/terms", "/privacy", "/forgot-password", "/reset-password"]);
 
 function isPublicPath(path: string) {
   return (
