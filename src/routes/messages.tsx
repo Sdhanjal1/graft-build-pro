@@ -6,11 +6,12 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { getInbox, markThreadRead } from "@/lib/messages.functions";
-import { getMyIncomingRequests, markRequestRead, deleteQuoteRequest } from "@/lib/quote-requests.functions";
+import { getInbox, markThreadRead, markThreadUnread } from "@/lib/messages.functions";
+import { getMyIncomingRequests, markRequestRead, markRequestUnread, deleteQuoteRequest } from "@/lib/quote-requests.functions";
 import {
   listMyNotifications,
   markNotificationRead,
+  markNotificationUnread,
   markAllNotificationsRead,
   deleteNotification,
   type NotificationRow,
