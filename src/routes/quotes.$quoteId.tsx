@@ -1118,32 +1118,32 @@ function QuoteDetail() {
         <div className="mx-auto max-w-md px-4 pointer-events-auto">
           <div className="h-6 -mb-2 bg-gradient-to-t from-paper via-paper/80 to-paper/0" aria-hidden />
           <div className="bg-paper pt-2 pb-1 flex items-center gap-2">
-            {showChaseSecondary && waHref && (
-              <a
-                href={waHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                onPointerDown={() => feedback("tap")}
-                className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-card border border-border text-ink px-4 py-3.5 text-xs font-bold active:scale-[0.98]"
-                aria-label="Send chaser on WhatsApp"
+            {showWaitingPill ? (
+              <div
+                className="flex-1 rounded-full bg-card border border-border py-3.5 inline-flex items-center justify-center gap-2 text-sm text-muted-foreground"
+                aria-live="polite"
               >
-                <MessageCircle className="h-4 w-4" />
-                Chase
-              </a>
+                <span className="relative inline-flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-amber opacity-70" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-status-amber" />
+                </span>
+                Waiting on customer
+              </div>
+            ) : (
+              <button
+                onClick={handlePrimary}
+                onPointerDown={() => feedback("tap")}
+                disabled={actioning}
+                className="flex-1 bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)] disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {actioning ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <PrimaryIcon className="h-4 w-4" />
+                )}
+                {primary.label}
+              </button>
             )}
-            <button
-              onClick={handlePrimary}
-              onPointerDown={() => feedback("tap")}
-              disabled={actioning}
-              className="flex-1 bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)] disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {actioning ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <PrimaryIcon className="h-4 w-4" />
-              )}
-              {primary.label}
-            </button>
           </div>
         </div>
       </div>
