@@ -70,14 +70,18 @@ const GBP = new Intl.NumberFormat("en-GB", {
 export function StatusBadge({
   status,
   amount,
+  label,
 }: {
   status: AnyStatus;
   /** Optional money amount appended to the label (e.g. "Paid · £1,250"). */
   amount?: number;
+  /** Override the default label text while keeping the status palette + dot. */
+  label?: string;
 }) {
   const key = normalize(status);
   // Fallback to draft for any unknown value rather than rendering a broken pill.
-  const p: Palette = PALETTE[key] ?? PALETTE.draft;
+  const basePalette: Palette = PALETTE[key] ?? PALETTE.draft;
+  const p: Palette = label ? { ...basePalette, label } : basePalette;
   const isPaid = key === "paid" || key === "deposit-paid";
 
   return (

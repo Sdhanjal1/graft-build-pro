@@ -5,7 +5,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 
 import { SwipeRow } from "@/components/SwipeRow";
 import { mockQuotes, getClient, formatGBP, deleteQuote, duplicateQuote, setQuoteStatus, useDataVersion, buildChaserMessage, waLink, materialsForQuote, userProfile, markOverdueQuotes, type Quote, type QuoteStatus } from "@/lib/user-data";
-import { STATUS_LABEL, STATUS_CHIP, STATUS_DOT } from "@/lib/status-styles";
+import { StatusBadge } from "@/components/StatusBadge";
 import { resolveTrade } from "@/lib/trades";
 import { Search, FileText, Inbox, ShoppingCart, X, ArrowRight, ChevronRight } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
@@ -485,10 +485,7 @@ function QuoteCard({
               ? clientName
               : <span className="text-status-pending">Tap to assign client</span>}
           </p>
-          <span className={`shrink-0 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold ${STATUS_CHIP[quote.status]}`}>
-            <span className={`inline-flex h-1.5 w-1.5 rounded-full ${STATUS_DOT[quote.status]}`} />
-            {STATUS_LABEL[quote.status]}
-          </span>
+          <StatusBadge status={quote.status} />
         </div>
         <p className={`text-[12px] truncate mt-0.5 ${isOverdue ? "text-paper/70" : "text-muted-foreground"}`}>
           {quote.title}
