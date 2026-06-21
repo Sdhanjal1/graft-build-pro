@@ -426,34 +426,29 @@ function MessagesInbox() {
   const feed: FeedItem[] = useMemo(() => {
     const items: FeedItem[] = [];
 
+    const resolveUnread = (id: string, raw: boolean) =>
+      optimisticUnread.has(id) ? optimisticUnread.get(id)! : raw;
+
     for (const r of requests) {
-      const wasUnread = !r.read_at;
+      const id = `req-${r.id}`;
+      const unread = resolveUnread(id, !r.read_at);
       items.push({
-        id: `req-${r.id}`,
+        id,
         rawId: r.id,
         kind: "request",
         ts: r.created_at,
-        unread: wasUnread,
+        unread,
         icon: r.source === "voice" ? VoiceWaveform : FileText,
         title: r.customer_name ? `New request · ${r.customer_name}` : "New job request",
         body: r.body || "",
         detailBody: r.body || "",
         meta: r.customer_phone || undefined,
-        markRead: wasUnread ? () => void handleRequestRead(r.id) : undefined,
-        toggleRead: async () => {
-          if (wasUnread) await markReqRead({ data: { id: r.id } }).catch(() => {});
-          else await markReqUnread({ data: { id: r.id } }).catch(() => {});
-          void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
-          void load();
-          toast.success(wasUnread ? "Marked as read" : "Marked as unread");
-        },
+        markRead: unread ? () => void handleRequestRead(r.id) : undefined,
+        serverMarkRead: () => markReqRead({ data: { id: r.id } }),
+        serverMarkUnread: () => markReqUnread({ data: { id: r.id } }),
         canDelete: true,
-        doDelete: async () => {
-          await deleteReq({ data: { id: r.id } }).catch(() => {});
-          void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
-          void load();
-          toast.success("Deleted");
-        },
+        serverDelete: () => deleteReq({ data: { id: r.id } }),
+        invalidateKeys: [["inbox-unread-count"]],
         primary: {
           label: "Create quote",
           icon: Sparkles,
@@ -468,31 +463,28 @@ function MessagesInbox() {
     for (const t of threads) {
       if (t.last.sender === "system" && t.unread === 0) continue;
       const who = t.last.sender === "customer" ? "Customer" : t.last.sender === "system" ? "Auto-reply" : "You";
-      const threadUnread = t.unread > 0;
+      const id = `thread-${t.quote_id}`;
+      const unread = resolveUnread(id, t.unread > 0);
       items.push({
-        id: `thread-${t.quote_id}`,
+        id,
         rawId: t.quote_id,
         kind: "thread",
         ts: t.last.created_at,
-        unread: threadUnread,
+        unread,
         icon: MessageSquare,
         title: `${who} replied`,
         body: t.last.body,
         detailBody: t.last.body,
-        markRead: threadUnread ? () => void handleThreadRead(t.quote_id) : undefined,
-        toggleRead: async () => {
-          if (threadUnread) await markThread({ data: { quoteId: t.quote_id } }).catch(() => {});
-          else await markThreadUn({ data: { quoteId: t.quote_id } }).catch(() => {});
-          void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
-          void load();
-          toast.success(threadUnread ? "Marked as read" : "Marked as unread");
-        },
+        markRead: unread ? () => void handleThreadRead(t.quote_id) : undefined,
+        serverMarkRead: () => markThread({ data: { quoteId: t.quote_id } }),
+        serverMarkUnread: () => markThreadUn({ data: { quoteId: t.quote_id } }),
         canDelete: false,
+        invalidateKeys: [["inbox-unread-count"]],
         primary: {
           label: "Open conversation",
           icon: ArrowRight,
           run: () => {
-            if (threadUnread) void handleThreadRead(t.quote_id);
+            if (unread) void handleThreadRead(t.quote_id);
             navigate({ to: "/quotes/$quoteId", params: { quoteId: t.quote_id }, search: { tab: "messages" } });
           },
         },
@@ -500,32 +492,24 @@ function MessagesInbox() {
     }
 
     for (const n of notifications) {
-      const notifUnread = !n.read_at;
+      const id = `notif-${n.id}`;
+      const unread = resolveUnread(id, !n.read_at);
       items.push({
-        id: `notif-${n.id}`,
+        id,
         rawId: n.id,
         kind: "notification",
         ts: n.created_at,
-        unread: notifUnread,
+        unread,
         icon: iconForNotification(n.kind),
         title: n.title,
         body: n.body || "",
         detailBody: n.body || "",
-        markRead: notifUnread ? () => void handleNotifRead(n.id) : undefined,
-        toggleRead: async () => {
-          if (notifUnread) await markNotifRead({ data: { id: n.id } }).catch(() => {});
-          else await markNotifUnread({ data: { id: n.id } }).catch(() => {});
-          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-          void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
-          toast.success(notifUnread ? "Marked as read" : "Marked as unread");
-        },
+        markRead: unread ? () => void handleNotifRead(n.id) : undefined,
+        serverMarkRead: () => markNotifRead({ data: { id: n.id } }),
+        serverMarkUnread: () => markNotifUnread({ data: { id: n.id } }),
         canDelete: true,
-        doDelete: async () => {
-          await deleteNotif({ data: { id: n.id } }).catch(() => {});
-          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-          void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
-          toast.success("Deleted");
-        },
+        serverDelete: () => deleteNotif({ data: { id: n.id } }),
+        invalidateKeys: [["notifications"], ["notifications-unread"]],
         primary: n.url
           ? {
               label: "Open",
@@ -542,7 +526,7 @@ function MessagesInbox() {
     items.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
     return items;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requests, threads, notifications]);
+  }, [requests, threads, notifications, optimisticUnread]);
 
   const visibleFeed = useMemo(() => {
     if (filter === "unread") return feed.filter((i) => i.unread);
