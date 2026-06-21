@@ -86,7 +86,9 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 safe-bottom" aria-label="Primary">
-      <div className="mx-auto max-w-md px-3 pb-3 pt-2 relative">
+      {/* Ink wash so the footer reads as a deliberate dark surface, not a floating pill over paper. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[120%] bg-gradient-to-t from-ink via-ink/80 to-transparent" />
+      <div className="mx-auto max-w-md px-3 pb-3 pt-6 relative">
         <div
           className="relative rounded-full flex items-stretch justify-around gap-0.5 h-[68px] px-1.5 overflow-hidden ring-1 ring-white/15 shadow-[0_10px_28px_-12px_rgba(0,0,0,0.6)] backdrop-blur-2xl backdrop-saturate-150 [-webkit-backdrop-filter:blur(24px)_saturate(1.5)]"
           style={{
