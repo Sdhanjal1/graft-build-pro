@@ -7,21 +7,43 @@ async function notifyTraderOfPayment(opts: {
   quoteId: string;
   amountCents: number | undefined;
   currency: string;
+  requestType: string;
 }) {
   try {
     const { data: quote } = await supabaseAdmin
       .from("quotes")
-      .select("title, ref")
+      .select("title, ref, client_id")
       .eq("id", opts.quoteId)
       .maybeSingle();
-    const title = quote?.title ?? quote?.ref ?? "Invoice";
+    const jobTitle = quote?.title ?? quote?.ref ?? "Invoice";
+
+    let firstName: string | null = null;
+    if (quote?.client_id) {
+      const { data: client } = await supabaseAdmin
+        .from("clients")
+        .select("name")
+        .eq("id", quote.client_id)
+        .maybeSingle();
+      const fullName = (client?.name ?? "").trim();
+      firstName = fullName ? fullName.split(/\s+/)[0] : null;
+    }
+    const who = firstName ?? "Customer";
+
+    const what =
+      opts.requestType === "deposit"
+        ? "paid the deposit"
+        : opts.requestType === "balance"
+          ? "paid the balance"
+          : "paid";
+
     const amount = ((opts.amountCents ?? 0) / 100).toFixed(2);
     const symbol = (opts.currency || "gbp").toLowerCase() === "gbp" ? "£" : "";
+
     await notifyUser(opts.userId, {
-      title: "Paid. That's in the bank. 💰",
-      body: `${title} · ${symbol}${amount}`,
+      title: `${who} just ${what} · ${symbol}${amount} 💰`,
+      body: jobTitle,
       url: `/quotes/${opts.quoteId}`,
-      tag: `quote-${opts.quoteId}-paid`,
+      tag: `quote-${opts.quoteId}-${opts.requestType}`,
     });
   } catch (e) {
     console.error("[payments/webhook] paid push notify failed", e);
@@ -161,7 +183,31 @@ export async function handlePaidEvent(evt: any): Promise<void> {
           ...(platformFeeCents !== null ? { platform_fee_cents: platformFeeCents } : {}),
         })
         .eq("id", existing.id);
-    } else {
+    } else if (paymentIntent) {
+      // The matching `payment_intent.succeeded` may have landed first and
+      // inserted a paid row keyed only on stripe_payment_intent (no session
+      // id). Backfill the session id onto that row and short-circuit so we
+      // don't insert a duplicate paid row and re-fire email + push.
+      const { data: existingByPi } = await supabaseAdmin
+        .from("invoice_payments")
+        .select("id")
+        .eq("stripe_payment_intent", paymentIntent)
+        .maybeSingle();
+      if (existingByPi) {
+        await supabaseAdmin
+          .from("invoice_payments")
+          .update({
+            stripe_session_id: sessionId,
+            status: "paid",
+            paid_at: new Date().toISOString(),
+            customer_email: customerEmail ?? null,
+            ...(platformFeeCents !== null ? { platform_fee_cents: platformFeeCents } : {}),
+          })
+          .eq("id", existingByPi.id);
+        return;
+      }
+    }
+    if (!existing) {
       await supabaseAdmin.from("invoice_payments").insert({
         user_id: userId,
         quote_id: quoteId,
@@ -328,7 +374,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
   }
 
   // Best-effort push to the trader (never throws)
-  await notifyTraderOfPayment({ userId, quoteId, amountCents, currency });
+  await notifyTraderOfPayment({ userId, quoteId, amountCents, currency, requestType });
 }
 
 
