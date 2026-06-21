@@ -455,22 +455,31 @@ function MessagesInbox() {
     for (const t of threads) {
       if (t.last.sender === "system" && t.unread === 0) continue;
       const who = t.last.sender === "customer" ? "Customer" : t.last.sender === "system" ? "Auto-reply" : "You";
+      const threadUnread = t.unread > 0;
       items.push({
         id: `thread-${t.quote_id}`,
         rawId: t.quote_id,
         kind: "thread",
         ts: t.last.created_at,
-        unread: t.unread > 0,
+        unread: threadUnread,
         icon: MessageSquare,
         title: `${who} replied`,
         body: t.last.body,
         detailBody: t.last.body,
-        markRead: t.unread > 0 ? () => void handleThreadRead(t.quote_id) : undefined,
+        markRead: threadUnread ? () => void handleThreadRead(t.quote_id) : undefined,
+        toggleRead: async () => {
+          if (threadUnread) await markThread({ data: { quoteId: t.quote_id } }).catch(() => {});
+          else await markThreadUn({ data: { quoteId: t.quote_id } }).catch(() => {});
+          void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+          void load();
+          toast.success(threadUnread ? "Marked as read" : "Marked as unread");
+        },
+        canDelete: false,
         primary: {
           label: "Open conversation",
           icon: ArrowRight,
           run: () => {
-            if (t.unread > 0) void handleThreadRead(t.quote_id);
+            if (threadUnread) void handleThreadRead(t.quote_id);
             navigate({ to: "/quotes/$quoteId", params: { quoteId: t.quote_id }, search: { tab: "messages" } });
           },
         },
@@ -478,17 +487,32 @@ function MessagesInbox() {
     }
 
     for (const n of notifications) {
+      const notifUnread = !n.read_at;
       items.push({
         id: `notif-${n.id}`,
         rawId: n.id,
         kind: "notification",
         ts: n.created_at,
-        unread: !n.read_at,
+        unread: notifUnread,
         icon: iconForNotification(n.kind),
         title: n.title,
         body: n.body || "",
         detailBody: n.body || "",
-        markRead: !n.read_at ? () => void handleNotifRead(n.id) : undefined,
+        markRead: notifUnread ? () => void handleNotifRead(n.id) : undefined,
+        toggleRead: async () => {
+          if (notifUnread) await markNotifRead({ data: { id: n.id } }).catch(() => {});
+          else await markNotifUnread({ data: { id: n.id } }).catch(() => {});
+          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+          void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+          toast.success(notifUnread ? "Marked as read" : "Marked as unread");
+        },
+        canDelete: true,
+        doDelete: async () => {
+          await deleteNotif({ data: { id: n.id } }).catch(() => {});
+          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+          void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+          toast.success("Deleted");
+        },
         primary: n.url
           ? {
               label: "Open",
