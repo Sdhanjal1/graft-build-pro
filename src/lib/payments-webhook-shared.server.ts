@@ -38,17 +38,12 @@ async function sendBrandedInvoiceEmail(opts: {
   paymentMethod: string;
   requestType: string;
   depositPaidCents?: number;
-}) {
+}): Promise<{ status: "sent" | "skipped" | "failed"; to?: string; error?: string }> {
   try {
     const { sendAndRecordInvoiceEmail } = await import("@/lib/invoice-email.server");
-    // Deposits get a dedicated "deposit-received" email so the customer sees
-    // an orange "deposit received · balance £Y due" badge instead of a green
-    // PAID-IN-FULL receipt. Balance payments use a receipt with the prior
-    // deposit credited so the body reads "balance £Y collected · deposit £X
-    // already credited · total £T" rather than re-claiming the full total.
     const isDeposit = opts.requestType === "deposit";
     const isBalance = opts.requestType === "balance";
-    await sendAndRecordInvoiceEmail({
+    const outcome = await sendAndRecordInvoiceEmail({
       userId: opts.userId,
       quoteId: opts.quoteId,
       customerEmailOverride: opts.customerEmail ?? null,
@@ -63,11 +58,16 @@ async function sendBrandedInvoiceEmail(opts: {
         ? opts.depositPaidCents
         : undefined,
     });
+    if (outcome.status === "sent") return { status: "sent", to: outcome.to };
+    if (outcome.status === "skipped") return { status: "skipped", error: outcome.reason };
+    return { status: "failed", error: outcome.error, to: outcome.to };
   } catch (e) {
     // NEVER let an email failure break the webhook.
     console.error("[payments/webhook] sendBrandedInvoiceEmail failed", e);
+    return { status: "failed", error: e instanceof Error ? e.message : "Unknown error" };
   }
 }
+
 
 /**
  * Process a paid Stripe event (checkout.session.completed,
