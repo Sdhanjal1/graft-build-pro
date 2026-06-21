@@ -130,36 +130,37 @@ function QuotesPage() {
         action={{ to: "/quotes/new", search: { voice: 1 }, label: "+ New" }}
       />
 
-      {/* FOCAL PIPELINE — paper editorial card */}
-      <div className="px-4 mt-3">
-        <div className="rounded-2xl bg-paper border border-ink/10 p-5">
+      {/* FOCAL PIPELINE — ink band, edge-to-edge inside the shell */}
+      <section className="mt-3 bg-ink text-paper rounded-[1.5rem] mx-4 px-5 py-6 relative overflow-hidden">
+        <span aria-hidden className="absolute -top-16 -right-16 h-44 w-44 rounded-full bg-lime/12 blur-2xl pointer-events-none" />
+        <div className="relative">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-ink/80">Pipeline</p>
-            <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-ink/80 tabular-nums">
+            <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-paper/75">Pipeline</p>
+            <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-paper/75 tabular-nums">
               {pipelineCount} quote{pipelineCount === 1 ? "" : "s"}
             </p>
           </div>
           <p
-            className="mt-2 leading-[0.85] tabular-nums text-ink"
+            className="mt-2 leading-[0.85] tabular-nums text-lime"
             style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.25rem, 13vw, 4.75rem)" }}
           >
             <CountUpGBP value={pipelineTotal} />
           </p>
-          <div className="mt-3 h-1 w-12 rounded-full bg-lime" />
+          <div className="mt-3 h-1 w-12 rounded-full bg-lime/80" />
           {toCollectCount > 0 && (
             <>
-              <div className="mt-5 pt-4 border-t border-ink/10 grid grid-cols-2 gap-4">
+              <div className="mt-5 pt-4 border-t border-paper/15 grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-ink/80">Awaiting</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-paper/75">Awaiting</p>
                   <p
-                    className="mt-1 leading-none tabular-nums text-ink"
+                    className="mt-1 leading-none tabular-nums text-paper"
                     style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.75rem" }}
                   >
                     {formatGBP(awaitingTile.total)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-status-overdue/80">Overdue</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-status-overdue/90">Overdue</p>
                   <p
                     className="mt-1 leading-none tabular-nums text-status-overdue"
                     style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.75rem" }}
@@ -170,7 +171,7 @@ function QuotesPage() {
               </div>
               <Link
                 to="/chaser"
-                className="mt-4 inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-ink text-paper text-[11px] font-bold uppercase tracking-[0.15em] active:scale-[0.97]"
+                className="mt-4 inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-lime text-ink text-[11px] font-bold uppercase tracking-[0.15em] active:scale-[0.97]"
               >
                 {formatGBP(toCollectTotal)} to collect
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -178,7 +179,8 @@ function QuotesPage() {
             </>
           )}
         </div>
-      </div>
+      </section>
+
 
 
 

@@ -177,7 +177,7 @@ function AppHomePage() {
     <AppShell>
       <div className="flex flex-col min-h-[calc(100dvh-7rem)]">
         {/* Ink header: greeting + hero £ */}
-        <header className="bg-surface text-paper rounded-b-[1.5rem] px-5 pt-6 pb-7 relative overflow-hidden">
+        <header className="bg-ink text-paper rounded-b-[1.75rem] px-5 pt-7 pb-8 relative overflow-hidden shadow-[0_12px_30px_-18px_rgba(0,0,0,0.45)]">
           <span aria-hidden className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-lime/15 blur-2xl pointer-events-none" />
           <div className="relative flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
