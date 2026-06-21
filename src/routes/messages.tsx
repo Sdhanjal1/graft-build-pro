@@ -6,11 +6,12 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { getInbox, markThreadRead } from "@/lib/messages.functions";
-import { getMyIncomingRequests, markRequestRead, deleteQuoteRequest } from "@/lib/quote-requests.functions";
+import { getInbox, markThreadRead, markThreadUnread } from "@/lib/messages.functions";
+import { getMyIncomingRequests, markRequestRead, markRequestUnread, deleteQuoteRequest } from "@/lib/quote-requests.functions";
 import {
   listMyNotifications,
   markNotificationRead,
+  markNotificationUnread,
   markAllNotificationsRead,
   deleteNotification,
   type NotificationRow,
@@ -35,6 +36,8 @@ import {
   X,
   ArrowRight,
   Check,
+  MailOpen,
+  Mail,
 } from "lucide-react";
 import {
   Sheet,
@@ -46,6 +49,7 @@ import {
 } from "@/components/ui/sheet";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { EmptyState } from "@/components/EmptyState";
+import { SwipeRow } from "@/components/SwipeRow";
 
 
 type QuoteMessage = Database["public"]["Tables"]["quote_messages"]["Row"];
@@ -175,6 +179,12 @@ type FeedItem = {
   primary?: { label: string; run: () => void; icon?: React.ComponentType<{ className?: string }> };
   /** Mark-as-read fn used when opening the preview. */
   markRead?: () => void;
+  /** Toggle read state from a swipe — both directions handled per current state. */
+  toggleRead: () => Promise<void> | void;
+  /** Whether this item can be deleted (threads can't — would lose history). */
+  canDelete: boolean;
+  /** Delete fn (called from swipe). No-op if canDelete is false. */
+  doDelete?: () => Promise<void> | void;
 };
 
 function FeedRow({
@@ -204,7 +214,7 @@ function FeedRow({
     else onPreview();
   };
 
-  return (
+  const rowInner = (
     <button
       type="button"
       onClick={handleClick}
@@ -247,6 +257,22 @@ function FeedRow({
       </div>
     </button>
   );
+
+  // In selection mode we disable swipe so taps don't conflict with selection.
+  if (selectionMode) return rowInner;
+
+  return (
+    <SwipeRow
+      onChase={() => item.toggleRead()}
+      chaseLabel={item.unread ? "Read" : "Unread"}
+      chaseIcon={item.unread ? MailOpen : Mail}
+      chaseClassName="bg-lime text-ink"
+      onDelete={item.canDelete && item.doDelete ? () => item.doDelete!() : undefined}
+      confirmLabel="Delete"
+    >
+      {rowInner}
+    </SwipeRow>
+  );
 }
 
 function MessagesInbox() {
@@ -254,9 +280,12 @@ function MessagesInbox() {
   const fetchRequests = useServerFn(getMyIncomingRequests);
   const fetchNotifs = useServerFn(listMyNotifications);
   const markReqRead = useServerFn(markRequestRead);
+  const markReqUnread = useServerFn(markRequestUnread);
   const markNotifRead = useServerFn(markNotificationRead);
+  const markNotifUnread = useServerFn(markNotificationUnread);
   const markAllNotifsRead = useServerFn(markAllNotificationsRead);
   const markThread = useServerFn(markThreadRead);
+  const markThreadUn = useServerFn(markThreadUnread);
   const deleteNotif = useServerFn(deleteNotification);
   const deleteReq = useServerFn(deleteQuoteRequest);
   const queryClient = useQueryClient();
@@ -385,18 +414,33 @@ function MessagesInbox() {
     const items: FeedItem[] = [];
 
     for (const r of requests) {
+      const wasUnread = !r.read_at;
       items.push({
         id: `req-${r.id}`,
         rawId: r.id,
         kind: "request",
         ts: r.created_at,
-        unread: !r.read_at,
+        unread: wasUnread,
         icon: r.source === "voice" ? VoiceWaveform : FileText,
         title: r.customer_name ? `New request · ${r.customer_name}` : "New job request",
         body: r.body || "",
         detailBody: r.body || "",
         meta: r.customer_phone || undefined,
-        markRead: !r.read_at ? () => void handleRequestRead(r.id) : undefined,
+        markRead: wasUnread ? () => void handleRequestRead(r.id) : undefined,
+        toggleRead: async () => {
+          if (wasUnread) await markReqRead({ data: { id: r.id } }).catch(() => {});
+          else await markReqUnread({ data: { id: r.id } }).catch(() => {});
+          void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+          void load();
+          toast.success(wasUnread ? "Marked as read" : "Marked as unread");
+        },
+        canDelete: true,
+        doDelete: async () => {
+          await deleteReq({ data: { id: r.id } }).catch(() => {});
+          void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+          void load();
+          toast.success("Deleted");
+        },
         primary: {
           label: "Create quote",
           icon: Sparkles,
@@ -411,22 +455,31 @@ function MessagesInbox() {
     for (const t of threads) {
       if (t.last.sender === "system" && t.unread === 0) continue;
       const who = t.last.sender === "customer" ? "Customer" : t.last.sender === "system" ? "Auto-reply" : "You";
+      const threadUnread = t.unread > 0;
       items.push({
         id: `thread-${t.quote_id}`,
         rawId: t.quote_id,
         kind: "thread",
         ts: t.last.created_at,
-        unread: t.unread > 0,
+        unread: threadUnread,
         icon: MessageSquare,
         title: `${who} replied`,
         body: t.last.body,
         detailBody: t.last.body,
-        markRead: t.unread > 0 ? () => void handleThreadRead(t.quote_id) : undefined,
+        markRead: threadUnread ? () => void handleThreadRead(t.quote_id) : undefined,
+        toggleRead: async () => {
+          if (threadUnread) await markThread({ data: { quoteId: t.quote_id } }).catch(() => {});
+          else await markThreadUn({ data: { quoteId: t.quote_id } }).catch(() => {});
+          void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+          void load();
+          toast.success(threadUnread ? "Marked as read" : "Marked as unread");
+        },
+        canDelete: false,
         primary: {
           label: "Open conversation",
           icon: ArrowRight,
           run: () => {
-            if (t.unread > 0) void handleThreadRead(t.quote_id);
+            if (threadUnread) void handleThreadRead(t.quote_id);
             navigate({ to: "/quotes/$quoteId", params: { quoteId: t.quote_id }, search: { tab: "messages" } });
           },
         },
@@ -434,17 +487,32 @@ function MessagesInbox() {
     }
 
     for (const n of notifications) {
+      const notifUnread = !n.read_at;
       items.push({
         id: `notif-${n.id}`,
         rawId: n.id,
         kind: "notification",
         ts: n.created_at,
-        unread: !n.read_at,
+        unread: notifUnread,
         icon: iconForNotification(n.kind),
         title: n.title,
         body: n.body || "",
         detailBody: n.body || "",
-        markRead: !n.read_at ? () => void handleNotifRead(n.id) : undefined,
+        markRead: notifUnread ? () => void handleNotifRead(n.id) : undefined,
+        toggleRead: async () => {
+          if (notifUnread) await markNotifRead({ data: { id: n.id } }).catch(() => {});
+          else await markNotifUnread({ data: { id: n.id } }).catch(() => {});
+          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+          void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+          toast.success(notifUnread ? "Marked as read" : "Marked as unread");
+        },
+        canDelete: true,
+        doDelete: async () => {
+          await deleteNotif({ data: { id: n.id } }).catch(() => {});
+          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+          void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+          toast.success("Deleted");
+        },
         primary: n.url
           ? {
               label: "Open",
@@ -460,7 +528,8 @@ function MessagesInbox() {
 
     items.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
     return items;
-  }, [requests, threads, notifications, handleRequestRead, handleThreadRead, handleNotifRead, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requests, threads, notifications]);
 
   const visibleFeed = useMemo(() => {
     if (filter === "unread") return feed.filter((i) => i.unread);
