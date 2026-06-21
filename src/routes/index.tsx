@@ -154,13 +154,13 @@ function HomePage() {
       </section>
 
       {/* WHAT IT DOES */}
-      <section className="bg-ink text-paper">
+      <section className="bg-paper text-ink border-t border-ink/10">
         <div className="mx-auto max-w-6xl px-5 md:px-8 py-20 md:py-28">
-          <h2 className="text-4xl md:text-6xl leading-[0.95] text-paper max-w-3xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            Quottr does the bits <span className="text-lime">other software won't.</span>
+          <h2 className="text-4xl md:text-6xl leading-[0.95] text-ink max-w-3xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+            Quottr does the bits <span className="text-ink bg-lime px-2 box-decoration-clone">other software won't.</span>
           </h2>
 
-          <div className="mt-14 grid gap-px bg-paper/10 md:grid-cols-2 rounded-3xl overflow-hidden">
+          <div className="mt-14 grid gap-px bg-ink/10 md:grid-cols-2 rounded-3xl overflow-hidden border border-ink/10">
             {[
               {
                 kicker: "Voice",
@@ -183,24 +183,24 @@ function HomePage() {
                 body: "Customers pay by card the second they approve the quote — deposit or balance straight to your account. No awkward calls, no waiting till next month.",
               },
             ].map((f) => (
-              <div key={f.title} className="bg-ink p-8 md:p-10">
-                <span className="text-[11px] uppercase tracking-[0.2em] font-bold text-lime">{f.kicker}</span>
-                <h3 className="mt-4 text-3xl md:text-4xl text-paper leading-[0.95]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{f.title}</h3>
-                <p className="mt-3 text-paper/70 leading-relaxed max-w-md">{f.body}</p>
+              <div key={f.title} className="bg-card p-8 md:p-10">
+                <span className="text-[11px] uppercase tracking-[0.2em] font-bold text-ink/60">{f.kicker}</span>
+                <h3 className="mt-4 text-3xl md:text-4xl text-ink leading-[0.95]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{f.title}</h3>
+                <p className="mt-3 text-ink/70 leading-relaxed max-w-md">{f.body}</p>
               </div>
             ))}
           </div>
 
           {/* Coming soon callout — visually distinct, not part of the live feature grid above */}
-          <div className="mt-8 rounded-2xl border border-dashed border-lime/40 bg-paper/5 p-6 md:p-7 flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
-            <span className="inline-flex items-center self-start rounded-full bg-lime/15 text-lime border border-lime/30 px-3 py-1 text-[11px] uppercase tracking-[0.2em] font-bold">
+          <div className="mt-8 rounded-2xl border border-dashed border-ink/30 bg-ink/[0.03] p-6 md:p-7 flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+            <span className="inline-flex items-center self-start rounded-full bg-ink text-paper px-3 py-1 text-[11px] uppercase tracking-[0.2em] font-bold">
               Coming soon
             </span>
             <div className="flex-1">
-              <h3 className="text-xl md:text-2xl text-paper leading-tight" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+              <h3 className="text-xl md:text-2xl text-ink leading-tight" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                 Tap to Pay on iPhone
               </h3>
-              <p className="mt-1 text-sm md:text-base text-paper/65 leading-relaxed">
+              <p className="mt-1 text-sm md:text-base text-ink/65 leading-relaxed">
                 Tap a customer's card right on your phone, on site. In the works — not available yet.
               </p>
             </div>
