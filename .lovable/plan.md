@@ -1,70 +1,175 @@
-# Re-issue quote on total change
+## Brand tokens + unified StatusBadge
 
-When an edit changes a live quote's total, revert it to `sent` so the customer must re-accept. Block the edit if a paid deposit would exceed the new total.
+Tokens-and-one-component change. No layout, logic, or payment flows touched.
 
-## Data layer — `src/lib/user-data.ts`
+### Important framework note
 
-Add a shared helper `maybeReissueOnTotalChange(q, newTotal)` used by every edit path that mutates totals.
+This project is on **Tailwind v4** (CSS-first config in `src/styles.css` via `@theme inline`; there is no `tailwind.config.js` and creating one is a no-op). I'll honour the spirit of Step 1 by registering the new tokens in `@theme inline` so utilities like `bg-paid`, `text-due-text`, `bg-lime`, `border-lime`, `font-display`, `font-body` resolve exactly as you'd expect — same DX, correct stack.
 
-Behaviour:
-- No-op unless `q.status` is `"sent"` or `"accepted"` AND `Math.abs(newTotal - q.total) > 0.005`.
-- Query paid deposit:
-  ```ts
-  const { data } = await supabase
-    .from("invoice_payments")
-    .select("amount_cents")
-    .eq("quote_id", q.id)
-    .eq("request_type", "deposit")
-    .eq("status", "paid");
-  const depositPaid = (data ?? []).reduce((s, r) => s + (r.amount_cents ?? 0), 0) / 100;
-  ```
-- If `depositPaid > 0 && newTotal < depositPaid - 0.005`, throw:
-  `New total £X is below the £Y deposit already paid. Refund the difference in Stripe first, then edit.` (amounts via `formatGBP`). The caller must throw before persisting; integrate the check BEFORE the `supabase.from("quotes").update(...)` call so a blocked edit never reaches the DB.
-- Otherwise: `await supabase.from("quotes").update({ status: "sent" }).eq("id", q.id)`, mutate `q.status = "sent"`, return `true` (signal to caller to tag `_reissued`).
-- Deposit fields (`deposit_amount`, `deposit_percent`) are never written.
+Existing `:root` currently defines `--lime`, `--ink`, `--paper` in `oklch()`. I'll replace those three values with the hex you specified and add the new scales alongside, so any token already referenced by shadcn (`--primary: var(--ink)`, `--accent: var(--lime)`, etc.) keeps working with the new hex values.
 
-Integrate into `updateQuoteLineItems` (the only existing total-mutating editor — there is no `updateQuote` today; if a future full-edit function is added it must call the same helper):
-1. Compute totals.
-2. Call helper with new `total` — pre-check; if it throws, abort.
-3. Run the existing `supabase.update({ line_items, subtotal, vat_amount, total })`. If the helper reissued, status was already flipped server-side in step 2 (separate update is fine; or merge into one update by including `status: "sent"` in the same patch when reissued — preferred to keep it atomic).
-4. After mutating `q`, if reissued tag the returned object:
-   ```ts
-   Object.defineProperty(q, "_reissued", { value: true, enumerable: false, configurable: true, writable: true });
-   ```
-   `enumerable: false` keeps it out of `JSON.stringify` and any future `{ ...q }` writes.
+---
 
-Type: extend the `Quote` type (or a local interface) with optional `_reissued?: boolean` so TS allows consumers to read it.
+### Step 1 — Tokens in `src/styles.css`
 
-## UI — `src/routes/quotes.$quoteId.tsx`
+Under `:root`, add the full hex palette you listed:
 
-`LineItemsEditor` currently doesn't read `_reissued`. Wire it:
+- Brand: `--lime`, `--ink`, `--paper` (replace existing oklch values with your hex)
+- Scales: `--lime-50…900`, `--ink-50…900`
+- Surfaces: `--surface-canvas`, `--surface-card`, `--surface-sunken`
+- Status pairs: `--paid` / `--paid-bg` / `--paid-text`, `--due` / `--due-bg` / `--due-text`, `--failed` / `--failed-bg` / `--failed-text`, `--sent` / `--sent-bg` / `--sent-text`
+- Borders: `--border`, `--border-hover`, `--border-lime`
+- Fonts: `--font-display: 'Bebas Neue'`, `--font-body: 'DM Sans'`
+- Radii: `--r-md`, `--r-lg`, `--r-pill`
 
-1. Add `onReissued?: (newStatus: QuoteStatus) => void` to its props.
-2. In `persist()`, capture the returned quote: `const updated = await updateQuoteLineItems(...)`. If `updated?._reissued`, call `onReissued?.(updated.status)`. Errors thrown by the helper already surface through the existing `toast.error(e.message)` in the `catch`.
-3. Parent (line ~962) passes:
-   ```ts
-   onReissued={(newStatus) => {
-     setStatus(newStatus); // existing on-screen status state
-     const firstName = client?.name?.split(" ")[0] ?? "your customer";
-     toast("Quote updated — total changed", {
-       description: `${firstName} needs to re-accept. Re-share the updated quote.`,
-       duration: 10000,
-       action: { label: "Re-share", onClick: () => setSendOpen(true) },
-     });
-   }}
-   ```
-   Use whatever local state currently mirrors `quote.status` on this screen; if status is read directly from `quote`, also bump the local quote snapshot / `bumpVersion` subscriber so the screen re-renders into the `sent` action set.
+Existing shadcn tokens (`--background`, `--card`, `--primary`, `--accent`, etc.) keep their current mappings — they already reference `--paper`/`--ink`/`--lime`, so they pick up the new hex automatically. No component restyle.
 
-## Notes / out of scope
+In the existing `@theme inline` block, map the new tokens so Tailwind utilities resolve:
 
-- No edge function, no migration. Pure client-side logic against existing `invoice_payments` rows (already populated by the Stripe webhook).
-- Acceptance gating already uses `["pending","sent"]`, so flipping to `sent` automatically re-opens the accept path on the portal — no portal changes needed.
-- Existing portal token stays valid; "Re-share" reuses `SendQuoteDialog` (`setSendOpen(true)`), matching the original send path. The invoice-email pipeline is not touched.
-- Deposit recompute paths are untouched; balance is already derived live as `total − deposit`.
+```css
+--color-lime-50: var(--lime-50);  /* …through 900 */
+--color-ink-50:  var(--ink-50);   /* …through 900 */
+--color-surface-canvas: var(--surface-canvas);
+--color-surface-card:   var(--surface-card);
+--color-surface-sunken: var(--surface-sunken);
+--color-paid: var(--paid);
+--color-paid-bg: var(--paid-bg);
+--color-paid-text: var(--paid-text);
+/* same shape for due / failed / sent */
+--color-border-lime: var(--border-lime);
+--radius-pill: var(--r-pill);
+```
 
-## Manual test checklist
+`--font-display` and `--font-sans` are already declared in `@theme inline`; I'll keep `font-sans` pointing at DM Sans and add `--font-body: var(--font-body)` so `font-body` also resolves.
 
-1. Edit a `sent` quote up by £50 → status reverts to `sent`, toast with "Re-share" appears, tapping it opens `SendQuoteDialog`.
-2. Edit an `accepted` quote with a £300 paid deposit down to £200 → edit blocked, toast shows the refund-first message, status unchanged, DB row unchanged.
-3. Edit a `paid` or `completed` quote (total change) → no reissue, no toast (status filter excludes them).
-4. After reissue, `deposit_amount` / `deposit_percent` in DB are unchanged; portal balance recalculates from new total.
+Bebas Neue + DM Sans need to be loaded via a `<link>` in `src/routes/__root.tsx` (Tailwind v4 / Lightning CSS will not resolve `@import` of a remote font URL from `styles.css`). I'll check whether they're already loaded and only add the `<link>` if missing.
+
+### Step 2 — Apply the three rules
+
+Restricted to brand surfaces; payment/business logic untouched.
+
+1. **Money-confirmed = green, not lime.** Audit `src/components/StatusBadge.tsx`, `src/lib/status-styles.ts`, `src/routes/quotes.index.tsx`, `src/routes/quotes.$quoteId.tsx`, `src/routes/portal.$token.tsx`, `src/routes/invoices.$quoteId.tsx`, `src/components/CustomerPortalPanel.tsx` for any `bg-lime`/`text-lime`/lime dot used to signal "paid" / "deposit received" / success ticks, and swap those specific occurrences to the `--paid` token trio. Lime remains for primary CTA only (`.btn-lime`, single hero number — `.money-hero` keeps its lime accent as a hero figure, not a money-confirmed signal).
+2. **Text on lime = `--ink`.** Sweep for `bg-lime` paired with `text-white`/`text-paper`/`text-background` and switch to `text-ink`. (Quick `rg "bg-lime[^\"]*text-(white|paper|background)"` across `src`.)
+3. **Bebas Neue scope.** Bebas is already wired via `font-display` and the `h1–h4` base rule. Keep that. Audit `.num` (ledger £ amounts) — it currently inherits `var(--font-display)`, which violates rule 3 — switch `.num` to `var(--font-body)` with tabular-nums so amounts read as DM Sans. `.money-hero` (single hero figure on dashboard) stays display.
+
+No other typography or colour changes.
+
+### Step 3 — Unified `StatusBadge`
+
+Rewrite `src/components/StatusBadge.tsx` as the single source of truth:
+
+```ts
+type Status =
+  | "draft" | "sent" | "accepted"
+  | "deposit-paid" | "balance-due"
+  | "paid" | "failed" | "declined" | "overdue";
+
+<StatusBadge status={status} amount={amount?} />
+```
+
+- Pill: `inline-flex items-center gap-1.5 rounded-[var(--r-md)] px-2.5 py-1 text-xs font-semibold`
+- Dot (or `Check` for `paid`) in the status colour
+- Label + optional formatted `amount` in the `*-text` token
+- Token map:
+  - `draft` → text `ink-400` on `ink-50`
+  - `sent` → `--sent-text` on `--sent-bg`, dot `--sent`, label "Sent"
+  - `accepted` → same palette as sent, label "Accepted"
+  - `deposit-paid` → `--paid-text` on `--paid-bg`, dot `--paid`, label "Deposit paid"
+  - `balance-due` → `--due-text` on `--due-bg`, dot `--due`, label "Balance due"
+  - `overdue` → `--due` family, label "Overdue"
+  - `paid` → `--paid-text` on `--paid-bg`, **tick** in `--paid`, label "Paid"
+  - `failed` → `--failed-text` on `--failed-bg`, label "Payment failed"
+  - `declined` → `--failed` family, label "Declined"
+
+To keep call sites working without churn, add an internal mapper from the existing `QuoteStatus` (`pending|sent|accepted|declined|completed|paid|overdue` + `"invoiced"`) to the new prop set, so `<StatusBadge status="paid" />` etc. compile unchanged. The existing `StatusBadge` callers in `quotes.index.tsx`, `quotes.$quoteId.tsx`, `clients.$clientId.tsx` keep their current props.
+
+Replace inline status pills in:
+
+- `src/routes/portal.$token.tsx` — any ad-hoc green/amber/blue pills for sent/accepted/deposit-paid/paid → `<StatusBadge>`
+- `src/components/CustomerPortalPanel.tsx` — same
+- `src/routes/invoices.$quoteId.tsx` — paid/balance-due chips → `<StatusBadge>`
+
+`src/lib/status-styles.ts` stays (still used by `StatusBadge`'s mapper for legacy `QuoteStatus`), but its colour classes get realigned to the new token names in the same pass so direct consumers stay consistent.
+
+### Out of scope
+
+Dark mode, payment logic, layout, copy outside the badge labels above.
+
+### Files touched
+
+- `src/styles.css` — tokens + `@theme inline` mapping + `.num` font swap
+- `src/routes/__root.tsx` — add Bebas/DM Sans `<link>` only if not already present
+- `src/components/StatusBadge.tsx` — rewritten with new prop set + legacy mapper
+- `src/lib/status-styles.ts` — token class names realigned
+- `src/routes/portal.$token.tsx`, `src/components/CustomerPortalPanel.tsx`, `src/routes/invoices.$quoteId.tsx`, `src/routes/quotes.index.tsx`, `src/routes/quotes.$quoteId.tsx` — swap ad-hoc status pills + any lime "paid" indicators / `text-white`-on-lime to the new tokens
+
+### Test
+
+- Quotes list, quote detail, portal, invoice page: every status pill renders via `<StatusBadge>` with the correct token pair.
+- Any "deposit received" / "paid" tick is green (`--paid`), not lime.
+- No `bg-lime` paired with white/paper text remains.
+- £ amounts render in DM Sans; only the wordmark and `.money-hero` figure render in Bebas.
+
+ADDITIONAL NOTES — confirm/handle these before building:
+
+1. oklch → hex swap: After replacing --lime/--ink/--paper, confirm the app
+
+   still renders and that no shadcn component relied on oklch-format math for
+
+   those vars (some v4 shadcn setups compute hover/ring shades from oklch). If
+
+   anything breaks, keep the var name but provide the hex in a format that
+
+   component expects.
+
+2. --accent = --lime is a contrast trap. The Step 2 sweep only catches literal
+
+   bg-lime + text-white/paper. It will NOT catch shadcn components that put text
+
+   on an --accent-derived fill (dropdown highlights, selected/hover states,
+
+   command menu). Audit every consumer of --accent separately and apply
+
+   text-on-lime = --ink there too. Flag any you find.
+
+3. StatusBadge legacy mapper must cover the FULL QuoteStatus union:
+
+   pending | sent | accepted | declined | completed | paid | overdue | invoiced.
+
+   The plan lists the new prop set but doesn't map "completed" or "pending".
+
+   Map: pending → draft, completed → paid (or its own "Completed" label if you
+
+   prefer), invoiced → balance-due or paid per current behaviour. Don't let any
+
+   legacy status fall through unmapped.
+
+4. Add a DEFAULT fallback in StatusBadge for unknown/unmapped status → render
+
+   the neutral "draft" style, never an unstyled or broken pill.
+
+5. Don't let the .num font swap hit non-money numbers. If .num is used anywhere
+
+   for non-currency values (counts, dates, refs), confirm switching it to
+
+   --font-body is still correct there, or scope the swap to the ledger/amount
+
+   context only.
+
+6. After the pill replacements, verify the portal deposit-paid state still
+
+   shows the deposit story ONCE — replacing ad-hoc pills with <StatusBadge>
+
+   must not reintroduce a duplicate "paid"/"deposit" indicator alongside the
+
+   existing card/strip/bar logic.
+
+7. tabular-nums: when switching .num to DM Sans, confirm DM Sans tabular figures
+
+   are actually loaded/available; if the weight loaded doesn't include tabular
+
+   variants, amounts may shift width. Acceptable, but verify alignment in the
+
+   ledger doesn't jump.
+
+&nbsp;
