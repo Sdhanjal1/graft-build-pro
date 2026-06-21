@@ -1656,9 +1656,9 @@ function RequestOption({ label, amount, onClick }: { label: string; amount: stri
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="num">{value}</span>
+    <div className="flex items-center justify-between">
+      <span className="t-body text-muted-foreground">{label}</span>
+      <span className="t-amount font-semibold tabular-nums">{value}</span>
     </div>
   );
 }
