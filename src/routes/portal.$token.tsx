@@ -504,24 +504,34 @@ function PortalPage() {
                 <CreditCard className="h-4 w-4 text-ink" />
                 <p className="text-sm font-bold text-ink">Pay by card</p>
               </div>
-              <button
-                onClick={() => (isPreAccept ? onRespond("accepted") : onPay(payRequestType))}
-                onPointerDown={() => feedback("tap")}
-                disabled={paying || responding}
-                className="w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
-              >
-                {(paying || responding) ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                <span className="truncate">
-                  {isPreAccept
-                    ? `${isDepositFlow ? "Accept & pay deposit" : "Accept & pay"} ${formatGBP(payAmount)}`
-                    : `${isDepositFlow ? "Pay deposit" : "Pay now"} ${formatGBP(payAmount)}`}
-                </span>
-              </button>
-              {isDepositFlow && (
-                <p className="text-center text-[11px] text-muted-foreground mt-2">Balance of {formatGBP(balanceAmount)} due on completion.</p>
+              {isPreAccept ? (
+                <>
+                  <p className="text-center text-[11px] text-muted-foreground">
+                    Available after you accept.
+                  </p>
+                  <p className="text-center text-[10px] text-muted-foreground mt-2">Secured payment by Stripe</p>
+                  <WalletBadges className="mt-2" />
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => onPay(payRequestType)}
+                    onPointerDown={() => feedback("tap")}
+                    disabled={paying || responding}
+                    className="w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
+                  >
+                    {(paying || responding) ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    <span className="truncate">
+                      {`${isDepositFlow ? "Pay deposit" : "Pay now"} ${formatGBP(payAmount)}`}
+                    </span>
+                  </button>
+                  {isDepositFlow && (
+                    <p className="text-center text-[11px] text-muted-foreground mt-2">Balance of {formatGBP(balanceAmount)} due on completion.</p>
+                  )}
+                  <p className="text-center text-[10px] text-muted-foreground mt-2">Secured payment by Stripe</p>
+                  <WalletBadges className="mt-2" />
+                </>
               )}
-              <p className="text-center text-[10px] text-muted-foreground mt-2">Secured payment by Stripe</p>
-              <WalletBadges className="mt-2" />
             </div>
           )}
 
