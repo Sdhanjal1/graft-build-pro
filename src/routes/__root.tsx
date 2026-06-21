@@ -115,7 +115,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const path = router.state.location.pathname;
-  const MARKETING_PATHS = new Set(["/", "/welcome", "/pricing", "/about", "/features", "/faqs", "/trades", "/merch"]);
+  const MARKETING_PATHS = new Set(["/", "/welcome", "/pricing", "/about", "/features", "/faqs", "/trades", "/merch", "/terms", "/privacy"]);
   const NO_CHROME_PATHS = new Set([
     "/onboarding", "/welcome", "/confirmed",
     "/forgot-password", "/reset-password", "/auth",
