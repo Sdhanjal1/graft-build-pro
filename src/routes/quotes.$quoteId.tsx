@@ -794,72 +794,72 @@ function QuoteDetail() {
     <AppShell>
       <PageHeader title={quote.title} subtitle={quote.ref} back="/quotes" crumbs={["Quotes", quote.ref]} />
 
-      {/* Money summary — ink band, the page's payoff */}
-      <div className="mx-5 mt-4 rounded-2xl bg-ink text-paper overflow-hidden [&_.t-eyebrow]:text-paper/70 [&_.t-h3]:text-paper">
+      {/* Money summary card — glance-level total + status at the top */}
+      <div className="mx-5 mt-4 rounded-2xl bg-card border border-border overflow-hidden">
         {showSentBanner && (
-          <div className="bg-lime/20 px-4 py-3 flex items-center gap-3 border-b border-paper/15">
+          <div className="bg-lime/15 px-4 py-3 flex items-center gap-3 border-b border-border/60">
             <span className="h-8 w-8 rounded-full bg-lime/40 flex items-center justify-center shrink-0">
               <Check className="h-4 w-4 text-ink" strokeWidth={3} />
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-paper">Quote sent</p>
-              <p className="text-[11px] text-paper/75">We'll let you know when they open it.</p>
+              <p className="text-sm font-bold text-ink">Quote sent</p>
+              <p className="text-[11px] text-muted-foreground">We'll let you know when they open it.</p>
             </div>
           </div>
         )}
-        <div className="p-5 divide-y divide-paper/15">
+        <div className="p-5 divide-y divide-border/60">
           <div className="pb-4 flex items-start justify-between gap-3">
             <div className="grid grid-cols-2 gap-4 flex-1 min-w-0">
               <div>
                 <p className="t-eyebrow">Subtotal</p>
-                <p className="t-amount-md font-semibold tabular-nums mt-1 text-paper">{formatGBP(quote.subtotal || 0)}</p>
+                <p className="t-amount-md font-semibold tabular-nums mt-1">{formatGBP(quote.subtotal || 0)}</p>
               </div>
               {(quote.vat_registered ?? userProfile.vat_registered) && (
                 <div>
                   <p className="t-eyebrow">VAT (20%)</p>
-                  <p className="t-amount-md font-semibold tabular-nums mt-1 text-paper">{formatGBP(Number(quote.vat_amount) || (quote.subtotal || 0) * 0.2)}</p>
+                  <p className="t-amount-md font-semibold tabular-nums mt-1">{formatGBP(Number(quote.vat_amount) || (quote.subtotal || 0) * 0.2)}</p>
                 </div>
               )}
             </div>
             <StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />
           </div>
           <div className="py-4 flex items-center justify-between">
-            <p className="t-h3 inline-flex items-center gap-1.5 text-paper">
+            <p className="t-h3 inline-flex items-center gap-1.5">
               {status === "paid" && <Check className="h-4 w-4 text-status-paid" strokeWidth={3} />}
               Total
             </p>
-            <p className={`t-amount-xl font-semibold tabular-nums ${status === "paid" ? "text-status-paid" : "text-lime"}`}>
+            <p className={`t-amount-xl font-semibold tabular-nums ${status === "paid" ? "text-status-paid" : "text-ink"}`}>
               {formatGBP(quote.total || 0)}
             </p>
           </div>
           {timing === "deposit_then_balance" && configuredDeposit > 0 && (
             <div className="pt-4 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="t-body text-paper/75">Deposit due</span>
+                <span className="t-body text-muted-foreground">Deposit due</span>
                 <span className="t-amount font-bold tabular-nums text-status-pending">{formatGBP(configuredDeposit)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="t-body text-paper/75">Balance</span>
-                <span className="t-amount font-bold tabular-nums text-paper">{formatGBP((quote.total || 0) - Math.max(configuredDeposit, depositPaid))}</span>
+                <span className="t-body text-muted-foreground">Balance</span>
+                <span className="t-amount font-bold tabular-nums">{formatGBP((quote.total || 0) - Math.max(configuredDeposit, depositPaid))}</span>
               </div>
               {status !== "paid" && depositPaid === 0 && (
                 <button
                   type="button"
                   onClick={() => setRecordDepositOpen(true)}
-                  className="mt-2 w-full flex items-center justify-between gap-3 rounded-2xl border border-dashed border-paper/25 bg-paper/5 px-4 py-3 text-left active:bg-paper/10"
+                  className="mt-2 w-full flex items-center justify-between gap-3 rounded-2xl border border-dashed border-ink/20 bg-muted/40 px-4 py-3 text-left active:bg-muted"
                 >
                   <span className="flex items-center gap-2 text-sm">
-                    <Banknote className="h-4 w-4 text-paper/70" />
+                    <Banknote className="h-4 w-4 text-muted-foreground" />
                     <span>
-                      <span className="font-semibold text-paper">Deposit not yet received</span>
-                      <span className="block text-xs text-paper/70">Tap to record a bank or cash payment</span>
+                      <span className="font-semibold text-ink">Deposit not yet received</span>
+                      <span className="block text-xs text-muted-foreground">Tap to record a bank or cash payment</span>
                     </span>
                   </span>
-                  <ChevronRight className="h-4 w-4 text-paper/70 shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                 </button>
               )}
               {status !== "paid" && depositPaid > 0 && (
-                <div className="mt-2 flex items-center justify-between rounded-2xl bg-status-paid/15 px-4 py-3 text-sm">
+                <div className="mt-2 flex items-center justify-between rounded-2xl bg-status-paid/10 px-4 py-3 text-sm">
                   <span className="inline-flex items-center gap-2 font-semibold text-status-paid">
                     <Check className="h-4 w-4" strokeWidth={3} />
                     Deposit received

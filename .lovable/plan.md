@@ -1,53 +1,76 @@
-# Break Up the Beige with Ink Bands
+# Alignment, Spacing & Responsive Audit
 
-Keep the warm paper palette. Make beige feel deliberate by introducing one anchored dark-ink band per main screen so the eye has a clear contrast moment instead of one continuous cream wash.
+Goal: tighten visual rhythm so every screen uses the same gutter, vertical spacing, and header alignment, and behaves correctly from a 320px phone up to desktop.
 
-## Where the ink bands go
+## Scope
 
-Each band is a full-width-of-shell `bg-ink text-paper` section sitting inside the existing `AppShell`. No layout restructuring — only a wrapper swap on one existing section per screen.
+App shell + every authenticated route rendered inside `AppShell` (mobile-first, `max-w-md`), plus marketing routes rendered inside `MarketingShell` (desktop-capable). Portal and invoice public routes included.
 
-1. **`/app` (home)** — already has a dark hero header at the top. Tighten its rounded-bottom (`rounded-b-[1.75rem]`) and slightly increase its vertical padding so it reads as a deliberate "control deck" band. No new band added — fix the one that exists.
+## 1. Establish spacing + container tokens
 
-2. **`/quotes` (index)** — wrap the **totals/summary strip** (the "outstanding / overdue / paid this month" numbers that currently sit on cream) in an ink band with lime amounts. Status legend + filter chips stay on cream below. This gives the screen one strong horizontal break under the header.
+Add a small set of layout primitives in `src/styles.css` so we stop re-inventing paddings per page:
 
-3. **`/quotes/$quoteId` (detail)** — wrap the **totals block** (subtotal / VAT / total) in an ink band with the grand total in lime. The line items stay on cream cards above. Money becomes the visual climax of the page.
+- `--gutter-x` (16px mobile, 20px ≥sm, 24px ≥md) — used by a new `.page-x` utility (`padding-inline: var(--gutter-x)`)
+- `.page-y` — `padding-block` rhythm for top of route content (20/24/28)
+- `.stack-sm / .stack-md / .stack-lg` — vertical gap helpers (12 / 20 / 32) for sections inside a page
+- `.row-between` — `flex items-center justify-between gap-3` (kills the dozens of ad-hoc copies)
+- Confirm `pb-nav` clearance still matches the new bottom nav height (68 + 8 + 12 = 88px + safe area)
 
-4. **`/invoices/$quoteId`** — same treatment as the quote detail totals: ink band around the total + status + "mark paid" pill, line items on cream above.
+These are additive; existing classes keep working.
 
-5. **`/clients/$clientId`** — wrap the **client header strip** (name, avatar, lifetime value) in an ink band so each customer record opens with a strong identity moment, then activity cards on cream below.
+## 2. AppShell + PageHeader alignment fixes
 
-6. **`/settings`** — wrap the **profile / business identity** card at the top (logo, business name, trade) in an ink band. The settings list rows stay on cream.
+- `AppShell` switches its inner container to `max-w-md md:max-w-lg lg:max-w-xl` so tablet/desktop don't feel cramped, and applies `page-x` so every child route inherits the same gutter (remove per-route `px-4`/`px-5` duplication where it now double-pads).
+- `PageHeader` horizontal padding aligns with `--gutter-x` (currently 20px expanded / 16px condensed — keep condensed=16, expand=gutter so header edge matches body edge exactly).
+- Action pill, back button, and title use a single grid row (`grid-cols-[auto_minmax(0,1fr)_auto]`) so long titles truncate without pushing the action off-screen on 320px widths (current `flex` + `min-w-0` works but action wraps below on narrow screens with long subtitles).
+- Subtitle and crumb row inherit the same left edge as the title (currently offset by back-button width on some routes).
 
-7. **Portal/invoice public pages (`/portal/$token`, `/portal/c/$code`, `/invoices/$quoteId` public view)** — wrap the **amount-due hero** in an ink band with the figure in lime, "Pay now" pill in lime. Job details cream below.
+## 3. Per-route audit + normalisation
 
-## Visual rules for every ink band
+Walk every route file and:
 
-- Background: `bg-ink` (warm near-black we already ship).
-- Top + bottom edges: flush to the shell's horizontal padding, no inset gap, so the band reads as a real architectural element — not a floating card.
-- Internal padding: `py-6 px-5` (matches existing gutter).
-- Corner treatment: rounded only on the **outer** corners that meet the shell edge — `rounded-b-[1.75rem]` if it sits directly under the header, `rounded-[1.5rem]` if it floats mid-page with margin above/below. Never sharp corners.
-- Money inside the band uses `text-lime` at `t-amount-lg` / `t-amount-xl` — the lime-on-ink contrast is the screen's payoff.
-- Labels/eyebrows inside use `text-paper/70` `t-eyebrow`.
-- One ink band per screen. Never two — if a screen wants two, the second becomes a cream card with an ink border instead.
+- Replace ad-hoc `px-4 / px-5 / px-6` page padding with `page-x`.
+- Replace ad-hoc `space-y-3 / space-y-4 / space-y-6` section gaps with `stack-sm/md/lg`.
+- Standardise card internal padding to `p-4 sm:p-5` (currently mixes `p-3`, `p-4`, `p-5`, `p-6`).
+- Standardise section header rows to `.row-between` with a `t-eyebrow` label on the left and a single action on the right.
+- Ensure every header row containing text + widget follows the `grid-cols-[minmax(0,1fr)_auto] sm:flex` pattern from the responsive-layout rule (fixes truncation on `/quotes/$quoteId`, `/clients/$clientId`, `/invoices/$quoteId`, `/portal/$token`).
 
-## Spacing rhythm around bands
+Routes covered:
+`app`, `quotes.index`, `quotes.$quoteId`, `quotes.new`, `clients.index`, `clients.$clientId`, `clients.new`, `messages`, `chaser`, `settings`, `notifications`, `invoices.$quoteId`, `portal.$token`, `portal.c.$code`, `request.$proId`, `confirmed`, `onboarding`, `welcome`, `auth`, `forgot-password`, `reset-password`.
 
-- 20px gap between the band and whatever sits above/below it (using existing `--stack-md`).
-- Cards immediately under the band gain an additional `mt-1` "shadow lift" — uses the existing `card-surface` shadow, no new shadow token.
+## 4. Marketing + public pages responsive pass
+
+For `index`, `pricing`, `features`, `about`, `faqs`, `privacy`, `terms`, `trades.index`, `trades.$tradeSlug`, `merch`:
+
+- Confirm hero and section paddings scale `py-12 sm:py-16 md:py-24`.
+- Confirm grids use `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` (not fixed multi-column on mobile).
+- Confirm long headlines wrap (`text-balance`) and CTAs stack on <640px.
+
+## 5. Bottom nav + floating UI clearance
+
+- Verify `pb-nav` value matches current nav height (68 + paddings) — update token if off.
+- `PWAInstallBanner`, `UpdateBanner`, `OfflineBanner`, `TrialBanner`, `CookieBanner` all use `.bottom-nav` for their `bottom` value so they sit above the nav consistently.
+- Toast (`sonner`) offset bumped so it doesn't overlap the nav on mobile.
+
+## 6. Device verification
+
+Drive Playwright at three viewports against the running dev server and screenshot the key routes:
+
+- 360×740 (small Android)
+- 414×896 (iPhone)
+- 1280×1800 (desktop already used by harness)
+
+Routes captured: `/app`, `/quotes`, `/quotes/$id` (mock), `/clients`, `/settings`, `/messages`, `/`, `/pricing`. Compare gutters, header alignment, card padding, and bottom-nav clearance across the three widths and fix any remaining outliers before finishing.
 
 ## Out of scope
 
-- No palette/token changes in `src/styles.css` (ink + paper + lime stay exactly as they are).
-- No marketing routes (`/`, `/pricing`, etc.) — they already alternate ink/cream sections.
-- No copy edits, no new components, no logic changes.
-- Bottom nav, status legend, typography tokens — untouched.
+- Color, typography, status legend (already shipped in prior turns).
+- Copy changes.
+- New features or route additions.
+- Backend / data changes.
 
 ## Technical notes
 
-- All edits are className changes inside the listed route files, wrapping one existing `<section>` per screen in `bg-ink text-paper` with the corner rules above.
-- The ink band is allowed to extend edge-to-edge inside the `max-w-md md:max-w-lg lg:max-w-xl` shell — we'll use a `-mx-[var(--gutter-x)]` + `px-[var(--gutter-x)]` pattern so the band's color reaches the shell edge while content keeps the gutter.
-- Verify visually with Playwright at 360 / 414 / 1280 after edits.
-
-## Files touched
-
-`src/routes/app.tsx`, `src/routes/quotes.index.tsx`, `src/routes/quotes.$quoteId.tsx`, `src/routes/invoices.$quoteId.tsx`, `src/routes/clients.$clientId.tsx`, `src/routes/settings.tsx`, `src/routes/portal.$token.tsx`, `src/routes/portal.c.$code.tsx`.
+- All changes are CSS + JSX className edits — no logic, no schema, no server code.
+- New utilities defined with `@utility` (Tailwind v4), tokens with CSS custom properties under `:root`. No `tailwind.config.js`.
+- No component API changes: `AppShell`, `PageHeader`, `Card` keep current props.

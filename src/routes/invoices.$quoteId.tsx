@@ -202,30 +202,30 @@ function InvoicePage() {
             ))}
           </ul>
 
-          <div className="px-5 py-5 bg-ink text-paper space-y-2 [&_.t-eyebrow]:text-paper/70">
+          <div className="px-5 py-4 bg-secondary/40 space-y-2">
             <div className="flex items-baseline justify-between">
-              <span className="t-body text-paper/75">Subtotal</span>
-              <span className="t-amount font-semibold tabular-nums text-paper">{formatGBP(quote.subtotal)}</span>
+              <span className="t-body text-muted-foreground">Subtotal</span>
+              <span className="t-amount font-semibold tabular-nums">{formatGBP(quote.subtotal)}</span>
             </div>
             {quote.vat_amount > 0 && (
               <div className="flex items-baseline justify-between">
-                <span className="t-body text-paper/75">VAT (20%)</span>
-                <span className="t-amount font-semibold tabular-nums text-paper">{formatGBP(quote.vat_amount)}</span>
+                <span className="t-body text-muted-foreground">VAT (20%)</span>
+                <span className="t-amount font-semibold tabular-nums">{formatGBP(quote.vat_amount)}</span>
               </div>
             )}
-            <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-paper/15">
-              <span className="t-eyebrow">Total</span>
-              <span className="t-amount-lg font-semibold tabular-nums text-lime">{formatGBP(quote.total)}</span>
+            <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
+              <span className="t-eyebrow text-ink">Total</span>
+              <span className="t-amount-lg font-semibold tabular-nums">{formatGBP(quote.total)}</span>
             </div>
             {depositPaid > 0 && (
               <>
                 <div className="flex items-baseline justify-between pt-1">
-                  <span className="t-body text-paper/75">Less deposit paid</span>
-                  <span className="t-amount font-semibold tabular-nums text-paper">−{formatGBP(depositPaid)}</span>
+                  <span className="t-body text-muted-foreground">Less deposit paid</span>
+                  <span className="t-amount font-semibold tabular-nums">−{formatGBP(depositPaid)}</span>
                 </div>
-                <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-paper/15">
-                  <span className="t-eyebrow">Balance due</span>
-                  <span className="t-amount-xl font-semibold tabular-nums text-lime">{formatGBP(balance)}</span>
+                <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
+                  <span className="t-eyebrow text-ink">Balance due</span>
+                  <span className="t-amount-xl font-semibold tabular-nums">{formatGBP(balance)}</span>
                 </div>
               </>
             )}
