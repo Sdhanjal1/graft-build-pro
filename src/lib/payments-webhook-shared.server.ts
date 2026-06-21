@@ -183,21 +183,55 @@ export async function handlePaidEvent(evt: any): Promise<void> {
           ...(platformFeeCents !== null ? { platform_fee_cents: platformFeeCents } : {}),
         })
         .eq("id", existing.id);
-    } else {
-      await supabaseAdmin.from("invoice_payments").insert({
-        user_id: userId,
-        quote_id: quoteId,
-        request_type: requestType,
-        customer_email: customerEmail ?? null,
-        amount_cents: amountCents ?? 0,
-        currency,
-        status: "paid",
-        stripe_session_id: sessionId,
-        stripe_payment_intent: paymentIntent ?? null,
-        payment_method: "card",
-        paid_at: new Date().toISOString(),
-        platform_fee_cents: platformFeeCents,
-      });
+    } else if (paymentIntent) {
+      // The matching `payment_intent.succeeded` may have landed first and
+      // inserted a paid row keyed only on stripe_payment_intent (no session
+      // id). Backfill the session id onto that row and short-circuit so we
+      // don't insert a duplicate paid row and re-fire email + push.
+      const { data: existingByPi } = await supabaseAdmin
+        .from("invoice_payments")
+        .select("id")
+        .eq("stripe_payment_intent", paymentIntent)
+        .maybeSingle();
+      if (existingByPi) {
+        await supabaseAdmin
+          .from("invoice_payments")
+          .update({
+            stripe_session_id: sessionId,
+            status: "paid",
+            paid_at: new Date().toISOString(),
+            customer_email: customerEmail ?? null,
+            ...(platformFeeCents !== null ? { platform_fee_cents: platformFeeCents } : {}),
+          })
+          .eq("id", existingByPi.id);
+        return;
+      }
+    }
+    if (!existing) {
+      // No prior row by session id or payment intent — first delivery wins.
+      const { data: existingCheckPi } = paymentIntent
+        ? await supabaseAdmin
+            .from("invoice_payments")
+            .select("id")
+            .eq("stripe_payment_intent", paymentIntent)
+            .maybeSingle()
+        : { data: null as { id: string } | null };
+      if (!existingCheckPi) {
+        await supabaseAdmin.from("invoice_payments").insert({
+          user_id: userId,
+          quote_id: quoteId,
+          request_type: requestType,
+          customer_email: customerEmail ?? null,
+          amount_cents: amountCents ?? 0,
+          currency,
+          status: "paid",
+          stripe_session_id: sessionId,
+          stripe_payment_intent: paymentIntent ?? null,
+          payment_method: "card",
+          paid_at: new Date().toISOString(),
+          platform_fee_cents: platformFeeCents,
+        });
+      }
     }
   } else if (paymentIntent) {
     // No checkout session id (e.g. payment_intent.succeeded retry). Dedup
