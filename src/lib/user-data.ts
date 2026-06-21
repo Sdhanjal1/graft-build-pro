@@ -136,6 +136,9 @@ export type Quote = {
   materials_purchased?: boolean[];
   /** Separate materials shopping list for the job — independent of quote line items. */
   materials_list?: MaterialItem[];
+  /** Non-enumerable runtime flag set by edit helpers when a live quote was
+   *  reverted to "sent" because its total changed. Never written to DB / JSON. */
+  _reissued?: boolean;
 };
 
 export type MaterialItem = {
