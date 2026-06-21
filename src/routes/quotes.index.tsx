@@ -252,7 +252,7 @@ function QuotesPage() {
             const count = mockQuotes.filter(s.match).length;
             if (count === 0) return null;
             const active = sectionFilter === s.key;
-            const dot = s.key === "paid" ? "bg-lime" : TILE_DOT[s.key];
+            const dot = s.key === "paid" ? "bg-paid" : TILE_DOT[s.key];
             return (
               <button
                 key={s.key}
