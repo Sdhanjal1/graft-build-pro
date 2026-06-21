@@ -1,94 +1,79 @@
-# Portal: collapse the deposit-paid story to one card + one button
+## Problem
 
-Display-only changes to `src/routes/portal.$token.tsx`. No `onPay`, webhook, or payment logic touched.
+In this codebase the only thing that flips a quote to `completed` is the **Job done** action on the quote detail page (`markJobComplete`). Related auto-flows that move a quote's state without the user touching the screen they're looking at:
 
-## 1. Top "Payment received" card (~line 348)
+- Stripe webhook → `accepted` (deposit) / `paid` (full or balance)
+- `markOverdueQuotes()` → `completed` → `overdue` once the invoice due date passes
+- "Job done" pressed in one tab while the quotes list / chaser / customer page is open in another
 
-No changes. Gating stays `paymentResult === "paid"`.
+Data lives in a module-level `mockQuotes` array hydrated once via `hydrateUserData()`. `useDataVersion()` only re-renders on **local** mutations (`bumpVersion()`). So today:
 
-## 2. Mid "Deposit paid" strip (~line 617)
+| Screen | Auto-updates on server status change? |
+| --- | --- |
+| `quotes.$quoteId.tsx` | ✅ has per-quote realtime channel |
+| `quotes.index.tsx` (list, tiles, sections) | ❌ no realtime |
+| `chaser.tsx` (Waiting on reply / Waiting to be paid / queue) | ❌ no realtime |
+| `clients.$clientId.tsx` (job history) | ❌ no realtime |
+| Dashboard tiles (via `mockQuotes` totals) | ❌ no realtime |
 
-- Condition becomes `!isPaidInFull && hasPaidDeposit && paymentResult !== "paid"` so it can't render alongside the top card.
-- Remove the inner "Pay balance" button (lines 626-636). Strip becomes header-only: green check + "Deposit paid" + "Balance of £Y due on completion."
+Realtime is already enabled on `public.quotes` — just need to subscribe.
 
-## 3. Bottom sticky bar (~line 649)
+## Plan
 
-Reorder the branch chain inside `canRespond ? ... : ...` so the deposit case is matched before the generic accepted pill, and add the Pay-balance action there:
+### 1. New shared hook `src/hooks/useQuotesRealtime.ts`
 
+- Subscribes once per mount to `postgres_changes` on `public.quotes`, scoped with `filter: user_id=eq.${userId}` for `INSERT | UPDATE | DELETE`.
+- On UPDATE: find the row in `mockQuotes` by id, patch the changed fields (`status`, `completed_at`, `invoiced_at`, `paid_via`, `due_date`, `invoice_due_date`, `total`, `updated_at`), then `bumpVersion()`.
+- On INSERT: push a `rowToQuote()` mapped record, `bumpVersion()`.
+- On DELETE: splice it out, `bumpVersion()`.
+- After any UPDATE that left the row `completed`, re-run `markOverdueQuotes()` (cheap, idempotent — it just flips locally if the invoice due date passed).
+- After any UPDATE that left the row `completed` or moved it to `paid`, call `ensureChasesFor(quote)` / `cancelChasesFor(quote.id)` to keep the chase queue in sync without waiting for the chaser screen to mount.
+- Returns nothing; teardown removes the channel on unmount.
+
+To avoid leaking `rowToQuote` / `mockQuotes` mutation logic out of `user-data.ts`, expose two small helpers there:
+
+```ts
+export function applyRealtimeQuoteRow(row: DbQuote): void  // upsert + bumpVersion
+export function removeRealtimeQuoteRow(id: string): void   // splice + bumpVersion
 ```
-canRespond
-  → accept/decline buttons (unchanged)
-isPaidInFull
-  → "Paid" pill (unchanged copy/styling)
-hasPaidDeposit && !isPaidInFull
-  → if hasCard && balanceAmount > 0:
-       <button onClick={() => onPay("balance")}> lime "Pay balance £Y"
-         (same h-12 rounded-full bg-lime styling as the accept button,
-          with Loader2 when `paying`, CreditCard icon otherwise)
-     else:
-       <div> "Deposit paid · £Y due on completion" pill (current copy)
-status === "accepted"
-  → "Accepted" pill (unchanged) — only reached for accepted-but-unpaid
-else
-  → "Declined" pill (unchanged)
-```
 
-The current `isPaid` branch collapses into the two cases above (`isPaidInFull` and `hasPaidDeposit && !isPaidInFull`), so the `isPaid` check is removed from the chain.
+The hook just calls these.
 
-`showBottomBar` is not modified — deposit-paid re-opens already satisfy it via `status === "accepted"`, so the bar continues to render.
+### 2. Wire the hook into the app shell
 
-## Net result
+Add `useQuotesRealtime()` to `src/components/AppShell.tsx` so every authenticated screen (quotes list, chaser, customer detail, dashboard, quote detail) gets one shared subscription per session. This is cheaper than per-page channels and means future screens inherit the behavior for free.
 
-- Top "Payment received" card: only at Stripe return moment.
-- Mid "Deposit paid" strip: persistent state card, text-only.
-- Sticky bar: the single Pay-balance entry point, present on both the just-paid moment and every re-open.
+Keep the existing per-quote channel in `quotes.$quoteId.tsx` (it powers the targeted toasts "Customer accepted — nice one." / "Customer declined") — they are now redundant for the data sync but still own the UX side-effects.
+
+### 3. Make sure consumer screens re-render
+
+`quotes.index.tsx` and `chaser.tsx` derive everything from `mockQuotes` on each render. They already need `useDataVersion()` to re-render on bumps:
+
+- `quotes.index.tsx` already calls `useDataVersion()` — verified.
+- `chaser.tsx` does **not**; add `useDataVersion()` at the top of `ChaserPage` so realtime patches actually flow into the visible lists/totals.
+- `clients.$clientId.tsx` job history — add `useDataVersion()` if missing.
+
+### 4. Auto-escalate overdue on the chaser too
+
+`markOverdueQuotes()` already runs in the chaser `useEffect`. Leave as-is; the new hook also re-fires it whenever a quote lands in `completed`, so a quote that gets marked complete in another tab will surface in "Waiting to be paid" instantly.
+
+### 5. No webhook / payments / database changes
+
+- Webhook still writes `accepted` / `paid` exactly as today.
+- `markJobComplete` still writes `completed` + `completed_at` exactly as today.
+- No new tables, no new migrations.
 
 ## Files touched
 
-- `src/routes/portal.$token.tsx` (only)
+- `src/lib/user-data.ts` — add `applyRealtimeQuoteRow` / `removeRealtimeQuoteRow` exports.
+- `src/hooks/useQuotesRealtime.ts` — new.
+- `src/components/AppShell.tsx` — call the hook.
+- `src/routes/chaser.tsx` — `useDataVersion()`.
+- `src/routes/clients.$clientId.tsx` — `useDataVersion()` if missing.
 
-Amendment to the bottom sticky bar (section 3): do NOT simply remove the
+## Verification
 
-`isPaid` check. Removing it lets the "just returned from Stripe, webhook not
-
-yet written back" state (paymentResult === "paid" but status still "sent"/
-
-"accepted") fall through to the "Accepted" or "Declined" pill — showing
-
-"Declined" on a job the customer just paid. Keep a paymentResult guard.
-
-Corrected branch chain:
-
-canRespond
-
-  → accept/decline buttons (unchanged)
-
-paymentResult === "paid" && !isPaidInFull && !hasPaidDeposit
-
-  → "Confirming payment…" pill (Loader2 + "Payment received" or neutral
-
-     processing copy) — the brief pre-writeback window. Do NOT show Declined.
-
-isPaidInFull
-
-  → "Paid" pill (unchanged)
-
-hasPaidDeposit && !isPaidInFull
-
-  → if hasCard && balanceAmount > 0: lime "Pay balance £Y" button → onPay("balance")
-
-       (h-12 rounded-full bg-lime, Loader2 when `paying`, CreditCard icon otherwise)
-
-     else: "Deposit paid · £Y due on completion" pill (current copy)
-
-status === "accepted"
-
-  → "Accepted" pill (unchanged) — accepted-but-unpaid only
-
-else
-
-  → "Declined" pill (unchanged)
-
-Everything else in the plan (sections 1, 2, mid-strip guard, showBottomBar
-
-untouched) is correct as written.
+- Mark a quote complete in one tab → the quotes list, chaser ("Waiting to be paid"), customer detail job history and dashboard tiles update without a refresh.
+- Stripe webhook flips a sent quote to `accepted` → "Waiting on a reply" drops it, "Booked" picks it up live.
+- Stripe webhook flips an accepted quote to `paid` → it disappears from "Waiting to be paid" and the totals tick down.
+- Invoice due date passes → next page mount escalates `completed` → `overdue` and the realtime UPDATE pushes it into the Overdue section everywhere.
