@@ -59,14 +59,14 @@ function ForgotPasswordPage() {
         ) : (
           <form onSubmit={submit} className="space-y-3">
             <label className="block">
-              <span className="text-[10px] uppercase tracking-widest text-paper/85 font-semibold">Email</span>
+              <span className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">Email</span>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="mt-1.5 w-full bg-paper/10 border border-paper/15 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-lime/50 placeholder:text-paper/60"
+                className="mt-1.5 w-full bg-paper/10 border border-paper/15 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-lime/50 placeholder:text-paper/30"
               />
             </label>
             {error && <p className="text-xs text-status-overdue font-medium">{error}</p>}
@@ -84,7 +84,7 @@ function ForgotPasswordPage() {
           Back to <span className="text-lime font-semibold">sign in</span>
         </Link>
       </div>
-      <p className="text-center text-[11px] text-paper/75 pb-6">UK tradespeople · 2026</p>
+      <p className="text-center text-[11px] text-paper/40 pb-6">UK tradespeople · 2026</p>
     </div>
   );
 }

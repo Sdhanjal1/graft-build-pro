@@ -144,21 +144,21 @@ function InvoicePage() {
             <div className="min-w-0 flex-1">
               <p className="text-[10px] uppercase tracking-[0.3em] text-lime font-bold">Invoice</p>
               <h1 className="text-3xl mt-1 leading-none text-paper">{ref}</h1>
-              <p className="text-xs text-paper/85 mt-2 truncate">{userProfile.business_name}</p>
+              <p className="text-xs text-paper/60 mt-2 truncate">{userProfile.business_name}</p>
               {(() => {
                 const parts = [
                   userProfile.registration_number,
                   userProfile.vat_registered && userProfile.vat_number ? `VAT ${userProfile.vat_number}` : null,
                 ].filter(Boolean);
                 return parts.length > 0 ? (
-                  <p className="text-[10px] text-paper/80 truncate">{parts.join(" · ")}</p>
+                  <p className="text-[10px] text-paper/50 truncate">{parts.join(" · ")}</p>
                 ) : null;
               })()}
             </div>
           </div>
 
           <div className="px-6 py-6">
-            <p className="text-[10px] uppercase tracking-widest text-paper/85 font-bold">{depositPaid > 0 ? "Balance due" : "Amount due"}</p>
+            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-bold">{depositPaid > 0 ? "Balance due" : "Amount due"}</p>
             <p className="num text-6xl text-lime leading-none mt-1">{formatGBP(balance)}</p>
             {dueDate && (
               <p className="text-xs text-paper/80 mt-2">
@@ -194,38 +194,38 @@ function InvoicePage() {
             {quote.line_items.map((li, i) => (
               <li key={i} className="px-5 py-3 flex items-start gap-3 border-t border-border first:border-t-0">
                 <div className="flex-1 min-w-0">
-                  <p className="t-body-strong">{li.description}</p>
-                  <p className="t-meta mt-0.5">{(li as any).unit === "hours" ? `${li.qty} ${li.qty === 1 ? "hr" : "hrs"}` : (li as any).unit === "days" ? `${li.qty} ${li.qty === 1 ? "day" : "days"}` : li.qty} × {formatGBP(li.unit_price)}{(li as any).unit === "hours" ? "/hr" : (li as any).unit === "days" ? "/day" : ""}</p>
+                  <p className="text-sm font-medium">{li.description}</p>
+                  <p className="text-xs text-muted-foreground">{(li as any).unit === "hours" ? `${li.qty} ${li.qty === 1 ? "hr" : "hrs"}` : (li as any).unit === "days" ? `${li.qty} ${li.qty === 1 ? "day" : "days"}` : li.qty} × {formatGBP(li.unit_price)}{(li as any).unit === "hours" ? "/hr" : (li as any).unit === "days" ? "/day" : ""}</p>
                 </div>
-                <p className="t-amount-md font-semibold tabular-nums shrink-0">{formatGBP(li.qty * li.unit_price)}</p>
+                <p className="num text-base">{formatGBP(li.qty * li.unit_price)}</p>
               </li>
             ))}
           </ul>
 
-          <div className="px-5 py-4 bg-secondary/40 space-y-2">
-            <div className="flex items-baseline justify-between">
-              <span className="t-body text-muted-foreground">Subtotal</span>
-              <span className="t-amount font-semibold tabular-nums">{formatGBP(quote.subtotal)}</span>
+          <div className="px-5 py-4 bg-secondary/40 space-y-1.5">
+            <div className="flex items-baseline justify-between text-sm">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span className="num">{formatGBP(quote.subtotal)}</span>
             </div>
             {quote.vat_amount > 0 && (
-              <div className="flex items-baseline justify-between">
-                <span className="t-body text-muted-foreground">VAT (20%)</span>
-                <span className="t-amount font-semibold tabular-nums">{formatGBP(quote.vat_amount)}</span>
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="text-muted-foreground">VAT (20%)</span>
+                <span className="num">{formatGBP(quote.vat_amount)}</span>
               </div>
             )}
             <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
-              <span className="t-eyebrow text-ink">Total</span>
-              <span className="t-amount-lg font-semibold tabular-nums">{formatGBP(quote.total)}</span>
+              <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
+              <span className="num text-lg text-ink">{formatGBP(quote.total)}</span>
             </div>
             {depositPaid > 0 && (
               <>
-                <div className="flex items-baseline justify-between pt-1">
-                  <span className="t-body text-muted-foreground">Less deposit paid</span>
-                  <span className="t-amount font-semibold tabular-nums">−{formatGBP(depositPaid)}</span>
+                <div className="flex items-baseline justify-between text-sm pt-1">
+                  <span className="text-muted-foreground">Less deposit paid</span>
+                  <span className="num text-ink">−{formatGBP(depositPaid)}</span>
                 </div>
                 <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
-                  <span className="t-eyebrow text-ink">Balance due</span>
-                  <span className="t-amount-xl font-semibold tabular-nums">{formatGBP(balance)}</span>
+                  <span className="text-sm uppercase tracking-widest font-semibold">Balance due</span>
+                  <span className="num text-3xl text-ink">{formatGBP(balance)}</span>
                 </div>
               </>
             )}

@@ -332,7 +332,7 @@ function EditableRow({
             <a
               href={href}
               onClick={(e) => e.stopPropagation()}
-              className="text-ink/80 hover:text-ink normal-case tracking-normal text-[11px] font-medium underline-offset-2 hover:underline"
+              className="text-ink/60 hover:text-ink normal-case tracking-normal text-[11px] font-medium underline-offset-2 hover:underline"
             >
               {type === "tel" ? "Call" : type === "email" ? "Email" : "Open"}
             </a>

@@ -15,14 +15,14 @@ function TermsPage() {
   return (
     <MarketingShell>
       <article className="mx-auto max-w-3xl px-5 py-16 md:py-24">
-        <p className="text-[11px] uppercase tracking-widest text-ink/75 font-semibold">Legal</p>
+        <p className="text-[11px] uppercase tracking-widest text-ink/50 font-semibold">Legal</p>
         <h1
           className="mt-3 text-5xl md:text-7xl leading-[0.95]"
           style={{ fontFamily: "'Bebas Neue', sans-serif" }}
         >
           Terms of Service
         </h1>
-        <p className="mt-4 text-sm text-ink/80">Last updated: 22 May 2026</p>
+        <p className="mt-4 text-sm text-ink/60">Last updated: 22 May 2026</p>
 
         <div className="mt-10 space-y-8 text-[15px] leading-relaxed text-ink/80">
           <Section title="The basics">

@@ -32,12 +32,9 @@
   --color-ring: var(--ring);
 
   --color-ink: var(--ink);
-  --color-ink-accent: var(--ink-accent);
   --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
   --color-lime: var(--lime);
   --color-paper: var(--paper);
-  --color-danger: var(--danger);
   --color-status-pending: var(--status-pending);
   --color-status-amber: var(--status-amber);
   --color-status-accepted: var(--status-accepted);
@@ -57,29 +54,24 @@
 
 
   /* Brand */
-  --ink: oklch(0.18 0.005 80);             /* near-black, warm */
-  --ink-accent: oklch(0.42 0.08 195);      /* slate teal — secondary accent, never competes with lime */
-  --surface: oklch(0.24 0.006 80);         /* tier-1 dark panel (lifted off ink) */
-  --surface-2: oklch(0.30 0.007 80);       /* tier-2 dark panel (nested cards/inputs on dark) */
-  --lime: oklch(0.88 0.18 118);            /* primary action + money — kept sacred */
-  --paper: oklch(0.95 0.018 78);           /* warm receipt-paper cream */
+  --ink: oklch(0.18 0.005 80);          /* #1a1a18 */
+  --surface: oklch(0.24 0.006 80);       /* softer dark for panels/cards — lifted from ink */
+  --lime: oklch(0.88 0.18 118);          /* #c8e04a */
+  --paper: oklch(0.945 0.014 85);        /* warm cream, deepened so white cards visibly lift off the page */
 
-  /* Reserved destructive — for delete confirms / irreversible actions only */
-  --danger: oklch(0.58 0.24 25);
-
-  --status-pending: oklch(0.50 0.13 70);     /* darker amber — AA on cream */
-  --status-amber: oklch(0.72 0.16 70);       /* amber dot */
-  --status-accepted: oklch(0.68 0.16 145);   /* green — accepted */
-  --status-green: oklch(0.60 0.16 150);      /* deeper green for dots */
-  --status-booked: oklch(0.58 0.09 200);     /* warm teal — workflow, not payment */
-  --status-completed: oklch(0.55 0.14 245);  /* blue — waiting on customer */
-  --status-paid: oklch(0.66 0.17 142);       /* its own paid-green — distinct from lime */
-  --status-overdue: oklch(0.62 0.22 25);     /* red */
+  --status-pending: oklch(0.50 0.13 70);    /* darker amber — WCAG AA on cream */
+  --status-amber: oklch(0.72 0.16 70);       /* friendlier amber for status dots */
+  --status-accepted: oklch(0.68 0.16 145);  /* green */
+  --status-green: oklch(0.60 0.16 150);      /* deeper paid-green for dots */
+  --status-booked: oklch(0.62 0.17 55);     /* amber/orange — action needed by you */
+  --status-completed: oklch(0.55 0.14 245); /* blue — waiting on customer */
+  --status-paid: var(--lime);
+  --status-overdue: oklch(0.62 0.22 25);    /* red */
 
 
   --background: var(--paper);
   --foreground: var(--ink);
-  --card: oklch(0.995 0.003 85);
+  --card: oklch(0.995 0.003 85);            /* near-pure white — clear contrast against warm paper */
   --card-foreground: var(--ink);
   --popover: oklch(1 0 0);
   --popover-foreground: var(--ink);
@@ -88,13 +80,13 @@
   --secondary: oklch(0.92 0.01 80);
   --secondary-foreground: var(--ink);
   --muted: oklch(0.92 0.01 80);
-  --muted-foreground: oklch(0.32 0.008 80);
+  --muted-foreground: oklch(0.42 0.008 80);
   --accent: var(--lime);
   --accent-foreground: var(--ink);
-  --destructive: var(--danger);
+  --destructive: var(--status-overdue);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.82 0.015 80);          /* stronger so cards lift on cream */
-  --input: oklch(0.85 0.013 80);
+  --border: oklch(0.86 0.012 80);
+  --input: oklch(0.88 0.012 80);
   --ring: var(--lime);
 }
 
@@ -107,30 +99,6 @@
     letter-spacing: 0.01em;
   }
   .num { font-family: var(--font-display); letter-spacing: 0.02em; }
-
-  /* ---------- Shared typography tokens ----------
-     Use these instead of ad-hoc text-size combinations. Each token sets
-     family, size, weight, leading and color so legibility is consistent. */
-  .t-display    { font-family: var(--font-display); font-size: clamp(2.5rem, 6vw, 3.75rem); line-height: 0.95; letter-spacing: 0.01em; color: var(--ink); }
-  .t-h1         { font-family: var(--font-display); font-size: clamp(1.875rem, 4vw, 2.5rem); line-height: 1.05; letter-spacing: 0.01em; color: var(--ink); }
-  .t-h2         { font-family: var(--font-display); font-size: 1.5rem; line-height: 1.1; letter-spacing: 0.01em; color: var(--ink); }
-  .t-h3         { font-family: var(--font-sans); font-size: 1.0625rem; line-height: 1.3; font-weight: 700; color: var(--ink); }
-  .t-body       { font-family: var(--font-sans); font-size: 0.9375rem; line-height: 1.5; font-weight: 400; color: var(--ink); }
-  .t-body-strong{ font-family: var(--font-sans); font-size: 0.9375rem; line-height: 1.5; font-weight: 600; color: var(--ink); }
-  .t-caption    { font-family: var(--font-sans); font-size: 0.8125rem; line-height: 1.4; font-weight: 500; color: var(--muted-foreground); }
-  .t-meta       { font-family: var(--font-sans); font-size: 0.75rem; line-height: 1.35; font-weight: 500; color: var(--muted-foreground); letter-spacing: 0.005em; }
-  .t-eyebrow    { font-family: var(--font-sans); font-size: 0.6875rem; line-height: 1; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted-foreground); }
-  .t-label      { font-family: var(--font-sans); font-size: 0.8125rem; line-height: 1.2; font-weight: 600; color: var(--ink); }
-
-  /* Money — never faint. Always full ink (or lime on dark hero contexts),
-     never opacity-dimmed. Use the size that fits the surface. */
-  .t-amount     { font-family: var(--font-display); letter-spacing: 0.02em; font-size: 1rem;    line-height: 1; color: var(--ink); font-weight: 400; }
-  .t-amount-md  { font-family: var(--font-display); letter-spacing: 0.02em; font-size: 1.25rem; line-height: 1; color: var(--ink); }
-  .t-amount-lg  { font-family: var(--font-display); letter-spacing: 0.02em; font-size: 1.75rem; line-height: 1; color: var(--ink); }
-  .t-amount-xl  { font-family: var(--font-display); letter-spacing: 0.01em; font-size: 2.5rem;  line-height: 1; color: var(--ink); }
-  /* Inline amounts inside body copy keep sans weight 700 so the figure
-     stands out from surrounding prose without changing typeface. */
-  .t-amount-inline { font-family: var(--font-sans); font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
 
   /* Grain texture overlay */
   body::before {
@@ -147,34 +115,6 @@
 }
 
 @layer utilities {
-  /* ---------- Layout primitives ----------
-     Consistent gutters and vertical rhythm across every route. Additive —
-     existing px-N and space-y-N classes keep working; new code should prefer
-     these tokens so spacing stays in lockstep across breakpoints. */
-  :root {
-    --gutter-x: 1rem;          /* 16px — mobile default */
-    --stack-sm: 0.75rem;       /* 12px */
-    --stack-md: 1.25rem;       /* 20px */
-    --stack-lg: 2rem;          /* 32px */
-  }
-  @media (min-width: 640px) {
-    :root { --gutter-x: 1.25rem; } /* 20px ≥ sm */
-  }
-  @media (min-width: 768px) {
-    :root { --gutter-x: 1.5rem; }  /* 24px ≥ md */
-  }
-  .page-x        { padding-inline: var(--gutter-x); }
-  .page-y        { padding-block: clamp(1.25rem, 2.5vw, 1.75rem); }
-  .stack-sm > * + * { margin-top: var(--stack-sm); }
-  .stack-md > * + * { margin-top: var(--stack-md); }
-  .stack-lg > * + * { margin-top: var(--stack-lg); }
-  .row-between {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-  }
-
   /* Default card — clearly lifted off the warm paper background. */
   .card-surface {
     background-color: var(--card);

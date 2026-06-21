@@ -15,7 +15,7 @@ export function AppShell({
   const handleRefresh = onRefresh ?? (() => router.invalidate());
   return (
     <div className="min-h-screen bg-paper">
-      <div className="mx-auto w-full max-w-md md:max-w-lg lg:max-w-xl min-h-screen pb-nav">
+      <div className="mx-auto max-w-md min-h-screen pb-nav">
         <PullToRefresh onRefresh={handleRefresh}>{children}</PullToRefresh>
       </div>
     </div>
@@ -89,18 +89,13 @@ export function PageHeader({
     <>
       <header
         className={[
-          "sticky top-0 z-30 bg-paper text-ink relative transition-[padding,border-color] duration-200 motion-reduce:transition-none border-b page-x",
+          "sticky top-0 z-30 bg-paper text-ink relative transition-[padding,border-color] duration-200 motion-reduce:transition-none border-b",
           condensed
-            ? "pt-2 pb-2 border-border"
-            : "pt-5 pb-4 border-transparent",
+            ? "px-4 pt-2 pb-2 border-border"
+            : "px-5 pt-5 pb-4 border-transparent",
         ].join(" ")}
       >
-        <div
-          className="relative grid items-center gap-3"
-          style={{
-            gridTemplateColumns: `${showBack ? "auto " : ""}minmax(0,1fr) auto`,
-          }}
-        >
+        <div className="relative flex items-center gap-3">
           {showBack && (
             <Link
               to={backTo}
@@ -114,7 +109,7 @@ export function PageHeader({
             </Link>
           )}
 
-          <div className="min-w-0">
+          <div className="flex-1 min-w-0">
             {trail && !condensed && (
               <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-muted-foreground truncate">
                 {trail.slice(0, -1).map((c, i) => (
@@ -138,7 +133,7 @@ export function PageHeader({
               {title}
             </h1>
             {subtitle && !condensed && (
-              <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground font-bold uppercase tracking-[0.18em] max-w-full">
+              <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground font-bold uppercase tracking-[0.18em] truncate">
                 {urgent && (
                   <span
                     aria-hidden
@@ -150,10 +145,8 @@ export function PageHeader({
             )}
           </div>
 
-          {!condensed && (right ?? ActionPill) ? (
-            <div className="shrink-0 justify-self-end">{right ?? ActionPill}</div>
-          ) : (
-            <span aria-hidden />
+          {!condensed && (right ?? ActionPill) && (
+            <div className="shrink-0 self-center">{right ?? ActionPill}</div>
           )}
         </div>
       </header>

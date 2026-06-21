@@ -1526,7 +1526,7 @@ function NewQuotePage() {
                     <p className="font-bold text-base leading-tight">Speak the job.</p>
                     <p className="text-xs text-ink/70 mt-0.5">We'll write it.</p>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-ink/80 shrink-0" />
+                  <ChevronRight className="h-5 w-5 text-ink/60 shrink-0" />
                 </button>
 
                 <RotatingPrompts className="" />
@@ -1640,7 +1640,7 @@ function NewQuotePage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[10px] uppercase tracking-widest text-lime font-bold">Preview · editable</p>
-                  <p className="text-[11px] text-paper/80 mt-0.5">Tap any field to edit, or use voice →</p>
+                  <p className="text-[11px] text-paper/55 mt-0.5">Tap any field to edit, or use voice →</p>
                 </div>
                 <button
                   type="button"
@@ -1654,14 +1654,14 @@ function NewQuotePage() {
               </div>
               <p className="font-bold mt-2">{userProfile.business_name}</p>
               {userProfile.registration_number && (
-                <p className="text-[10px] text-paper/85">
+                <p className="text-[10px] text-paper/60">
                   {userProfile.registration_number}
                 </p>
               )}
               <input
                 value={draft.title}
                 onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                className="mt-3 w-full bg-transparent outline-none text-2xl leading-tight font-medium placeholder:text-paper/75"
+                className="mt-3 w-full bg-transparent outline-none text-2xl leading-tight font-medium placeholder:text-paper/40"
                 placeholder="Quote title"
               />
             </div>
@@ -1780,7 +1780,7 @@ function NewQuotePage() {
                           className="w-24 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
                         />
                       </label>
-                      <p className="t-amount-md font-semibold tabular-nums ml-auto w-full text-right sm:w-auto">{formatGBP(lineTotal)}</p>
+                      <p className="num text-sm ml-auto font-semibold w-full text-right sm:w-auto">{formatGBP(lineTotal)}</p>
                     </div>
                   </li>
                 );
@@ -1798,12 +1798,12 @@ function NewQuotePage() {
             >
               <Plus className="h-3.5 w-3.5" /> Add line item
             </button>
-            <div className="px-4 py-3 border-t border-border bg-secondary/40 space-y-2">
+            <div className="px-4 py-3 border-t border-border bg-secondary/40 space-y-1.5">
               <Row label="Subtotal" value={formatGBP(subtotal)} />
               {vat && <Row label="VAT (20%)" value={formatGBP(vatAmt)} />}
               <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
-                <span className="t-eyebrow text-ink">Total</span>
-                <span className="t-amount-xl font-semibold tabular-nums">{formatGBP(total)}</span>
+                <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
+                <span className="num text-3xl text-ink">{formatGBP(total)}</span>
               </div>
             </div>
           </div>
@@ -1836,7 +1836,7 @@ function NewQuotePage() {
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Same as last</p>
                   <p className="text-sm font-bold text-ink truncate">{lastCustomer.name}</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-ink/80 shrink-0" />
+                <ChevronRight className="h-4 w-4 text-ink/60 shrink-0" />
               </button>
             )}
 
@@ -1977,7 +1977,7 @@ function NewQuotePage() {
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Deposit</p>
                 <div className="flex items-center gap-2">
                   <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5 flex-1">
-                    <span className="text-ink/80 font-bold">£</span>
+                    <span className="text-ink/60 font-bold">£</span>
                     <input
                       type="text" inputMode="decimal"
                       value={depositAmtRaw}
@@ -1999,7 +1999,7 @@ function NewQuotePage() {
                       placeholder="0"
                       className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none text-right"
                     />
-                    <span className="text-ink/80 font-bold">%</span>
+                    <span className="text-ink/60 font-bold">%</span>
                   </label>
                 </div>
                 <p className="text-[11px] text-muted-foreground">£ and % stay in sync.</p>
@@ -2134,13 +2134,13 @@ function CustomerPicker({
           <h2 className="text-xl font-display tracking-wide">Choose customer</h2>
         </div>
         <div className="mt-4 flex items-center gap-2 bg-paper/10 rounded-full px-4 py-2.5">
-          <Search className="h-4 w-4 text-paper/85 shrink-0" />
+          <Search className="h-4 w-4 text-paper/60 shrink-0" />
           <input
             value={search}
             onChange={(e) => onSearch(e.target.value)}
             placeholder="Search by name or address"
             autoFocus
-            className="flex-1 bg-transparent outline-none text-sm text-paper placeholder:text-paper/80"
+            className="flex-1 bg-transparent outline-none text-sm text-paper placeholder:text-paper/50"
           />
         </div>
       </div>
@@ -2175,9 +2175,9 @@ function CustomerPicker({
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between">
-      <span className="t-body text-muted-foreground">{label}</span>
-      <span className="t-amount font-semibold tabular-nums">{value}</span>
+    <div className="flex items-baseline justify-between text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="num">{value}</span>
     </div>
   );
 }
@@ -2589,7 +2589,7 @@ function VoiceOverlay({
 
       {/* PINNED TOP: meta + running total */}
       <div className={`flex flex-col items-center w-full max-w-md mx-auto ${showList ? "shrink-0" : ""}`}>
-        <p className="text-[10px] uppercase tracking-widest text-paper/85 font-semibold">
+        <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
           {transcribing ? "Building it" : recording ? "Listening" : error ? "Try again" : "Tap to speak"}
         </p>
         <p className="num text-2xl mt-1 text-paper">
@@ -2598,13 +2598,13 @@ function VoiceOverlay({
 
         {showList && hasItems && (
           <div className="mt-4 flex flex-col items-center">
-            <p className="text-[10px] uppercase tracking-widest text-paper/80 font-semibold">Running total</p>
+            <p className="text-[10px] uppercase tracking-widest text-paper/50 font-semibold">Running total</p>
             <CountUpGBP value={liveTotal} className="num text-4xl text-lime mt-0.5" />
           </div>
         )}
 
         {showList && hasItems && (
-          <p className="mt-3 text-[10px] uppercase tracking-widest text-paper/75 text-center">
+          <p className="mt-3 text-[10px] uppercase tracking-widest text-paper/40 text-center">
             Tap a line to edit
           </p>
         )}
@@ -2620,7 +2620,7 @@ function VoiceOverlay({
           aria-hidden="true"
         >
           <MicLevelBars streamRef={streamRef} active={recording} />
-          <span className="text-xs uppercase tracking-widest text-paper/85 font-semibold">
+          <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">
             Listening. Talk me through the job.
           </span>
         </div>
@@ -2672,7 +2672,7 @@ function VoiceOverlay({
                       placeholder="Description"
                     />
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-paper/85">£</span>
+                      <span className="text-xs text-paper/60">£</span>
                       <input
                         type="number"
                         inputMode="decimal"
@@ -2719,19 +2719,19 @@ function VoiceOverlay({
                   }}
                   className={`rounded-lg bg-paper/[0.06] border-l-2 border-lime pl-3 pr-3 py-2 flex items-start gap-3 cursor-pointer active:bg-paper/[0.1] ${justLanded ? "animate-line-glow" : ""}`}
                 >
-                  <span className="num text-[11px] font-bold text-paper/75 mt-0.5 shrink-0 w-5 text-right">
+                  <span className="num text-[11px] font-bold text-paper/40 mt-0.5 shrink-0 w-5 text-right">
                     {i + 1}
                   </span>
                   <p className="flex-1 text-sm leading-snug text-paper font-medium">
                     {li.description}
                   </p>
                   <p className="num text-sm font-semibold text-paper shrink-0 whitespace-nowrap text-right">
-                    <span className="text-paper/85 text-xs font-medium">
+                    <span className="text-paper/60 text-xs font-medium">
                       {li.qty}{unit === "hours" ? "h" : unit === "days" ? "d" : ""} × {formatGBP(li.unit_price)}
                     </span>
-                    <span className="text-paper/75 mx-1">=</span>
+                    <span className="text-paper/40 mx-1">=</span>
                     {formatGBP(li.qty * li.unit_price)}
-                    {suffix && <span className="text-paper/80 text-[10px]"> {suffix}</span>}
+                    {suffix && <span className="text-paper/50 text-[10px]"> {suffix}</span>}
                   </p>
                 </li>
               );
@@ -2742,11 +2742,11 @@ function VoiceOverlay({
                 className="rounded-lg bg-paper/[0.04] border-l-2 border-paper/20 pl-3 pr-3 py-2 flex items-center gap-3 animate-scale-in"
                 aria-live="polite"
               >
-                <span className="num text-[11px] font-bold text-paper/70 mt-0.5 shrink-0 w-5 text-right">
+                <span className="num text-[11px] font-bold text-paper/30 mt-0.5 shrink-0 w-5 text-right">
                   {liveItems.length + 1}
                 </span>
                 <div className="flex-1 flex items-center gap-2">
-                  <span className="text-sm text-paper/80 italic">Got it…</span>
+                  <span className="text-sm text-paper/50 italic">Got it…</span>
                   <span className="relative flex-1 h-2 overflow-hidden rounded-full bg-paper/[0.06]">
                     <span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-paper/30 to-transparent bg-[length:200%_100%]" />
                   </span>
@@ -2769,7 +2769,7 @@ function VoiceOverlay({
           {/* Transcript — collapsed by default, lets the user verify what was heard */}
           {liveItems.length > 0 && transcript.trim() && (
             <details className="mt-4 mx-1 px-4 py-3 rounded-lg bg-paper/[0.04] border border-paper/10">
-              <summary className="text-xs uppercase tracking-widest font-semibold text-paper/85 cursor-pointer hover:text-paper/80 transition list-none">
+              <summary className="text-xs uppercase tracking-widest font-semibold text-paper/60 cursor-pointer hover:text-paper/80 transition list-none">
                 What you said
               </summary>
               <p className="mt-3 text-sm text-paper/70 leading-relaxed whitespace-pre-wrap break-words">
@@ -2876,11 +2876,11 @@ function VoiceOverlay({
 
         ) : lastTranscript ? (
           <>
-            <p className="text-[10px] uppercase tracking-widest text-paper/75 font-semibold">Captured</p>
+            <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">Captured</p>
             <p className="text-sm text-paper italic">“{lastTranscript}”</p>
           </>
         ) : (
-          <p className="text-sm text-paper/85">Describe the job, boiler, bathroom, materials, time…</p>
+          <p className="text-sm text-paper/60">Describe the job, boiler, bathroom, materials, time…</p>
         )}
       </div>
 
@@ -2888,7 +2888,7 @@ function VoiceOverlay({
         <button
           type="button"
           onClick={onClose}
-          className="text-xs uppercase tracking-widest text-paper/85 font-semibold py-3"
+          className="text-xs uppercase tracking-widest text-paper/60 font-semibold py-3"
         >
           {error || lastTranscript ? "Done" : "Cancel"}
         </button>

@@ -89,12 +89,12 @@ export function MarketingShell({ children }: { children: ReactNode }) {
         <div className="mx-auto max-w-6xl px-5 py-12 grid gap-8 md:grid-cols-4">
           <div>
             <QuottrWordmark className="text-2xl" />
-            <p className="mt-3 text-sm text-paper/85 max-w-xs">
+            <p className="mt-3 text-sm text-paper/60 max-w-xs">
               Quote in seconds. Get paid faster. Built for tradespeople.
             </p>
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-paper/80 font-semibold mb-3">Product</p>
+            <p className="text-[10px] uppercase tracking-widest text-paper/50 font-semibold mb-3">Product</p>
             <ul className="space-y-2 text-sm">
               <li><Link to="/features" className="text-paper/80 hover:text-lime">Features</Link></li>
               <li><Link to="/pricing" className="text-paper/80 hover:text-lime">Pricing</Link></li>
@@ -103,7 +103,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
             </ul>
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-paper/80 font-semibold mb-3">Company</p>
+            <p className="text-[10px] uppercase tracking-widest text-paper/50 font-semibold mb-3">Company</p>
             <ul className="space-y-2 text-sm">
               <li><Link to="/about" className="text-paper/80 hover:text-lime">About</Link></li>
               <li><a href="mailto:hello@quottr.co.uk" className="text-paper/80 hover:text-lime">Contact</a></li>
@@ -112,7 +112,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
             </ul>
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-paper/80 font-semibold mb-3">Follow Quottr</p>
+            <p className="text-[10px] uppercase tracking-widest text-paper/50 font-semibold mb-3">Follow Quottr</p>
             <div className="flex items-center gap-4">
               {/* Social links — update hrefs once accounts are live */}
               <a
@@ -163,7 +163,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
           </div>
         </div>
         <div className="border-t border-paper/10">
-          <div className="mx-auto max-w-6xl px-5 py-5 text-xs text-paper/80 flex flex-col md:flex-row justify-between gap-2">
+          <div className="mx-auto max-w-6xl px-5 py-5 text-xs text-paper/50 flex flex-col md:flex-row justify-between gap-2">
             <span>© {new Date().getFullYear()} Quottr. All rights reserved.</span>
             <span className="flex gap-4">
               <Link to="/privacy" className="hover:text-paper">Privacy</Link>

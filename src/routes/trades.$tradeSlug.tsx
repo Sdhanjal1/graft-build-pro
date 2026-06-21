@@ -147,14 +147,14 @@ function TradeDetailPage() {
           <div className="mt-10 rounded-3xl bg-paper border border-ink/10 overflow-hidden shadow-sm">
             <div className="px-6 md:px-8 py-5 border-b border-ink/10 flex items-start justify-between gap-4">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-ink/75">Quote</p>
+                <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-ink/50">Quote</p>
                 <p className="mt-1 text-lg md:text-xl text-ink" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                   {trade.exampleQuote.customer}
                 </p>
-                <p className="text-sm text-ink/80">{trade.exampleQuote.jobSummary}</p>
+                <p className="text-sm text-ink/60">{trade.exampleQuote.jobSummary}</p>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-ink/75">Total</p>
+                <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-ink/50">Total</p>
                 <p className="mt-1 text-2xl md:text-3xl text-ink" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                   {GBP.format(total)}
                 </p>
@@ -167,7 +167,7 @@ function TradeDetailPage() {
                   <div className="min-w-0">
                     <p className="text-[15px] text-ink leading-snug">{l.description}</p>
                     {l.qty > 1 && (
-                      <p className="text-xs text-ink/75 mt-0.5">
+                      <p className="text-xs text-ink/50 mt-0.5">
                         {l.qty} × {GBP.format(l.unitPrice)}
                       </p>
                     )}
@@ -181,7 +181,7 @@ function TradeDetailPage() {
 
             <div className="px-6 md:px-8 py-5 bg-lime/15 border-t border-ink/10 flex items-center justify-between gap-4">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-ink/80">Deposit to confirm</p>
+                <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-ink/60">Deposit to confirm</p>
                 <p className="text-sm text-ink/70">Paid by card or Apple Pay on approval</p>
               </div>
               <p className="text-xl md:text-2xl text-ink shrink-0" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
@@ -190,7 +190,7 @@ function TradeDetailPage() {
             </div>
           </div>
 
-          <p className="mt-4 text-xs text-ink/75">
+          <p className="mt-4 text-xs text-ink/50">
             Illustrative pricing only. Your rates are yours — Quottr learns them as you quote.
           </p>
         </div>
@@ -229,7 +229,7 @@ function TradeDetailPage() {
                 <h3 className="text-lg md:text-xl text-ink leading-snug pr-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                   {f.q}
                 </h3>
-                <span className="mt-1 h-6 w-6 rounded-full bg-ink/5 flex items-center justify-center text-ink/80 shrink-0 transition group-open:rotate-45">
+                <span className="mt-1 h-6 w-6 rounded-full bg-ink/5 flex items-center justify-center text-ink/60 shrink-0 transition group-open:rotate-45">
                   +
                 </span>
               </summary>

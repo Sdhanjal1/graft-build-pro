@@ -143,7 +143,7 @@ function FilterTab({
       onClick={onClick}
       className={[
         "shrink-0 h-9 px-4 rounded-full text-[13px] font-semibold inline-flex items-center gap-1.5 transition",
-        active ? "bg-ink text-paper" : "text-ink/80 hover:text-ink",
+        active ? "bg-ink text-paper" : "text-ink/60 hover:text-ink",
       ].join(" ")}
     >
       <span>{label}</span>
@@ -243,21 +243,21 @@ function FeedRow({
           <Check className="h-5 w-5" strokeWidth={3} />
         </div>
       ) : (
-        <div className={`h-11 w-11 rounded-full shrink-0 grid place-items-center ${item.unread ? "bg-lime/30 text-ink" : "bg-secondary text-ink/85"}`}>
+        <div className={`h-11 w-11 rounded-full shrink-0 grid place-items-center ${item.unread ? "bg-lime/30 text-ink" : "bg-secondary text-ink/70"}`}>
           <Icon className="h-5 w-5" />
         </div>
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <p className={`truncate ${item.unread ? "text-[15px] font-bold text-ink" : "text-sm font-semibold text-ink"}`}>
+          <p className={`truncate ${item.unread ? "text-[15px] font-bold text-ink" : "text-sm font-medium text-ink/75"}`}>
             {item.title}
           </p>
-          <span className={`text-[11px] shrink-0 font-medium ${item.unread ? "text-ink font-semibold" : "text-muted-foreground"}`}>
+          <span className={`text-[11px] shrink-0 ${item.unread ? "text-ink font-semibold" : "text-muted-foreground"}`}>
             {formatRelativeShort(item.ts)}
           </span>
         </div>
         {item.body && (
-          <p className={`text-[13px] mt-1 line-clamp-2 ${item.unread ? "text-ink/85" : "text-muted-foreground"}`}>
+          <p className={`text-[13px] mt-1 line-clamp-2 ${item.unread ? "text-ink/75" : "text-muted-foreground"}`}>
             {item.body}
           </p>
         )}

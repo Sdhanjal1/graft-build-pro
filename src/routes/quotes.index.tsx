@@ -25,19 +25,6 @@ const TILE_DOT: Record<TileKey, string> = {
   overdue: "bg-status-overdue",
 };
 
-// Per-section color theme — drives the filter chip + legend so colour
-// directly maps to workflow state across the page.
-const SECTION_THEME: Record<
-  "overdue" | "awaiting" | "accepted" | "pending" | "paid",
-  { dot: string; tintBg: string; tintBorder: string; activeBg: string; activeBorder: string; text: string }
-> = {
-  overdue:  { dot: "bg-status-overdue",  tintBg: "bg-status-overdue/8",  tintBorder: "border-status-overdue/25",  activeBg: "bg-status-overdue/15",  activeBorder: "border-status-overdue",  text: "text-status-overdue" },
-  awaiting: { dot: "bg-status-completed", tintBg: "bg-status-completed/8", tintBorder: "border-status-completed/25", activeBg: "bg-status-completed/15", activeBorder: "border-status-completed", text: "text-status-completed" },
-  accepted: { dot: "bg-status-booked",    tintBg: "bg-status-booked/8",    tintBorder: "border-status-booked/25",    activeBg: "bg-status-booked/15",    activeBorder: "border-status-booked",    text: "text-status-booked" },
-  pending:  { dot: "bg-status-pending",   tintBg: "bg-status-pending/8",   tintBorder: "border-status-pending/25",   activeBg: "bg-status-pending/15",   activeBorder: "border-status-pending",   text: "text-status-pending" },
-  paid:     { dot: "bg-status-paid",      tintBg: "bg-status-paid/8",      tintBorder: "border-status-paid/25",      activeBg: "bg-status-paid/15",      activeBorder: "border-status-paid",      text: "text-status-paid" },
-};
-
 // Unpaid for the swipe-row "Chase" action — only chase work that's done or overdue.
 const UNPAID: QuoteStatus[] = ["completed", "overdue"];
 
@@ -134,8 +121,8 @@ function QuotesPage() {
       <div className="px-4 mt-3">
         <div className="rounded-2xl bg-paper border border-ink/10 p-5">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-ink/80">Pipeline</p>
-            <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-ink/80 tabular-nums">
+            <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-ink/55">Pipeline</p>
+            <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-ink/55 tabular-nums">
               {pipelineCount} quote{pipelineCount === 1 ? "" : "s"}
             </p>
           </div>
@@ -150,7 +137,7 @@ function QuotesPage() {
             <>
               <div className="mt-5 pt-4 border-t border-ink/10 grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-ink/80">Awaiting</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-ink/55">Awaiting</p>
                   <p
                     className="mt-1 leading-none tabular-nums text-ink"
                     style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.75rem" }}
@@ -203,7 +190,7 @@ function QuotesPage() {
                     <span className={`h-1.5 w-1.5 rounded-full shrink-0 mt-1 ${TILE_DOT[t.key]}`} />
                     <span className="leading-tight">{GROUP_LABEL[t.key]}</span>
                   </span>
-                  <span className={`text-[10px] font-bold tabular-nums shrink-0 ${active ? "bg-ink text-paper rounded-full px-1.5 min-w-[18px] text-center" : "text-ink/80"}`}>
+                  <span className={`text-[10px] font-bold tabular-nums shrink-0 ${active ? "bg-ink text-paper rounded-full px-1.5 min-w-[18px] text-center" : "text-ink/60"}`}>
                     {t.count}
                   </span>
                 </div>
@@ -254,56 +241,50 @@ function QuotesPage() {
         )}
       </div>
 
-      {/* Status legend + filters. The chips double as the legend: each colour
-          corresponds 1:1 with the section headers below, so the workflow
-          becomes self-explanatory. */}
+      {/* Quick section chips — jump straight to a standardized status group. */}
       {(() => {
         const nonEmptySections = SECTIONS.filter((s) => mockQuotes.some(s.match));
         if (nonEmptySections.length < 2) return null;
         return (
-          <div className="px-5 mt-3">
-            <div className="flex items-center justify-between mb-2">
-              <p className="t-eyebrow">Status</p>
-              {sectionFilter && (
-                <button
-                  type="button"
-                  onClick={() => setSectionFilter(null)}
-                  className="text-[11px] font-semibold text-muted-foreground hover:text-ink underline-offset-2 hover:underline"
-                >
-                  Clear filter
-                </button>
-              )}
-            </div>
-            <div className="-mx-1 overflow-x-auto no-scrollbar">
-              <div className="flex items-center gap-1.5 px-1 pb-0.5">
-                {SECTIONS.map((s) => {
-                  const count = mockQuotes.filter(s.match).length;
-                  if (count === 0) return null;
-                  const active = sectionFilter === s.key;
-                  const theme = SECTION_THEME[s.key];
-                  return (
-                    <button
-                      key={s.key}
-                      type="button"
-                      onClick={() => { setSectionFilter(active ? null : s.key); feedback("tap"); }}
-                      aria-pressed={active}
-                      className={`shrink-0 inline-flex items-center gap-2 rounded-full px-3 py-2 text-[11px] font-bold uppercase tracking-wide border transition active:scale-95 ${
-                        active
-                          ? `${theme.activeBg} ${theme.activeBorder} text-ink shadow-[0_2px_0_0_color-mix(in_oklab,var(--ink)_8%,transparent)]`
-                          : `${theme.tintBg} ${theme.tintBorder} text-ink hover:border-ink/40`
-                      }`}
-                    >
-                      <span className={`h-2 w-2 rounded-full ${theme.dot} shrink-0`} aria-hidden />
-                      <span>{s.label}</span>
-                      <span className={`tabular-nums text-[10px] font-bold ${active ? theme.text : "text-muted-foreground"}`}>
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+      <div className="px-5 mt-3 -mx-1 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1.5 px-1 pb-0.5">
+          {SECTIONS.map((s) => {
+            const count = mockQuotes.filter(s.match).length;
+            if (count === 0) return null;
+            const active = sectionFilter === s.key;
+            const dot = s.key === "paid" ? "bg-lime" : TILE_DOT[s.key];
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => { setSectionFilter(active ? null : s.key); feedback("tap"); }}
+                aria-pressed={active}
+                className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide border transition active:scale-95 ${
+                  active
+                    ? "bg-ink text-paper border-ink"
+                    : "bg-card text-ink border-border hover:border-ink/30"
+                }`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+                {s.label}
+                <span className={`tabular-nums text-[10px] ${active ? "text-paper/70" : "text-muted-foreground"}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+          {sectionFilter && (
+            <button
+              type="button"
+              onClick={() => setSectionFilter(null)}
+              className="shrink-0 inline-flex items-center rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground hover:bg-secondary"
+              aria-label="Clear section filter"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
         );
       })()}
 

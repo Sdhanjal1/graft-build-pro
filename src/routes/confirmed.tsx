@@ -60,7 +60,7 @@ function ConfirmedPage() {
           <Check className="w-10 h-10 text-ink" strokeWidth={3} />
         </div>
         <h2 className="text-2xl font-bold mb-2">Email confirmed</h2>
-        <p className="text-sm text-paper/85 mb-5">
+        <p className="text-sm text-paper/60 mb-5">
           You're all set. Let's get your account ready.
         </p>
         <button
@@ -69,7 +69,7 @@ function ConfirmedPage() {
         >
           Continue
         </button>
-        <p className="mt-4 text-xs text-paper/75">
+        <p className="mt-4 text-xs text-paper/40">
           Taking you to {dest === "/app" ? "your dashboard" : "setup"}…
         </p>
       </div>

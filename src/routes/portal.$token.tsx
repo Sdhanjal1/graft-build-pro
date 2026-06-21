@@ -341,7 +341,7 @@ function PortalPage() {
         <BusinessLogo logoUrl={(profile as any)?.logo_url} businessName={profile?.business_name ?? "Your tradesperson"} size="md" />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold truncate">{profile?.business_name ?? "Your tradesperson"}</p>
-          <p className="text-[10px] text-paper/85 truncate">Quote {quote.ref ?? ""}</p>
+          <p className="text-[10px] text-paper/60 truncate">Quote {quote.ref ?? ""}</p>
         </div>
       </header>
 

@@ -55,7 +55,7 @@ export function UpdateBanner() {
           <button
             onClick={() => setDismissed(true)}
             aria-label="Dismiss"
-            className="h-8 w-8 -mr-1 flex items-center justify-center text-paper/85"
+            className="h-8 w-8 -mr-1 flex items-center justify-center text-paper/60"
           >
             ✕
           </button>

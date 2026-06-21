@@ -235,7 +235,7 @@ function Header({ pro }: { pro: any }) {
         </div>
         <div className="min-w-0">
           <p className="text-xs font-semibold truncate">{pro?.business_name ?? pro?.full_name ?? "Tradesperson"}</p>
-          {pro?.trade_type && <p className="text-[10px] text-paper/85 truncate">{pro.trade_type}{pro.town ? ` · ${pro.town}` : ""}</p>}
+          {pro?.trade_type && <p className="text-[10px] text-paper/60 truncate">{pro.trade_type}{pro.town ? ` · ${pro.town}` : ""}</p>}
         </div>
       </div>
     </header>

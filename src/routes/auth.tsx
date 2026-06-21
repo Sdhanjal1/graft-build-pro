@@ -98,7 +98,7 @@ function AuthPage() {
           {googleBusy ? "Opening Google…" : `Continue with Google`}
         </button>
 
-        <div className="flex items-center gap-3 my-2 text-[10px] uppercase tracking-widest text-paper/75">
+        <div className="flex items-center gap-3 my-2 text-[10px] uppercase tracking-widest text-paper/40">
           <div className="flex-1 h-px bg-paper/15" />
           or
           <div className="flex-1 h-px bg-paper/15" />
@@ -140,7 +140,7 @@ function AuthPage() {
         </form>
 
         {mode === "login" && (
-          <Link to="/forgot-password" className="mt-4 text-xs text-paper/85 hover:text-paper text-center w-full block">
+          <Link to="/forgot-password" className="mt-4 text-xs text-paper/60 hover:text-paper text-center w-full block">
             Forgot password?
           </Link>
         )}
@@ -156,7 +156,7 @@ function AuthPage() {
           </span>
         </button>
       </div>
-      <p className="text-center text-[11px] text-paper/75 pb-6">UK tradespeople · 2026</p>
+      <p className="text-center text-[11px] text-paper/40 pb-6">UK tradespeople · 2026</p>
     </div>
   );
 }
@@ -164,10 +164,10 @@ function AuthPage() {
 function Input({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="block">
-      <span className="text-[10px] uppercase tracking-widest text-paper/85 font-semibold">{label}</span>
+      <span className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">{label}</span>
       <input
         {...props}
-        className="mt-1.5 w-full bg-paper/10 border border-paper/15 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-lime/50 placeholder:text-paper/60"
+        className="mt-1.5 w-full bg-paper/10 border border-paper/15 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-lime/50 placeholder:text-paper/30"
       />
     </label>
   );

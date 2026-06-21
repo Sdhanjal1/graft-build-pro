@@ -184,7 +184,7 @@ function AppHomePage() {
               <BusinessLogo logoUrl={userProfile.logo_url} businessName={userProfile.business_name} size="md" />
               <div className="min-w-0">
                 <p className="text-lg font-semibold text-paper leading-tight truncate">{greeting}, {firstName}</p>
-                <p className="mt-0.5 text-[11px] uppercase tracking-[0.16em] font-bold text-paper/80 truncate">
+                <p className="mt-0.5 text-[11px] uppercase tracking-[0.16em] font-bold text-paper/55 truncate">
                   {userProfile.business_name || "Finish setup"}
                 </p>
               </div>
@@ -289,7 +289,7 @@ function AppHomePage() {
               onClick={() => buzz(12)}
               className="flex flex-col items-center justify-center flex-1 active:scale-[0.99] transition rounded-2xl py-2"
             >
-              <p className="text-[10px] uppercase tracking-widest text-paper/85 font-semibold">
+              <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">
                 Tap to start
               </p>
               <p className="text-2xl font-semibold leading-tight mt-1">Speak a new quote</p>
@@ -304,14 +304,14 @@ function AppHomePage() {
             </Link>
 
             <div className="pt-3 mt-auto border-t border-paper/10">
-              <p className="text-[10px] uppercase tracking-widest text-paper/75 font-semibold">
+              <p className="text-[10px] uppercase tracking-widest text-paper/40 font-semibold">
                 Try saying
               </p>
               <RotatingPrompts className="mt-1 text-sm text-paper/85 leading-snug" />
               <Link
                 to="/quotes/new"
                 search={{ type: 1 }}
-                className="inline-block mt-3 text-xs text-paper/85 hover:text-lime underline underline-offset-4 decoration-paper/30"
+                className="inline-block mt-3 text-xs text-paper/60 hover:text-lime underline underline-offset-4 decoration-paper/30"
               >
                 Or type instead
               </Link>
@@ -416,7 +416,7 @@ function HeroNumber({
           numberEl
         )}
       </div>
-      {sub && <p className="text-[11px] text-paper/85 font-medium mt-2">{sub}</p>}
+      {sub && <p className="text-[11px] text-paper/60 font-medium mt-2">{sub}</p>}
     </div>
   );
 }
@@ -455,9 +455,9 @@ function ActionCard({
     const subColor = onLight ? "text-ink/70" : "text-paper/65";
     const eyebrowColor =
       tone === "accepted"
-        ? "text-ink/80"
+        ? "text-ink/60"
         : tone === "neutral"
-        ? "text-ink/75"
+        ? "text-ink/50"
         : "text-lime";
     const ctaColor = onLight ? "text-ink" : "text-lime";
     const iconColor = onLight ? "text-ink/70" : "text-paper/70";
