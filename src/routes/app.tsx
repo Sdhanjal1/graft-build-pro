@@ -151,7 +151,7 @@ function AppHomePage() {
           href: "/chaser",
           sub:
             s.acceptedTodayCount > 0 ? (
-              <span className="text-lime">Won today: {formatGBP(s.acceptedTodayAmount)}</span>
+              <span className="text-sent">Won today: {formatGBP(s.acceptedTodayAmount)}</span>
             ) : null,
         }
       : s.acceptedTodayCount > 0
