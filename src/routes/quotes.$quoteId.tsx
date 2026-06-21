@@ -11,7 +11,7 @@ import {
   
   deleteQuote,
   materialsForQuote, cleanItemDescription, lineIsEstimate, parseMoney,
-  type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
+  type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type QuoteStatus, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
 import { createInvoiceCheckout, recordManualDeposit, removeManualDeposit, getQuotePaymentStatus } from "@/lib/payments.functions";
 import { sendInvoiceEmailForQuote } from "@/lib/invoice-email.functions";
@@ -966,6 +966,16 @@ function QuoteDetail() {
                 onChange={(items) => {
                   quote.line_items = items;
                 }}
+                onReissued={(newStatus) => {
+                  setStatusState(newStatus);
+                  quote.status = newStatus;
+                  const firstName = client?.name?.split(" ")[0] ?? "Your customer";
+                  toast(`Quote updated — total changed`, {
+                    description: `${firstName} needs to re-accept. Re-share the updated quote.`,
+                    duration: 10000,
+                    action: { label: "Re-share", onClick: () => setSendOpen(true) },
+                  });
+                }}
               />
             )}
           </div>
@@ -1742,11 +1752,13 @@ function LineItemsEditor({
   vatRegistered,
   depositPaid = 0,
   onChange,
+  onReissued,
 }: {
   quote: Quote;
   vatRegistered: boolean;
   depositPaid?: number;
   onChange?: (items: LineItem[]) => void;
+  onReissued?: (newStatus: QuoteStatus) => void;
 }) {
 
   const [items, setItems] = useState<LineItem[]>(quote.line_items.map((li) => ({ ...li })));
@@ -1806,7 +1818,8 @@ function LineItemsEditor({
     onChange?.(next);
     setSaving(true);
     try {
-      await updateQuoteLineItems(quote.id, next, vatRegistered);
+      const updated = await updateQuoteLineItems(quote.id, next, vatRegistered);
+      if (updated?._reissued) onReissued?.(updated.status);
       feedback("success");
     } catch (e) {
       console.error(e);
