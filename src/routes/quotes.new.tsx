@@ -1780,7 +1780,7 @@ function NewQuotePage() {
                           className="w-24 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
                         />
                       </label>
-                      <p className="num text-sm ml-auto font-semibold w-full text-right sm:w-auto">{formatGBP(lineTotal)}</p>
+                      <p className="t-amount-md font-semibold tabular-nums ml-auto w-full text-right sm:w-auto">{formatGBP(lineTotal)}</p>
                     </div>
                   </li>
                 );
