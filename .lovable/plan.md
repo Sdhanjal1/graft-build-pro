@@ -1,59 +1,55 @@
-## What's congested today
+# Typography & Readability Audit
 
-Looking at `src/routes/messages.tsx`, the page stacks a lot of competing UI on one screen:
+Goal: every piece of text — labels, captions, secondary metadata, amounts, status text — meets WCAG AA contrast and feels confident, never faint. No `text-foo/40`, no washed `text-muted-foreground` for important data, no thin weights on key numbers.
 
-1. **5 filter chips** (All / Unread / Requests / Notifications / Messages) — three of them duplicate what "All" already shows.
-2. **3 separate sections** rendered simultaneously on the default "All" view (Quote requests, Messages, Notifications), each with its own H2 + count + list, so the eye has nowhere to rest.
-3. **Repeated metadata** on every card: icon avatar, title, ref (#ABCD), preview line, relative time, unread dot, per-row menu — all at full weight.
-4. **Bulk-action menu always visible** in the header even when there's nothing to act on.
-5. **Section headers compete with the page header** ("Inbox" + subtitle + Quote requests + Messages + Notifications all visible at once).
+## Approach
 
-## Recommendations
+Two-pass sweep:
 
-### 1. Collapse 3 sections into one chronological feed
+1. **Token pass (global, one-shot)** — raise the baseline so every component benefits without touching each file.
+2. **Component pass (targeted)** — fix specific high-traffic screens where opacity utilities or muted classes hide meaningful content (amounts, dates, names, statuses).
 
-On the default view, merge requests + messages + notifications into a **single time-sorted list**. Group by day with lightweight sticky dividers (`Today`, `Yesterday`, `This week`, `Earlier`) instead of by type. The item's icon + colour already tells the user what kind it is — they don't need a section header too.
+## 1. Token pass (src/styles.css)
 
-### 2. Reduce filters from 5 to 3
+Tighten the muted/border tokens so the default "secondary text" tier is already readable.
 
-Replace the chip row with three tabs:
+- `--muted-foreground`: bump from `oklch(0.42 0.008 80)` → `oklch(0.32 0.008 80)` so default `text-muted-foreground` on cream/white passes AA at small sizes.
+- `--mute` (on dark surfaces in MarketingShell footer, BottomNav, banners): introduce a `--paper-muted` token at `oklch(0.945 0.014 85 / 0.78)` and replace ad-hoc `text-paper/50`/`/55`/`/60` usages.
+- Add a `.text-meta` utility (weight 500, color `--muted-foreground`, tracking +0.01em) for captions/labels so we stop reaching for opacity.
+- Add a `.num-strong` utility for monetary amounts: display font, `color: var(--ink)`, never opacity-dimmed.
 
-- **All** (default)
-- **Unread** (with count badge)
-- **Requests** (kept as its own tab because these are revenue actions)
+## 2. Component pass
 
-Drop the standalone "Messages" and "Notifications" filters — power users can still see only one type by tapping an item's icon, but they don't need top-level chips for it. This halves the chrome above the feed.
+Files with the heaviest faint-text load (from grep): `quotes.$quoteId.tsx`, `quotes.new.tsx`, `settings.tsx`, `portal.$token.tsx`, `invoices.$quoteId.tsx`, `portal.c.$code.tsx`, `messages.tsx`, `app.tsx`, `clients.$clientId.tsx`, `chaser.tsx`, `MarketingShell.tsx`, `CookieBanner.tsx`, `BillingSection.tsx`, `SendQuoteDialog.tsx`, `MaterialListSheet.tsx`.
 
-### 3. Tighter, calmer cards
+For each, apply the rules below. No layout or behavioural changes.
 
-- One line for title, one line for preview, time right-aligned.
-- Drop the `#ABCD` ref from the row (show it on the detail page).
-- Replace the per-row dropdown with **swipe-to-delete / swipe-to-mark-read** (already used elsewhere via `SwipeRow`), so the row itself is just content.
-- Unread = subtle left border + bolder title, not a separate dot + badge + colour.
+### Rules
 
-### 4. Move bulk actions out of the header
+- **Amounts / totals / line-item prices**: always full-ink, weight 600+ (or display font). Strip any `/70`, `/80`, `opacity-*` wrappers around money.
+- **Dates, refs, "sent X ago"**: use `text-muted-foreground` (now darker) instead of `text-ink/60` or `/70`.
+- **Captions on dark surfaces** (footer, BottomNav, banners, MarketingShell): replace `text-paper/40`–`/60` with `text-paper/80` minimum; uppercase eyebrows go to `/85`.
+- **Inactive tabs / nav** (`messages.tsx` tab row, BottomNav): inactive label at `text-ink/75` (or `text-paper/75` on dark), not `/55`–`/60`.
+- **Disabled buttons**: keep `disabled:opacity-50` (intentional affordance) — not in scope.
+- **Status pills**: verify each pill's text token has AA contrast on its background; darken `--status-pending` if needed.
+- **Read messages** (`messages.tsx` line 252, 260, 246): bump secondary preview text from `text-ink/75` + `text-muted-foreground` to a single readable tier; unread emphasis stays via weight, not by making read items faint.
 
-Hide the `MoreHorizontal` menu by default. Show a "Select" affordance only when the list has ≥ 5 items, and surface "Mark all read" inline as a small text button at the top of the feed **only when `totalUnread > 0**`. This removes a permanent control most users never tap.
+### Out of scope
 
-### 5. Quieter page header
+- Layout, spacing, animation.
+- Renaming/refactoring components.
+- Marketing copy.
+- Dialog/Toggle shadcn `opacity-70` interaction affordances (those are hover states, not text legibility).
 
-Keep "Inbox" + subtitle, but drop the subtitle when empty/loading states already say the same thing ("All caught up" appears in two places today).
+## Verification
 
-### 6. Empty-state cleanup
+After changes:
+1. Playwright screenshot key screens at mobile width (375): `/`, `/messages`, `/quotes`, a quote detail, `/settings`, `/portal/<token>` (public preview), and the dark footer.
+2. Visually confirm: amounts pop, dates/labels are legible without squinting, no element reads as "faded".
+3. Spot-check contrast with a quick OKLCH-to-relative-luminance check on the new muted token vs `--paper` and `--card`.
 
-When a filter yields zero items, show one centred `EmptyState` instead of three empty section shells.
+## Technical notes
 
-## Files touched
-
-- `src/routes/messages.tsx` — the entire restructure lives here. No backend or data-layer changes; this is purely presentation. Server functions (`getInbox`, `getMyIncomingRequests`, `listMyNotifications`) and realtime subscriptions stay untouched.
-- Possibly reuse `src/components/SwipeRow.tsx` for the new row interactions (already in the project).
-
-## What I will NOT change
-
-- Data fetching, realtime, mark-read/delete server functions.
-- Navigation targets when a row is tapped.
-- The `quote_requests` / `notifications` / `quote_messages` schemas.
-
-## Open question before I build
-
-Do you want me to **keep "Requests" as its own tab** (my recommendation, since unanswered requests = money) or fold everything into just **All / Unread**? Either works — the first protects request visibility, the second is the most minimal. - Yes 
+- `text-muted-foreground` is the shadcn-wired token; bumping `--muted-foreground` cascades to inputs, labels, captions across all shadcn components automatically.
+- The grain overlay (`body::before`, opacity 0.03) slightly reduces effective contrast — accounted for by targeting AA with headroom (contrast ≥ 4.8 rather than 4.5).
+- No new dependencies; pure CSS + className edits.
