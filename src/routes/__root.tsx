@@ -18,6 +18,7 @@ import { BannerSlot } from "@/components/BannerSlot";
 import { useSession } from "@/lib/auth";
 import { hydrateUserData, clearUserData, userProfile } from "@/lib/user-data";
 import { registerServiceWorker } from "@/lib/sw-register";
+import { useQuotesRealtime } from "@/hooks/useQuotesRealtime";
 
 function NotFoundComponent() {
   return (
@@ -167,6 +168,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const path = router.state.location.pathname;
   const isPublic = isPublicPath(path);
   const [hydratedForUserId, setHydratedForUserId] = React.useState<string | null>(null);
+  useQuotesRealtime(session?.user.id);
 
   React.useEffect(() => {
     if (loading) return;
