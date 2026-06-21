@@ -1,66 +1,74 @@
-## Goal
+# Quote page: live status + calmer sent-state CTA
 
-Add an in-app notifications inbox so you can see anything a push notification would have fired — even if the push was missed (silenced, offline, browser closed, dead subscription).
+Scope is `src/routes/quotes.$quoteId.tsx` only. No server, schema, portal, or payment changes.
 
-## Approach
+## 1. Realtime sync of quote status
 
-Persist every notification at the same point we already call `notifyUser(...)`, then show them in an inbox UI with unread tracking. Push delivery is unchanged.
+Add a `useEffect` that opens a single Supabase channel filtered to this quote's id:
 
-### 1. New table `public.notifications`
+```ts
+supabase.channel(`quote-${quote.id}`)
+  .on('postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'quotes', filter: `id=eq.${quote.id}` },
+      (payload) => { /* sync local status */ })
+  .subscribe();
+```
 
-Columns (domain-specific only):
-- `user_id` — owner (the pro who should see it)
-- `title`, `body` — same strings already passed to `notifyUser`
-- `url` — deep link the row opens
-- `kind` — short tag, e.g. `quote_request`, `customer_message`, `portal_message`, `quote_accepted`, `quote_declined`, `payment_paid`, `service_reminder`, `test`
-- `tag` — the existing dedupe tag (used as a uniqueness hint per user to prevent duplicates on Stripe webhook replays)
-- `read_at` — nullable timestamp
+On payload:
+- If `new.status !== statusState`, call `setStatusState(new.status)` and refresh related local fields already mirrored in state (`invoicedAt`, `completedAt`, `paidAt` if present on the row).
+- When transitioning `sent → accepted`, fire a subtle toast: *"Customer accepted — nice one."* + `feedback("success")`. For `sent → declined`, toast *"Customer declined."* with no celebratory sound. Skip toasts if the change originated from this tab (track a `localChangeRef` set inside `acceptQuote`/`declineQuote`/`setQuoteStatus` callers, cleared after ~1.5s).
+- Tear the channel down in the effect cleanup with `supabase.removeChannel(channel)`.
 
-RLS: owner-only read/update/delete; inserts via service role from server functions. GRANTs for `authenticated` + `service_role` (no `anon`). Index on `(user_id, read_at, created_at DESC)`. Unique partial index on `(user_id, tag)` where `tag is not null` so replayed Stripe events / cron reruns don't double-log.
+`quotes` is already in scope via existing reads; RLS already restricts to the owner, so the subscription is safe.
 
-### 2. Server: one helper, all existing call sites
+## 2. Sent-state action bar rework
 
-Add `recordNotification(...)` in `src/lib/notifications.server.ts`. Then refactor `notifyUser` in `push.server.ts` to optionally persist before sending push (or add a sibling `notifyAndRecord` and switch the seven call sites to it — leaning toward the latter so callers stay explicit). Either way, every existing trigger gets an inbox row:
+In the `primary` resolver (lines ~658-693), replace the `status === "sent"` branch:
 
-- new quote request → `quote-requests.functions.ts`
-- new customer message (token portal) → `messages.functions.ts` (×2: message + accept/decline)
-- portal client message + accept/decline → `portal.functions.ts` (×2)
-- Stripe payment paid (deposit / full / balance) → `payments-webhook-shared.server.ts`
-- daily service reminder cron → `api/public/hooks/service-reminders.ts`
-- `sendTestPush` → also writes a `kind: "test"` row
+- **With client phone present** → primary becomes `{ label: "Nudge customer", icon: MessageCircle, onClick: () => setSendOpen(true) }`. Reuses `SendQuoteDialog` which already supports re-sharing the portal link via the native share sheet.
+- **Without phone** → primary becomes `{ label: "Copy portal link", icon: Copy, onClick: copyPortalLink }` (extract the existing copy helper from `SendQuoteDialog` path, or call `ensurePortalToken` inline — already imported elsewhere in the file).
 
-Persistence wrapped in try/catch so a DB failure never blocks the underlying flow (same posture as push today).
+Remove the separate `showChaseSecondary` WhatsApp button on the left (lines 1055-1067) — nudge is now the primary, so the dual-CTA clutter goes away.
 
-### 3. Server functions (`src/lib/notifications.functions.ts`)
+## 3. "Waiting on customer" pill
 
-All `requireSupabaseAuth`:
-- `listMyNotifications({ limit?, before? })` — paginated, newest first, returns `{ items, unreadCount }`
-- `markNotificationRead({ id })`
-- `markAllNotificationsRead()`
-- `deleteNotification({ id })` (optional, low cost)
+When `status === "sent"` AND no nudge is appropriate (e.g. fewer than ~12 hours since send, no phone/email on file, OR user has just hit "Nudge" — track `nudgedAt` in local state for 60 minutes), render a calm pill in the bar slot instead of the lime button:
 
-### 4. UI
+```tsx
+<div className="flex-1 rounded-full bg-card border border-border py-3.5 inline-flex items-center justify-center gap-2 text-sm text-muted-foreground">
+  <span className="relative inline-flex h-2 w-2">…pulsing amber dot…</span>
+  Waiting on customer
+</div>
+```
 
-- New route `src/routes/_authenticated/notifications.tsx` (inbox list):
-  - Tabs: All / Unread
-  - Each row: title, body, relative time (`x min ago`), kind icon, click → navigate to `url` and mark read
-  - "Mark all as read" button
-  - Empty state
-- Bell icon in the app header with unread badge — opens `/notifications`. Lightweight realtime: subscribe to `postgres_changes` on `notifications` filtered by `user_id` so the badge updates live without polling. Falls back gracefully if realtime is off.
-- Settings page: keep the existing push toggle exactly as-is; add a one-line note "You can also view notifications anytime in your inbox."
+Conditions for showing the pill instead of the Nudge button:
+- `status === "sent"` AND
+- (`Date.now() - sentMs < 12h`) OR (`nudgedAt && Date.now() - nudgedAt < 60min`) OR (no phone and no email).
 
-### 5. Backfill
+## 4. Move manual accept into the overflow menu
 
-None. Inbox starts populating from the moment the migration ships. Historic events don't get retro rows (we don't have the data).
+In the More-actions sheet (around line 1025 "Status" group), add — only when `status === "sent"`:
+
+```tsx
+<MoreItem icon={ThumbsUp} label="They said yes (mark accepted)" onClick={acceptQuote} />
+<MoreItem icon={XCircle} label="They said no (mark declined)" onClick={declineQuote} />
+```
+
+(The "Mark declined" item already exists on line 1030-1032; keep it but ensure it sits in the same group.)
+
+When the user taps the manual accept, fire a one-time toast:
+*"Marked as accepted. Tip: if your customer uses the link, this happens automatically."* Gate with `localStorage.getItem('quottr.manual-accept-tip-seen')` so it only shows once per device.
+
+## 5. Reduce remaining CTA clutter on sent state
+
+- The duplicate "Chase on WhatsApp" entry in the overflow (line 970-977) stays — it covers WhatsApp specifically; "Nudge customer" uses the share sheet.
+- Remove the standalone "Mark sent" overflow item only when `status === "sent"` (already conditional — verify).
+- No other action bar changes for `pending`, `accepted`, `paid`, `completed`, `declined`.
 
 ## Out of scope
 
-- No changes to push payload, VAPID, service worker, or the seven trigger sites' business logic — only an added record + same `notifyUser` call.
-- No email digest of unread notifications.
-- No per-kind notification preferences (mute payments, etc.) — easy to add later if you want.
+Portal accept/decline server functions, push notifications, inbox rows, deposit/payment logic, SendQuoteDialog internals, and any DB migrations.
 
-## Questions before I build
+## Files touched
 
-1. **Header bell placement** — there's an app shell with a top bar; OK to add the bell next to the existing user menu, or do you want it somewhere specific (e.g. mobile bottom nav too)?
-2. **Realtime updates for the badge** — fine to enable Realtime on the `notifications` table (negligible cost given low row volume), or prefer simple polling every 60s?
-3. **Auto-delete old rows?** Keep forever, or auto-prune read items older than 90 days via a daily cron? I'd default to "keep forever" — small table, useful audit trail.
+- `src/routes/quotes.$quoteId.tsx` (only)
