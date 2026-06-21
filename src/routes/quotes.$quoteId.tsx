@@ -120,6 +120,9 @@ function QuoteDetail() {
   const [sendOpen, setSendOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [actioning, setActioning] = useState(false);
+  // Local-only timestamp set when the user taps "Nudge customer" so we can
+  // swap the bar to a calm "Waiting on customer" pill for ~60 minutes.
+  const [nudgedAt, setNudgedAt] = useState<number | null>(null);
   
   const [timingOpen, setTimingOpen] = useState(false);
   const [materialsOpen, setMaterialsOpen] = useState(false);
@@ -296,8 +299,13 @@ function QuoteDetail() {
   };
 
   const setMethod = (m: PaymentMethod) => { quote.payment_method = m; setMethodState(m); };
+  // Track local status writes so the realtime subscription doesn't double-toast
+  // when the change originated from this tab.
+  const localChangeRef = useRef(0);
+  const markLocalChange = () => { localChangeRef.current = Date.now(); };
   const acceptQuote = async () => {
     try {
+      markLocalChange();
       await setQuoteStatus(quote.id, "accepted");
       setStatusState("accepted");
       if (timing === "deposit_then_balance" && configuredDeposit > 0) {
@@ -310,8 +318,21 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
     }
   };
+  // Manual accept from the overflow menu — shows a one-time tip explaining
+  // that portal-driven accepts happen automatically.
+  const manualAcceptQuote = async () => {
+    await acceptQuote();
+    try {
+      const KEY = "quottr.manual-accept-tip-seen";
+      if (typeof window !== "undefined" && !localStorage.getItem(KEY)) {
+        localStorage.setItem(KEY, "1");
+        toast.message("Marked as accepted. Tip: if your customer uses the link, this happens automatically.");
+      }
+    } catch { /* noop */ }
+  };
   const markSent = async () => {
     try {
+      markLocalChange();
       await setQuoteStatus(quote.id, "sent");
       setStatusState("sent");
       feedback("success"); toast.success("Marked sent");
@@ -321,6 +342,7 @@ function QuoteDetail() {
   };
   const declineQuote = async () => {
     try {
+      markLocalChange();
       await setQuoteStatus(quote.id, "declined");
       setStatusState("declined");
       feedback("success"); toast.success("Marked declined");
@@ -328,6 +350,38 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
     }
   };
+
+  // Realtime: when the customer accepts/declines/pays from the portal, sync
+  // this page without a refresh. Filter to this quote's id only.
+  const statusRef = useRef(status);
+  useEffect(() => { statusRef.current = status; }, [status]);
+  useEffect(() => {
+    const channel = supabase
+      .channel(`quote-${quote.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "quotes", filter: `id=eq.${quote.id}` },
+        (payload) => {
+          const next = (payload.new ?? {}) as Partial<Quote>;
+          if (!next.status) return;
+          const prev = statusRef.current;
+          if (next.status === prev) return;
+          setStatusState(next.status);
+          if (typeof next.invoiced_at !== "undefined") setInvoicedAt(next.invoiced_at ?? undefined);
+          if (typeof next.completed_at !== "undefined") setCompletedAt(next.completed_at ?? undefined);
+          const isLocal = Date.now() - localChangeRef.current < 1500;
+          if (isLocal) return;
+          if (prev === "sent" && next.status === "accepted") {
+            feedback("success");
+            toast.success("Customer accepted — nice one.");
+          } else if (prev === "sent" && next.status === "declined") {
+            toast.message("Customer declined.");
+          }
+        },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [quote.id]);
   const removeRecordedDeposit = () => setConfirmRemoveDeposit(true);
   const confirmRemoveRecordedDeposit = async () => {
     setConfirmRemoveDeposit(false);
@@ -670,7 +724,17 @@ function QuoteDetail() {
       },
     };
   } else if (status === "sent") {
-    primary = { label: "Customer accepted", icon: ThumbsUp, onClick: acceptQuote };
+    // Primary becomes a "Nudge customer" share — manual mark-accepted moved
+    // into the overflow menu. If there's no contact to nudge, we render a
+    // calm "Waiting on customer" pill in place of the button (see below).
+    primary = {
+      label: "Nudge customer",
+      icon: Send,
+      onClick: () => {
+        setNudgedAt(Date.now());
+        setSendOpen(true);
+      },
+    };
   } else if (status === "accepted") {
     // ONE smart action — handles complete + invoice/balance/receipt together,
     // dispatched by jobDoneMode (derived from payment_timing).
@@ -703,10 +767,12 @@ function QuoteDetail() {
   const needsClient = status === "pending" && !client;
   const barVisible = needsClient || scrollWantsVisible;
 
-  // Secondary "chase" action: shown on the LEFT of the primary when the quote
-  // has been SENT but sitting idle > 3 days.
-  const sentMs = quote.created_at ? new Date(quote.created_at).getTime() : 0;
-  const showChaseSecondary = status === "sent" && client?.phone && sentMs && (Date.now() - sentMs) > 3 * 86_400_000;
+  // "Waiting on customer" pill replaces the primary button on sent quotes
+  // when there's nothing useful to do right now: no contact to nudge, or the
+  // user already nudged within the last hour.
+  const hasContact = !!(client?.phone || client?.email);
+  const recentlyNudged = nudgedAt !== null && (Date.now() - nudgedAt) < 60 * 60_000;
+  const showWaitingPill = status === "sent" && (!hasContact || recentlyNudged);
 
   // Wrap primary.onClick with the loading/disabled gate. Async handlers
   // (accept/complete/reopen) are awaited; sync ones (open sheets) just toggle
@@ -1027,6 +1093,9 @@ function QuoteDetail() {
                 {status === "pending" && (
                   <MoreItem icon={Send} label="Mark sent" onClick={markSent} />
                 )}
+                {status === "sent" && (
+                  <MoreItem icon={ThumbsUp} label="They said yes (mark accepted)" onClick={manualAcceptQuote} />
+                )}
                 {status !== "declined" && status !== "paid" && (
                   <MoreItem icon={XCircle} label="Mark declined" onClick={declineQuote} />
                 )}
@@ -1052,32 +1121,32 @@ function QuoteDetail() {
         <div className="mx-auto max-w-md px-4 pointer-events-auto">
           <div className="h-6 -mb-2 bg-gradient-to-t from-paper via-paper/80 to-paper/0" aria-hidden />
           <div className="bg-paper pt-2 pb-1 flex items-center gap-2">
-            {showChaseSecondary && waHref && (
-              <a
-                href={waHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                onPointerDown={() => feedback("tap")}
-                className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-card border border-border text-ink px-4 py-3.5 text-xs font-bold active:scale-[0.98]"
-                aria-label="Send chaser on WhatsApp"
+            {showWaitingPill ? (
+              <div
+                className="flex-1 rounded-full bg-card border border-border py-3.5 inline-flex items-center justify-center gap-2 text-sm text-muted-foreground"
+                aria-live="polite"
               >
-                <MessageCircle className="h-4 w-4" />
-                Chase
-              </a>
+                <span className="relative inline-flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-amber opacity-70" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-status-amber" />
+                </span>
+                Waiting on customer
+              </div>
+            ) : (
+              <button
+                onClick={handlePrimary}
+                onPointerDown={() => feedback("tap")}
+                disabled={actioning}
+                className="flex-1 bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)] disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {actioning ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <PrimaryIcon className="h-4 w-4" />
+                )}
+                {primary.label}
+              </button>
             )}
-            <button
-              onClick={handlePrimary}
-              onPointerDown={() => feedback("tap")}
-              disabled={actioning}
-              className="flex-1 bg-lime text-ink rounded-full py-3.5 font-bold inline-flex items-center justify-center gap-2 text-sm shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)] disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {actioning ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <PrimaryIcon className="h-4 w-4" />
-              )}
-              {primary.label}
-            </button>
           </div>
         </div>
       </div>
