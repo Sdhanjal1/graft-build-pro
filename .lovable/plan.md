@@ -1,40 +1,59 @@
-# Paid quotes: auto-complete + simplified view
+## What's congested today
 
-Two issues on quote `18772138…` (status = paid):
-1. The detail page still shows the full editable Itemised list and the "Payment terms" card, even though the job is paid in full — nothing left to configure.
-2. A "Job done — send receipt" button is still required as a manual tap, even though Stripe already confirmed payment. The receipt email is sent by the webhook, so the manual step is redundant.
+Looking at `src/routes/messages.tsx`, the page stacks a lot of competing UI on one screen:
 
-## Changes
+1. **5 filter chips** (All / Unread / Requests / Notifications / Messages) — three of them duplicate what "All" already shows.
+2. **3 separate sections** rendered simultaneously on the default "All" view (Quote requests, Messages, Notifications), each with its own H2 + count + list, so the eye has nowhere to rest.
+3. **Repeated metadata** on every card: icon avatar, title, ref (#ABCD), preview line, relative time, unread dot, per-row menu — all at full weight.
+4. **Bulk-action menu always visible** in the header even when there's nothing to act on.
+5. **Section headers compete with the page header** ("Inbox" + subtitle + Quote requests + Messages + Notifications all visible at once).
 
-### 1. Auto-complete on payment (server)
+## Recommendations
 
-In `src/lib/payments-webhook-shared.server.ts`, inside `handlePaidEvent` after the quote status is updated to `paid` for `requestType === "full" | "balance"`:
+### 1. Collapse 3 sections into one chronological feed
 
-- Also set `completed_at = now()` on the quote when it isn't already set.
-- Keep the existing branded receipt email + push notification (already automated — no UI tap needed).
+On the default view, merge requests + messages + notifications into a **single time-sorted list**. Group by day with lightweight sticky dividers (`Today`, `Yesterday`, `This week`, `Earlier`) instead of by type. The item's icon + colour already tells the user what kind it is — they don't need a section header too.
 
-For `requestType === "deposit"` leave behaviour unchanged (deposit only → still needs job-done step for the balance).
+### 2. Reduce filters from 5 to 3
 
-### 2. Simplified paid view (UI only)
+Replace the chip row with three tabs:
 
-In `src/routes/quotes.$quoteId.tsx`, when `status === "paid"` AND `completed_at` is set (i.e. fully settled job):
+- **All** (default)
+- **Unread** (with count badge)
+- **Requests** (kept as its own tab because these are revenue actions)
 
-- **Hide the Payment terms card** (lines ~926–942). Nothing to change once paid.
-- **Replace the editable `LineItemsEditor`** with a read-only summary: list each line (description + amount), no add/edit/delete controls, no deposit-paid banner inside. The Job description block stays.
-- **Remove the "Job done — send receipt" primary button branch** at line 746–748. For a `paid` quote with no `completed_at`, the webhook will now have set `completed_at`, so this branch becomes unreachable for online payments. As a safety net for cash/bank "Mark paid" flows, fall through to the existing `status === "paid"` branch (line 753) which shows "Share receipt".
-- The top money card already shows the green "Paid" badge, total in lime, and a checkmark — that becomes the single source of truth for "Job complete · Paid".
+Drop the standalone "Messages" and "Notifications" filters — power users can still see only one type by tapping an item's icon, but they don't need top-level chips for it. This halves the chrome above the feed.
 
-### 3. Cash/bank mark-paid parity
+### 3. Tighter, calmer cards
 
-In the `markPaid` handler (around line 415) — when a user records a manual cash/bank payment, also set `completed_at` at the same time so the simplified view applies consistently.
+- One line for title, one line for preview, time right-aligned.
+- Drop the `#ABCD` ref from the row (show it on the detail page).
+- Replace the per-row dropdown with **swipe-to-delete / swipe-to-mark-read** (already used elsewhere via `SwipeRow`), so the row itself is just content.
+- Unread = subtle left border + bolder title, not a separate dot + badge + colour.
+
+### 4. Move bulk actions out of the header
+
+Hide the `MoreHorizontal` menu by default. Show a "Select" affordance only when the list has ≥ 5 items, and surface "Mark all read" inline as a small text button at the top of the feed **only when `totalUnread > 0**`. This removes a permanent control most users never tap.
+
+### 5. Quieter page header
+
+Keep "Inbox" + subtitle, but drop the subtitle when empty/loading states already say the same thing ("All caught up" appears in two places today).
+
+### 6. Empty-state cleanup
+
+When a filter yields zero items, show one centred `EmptyState` instead of three empty section shells.
 
 ## Files touched
 
-- `src/lib/payments-webhook-shared.server.ts` — set `completed_at` on full/balance payments.
-- `src/routes/quotes.$quoteId.tsx` — conditional rendering for paid+completed: hide payment-terms card, swap LineItemsEditor for read-only summary, drop the redundant "Job done — send receipt" button.
+- `src/routes/messages.tsx` — the entire restructure lives here. No backend or data-layer changes; this is purely presentation. Server functions (`getInbox`, `getMyIncomingRequests`, `listMyNotifications`) and realtime subscriptions stay untouched.
+- Possibly reuse `src/components/SwipeRow.tsx` for the new row interactions (already in the project).
 
-## Out of scope
+## What I will NOT change
 
-- Deposit-only paid state still shows payment terms + editor (balance is still owed).
-- No schema changes — `completed_at` column already exists on `quotes`.
-- No changes to chases (cancelled on paid already) or notifications.
+- Data fetching, realtime, mark-read/delete server functions.
+- Navigation targets when a row is tapped.
+- The `quote_requests` / `notifications` / `quote_messages` schemas.
+
+## Open question before I build
+
+Do you want me to **keep "Requests" as its own tab** (my recommendation, since unanswered requests = money) or fold everything into just **All / Unread**? Either works — the first protects request visibility, the second is the most minimal. - Yes 
