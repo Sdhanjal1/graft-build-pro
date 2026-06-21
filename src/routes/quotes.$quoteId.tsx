@@ -1818,7 +1818,8 @@ function LineItemsEditor({
     onChange?.(next);
     setSaving(true);
     try {
-      await updateQuoteLineItems(quote.id, next, vatRegistered);
+      const updated = await updateQuoteLineItems(quote.id, next, vatRegistered);
+      if (updated?._reissued) onReissued?.(updated.status);
       feedback("success");
     } catch (e) {
       console.error(e);
