@@ -811,36 +811,36 @@ function QuoteDetail() {
           <div className="pb-4 flex items-start justify-between gap-3">
             <div className="grid grid-cols-2 gap-4 flex-1 min-w-0">
               <div>
-                <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Subtotal</p>
-                <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP(quote.subtotal || 0)}</p>
+                <p className="t-eyebrow">Subtotal</p>
+                <p className="t-amount-md font-semibold tabular-nums mt-1">{formatGBP(quote.subtotal || 0)}</p>
               </div>
               {(quote.vat_registered ?? userProfile.vat_registered) && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">VAT (20%)</p>
-                  <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP(Number(quote.vat_amount) || (quote.subtotal || 0) * 0.2)}</p>
+                  <p className="t-eyebrow">VAT (20%)</p>
+                  <p className="t-amount-md font-semibold tabular-nums mt-1">{formatGBP(Number(quote.vat_amount) || (quote.subtotal || 0) * 0.2)}</p>
                 </div>
               )}
             </div>
             <StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />
           </div>
           <div className="py-4 flex items-center justify-between">
-            <p className="text-sm font-semibold text-ink inline-flex items-center gap-1.5">
+            <p className="t-h3 inline-flex items-center gap-1.5">
               {status === "paid" && <Check className="h-4 w-4 text-status-paid" strokeWidth={3} />}
               Total
             </p>
-            <p className={`text-2xl font-bold num ${status === "paid" ? "text-status-paid" : "text-ink"}`}>
+            <p className={`t-amount-xl font-semibold tabular-nums ${status === "paid" ? "text-status-paid" : "text-ink"}`}>
               {formatGBP(quote.total || 0)}
             </p>
           </div>
           {timing === "deposit_then_balance" && configuredDeposit > 0 && (
             <div className="pt-4 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Deposit due</span>
-                <span className="font-bold text-status-pending num">{formatGBP(configuredDeposit)}</span>
+              <div className="flex items-center justify-between">
+                <span className="t-body text-muted-foreground">Deposit due</span>
+                <span className="t-amount font-bold tabular-nums text-status-pending">{formatGBP(configuredDeposit)}</span>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Balance</span>
-                <span className="font-bold text-ink num">{formatGBP((quote.total || 0) - Math.max(configuredDeposit, depositPaid))}</span>
+              <div className="flex items-center justify-between">
+                <span className="t-body text-muted-foreground">Balance</span>
+                <span className="t-amount font-bold tabular-nums">{formatGBP((quote.total || 0) - Math.max(configuredDeposit, depositPaid))}</span>
               </div>
               {status !== "paid" && depositPaid === 0 && (
                 <button
