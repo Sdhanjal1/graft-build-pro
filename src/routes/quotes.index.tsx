@@ -471,7 +471,7 @@ function QuoteCard({
     <>
       {/* Numbers lead — Bebas £ amount as the left anchor */}
       <div
-        className={`shrink-0 leading-none tabular-nums ${isOverdue ? "text-lime" : "text-ink"}`}
+        className={`shrink-0 leading-none tabular-nums ${isOverdue ? "text-paper" : "text-ink"}`}
         style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.875rem", letterSpacing: "0.01em", minWidth: "5.5rem" }}
       >
         {formatGBP(quote.total)}
