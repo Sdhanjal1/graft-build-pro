@@ -9,6 +9,7 @@ import {
 
 import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, ThumbsUp, Pause, Play } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+import { StatusBadge } from "@/components/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { feedback } from "@/lib/feedback";
@@ -113,9 +114,10 @@ function ChaserPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{q.ref}</p>
-                      <span className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full bg-status-sent/15 text-status-sent">
-                        {days <= 0 ? "Sent today" : `Sent ${days} day${days === 1 ? "" : "s"} ago`}
-                      </span>
+                      <StatusBadge
+                        status="sent"
+                        label={days <= 0 ? "Sent today" : `Sent ${days}d ago`}
+                      />
                     </div>
                     <p className="font-semibold text-sm mt-0.5 truncate">{q.title}</p>
                     <p className="text-xs text-muted-foreground truncate">{c?.name}</p>
