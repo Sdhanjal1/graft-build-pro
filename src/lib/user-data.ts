@@ -1598,10 +1598,17 @@ export const markJobComplete = async (quoteId: string): Promise<Quote | null> =>
 export const markQuotePaid = async (quoteId: string, paidVia: PaymentMethod): Promise<Quote | null> => {
   const q = getQuote(quoteId);
   if (!q) return null;
-  const { error } = await supabase.from("quotes").update({ status: "paid", paid_via: paidVia }).eq("id", quoteId);
+  // Stamp completed_at at the same time so the paid quote view collapses to
+  // the simple "Job complete · Paid" summary, with no follow-up tap needed.
+  const completedAt = q.completed_at ?? new Date().toISOString();
+  const { error } = await supabase
+    .from("quotes")
+    .update({ status: "paid", paid_via: paidVia, completed_at: completedAt })
+    .eq("id", quoteId);
   if (error) throw error;
   q.status = "paid";
   q.paid_via = paidVia;
+  q.completed_at = completedAt;
   bumpVersion();
   return q;
 };
