@@ -7,11 +7,12 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { getInbox, markThreadRead } from "@/lib/messages.functions";
-import { getMyIncomingRequests, markRequestRead } from "@/lib/quote-requests.functions";
+import { getMyIncomingRequests, markRequestRead, deleteQuoteRequest } from "@/lib/quote-requests.functions";
 import {
   listMyNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  deleteNotification,
   type NotificationRow,
 } from "@/lib/notifications.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,9 +28,20 @@ import {
   CheckCircle2,
   XCircle,
   CalendarClock,
+  MoreHorizontal,
+  CheckCheck,
+  Trash2,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { EmptyState } from "@/components/EmptyState";
+
 
 type QuoteMessage = Database["public"]["Tables"]["quote_messages"]["Row"];
 type QuoteRequest = Database["public"]["Tables"]["quote_requests"]["Row"];
