@@ -127,6 +127,11 @@ export type Quote = {
   completed_at?: string;
   /** Last DB write — proxy for when status changed (e.g. accepted today). */
   updated_at?: string;
+  /** Set by the webhook / mark-paid handler when the branded receipt email was delivered. */
+  invoice_email_sent_at?: string;
+  invoice_email_status?: string;
+  invoice_email_to?: string;
+
   /** Tick state for the material shopping list, indexed by line_items position. (legacy) */
   materials_purchased?: boolean[];
   /** Separate materials shopping list for the job — independent of quote line items. */
