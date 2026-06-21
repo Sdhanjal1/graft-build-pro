@@ -291,8 +291,12 @@ type DbQuote = {
   deposit_percent: number | null;
   completed_at: string | null;
   updated_at?: string | null;
+  invoice_email_sent_at?: string | null;
+  invoice_email_status?: string | null;
+  invoice_email_to?: string | null;
   materials_purchased?: boolean[] | null;
   materials_list?: MaterialItem[] | null;
+
 };
 
 const rowToClient = (r: DbClient): Client => ({
