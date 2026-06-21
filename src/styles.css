@@ -194,7 +194,10 @@
     font-family: var(--font-display);
     letter-spacing: 0.01em;
   }
-  .num { font-family: var(--font-display); letter-spacing: 0.02em; }
+  /* Ledger amounts: DM Sans with tabular figures so £ amounts align in lists.
+     Bebas Neue is reserved for the wordmark and hero headline numbers
+     (`.money-hero`) only. */
+  .num { font-family: var(--font-body); font-variant-numeric: tabular-nums; letter-spacing: 0; font-weight: 600; }
 
   /* Grain texture overlay */
   body::before {
