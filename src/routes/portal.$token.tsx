@@ -614,7 +614,7 @@ function PortalPage() {
         </section>
       )}
 
-      {!isPaidInFull && hasPaidDeposit && (
+      {!isPaidInFull && hasPaidDeposit && paymentResult !== "paid" && (
         <section className="px-5 mt-4">
           <div className="card-surface p-5 border-2 border-status-accepted/40 bg-status-accepted/5">
             <div className="flex items-center gap-2 text-status-accepted font-bold text-sm">
@@ -623,17 +623,6 @@ function PortalPage() {
             <p className="text-xs text-muted-foreground mt-1">
               Balance of <span className="num font-semibold text-ink">{formatGBP(balanceAmount)}</span> due on completion.
             </p>
-            {hasCard && balanceAmount > 0 && (
-              <button
-                onClick={() => onPay("balance")}
-                onPointerDown={() => feedback("tap")}
-                disabled={paying}
-                className="mt-3 w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
-              >
-                {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-                <span className="truncate">Pay balance {formatGBP(balanceAmount)}</span>
-              </button>
-            )}
           </div>
         </section>
       )}
@@ -677,11 +666,25 @@ function PortalPage() {
                   </span>
                 </button>
               </div>
-            ) : isPaid ? (
-              isPaidInFull ? (
-                <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
-                  <Check className="h-4 w-4" /> Paid
-                </div>
+            ) : paymentResult === "paid" && !isPaidInFull && !hasPaidDeposit ? (
+              <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
+                <Loader2 className="h-4 w-4 animate-spin" /> Confirming payment…
+              </div>
+            ) : isPaidInFull ? (
+              <div className="h-12 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
+                <Check className="h-4 w-4" /> Paid
+              </div>
+            ) : hasPaidDeposit && !isPaidInFull ? (
+              hasCard && balanceAmount > 0 ? (
+                <button
+                  onClick={() => onPay("balance")}
+                  onPointerDown={() => feedback("tap")}
+                  disabled={paying}
+                  className="w-full h-12 rounded-full bg-lime text-ink text-sm font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 px-3 active:scale-[0.99] transition"
+                >
+                  {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                  <span className="truncate">Pay balance {formatGBP(balanceAmount)}</span>
+                </button>
               ) : (
                 <div className="h-12 px-4 rounded-full bg-status-accepted/15 text-status-accepted text-sm font-bold inline-flex items-center justify-center gap-1.5 w-full">
                   <Check className="h-4 w-4" />
