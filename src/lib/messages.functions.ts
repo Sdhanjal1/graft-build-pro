@@ -117,6 +117,23 @@ export const markThreadRead = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ---------- Pro: mark all customer messages in a thread as UNREAD ----------
+export const markThreadUnread = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ quoteId: z.string().min(1).max(120) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("quote_messages")
+      .update({ read_at: null })
+      .eq("quote_id", data.quoteId)
+      .eq("user_id", userId)
+      .eq("sender", "customer");
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
 
 // ---------- Public: resolve token -> quote + messages ----------
 export const getPortalData = createServerFn({ method: "POST" })
