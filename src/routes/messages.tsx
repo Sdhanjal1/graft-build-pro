@@ -197,6 +197,8 @@ function FeedRow({
   onPreview,
   onToggleSelect,
   onLongPress,
+  onToggleRead,
+  onDelete,
 }: {
   item: FeedItem;
   selected: boolean;
@@ -204,6 +206,8 @@ function FeedRow({
   onPreview: () => void;
   onToggleSelect: () => void;
   onLongPress: () => void;
+  onToggleRead: (item: FeedItem) => void;
+  onDelete: (item: FeedItem) => void;
 }) {
   const Icon = item.icon;
   const lp = useLongPress(onLongPress, 450);
@@ -266,11 +270,12 @@ function FeedRow({
 
   return (
     <SwipeRow
-      onChase={() => item.toggleRead()}
-      chaseLabel={item.unread ? "Read" : "Unread"}
+      actionsLabel={`Actions for ${item.title}`}
+      onChase={() => onToggleRead(item)}
+      chaseLabel={item.unread ? "Mark read" : "Mark unread"}
       chaseIcon={item.unread ? MailOpen : Mail}
       chaseClassName="bg-lime text-ink"
-      onDelete={item.canDelete && item.doDelete ? () => item.doDelete!() : undefined}
+      onDelete={item.canDelete && item.serverDelete ? () => onDelete(item) : undefined}
       confirmLabel="Delete"
     >
       {rowInner}
