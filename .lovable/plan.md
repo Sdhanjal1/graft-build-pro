@@ -1,32 +1,40 @@
-## What I found
+# Paid quotes: auto-complete + simplified view
 
-Audited every file in `src/routes/`. The bottom nav is not rendered by `AppShell` — it's rendered globally in `src/routes/__root.tsx` based on path checks. All authenticated app routes (`/app`, `/quotes*`, `/clients*`, `/chaser`, `/messages`, `/notifications`, `/settings`, `/invoices/*`) correctly show the nav. All marketing/portal/auth pages correctly hide it.
-
-Two real bugs, both rooted in `src/routes/__root.tsx`:
-
-### Bug 1 — `/terms` and `/privacy` show the bottom nav
-`MARKETING_PATHS` (~line 118) lists `/`, `/welcome`, `/pricing`, `/about`, `/features`, `/faqs`, `/trades`, `/merch` — but not `/terms` or `/privacy`. Both pages use `MarketingShell`, so the bottom app nav overlays the footer/content. Bug.
-
-### Bug 2 — `/terms` and `/privacy` bounce unauthenticated visitors to `/auth`
-`PUBLIC_ROUTES` (~line 154), used by `AuthGate` to decide whether to redirect, also omits these two paths. Anyone not signed in who follows a "Terms" / "Privacy" link from the footer gets kicked to `/auth`. Bug.
+Two issues on quote `18772138…` (status = paid):
+1. The detail page still shows the full editable Itemised list and the "Payment terms" card, even though the job is paid in full — nothing left to configure.
+2. A "Job done — send receipt" button is still required as a manual tap, even though Stripe already confirmed payment. The receipt email is sent by the webhook, so the manual step is redundant.
 
 ## Changes
 
-Single file: `src/routes/__root.tsx`.
+### 1. Auto-complete on payment (server)
 
-1. Add `"/terms"` and `"/privacy"` to the `MARKETING_PATHS` set so `showAppChrome` evaluates to `false` and `BottomNav` doesn't render on them.
-2. Add `"/terms"` and `"/privacy"` to the `PUBLIC_ROUTES` set so `AuthGate` lets unauthenticated visitors view them.
+In `src/lib/payments-webhook-shared.server.ts`, inside `handlePaidEvent` after the quote status is updated to `paid` for `requestType === "full" | "balance"`:
 
-No other route files need to change. No component logic changes. No edits to `BottomNav.tsx` or `AppShell.tsx`.
+- Also set `completed_at = now()` on the quote when it isn't already set.
+- Keep the existing branded receipt email + push notification (already automated — no UI tap needed).
+
+For `requestType === "deposit"` leave behaviour unchanged (deposit only → still needs job-done step for the balance).
+
+### 2. Simplified paid view (UI only)
+
+In `src/routes/quotes.$quoteId.tsx`, when `status === "paid"` AND `completed_at` is set (i.e. fully settled job):
+
+- **Hide the Payment terms card** (lines ~926–942). Nothing to change once paid.
+- **Replace the editable `LineItemsEditor`** with a read-only summary: list each line (description + amount), no add/edit/delete controls, no deposit-paid banner inside. The Job description block stays.
+- **Remove the "Job done — send receipt" primary button branch** at line 746–748. For a `paid` quote with no `completed_at`, the webhook will now have set `completed_at`, so this branch becomes unreachable for online payments. As a safety net for cash/bank "Mark paid" flows, fall through to the existing `status === "paid"` branch (line 753) which shows "Share receipt".
+- The top money card already shows the green "Paid" badge, total in lime, and a checkmark — that becomes the single source of truth for "Job complete · Paid".
+
+### 3. Cash/bank mark-paid parity
+
+In the `markPaid` handler (around line 415) — when a user records a manual cash/bank payment, also set `completed_at` at the same time so the simplified view applies consistently.
+
+## Files touched
+
+- `src/lib/payments-webhook-shared.server.ts` — set `completed_at` on full/balance payments.
+- `src/routes/quotes.$quoteId.tsx` — conditional rendering for paid+completed: hide payment-terms card, swap LineItemsEditor for read-only summary, drop the redundant "Job done — send receipt" button.
 
 ## Out of scope
 
-- `/quotes/new` intentionally hides the nav for its full-screen flow (handled inside `BottomNav.tsx`) — leaving as-is.
-- `AppShell` keeps `pb-nav` padding on `/quotes/new` even though the nav is hidden; cosmetic, not part of this fix.
-- No console/runtime errors related to nav rendering were found in the recent logs.
-
-## Verification after the fix
-
-- Visit `/terms` and `/privacy` signed out → page renders, no redirect, no bottom nav.
-- Visit `/terms` and `/privacy` signed in → still no bottom nav (marketing page).
-- Spot-check `/app`, `/quotes`, `/clients`, `/chaser`, `/messages`, `/notifications`, `/settings` → bottom nav still present.
+- Deposit-only paid state still shows payment terms + editor (balance is still owed).
+- No schema changes — `completed_at` column already exists on `quotes`.
+- No changes to chases (cancelled on paid already) or notifications.
