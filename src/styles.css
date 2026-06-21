@@ -32,9 +32,12 @@
   --color-ring: var(--ring);
 
   --color-ink: var(--ink);
+  --color-ink-accent: var(--ink-accent);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-lime: var(--lime);
   --color-paper: var(--paper);
+  --color-danger: var(--danger);
   --color-status-pending: var(--status-pending);
   --color-status-amber: var(--status-amber);
   --color-status-accepted: var(--status-accepted);
