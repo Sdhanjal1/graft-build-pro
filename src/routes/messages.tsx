@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
@@ -17,6 +17,8 @@ import {
 } from "@/lib/notifications.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/auth";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useLongPress } from "@/hooks/useLongPress";
 import type { Database } from "@/integrations/supabase/types";
 import {
   MessageSquare,
@@ -28,16 +30,20 @@ import {
   CheckCircle2,
   XCircle,
   CalendarClock,
-  MoreHorizontal,
   CheckCheck,
   Trash2,
+  X,
+  ArrowRight,
+  Check,
 } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -71,6 +77,17 @@ function formatRelativeShort(iso: string): string {
   return d.toLocaleDateString([], { day: "numeric", month: "short" });
 }
 
+function formatFullDateTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString([], {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function dayGroup(iso: string): "Today" | "Yesterday" | "This week" | "Earlier" {
   const d = new Date(iso);
   const now = new Date();
@@ -95,8 +112,8 @@ function iconForNotification(kind: string) {
 
 function SkeletonCard() {
   return (
-    <div className="card-surface p-3 flex items-start gap-3 animate-pulse">
-      <div className="h-10 w-10 rounded-full bg-secondary shrink-0" />
+    <div className="card-surface p-4 flex items-start gap-3 animate-pulse">
+      <div className="h-11 w-11 rounded-full bg-secondary shrink-0" />
       <div className="flex-1 space-y-2 py-1">
         <div className="h-3 w-1/2 rounded bg-secondary" />
         <div className="h-3 w-4/5 rounded bg-secondary/70" />
@@ -142,40 +159,90 @@ function FilterTab({
 
 /* ---------- Unified feed item shape ---------- */
 type FeedItem = {
-  id: string;
+  id: string; // prefixed: req-…, thread-…, notif-…
+  rawId: string;
   kind: "request" | "thread" | "notification";
   ts: string; // ISO
   unread: boolean;
   icon: React.ComponentType<{ className?: string; size?: number }>;
   title: string;
   body: string;
-  onOpen: () => void;
+  /** Long-form body shown in the preview sheet (defaults to body). */
+  detailBody?: string;
+  /** Secondary line shown in the preview sheet (e.g. phone). */
+  meta?: string;
+  /** Primary action shown in the preview sheet. */
+  primary?: { label: string; run: () => void; icon?: React.ComponentType<{ className?: string }> };
+  /** Mark-as-read fn used when opening the preview. */
+  markRead?: () => void;
 };
 
-function FeedRow({ item }: { item: FeedItem }) {
+function FeedRow({
+  item,
+  selected,
+  selectionMode,
+  onPreview,
+  onToggleSelect,
+  onLongPress,
+}: {
+  item: FeedItem;
+  selected: boolean;
+  selectionMode: boolean;
+  onPreview: () => void;
+  onToggleSelect: () => void;
+  onLongPress: () => void;
+}) {
   const Icon = item.icon;
+  const lp = useLongPress(onLongPress, 450);
+
+  const handleClick = () => {
+    if (lp.didLongPress()) {
+      lp.resetLongPress();
+      return;
+    }
+    if (selectionMode) onToggleSelect();
+    else onPreview();
+  };
+
   return (
     <button
       type="button"
-      onClick={item.onOpen}
-      className={`w-full text-left relative card-surface p-3 flex items-start gap-3 active:scale-[0.99] transition ${
-        item.unread ? "before:absolute before:left-0 before:top-3 before:bottom-3 before:w-0.5 before:bg-lime before:rounded-full" : ""
-      }`}
+      onClick={handleClick}
+      {...lp.handlers}
+      className={[
+        "w-full text-left relative card-surface p-4 flex items-start gap-3 transition select-none",
+        "active:scale-[0.99]",
+        item.unread ? "bg-lime/[0.06]" : "",
+        selected ? "ring-2 ring-lime" : "",
+        item.unread ? "before:absolute before:left-0 before:top-4 before:bottom-4 before:w-1 before:bg-lime before:rounded-full" : "",
+      ].join(" ")}
     >
-      <div className={`h-10 w-10 rounded-full shrink-0 grid place-items-center ${item.unread ? "bg-lime/30 text-ink" : "bg-secondary text-ink/70"}`}>
-        <Icon className="h-5 w-5" />
-      </div>
+      {selectionMode ? (
+        <div
+          className={`h-11 w-11 shrink-0 rounded-full grid place-items-center border-2 transition ${
+            selected ? "bg-lime border-lime text-ink" : "bg-paper border-border text-transparent"
+          }`}
+        >
+          <Check className="h-5 w-5" strokeWidth={3} />
+        </div>
+      ) : (
+        <div className={`h-11 w-11 rounded-full shrink-0 grid place-items-center ${item.unread ? "bg-lime/30 text-ink" : "bg-secondary text-ink/70"}`}>
+          <Icon className="h-5 w-5" />
+        </div>
+      )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <p className={`text-sm truncate ${item.unread ? "font-semibold text-ink" : "font-medium text-ink/80"}`}>
+          <p className={`truncate ${item.unread ? "text-[15px] font-bold text-ink" : "text-sm font-medium text-ink/75"}`}>
             {item.title}
           </p>
-          <span className="text-[10px] text-muted-foreground shrink-0">
+          <span className={`text-[11px] shrink-0 ${item.unread ? "text-ink font-semibold" : "text-muted-foreground"}`}>
             {formatRelativeShort(item.ts)}
           </span>
         </div>
         {item.body && (
-          <p className="text-[13px] text-muted-foreground mt-0.5 line-clamp-1">{item.body}</p>
+          <p className={`text-[13px] mt-1 line-clamp-2 ${item.unread ? "text-ink/75" : "text-muted-foreground"}`}>
+            {item.body}
+          </p>
         )}
       </div>
     </button>
@@ -190,14 +257,20 @@ function MessagesInbox() {
   const markNotifRead = useServerFn(markNotificationRead);
   const markAllNotifsRead = useServerFn(markAllNotificationsRead);
   const markThread = useServerFn(markThreadRead);
+  const deleteNotif = useServerFn(deleteNotification);
+  const deleteReq = useServerFn(deleteQuoteRequest);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { session } = useSession();
   const { filter } = Route.useSearch();
 
   const [messages, setMessages] = useState<QuoteMessage[]>([]);
   const [requests, setRequests] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [previewItem, setPreviewItem] = useState<FeedItem | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const knownReqIds = useRef<Set<string>>(new Set());
   const initialized = useRef(false);
   const cancelledRef = useRef(false);
@@ -286,32 +359,26 @@ function MessagesInbox() {
   const setFilter = (next: Filter) =>
     navigate({ from: "/messages", search: () => ({ filter: next }) });
 
-  const handleRequestRead = async (id: string) => {
+  const handleRequestRead = useCallback(async (id: string) => {
     await markReqRead({ data: { id } }).catch(() => {});
     void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
     void load();
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryClient]);
 
-  const handleOpenThread = async (quoteId: string, unread: number) => {
-    if (unread > 0) {
-      await markThread({ data: { quoteId } }).catch(() => {});
-      void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
-      void load();
-    }
-    navigate({ to: "/quotes/$quoteId", params: { quoteId }, search: { tab: "messages" } });
-  };
+  const handleThreadRead = useCallback(async (quoteId: string) => {
+    await markThread({ data: { quoteId } }).catch(() => {});
+    void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryClient]);
 
-  const handleOpenNotification = async (n: NotificationRow) => {
-    if (!n.read_at) {
-      await markNotifRead({ data: { id: n.id } }).catch(() => {});
-      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
-    }
-    if (n.url) navigate({ to: n.url as never });
-  };
-
-  const deleteNotif = useServerFn(deleteNotification);
-  const deleteReq = useServerFn(deleteQuoteRequest);
+  const handleNotifRead = useCallback(async (id: string) => {
+    await markNotifRead({ data: { id } }).catch(() => {});
+    void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryClient]);
 
   /* ---------- Build unified feed ---------- */
   const feed: FeedItem[] = useMemo(() => {
@@ -320,15 +387,23 @@ function MessagesInbox() {
     for (const r of requests) {
       items.push({
         id: `req-${r.id}`,
+        rawId: r.id,
         kind: "request",
         ts: r.created_at,
         unread: !r.read_at,
         icon: r.source === "voice" ? VoiceWaveform : FileText,
         title: r.customer_name ? `New request · ${r.customer_name}` : "New job request",
         body: r.body || "",
-        onOpen: () => {
-          if (!r.read_at) void handleRequestRead(r.id);
-          navigate({ to: "/quotes/new", search: { prefill: r.body } });
+        detailBody: r.body || "",
+        meta: r.customer_phone || undefined,
+        markRead: !r.read_at ? () => void handleRequestRead(r.id) : undefined,
+        primary: {
+          label: "Create quote",
+          icon: Sparkles,
+          run: () => {
+            if (!r.read_at) void handleRequestRead(r.id);
+            navigate({ to: "/quotes/new", search: { prefill: r.body } });
+          },
         },
       });
     }
@@ -338,33 +413,54 @@ function MessagesInbox() {
       const who = t.last.sender === "customer" ? "Customer" : t.last.sender === "system" ? "Auto-reply" : "You";
       items.push({
         id: `thread-${t.quote_id}`,
+        rawId: t.quote_id,
         kind: "thread",
         ts: t.last.created_at,
         unread: t.unread > 0,
         icon: MessageSquare,
         title: `${who} replied`,
         body: t.last.body,
-        onOpen: () => void handleOpenThread(t.quote_id, t.unread),
+        detailBody: t.last.body,
+        markRead: t.unread > 0 ? () => void handleThreadRead(t.quote_id) : undefined,
+        primary: {
+          label: "Open conversation",
+          icon: ArrowRight,
+          run: () => {
+            if (t.unread > 0) void handleThreadRead(t.quote_id);
+            navigate({ to: "/quotes/$quoteId", params: { quoteId: t.quote_id }, search: { tab: "messages" } });
+          },
+        },
       });
     }
 
     for (const n of notifications) {
       items.push({
         id: `notif-${n.id}`,
+        rawId: n.id,
         kind: "notification",
         ts: n.created_at,
         unread: !n.read_at,
         icon: iconForNotification(n.kind),
         title: n.title,
         body: n.body || "",
-        onOpen: () => void handleOpenNotification(n),
+        detailBody: n.body || "",
+        markRead: !n.read_at ? () => void handleNotifRead(n.id) : undefined,
+        primary: n.url
+          ? {
+              label: "Open",
+              icon: ArrowRight,
+              run: () => {
+                if (!n.read_at) void handleNotifRead(n.id);
+                if (n.url) navigate({ to: n.url as never });
+              },
+            }
+          : undefined,
       });
     }
 
     items.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
     return items;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requests, threads, notifications]);
+  }, [requests, threads, notifications, handleRequestRead, handleThreadRead, handleNotifRead, navigate]);
 
   const visibleFeed = useMemo(() => {
     if (filter === "unread") return feed.filter((i) => i.unread);
@@ -388,8 +484,6 @@ function MessagesInbox() {
   }, [visibleFeed]);
 
   const showEmpty = !loading && visibleFeed.length === 0;
-  const visibleDeletableCount =
-    visibleFeed.filter((i) => i.kind !== "thread").length;
 
   const handleMarkEverythingRead = async () => {
     const ops: Promise<unknown>[] = [markAllNotifsRead().catch(() => {})];
@@ -403,73 +497,132 @@ function MessagesInbox() {
     toast.success("All caught up");
   };
 
-  const handleDeleteVisible = async () => {
-    if (visibleDeletableCount === 0) {
-      toast.info("Nothing to delete in this view");
-      return;
-    }
-    const hasThreads = visibleFeed.some((i) => i.kind === "thread");
-    const note = hasThreads ? " Message threads will be kept." : "";
-    if (typeof window !== "undefined" && !window.confirm(`Delete ${visibleDeletableCount} item${visibleDeletableCount === 1 ? "" : "s"}?${note}`)) {
-      return;
-    }
+  /* ---------- Selection mode ---------- */
+  const enterSelectionFor = (item: FeedItem) => {
+    setSelectionMode(true);
+    setSelected(new Set([item.id]));
+  };
+  const exitSelection = () => {
+    setSelectionMode(false);
+    setSelected(new Set());
+  };
+  const toggleSelect = (item: FeedItem) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(item.id)) next.delete(item.id);
+      else next.add(item.id);
+      if (next.size === 0) setSelectionMode(false);
+      return next;
+    });
+  };
+
+  const selectedItems = useMemo(() => visibleFeed.filter((i) => selected.has(i.id)), [visibleFeed, selected]);
+  const selectedUnreadCount = selectedItems.filter((i) => i.unread).length;
+  const selectedDeletableCount = selectedItems.filter((i) => i.kind !== "thread").length;
+
+  const handleMarkSelectedRead = async () => {
     const ops: Promise<unknown>[] = [];
-    for (const i of visibleFeed) {
-      if (i.kind === "notification") ops.push(deleteNotif({ data: { id: i.id.replace("notif-", "") } }).catch(() => {}));
-      if (i.kind === "request") ops.push(deleteReq({ data: { id: i.id.replace("req-", "") } }).catch(() => {}));
+    for (const i of selectedItems) {
+      if (!i.unread) continue;
+      if (i.kind === "notification") ops.push(markNotifRead({ data: { id: i.rawId } }).catch(() => {}));
+      else if (i.kind === "request") ops.push(markReqRead({ data: { id: i.rawId } }).catch(() => {}));
+      else if (i.kind === "thread") ops.push(markThread({ data: { quoteId: i.rawId } }).catch(() => {}));
     }
     await Promise.all(ops);
     void queryClient.invalidateQueries({ queryKey: ["notifications"] });
     void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
     void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
     void load();
-    toast.success(`${visibleDeletableCount} deleted`);
+    toast.success(`${selectedUnreadCount} marked as read`);
+    exitSelection();
   };
 
+  const handleDeleteSelected = async () => {
+    if (selectedDeletableCount === 0) {
+      toast.info("Message threads can't be deleted");
+      return;
+    }
+    const hasThreads = selectedItems.some((i) => i.kind === "thread");
+    const note = hasThreads ? " Message threads will be kept." : "";
+    if (typeof window !== "undefined" && !window.confirm(`Delete ${selectedDeletableCount} item${selectedDeletableCount === 1 ? "" : "s"}?${note}`)) {
+      return;
+    }
+    const ops: Promise<unknown>[] = [];
+    for (const i of selectedItems) {
+      if (i.kind === "notification") ops.push(deleteNotif({ data: { id: i.rawId } }).catch(() => {}));
+      else if (i.kind === "request") ops.push(deleteReq({ data: { id: i.rawId } }).catch(() => {}));
+    }
+    await Promise.all(ops);
+    void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+    void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+    void load();
+    toast.success(`${selectedDeletableCount} deleted`);
+    exitSelection();
+  };
+
+  const openPreview = (item: FeedItem) => {
+    if (item.markRead) item.markRead();
+    setPreviewItem(item);
+  };
+
+  /* ---------- Render ---------- */
   return (
     <AppShell>
-      <PageHeader
-        title="Inbox"
-        subtitle={loading || isEmpty ? undefined : totalUnread > 0 ? `${totalUnread} unread` : "All caught up"}
-        right={
-          visibleDeletableCount > 0 ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="More actions"
-                  className="shrink-0 h-9 w-9 rounded-full bg-secondary text-ink inline-flex items-center justify-center active:scale-[0.97] transition"
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem
-                  onSelect={() => void handleDeleteVisible()}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  <span className="flex-1">Clear this view</span>
-                  <span className="ml-2 text-[10px] font-bold text-muted-foreground">{visibleDeletableCount}</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : undefined
-        }
-      />
-
-      {/* Filter tabs — 3 only */}
-      <div className="px-5 pt-2">
-        <div className="flex items-center gap-1 overflow-x-auto -mx-1 px-1 no-scrollbar">
-          <FilterTab label="All" active={filter === "all"} onClick={() => setFilter("all")} />
-          <FilterTab label="Unread" active={filter === "unread"} onClick={() => setFilter("unread")} count={totalUnread} />
-          <FilterTab label="Requests" active={filter === "requests"} onClick={() => setFilter("requests")} count={newRequests.length} />
+      {/* Selection-mode header replaces normal page header */}
+      {selectionMode ? (
+        <div className="sticky top-0 z-30 bg-ink text-paper px-4 py-3 flex items-center gap-3 shadow-md">
+          <button
+            type="button"
+            aria-label="Cancel selection"
+            onClick={exitSelection}
+            className="h-9 w-9 rounded-full bg-paper/10 inline-flex items-center justify-center active:scale-95"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <p className="flex-1 text-sm font-semibold">
+            {selected.size} selected
+          </p>
+          <button
+            type="button"
+            disabled={selectedUnreadCount === 0}
+            onClick={() => void handleMarkSelectedRead()}
+            className="h-9 px-3 rounded-full bg-paper/10 inline-flex items-center gap-1.5 text-xs font-semibold disabled:opacity-40 active:scale-95"
+          >
+            <CheckCheck className="h-4 w-4" />
+            Mark read
+          </button>
+          <button
+            type="button"
+            disabled={selectedDeletableCount === 0}
+            onClick={() => void handleDeleteSelected()}
+            className="h-9 w-9 rounded-full bg-paper/10 inline-flex items-center justify-center disabled:opacity-40 active:scale-95"
+            aria-label="Delete selected"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
-      </div>
+      ) : (
+        <PageHeader
+          title="Inbox"
+          subtitle={loading || isEmpty ? undefined : totalUnread > 0 ? `${totalUnread} unread` : "All caught up"}
+        />
+      )}
 
-      {/* Inline "Mark all read" — only when there's something to mark */}
-      {!loading && totalUnread > 0 && (
-        <div className="px-5 mt-2 flex justify-end">
+      {/* Filter tabs */}
+      {!selectionMode && (
+        <div className="px-5 pt-3">
+          <div className="flex items-center gap-1 overflow-x-auto -mx-1 px-1 no-scrollbar">
+            <FilterTab label="All" active={filter === "all"} onClick={() => setFilter("all")} />
+            <FilterTab label="Unread" active={filter === "unread"} onClick={() => setFilter("unread")} count={totalUnread} />
+            <FilterTab label="Requests" active={filter === "requests"} onClick={() => setFilter("requests")} count={newRequests.length} />
+          </div>
+        </div>
+      )}
+
+      {/* Inline "Mark all read" — only when there's something to mark and not in selection */}
+      {!loading && !selectionMode && totalUnread > 0 && (
+        <div className="px-5 mt-3 flex justify-end">
           <button
             type="button"
             onClick={() => void handleMarkEverythingRead()}
@@ -481,82 +634,40 @@ function MessagesInbox() {
         </div>
       )}
 
+      {/* Helper hint on first paint with items (one-liner, not chrome) */}
+      {!loading && !selectionMode && visibleFeed.length > 0 && (
+        <p className="px-5 mt-2 text-[11px] text-muted-foreground hidden sm:block">
+          Tap to preview · Long-press to select multiple
+        </p>
+      )}
+
       {loading && (
-        <div className="px-5 mt-3 space-y-2">
+        <div className="px-5 mt-4 space-y-3">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
         </div>
       )}
 
-      {/* Requests tab keeps the rich CTA cards */}
-      {!loading && filter === "requests" && requests.length > 0 && (
-        <section className="px-5 mt-3">
-          <ul className="space-y-2">
-            {requests.map((r) => {
-              const unread = !r.read_at;
-              return (
-                <li key={r.id}>
-                  <div
-                    className={`relative card-surface p-3 flex items-start gap-3 ${unread ? "before:absolute before:left-0 before:top-3 before:bottom-3 before:w-0.5 before:bg-lime before:rounded-full" : ""}`}
-                  >
-                    <div className="h-10 w-10 rounded-full bg-lime/40 flex items-center justify-center shrink-0">
-                      {r.source === "voice" ? <VoiceWaveform size={16} className="text-ink" /> : <FileText className="h-4 w-4 text-ink" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-ink truncate">
-                          {r.customer_name || "New lead"}
-                          {r.customer_phone && (
-                            <span className="font-normal text-muted-foreground"> · {r.customer_phone}</span>
-                          )}
-                        </p>
-                        <span className="text-[10px] text-muted-foreground shrink-0">
-                          {formatRelativeShort(r.created_at)}
-                        </span>
-                      </div>
-                      <p className="text-[13px] text-muted-foreground mt-1 line-clamp-2">{r.body}</p>
-                      <div className="mt-2.5 flex gap-2">
-                        <Link
-                          to="/quotes/new"
-                          search={{ prefill: r.body }}
-                          onClick={() => { if (unread) void handleRequestRead(r.id); }}
-                          className="inline-flex items-center gap-1 text-[11px] font-semibold bg-lime text-ink rounded-full px-3 py-1.5"
-                        >
-                          <Sparkles className="h-3 w-3" />
-                          Create quote
-                        </Link>
-                        {unread && (
-                          <button
-                            type="button"
-                            onClick={() => void handleRequestRead(r.id)}
-                            className="inline-flex items-center text-[11px] font-semibold text-muted-foreground rounded-full px-3 py-1.5 hover:bg-secondary"
-                          >
-                            Mark read
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
-
-      {/* Unified chronological feed for All + Unread */}
-      {!loading && filter !== "requests" && grouped.length > 0 && (
-        <div className="px-5 mt-3 space-y-4 pb-4">
+      {/* Unified chronological feed */}
+      {!loading && grouped.length > 0 && (
+        <div className="px-5 mt-4 space-y-6 pb-6">
           {grouped.map((g) => (
             <section key={g.label}>
-              <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-muted-foreground mb-2 px-1">
+              <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground mb-3 px-1">
                 {g.label}
               </p>
-              <ul className="space-y-2">
+              <ul className="space-y-3">
                 {g.items.map((it) => (
                   <li key={it.id}>
-                    <FeedRow item={it} />
+                    <FeedRow
+                      item={it}
+                      selected={selected.has(it.id)}
+                      selectionMode={selectionMode}
+                      onPreview={() => openPreview(it)}
+                      onToggleSelect={() => toggleSelect(it)}
+                      onLongPress={() => enterSelectionFor(it)}
+                    />
                   </li>
                 ))}
               </ul>
@@ -566,7 +677,7 @@ function MessagesInbox() {
       )}
 
       {showEmpty && (
-        <section className="px-5 mt-6">
+        <section className="px-5 mt-8">
           <EmptyState
             icon={Inbox}
             title={
@@ -582,6 +693,88 @@ function MessagesInbox() {
           />
         </section>
       )}
+
+      {/* Detail sheet — bottom on mobile, right drawer on desktop */}
+      <Sheet open={!!previewItem} onOpenChange={(o) => { if (!o) setPreviewItem(null); }}>
+        <SheetContent
+          side={isMobile ? "bottom" : "right"}
+          className={isMobile ? "rounded-t-2xl max-h-[85vh] overflow-y-auto" : "w-[440px] sm:max-w-md overflow-y-auto"}
+        >
+          {previewItem && (
+            <>
+              <SheetHeader className="text-left">
+                <div className="flex items-center gap-3">
+                  <div className="h-11 w-11 rounded-full bg-lime/30 grid place-items-center shrink-0">
+                    <previewItem.icon className="h-5 w-5 text-ink" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <SheetTitle className="text-base font-bold truncate">{previewItem.title}</SheetTitle>
+                    <SheetDescription className="text-[11px]">
+                      {formatFullDateTime(previewItem.ts)}
+                    </SheetDescription>
+                  </div>
+                </div>
+              </SheetHeader>
+
+              <div className="mt-4 space-y-3">
+                {previewItem.meta && (
+                  <p className="text-[13px] text-ink/80">
+                    <span className="text-muted-foreground">Contact: </span>
+                    {previewItem.meta}
+                  </p>
+                )}
+                {previewItem.detailBody && (
+                  <p className="text-[14px] leading-relaxed text-ink whitespace-pre-wrap">
+                    {previewItem.detailBody}
+                  </p>
+                )}
+              </div>
+
+              <SheetFooter className="mt-6 flex-col gap-2 sm:flex-col">
+                {previewItem.primary && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const run = previewItem.primary!.run;
+                      setPreviewItem(null);
+                      run();
+                    }}
+                    className="w-full h-11 rounded-full bg-lime text-ink font-semibold inline-flex items-center justify-center gap-2 active:scale-[0.99]"
+                  >
+                    {previewItem.primary.icon && <previewItem.primary.icon className="h-4 w-4" />}
+                    {previewItem.primary.label}
+                  </button>
+                )}
+                {previewItem.kind !== "thread" && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const item = previewItem;
+                      setPreviewItem(null);
+                      if (item.kind === "notification") await deleteNotif({ data: { id: item.rawId } }).catch(() => {});
+                      else if (item.kind === "request") await deleteReq({ data: { id: item.rawId } }).catch(() => {});
+                      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+                      void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+                      void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+                      void load();
+                      toast.success("Deleted");
+                    }}
+                    className="w-full h-11 rounded-full bg-secondary text-destructive font-semibold inline-flex items-center justify-center gap-2 active:scale-[0.99]"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </button>
+                )}
+              </SheetFooter>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Keep a hidden Link to /quotes/new so the router preserves type-safe routes after refactor. */}
+      <span className="hidden">
+        <Link to="/quotes/new" search={{ prefill: "" }}>noop</Link>
+      </span>
     </AppShell>
   );
 }
