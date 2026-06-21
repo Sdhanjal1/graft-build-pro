@@ -1,62 +1,76 @@
-# Palette Review & Recommendations
+# Alignment, Spacing & Responsive Audit
 
-## What's working
+Goal: tighten visual rhythm so every screen uses the same gutter, vertical spacing, and header alignment, and behaves correctly from a 320px phone up to desktop.
 
-The Quottr palette is already a strong, ownable system — not a generic SaaS look.
+## Scope
 
-- **Ink (#1a1a18) + Paper (warm cream)** — high-contrast, editorial. Makes amounts and CTAs feel important without shouting.
-- **Lime (#c8e04a)** as the only accent — instantly recognisable, scarcity gives it power. Used for "money", "primary CTA", "paid", "active nav".
-- **Status spectrum** — amber/blue/green/red is conventional in trade tools, so customers and tradespeople read it without learning it.
-- **Warm neutral chroma (~80°)** keeps borders, secondary surfaces, and cards in the same family — nothing reads cold or sterile.
+App shell + every authenticated route rendered inside `AppShell` (mobile-first, `max-w-md`), plus marketing routes rendered inside `MarketingShell` (desktop-capable). Portal and invoice public routes included.
 
-## Where it strains
+## 1. Establish spacing + container tokens
 
-These are real, fixable issues — not redesign-it-all problems.
+Add a small set of layout primitives in `src/styles.css` so we stop re-inventing paddings per page:
 
-1. **Lime is overloaded.** It marks: primary CTA, money hero, "paid" status, active tab, micro accents, ad headlines. When everything is the loudest colour, nothing is. Eyes can't find the one thing to tap.
-2. **Two greens compete.** `--status-paid: var(--lime)` (yellow-green) and `--status-green` (deeper paid-green for dots) live on the same screens, and amber/lime sit next to each other on the chaser tiles — small misreads at a glance.
-3. **Booked vs Pending vs Amber** are three orange-ish tokens close in hue. Pills can blur into each other in a busy quote list.
-4. `**--surface` is declared but barely used.** Dark panels are mostly `bg-ink`, so the intended "lifted dark" tier doesn't read. Dark sections (voice capture, footer, banners) feel flat.
-5. **Borders + muted background are nearly the same value** (`0.86` vs `0.92`). Card edges disappear on the cream background unless we lean on the brutal-shadow utility.
-6. **No reserved "danger" tone separate from overdue** — destructive UI and "you missed a deadline" share `--status-overdue`, so a delete confirm looks the same as a financial warning.
+- `--gutter-x` (16px mobile, 20px ≥sm, 24px ≥md) — used by a new `.page-x` utility (`padding-inline: var(--gutter-x)`)
+- `.page-y` — `padding-block` rhythm for top of route content (20/24/28)
+- `.stack-sm / .stack-md / .stack-lg` — vertical gap helpers (12 / 20 / 32) for sections inside a page
+- `.row-between` — `flex items-center justify-between gap-3` (kills the dozens of ad-hoc copies)
+- Confirm `pb-nav` clearance still matches the new bottom nav height (68 + 8 + 12 = 88px + safe area)
 
-## Recommended changes (no redesign, just tightening)
+These are additive; existing classes keep working.
 
-### A. Promote a second accent: `**--ink-accent**` (deep teal or aubergine)
+## 2. AppShell + PageHeader alignment fixes
 
-Used for: secondary CTAs, "selected" states, dark icon chips currently using lime. Frees lime to mean *only* "money + primary action". Suggested: `oklch(0.42 0.08 195)` (slate teal) — sits behind lime visually, never competes.
+- `AppShell` switches its inner container to `max-w-md md:max-w-lg lg:max-w-xl` so tablet/desktop don't feel cramped, and applies `page-x` so every child route inherits the same gutter (remove per-route `px-4`/`px-5` duplication where it now double-pads).
+- `PageHeader` horizontal padding aligns with `--gutter-x` (currently 20px expanded / 16px condensed — keep condensed=16, expand=gutter so header edge matches body edge exactly).
+- Action pill, back button, and title use a single grid row (`grid-cols-[auto_minmax(0,1fr)_auto]`) so long titles truncate without pushing the action off-screen on 320px widths (current `flex` + `min-w-0` works but action wraps below on narrow screens with long subtitles).
+- Subtitle and crumb row inherit the same left edge as the title (currently offset by back-button width on some routes).
 
-### B. Use `--surface` properly
+## 3. Per-route audit + normalisation
 
-Define a 3-tier dark scale (`--ink`, `--surface`, `--surface-2`) for nested dark panels (recorder, marketing hero, footer columns) so they read as layered, not flat.
+Walk every route file and:
 
-### C. Split the status family into 2 clear groups
+- Replace ad-hoc `px-4 / px-5 / px-6` page padding with `page-x`.
+- Replace ad-hoc `space-y-3 / space-y-4 / space-y-6` section gaps with `stack-sm/md/lg`.
+- Standardise card internal padding to `p-4 sm:p-5` (currently mixes `p-3`, `p-4`, `p-5`, `p-6`).
+- Standardise section header rows to `.row-between` with a `t-eyebrow` label on the left and a single action on the right.
+- Ensure every header row containing text + widget follows the `grid-cols-[minmax(0,1fr)_auto] sm:flex` pattern from the responsive-layout rule (fixes truncation on `/quotes/$quoteId`, `/clients/$clientId`, `/invoices/$quoteId`, `/portal/$token`).
 
-- **Payment status** (lime=paid, amber=pending, red=overdue) — keep.
-- **Workflow status** (blue=waiting customer, teal=booked, ink=draft) — re-tone so they don't bleed into the payment palette. Move `--status-booked` from orange to a warm teal; this also breaks the orange-overload.
+Routes covered:
+`app`, `quotes.index`, `quotes.$quoteId`, `quotes.new`, `clients.index`, `clients.$clientId`, `clients.new`, `messages`, `chaser`, `settings`, `notifications`, `invoices.$quoteId`, `portal.$token`, `portal.c.$code`, `request.$proId`, `confirmed`, `onboarding`, `welcome`, `auth`, `forgot-password`, `reset-password`.
 
-### D. Pull `--status-paid` off `var(--lime)`
+## 4. Marketing + public pages responsive pass
 
-Give "paid" its own slightly deeper green (`oklch(0.72 0.18 140)`) so paid pills don't read as "another CTA". Keeps lime sacred for actions.
+For `index`, `pricing`, `features`, `about`, `faqs`, `privacy`, `terms`, `trades.index`, `trades.$tradeSlug`, `merch`:
 
-### E. Stronger borders on cream
+- Confirm hero and section paddings scale `py-12 sm:py-16 md:py-24`.
+- Confirm grids use `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` (not fixed multi-column on mobile).
+- Confirm long headlines wrap (`text-balance`) and CTAs stack on <640px.
 
-Bump `--border` from `0.86` to `0.82` chroma `0.015`. Cards lift without needing a shadow.
+## 5. Bottom nav + floating UI clearance
 
-### F. Reserved `--danger`
+- Verify `pb-nav` value matches current nav height (68 + paddings) — update token if off.
+- `PWAInstallBanner`, `UpdateBanner`, `OfflineBanner`, `TrialBanner`, `CookieBanner` all use `.bottom-nav` for their `bottom` value so they sit above the nav consistently.
+- Toast (`sonner`) offset bumped so it doesn't overlap the nav on mobile.
 
-Introduce `--danger` for destructive UI (delete confirms, irreversible actions), distinct from `--status-overdue`. Same red family, slightly more saturated, used only on `<button>` not status pills.
+## 6. Device verification
 
-### G. Optional warm tint on `--paper`
+Drive Playwright at three viewports against the running dev server and screenshot the key routes:
 
-Push warmth a touch (`oklch(0.95 0.018 78)`) — closer to receipt paper, further from generic off-white. Subtle but reinforces the brand voice.
+- 360×740 (small Android)
+- 414×896 (iPhone)
+- 1280×1800 (desktop already used by harness)
 
-## What I'd leave alone
+Routes captured: `/app`, `/quotes`, `/quotes/$id` (mock), `/clients`, `/settings`, `/messages`, `/`, `/pricing`. Compare gutters, header alignment, card padding, and bottom-nav clearance across the three widths and fix any remaining outliers before finishing.
 
-- Ink + paper relationship — core to the brand.
-- Lime hex — perfect for the tradesperson audience.
-- Tailwind token wiring through `@theme inline` — no churn there.
+## Out of scope
 
-## Suggested next step
+- Color, typography, status legend (already shipped in prior turns).
+- Copy changes.
+- New features or route additions.
+- Backend / data changes.
 
-Pick which of A–G you want me to ship — I'd recommend **A, C, D, E** as the highest-impact bundle (clearer hierarchy, less colour overload, no visual redesign). Reply with the letters and I'll implement, take before/after screenshots of Inbox, Quote detail, and Chaser, and confirm contrast across the changed tokens.  - DO A-G 
+## Technical notes
+
+- All changes are CSS + JSX className edits — no logic, no schema, no server code.
+- New utilities defined with `@utility` (Tailwind v4), tokens with CSS custom properties under `:root`. No `tailwind.config.js`.
+- No component API changes: `AppShell`, `PageHeader`, `Card` keep current props.

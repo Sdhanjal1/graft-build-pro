@@ -147,6 +147,34 @@
 }
 
 @layer utilities {
+  /* ---------- Layout primitives ----------
+     Consistent gutters and vertical rhythm across every route. Additive —
+     existing px-*/space-y-* classes keep working; new code should prefer
+     these tokens so spacing stays in lockstep across breakpoints. */
+  :root {
+    --gutter-x: 1rem;          /* 16px — mobile default */
+    --stack-sm: 0.75rem;       /* 12px */
+    --stack-md: 1.25rem;       /* 20px */
+    --stack-lg: 2rem;          /* 32px */
+  }
+  @media (min-width: 640px) {
+    :root { --gutter-x: 1.25rem; } /* 20px ≥ sm */
+  }
+  @media (min-width: 768px) {
+    :root { --gutter-x: 1.5rem; }  /* 24px ≥ md */
+  }
+  .page-x        { padding-inline: var(--gutter-x); }
+  .page-y        { padding-block: clamp(1.25rem, 2.5vw, 1.75rem); }
+  .stack-sm > * + * { margin-top: var(--stack-sm); }
+  .stack-md > * + * { margin-top: var(--stack-md); }
+  .stack-lg > * + * { margin-top: var(--stack-lg); }
+  .row-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
   /* Default card — clearly lifted off the warm paper background. */
   .card-surface {
     background-color: var(--card);
