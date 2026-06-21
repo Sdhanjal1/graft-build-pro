@@ -20,7 +20,7 @@ type TileKey = "pending" | "accepted" | "awaiting" | "overdue";
 
 const TILE_DOT: Record<TileKey, string> = {
   pending: "bg-status-pending",
-  accepted: "bg-lime",
+  accepted: "bg-sent",
   awaiting: "bg-status-sent",
   overdue: "bg-status-overdue",
 };
