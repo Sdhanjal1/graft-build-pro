@@ -181,7 +181,7 @@
   --accent-foreground: var(--ink);
   --destructive: var(--status-overdue);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.86 0.012 80);
+  --border: #d6d4ca;
   --input: oklch(0.88 0.012 80);
   --ring: var(--lime);
 }
