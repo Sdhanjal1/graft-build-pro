@@ -35,6 +35,8 @@ import {
   X,
   ArrowRight,
   Check,
+  MailOpen,
+  Mail,
 } from "lucide-react";
 import {
   Sheet,
@@ -46,6 +48,7 @@ import {
 } from "@/components/ui/sheet";
 import { VoiceWaveform } from "@/components/icons/VoiceIcons";
 import { EmptyState } from "@/components/EmptyState";
+import { SwipeRow } from "@/components/SwipeRow";
 
 
 type QuoteMessage = Database["public"]["Tables"]["quote_messages"]["Row"];
