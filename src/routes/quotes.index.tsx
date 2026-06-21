@@ -438,16 +438,16 @@ function QuoteCard({
   const activeTint = isOverdue
     ? "active:bg-status-overdue/90"
     : isPaid
-    ? "active:bg-lime/20"
-    : "active:bg-lime/15";
+    ? "active:bg-paid-bg"
+    : "active:bg-secondary";
 
   const className = `rounded-2xl py-4 px-4 flex items-center gap-3 transition-all duration-150 active:scale-[0.985] active:shadow-[0_0_0_3px_color-mix(in_oklab,var(--lime,#c8ff3e)_25%,transparent)] touch-manipulation ${activeTint} ${
     isOverdue
       ? "bg-ink text-paper border-l-4 border-status-overdue"
       : isPaid
-      ? "card-surface bg-card border-l-4 border-lime opacity-80"
+      ? "card-surface bg-card border-l-4 border-paid opacity-80"
       : isDraft
-      ? "card-surface bg-lime/10 border-l-4 border-lime"
+      ? "card-surface bg-card border-l-4 border-status-pending"
       : "card-surface bg-card"
   }`;
 
