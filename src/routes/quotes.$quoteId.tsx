@@ -2072,8 +2072,8 @@ function LineItemsEditor({
 
 
       <div className="px-5 py-3 border-t border-border bg-secondary/40 flex items-center justify-between">
-        <span className="text-sm font-semibold text-ink">Total</span>
-        <span className="num text-lg font-bold text-ink">{formatGBP(total)}</span>
+        <span className="t-h3">Total</span>
+        <span className="t-amount-lg font-semibold tabular-nums">{formatGBP(total)}</span>
       </div>
       {saving && (
         <p className="px-5 py-1 text-[10px] text-muted-foreground border-t border-border bg-secondary/20">Saving…</p>
