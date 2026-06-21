@@ -1,12 +1,15 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, FileText, Users, Clock, Inbox } from "lucide-react";
+import { useEffect } from "react";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { feedback, playSample } from "@/lib/feedback";
 import { getMyIncomingRequests } from "@/lib/quote-requests.functions";
+import { getUnreadNotificationCount } from "@/lib/notifications.functions";
 import { useSession } from "@/lib/auth";
 import { useKeyboardOpen } from "@/hooks/useKeyboardOpen";
+import { supabase } from "@/integrations/supabase/client";
 
 const items = [
   { to: "/app", label: "Home", icon: Home },
@@ -28,8 +31,11 @@ export function BottomNav() {
     pathname === "/quotes/new";
 
   const fetchRequests = useServerFn(getMyIncomingRequests);
+  const fetchNotifCount = useServerFn(getUnreadNotificationCount);
   const { session } = useSession();
-  const { data: unreadCount = 0 } = useQuery({
+  const queryClient = useQueryClient();
+
+  const { data: requestsUnread = 0 } = useQuery({
     queryKey: ["inbox-unread-count"],
     queryFn: () => fetchRequests(),
     enabled: !hide && !!session,
@@ -40,6 +46,39 @@ export function BottomNav() {
     select: (r: { requests: Array<{ read_at: string | null }> }) =>
       r?.requests?.filter((x) => !x.read_at).length ?? 0,
   });
+
+  const { data: notificationsUnread = 0 } = useQuery({
+    queryKey: ["notifications-unread"],
+    queryFn: () => fetchNotifCount(),
+    enabled: !hide && !!session,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    staleTime: 30_000,
+    retry: false,
+    select: (r: { unreadCount: number }) => r?.unreadCount ?? 0,
+  });
+
+  // Realtime: bump notification count on any change for this user.
+  useEffect(() => {
+    if (hide || !session?.user?.id) return;
+    const userId = session.user.id;
+    const channel = supabase
+      .channel(`inbox-nav:${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+          queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [hide, session?.user?.id, queryClient]);
+
+  const totalUnread = (requestsUnread ?? 0) + (notificationsUnread ?? 0);
 
   if (hide) return null;
 
@@ -62,7 +101,7 @@ export function BottomNav() {
 
               {...it}
               active={isActive(it.to)}
-              unreadCount={it.to === "/messages" ? unreadCount : 0}
+              unreadCount={it.to === "/messages" ? totalUnread : 0}
             />
           ))}
         </div>
@@ -109,9 +148,11 @@ function NavItem({
             strokeWidth={active ? 2.75 : 2}
           />
           {hasUnread && !active && (
-            <span aria-hidden className="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5">
-              <span className="absolute inset-0 rounded-full bg-lime/70 animate-ping" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-lime ring-2 ring-ink" />
+            <span
+              aria-hidden
+              className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-lime text-ink text-[10px] font-bold leading-[18px] text-center ring-2 ring-ink tabular-nums"
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
         </span>
