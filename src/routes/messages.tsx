@@ -414,18 +414,33 @@ function MessagesInbox() {
     const items: FeedItem[] = [];
 
     for (const r of requests) {
+      const wasUnread = !r.read_at;
       items.push({
         id: `req-${r.id}`,
         rawId: r.id,
         kind: "request",
         ts: r.created_at,
-        unread: !r.read_at,
+        unread: wasUnread,
         icon: r.source === "voice" ? VoiceWaveform : FileText,
         title: r.customer_name ? `New request · ${r.customer_name}` : "New job request",
         body: r.body || "",
         detailBody: r.body || "",
         meta: r.customer_phone || undefined,
-        markRead: !r.read_at ? () => void handleRequestRead(r.id) : undefined,
+        markRead: wasUnread ? () => void handleRequestRead(r.id) : undefined,
+        toggleRead: async () => {
+          if (wasUnread) await markReqRead({ data: { id: r.id } }).catch(() => {});
+          else await markReqUnread({ data: { id: r.id } }).catch(() => {});
+          void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+          void load();
+          toast.success(wasUnread ? "Marked as read" : "Marked as unread");
+        },
+        canDelete: true,
+        doDelete: async () => {
+          await deleteReq({ data: { id: r.id } }).catch(() => {});
+          void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+          void load();
+          toast.success("Deleted");
+        },
         primary: {
           label: "Create quote",
           icon: Sparkles,
