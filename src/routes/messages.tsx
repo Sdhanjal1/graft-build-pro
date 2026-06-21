@@ -294,9 +294,38 @@ function MessagesInbox() {
     if (n.url) navigate({ to: n.url as never });
   };
 
+  const deleteNotif = useServerFn(deleteNotification);
+  const deleteReq = useServerFn(deleteQuoteRequest);
+
+  // Items currently visible in the selected filter
+  const visibleRequests = filteredRequests;
+  const visibleThreads = filteredThreads;
+  const visibleNotifs = filteredNotifs;
+
+  const visibleUnreadCount =
+    visibleRequests.filter((r) => !r.read_at).length +
+    visibleThreads.reduce((n, t) => n + (t.unread || 0), 0) +
+    visibleNotifs.filter((n) => !n.read_at).length;
+
+  // Threads can't be deleted (would destroy message history); deletion targets requests + notifications.
+  const visibleDeletableCount = visibleRequests.length + visibleNotifs.length;
+
   const handleMarkAllRead = async () => {
     const ops: Promise<unknown>[] = [];
-    if (unreadNotifs > 0) ops.push(markAllNotifsRead().catch(() => {}));
+    for (const n of visibleNotifs) if (!n.read_at) ops.push(markNotifRead({ data: { id: n.id } }).catch(() => {}));
+    for (const r of visibleRequests) if (!r.read_at) ops.push(markReqRead({ data: { id: r.id } }).catch(() => {}));
+    for (const t of visibleThreads) if (t.unread > 0) ops.push(markThread({ data: { quoteId: t.quote_id } }).catch(() => {}));
+    await Promise.all(ops);
+    void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+    void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+    void load();
+    toast.success(visibleUnreadCount > 0 ? `${visibleUnreadCount} marked as read` : "All caught up");
+  };
+
+  // Shortcut when the user is viewing everything: hit the dedicated "mark all" endpoint.
+  const handleMarkEverythingRead = async () => {
+    const ops: Promise<unknown>[] = [markAllNotifsRead().catch(() => {})];
     for (const r of requests) if (!r.read_at) ops.push(markReqRead({ data: { id: r.id } }).catch(() => {}));
     for (const t of threads) if (t.unread > 0) ops.push(markThread({ data: { quoteId: t.quote_id } }).catch(() => {}));
     await Promise.all(ops);
@@ -304,6 +333,35 @@ function MessagesInbox() {
     void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
     void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
     void load();
+    toast.success("All caught up");
+  };
+
+  const handleDeleteAll = async () => {
+    if (visibleDeletableCount === 0) {
+      toast.info("Nothing to delete in this view");
+      return;
+    }
+    const threadNote = visibleThreads.length > 0 ? " Message threads will be kept." : "";
+    if (typeof window !== "undefined" && !window.confirm(`Delete ${visibleDeletableCount} item${visibleDeletableCount === 1 ? "" : "s"}?${threadNote}`)) {
+      return;
+    }
+    const ops: Promise<unknown>[] = [];
+    for (const n of visibleNotifs) ops.push(deleteNotif({ data: { id: n.id } }).catch(() => {}));
+    for (const r of visibleRequests) ops.push(deleteReq({ data: { id: r.id } }).catch(() => {}));
+    await Promise.all(ops);
+    void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+    void queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+    void load();
+    toast.success(`${visibleDeletableCount} deleted`);
+  };
+
+  const filterLabel: Record<Filter, string> = {
+    all: "everything",
+    unread: "unread items",
+    requests: "requests",
+    notifications: "notifications",
+    messages: "messages",
   };
 
   return (
@@ -311,12 +369,50 @@ function MessagesInbox() {
       <PageHeader
         title="Inbox"
         subtitle={subtitle}
-        action={
-          totalUnread > 0
-            ? { label: "Mark all read", onClick: handleMarkAllRead }
-            : { label: "Filter", onClick: () => toast.info("Use the chips below to filter") }
+        right={
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Bulk actions"
+                className="shrink-0 h-9 w-9 rounded-full bg-secondary text-ink inline-flex items-center justify-center active:scale-[0.97] transition"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem
+                onSelect={() => void (filter === "all" ? handleMarkEverythingRead() : handleMarkAllRead())}
+                disabled={visibleUnreadCount === 0}
+              >
+                <CheckCheck className="h-4 w-4 mr-2" />
+                <span className="flex-1">Mark {filterLabel[filter]} as read</span>
+                {visibleUnreadCount > 0 && (
+                  <span className="ml-2 text-[10px] font-bold text-muted-foreground">{visibleUnreadCount}</span>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() => void handleDeleteAll()}
+                disabled={visibleDeletableCount === 0}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                <span className="flex-1">Delete {filterLabel[filter]}</span>
+                {visibleDeletableCount > 0 && (
+                  <span className="ml-2 text-[10px] font-bold text-muted-foreground">{visibleDeletableCount}</span>
+                )}
+              </DropdownMenuItem>
+              {visibleThreads.length > 0 && (
+                <p className="px-2 pt-1 pb-1.5 text-[10px] text-muted-foreground">
+                  Message threads are kept so you don't lose history.
+                </p>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         }
       />
+
 
       {/* Filters */}
       <div className="px-5 pt-3">
