@@ -25,6 +25,19 @@ const TILE_DOT: Record<TileKey, string> = {
   overdue: "bg-status-overdue",
 };
 
+// Per-section color theme — drives the filter chip + legend so colour
+// directly maps to workflow state across the page.
+const SECTION_THEME: Record<
+  "overdue" | "awaiting" | "accepted" | "pending" | "paid",
+  { dot: string; tintBg: string; tintBorder: string; activeBg: string; activeBorder: string; text: string }
+> = {
+  overdue:  { dot: "bg-status-overdue",  tintBg: "bg-status-overdue/8",  tintBorder: "border-status-overdue/25",  activeBg: "bg-status-overdue/15",  activeBorder: "border-status-overdue",  text: "text-status-overdue" },
+  awaiting: { dot: "bg-status-completed", tintBg: "bg-status-completed/8", tintBorder: "border-status-completed/25", activeBg: "bg-status-completed/15", activeBorder: "border-status-completed", text: "text-status-completed" },
+  accepted: { dot: "bg-status-booked",    tintBg: "bg-status-booked/8",    tintBorder: "border-status-booked/25",    activeBg: "bg-status-booked/15",    activeBorder: "border-status-booked",    text: "text-status-booked" },
+  pending:  { dot: "bg-status-pending",   tintBg: "bg-status-pending/8",   tintBorder: "border-status-pending/25",   activeBg: "bg-status-pending/15",   activeBorder: "border-status-pending",   text: "text-status-pending" },
+  paid:     { dot: "bg-status-paid",      tintBg: "bg-status-paid/8",      tintBorder: "border-status-paid/25",      activeBg: "bg-status-paid/15",      activeBorder: "border-status-paid",      text: "text-status-paid" },
+};
+
 // Unpaid for the swipe-row "Chase" action — only chase work that's done or overdue.
 const UNPAID: QuoteStatus[] = ["completed", "overdue"];
 
