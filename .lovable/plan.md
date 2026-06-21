@@ -1,55 +1,62 @@
-# Typography & Readability Audit
+# Palette Review & Recommendations
 
-Goal: every piece of text — labels, captions, secondary metadata, amounts, status text — meets WCAG AA contrast and feels confident, never faint. No `text-foo/40`, no washed `text-muted-foreground` for important data, no thin weights on key numbers.
+## What's working
 
-## Approach
+The Quottr palette is already a strong, ownable system — not a generic SaaS look.
 
-Two-pass sweep:
+- **Ink (#1a1a18) + Paper (warm cream)** — high-contrast, editorial. Makes amounts and CTAs feel important without shouting.
+- **Lime (#c8e04a)** as the only accent — instantly recognisable, scarcity gives it power. Used for "money", "primary CTA", "paid", "active nav".
+- **Status spectrum** — amber/blue/green/red is conventional in trade tools, so customers and tradespeople read it without learning it.
+- **Warm neutral chroma (~80°)** keeps borders, secondary surfaces, and cards in the same family — nothing reads cold or sterile.
 
-1. **Token pass (global, one-shot)** — raise the baseline so every component benefits without touching each file.
-2. **Component pass (targeted)** — fix specific high-traffic screens where opacity utilities or muted classes hide meaningful content (amounts, dates, names, statuses).
+## Where it strains
 
-## 1. Token pass (src/styles.css)
+These are real, fixable issues — not redesign-it-all problems.
 
-Tighten the muted/border tokens so the default "secondary text" tier is already readable.
+1. **Lime is overloaded.** It marks: primary CTA, money hero, "paid" status, active tab, micro accents, ad headlines. When everything is the loudest colour, nothing is. Eyes can't find the one thing to tap.
+2. **Two greens compete.** `--status-paid: var(--lime)` (yellow-green) and `--status-green` (deeper paid-green for dots) live on the same screens, and amber/lime sit next to each other on the chaser tiles — small misreads at a glance.
+3. **Booked vs Pending vs Amber** are three orange-ish tokens close in hue. Pills can blur into each other in a busy quote list.
+4. `**--surface` is declared but barely used.** Dark panels are mostly `bg-ink`, so the intended "lifted dark" tier doesn't read. Dark sections (voice capture, footer, banners) feel flat.
+5. **Borders + muted background are nearly the same value** (`0.86` vs `0.92`). Card edges disappear on the cream background unless we lean on the brutal-shadow utility.
+6. **No reserved "danger" tone separate from overdue** — destructive UI and "you missed a deadline" share `--status-overdue`, so a delete confirm looks the same as a financial warning.
 
-- `--muted-foreground`: bump from `oklch(0.42 0.008 80)` → `oklch(0.32 0.008 80)` so default `text-muted-foreground` on cream/white passes AA at small sizes.
-- `--mute` (on dark surfaces in MarketingShell footer, BottomNav, banners): introduce a `--paper-muted` token at `oklch(0.945 0.014 85 / 0.78)` and replace ad-hoc `text-paper/50`/`/55`/`/60` usages.
-- Add a `.text-meta` utility (weight 500, color `--muted-foreground`, tracking +0.01em) for captions/labels so we stop reaching for opacity.
-- Add a `.num-strong` utility for monetary amounts: display font, `color: var(--ink)`, never opacity-dimmed.
+## Recommended changes (no redesign, just tightening)
 
-## 2. Component pass
+### A. Promote a second accent: `**--ink-accent**` (deep teal or aubergine)
 
-Files with the heaviest faint-text load (from grep): `quotes.$quoteId.tsx`, `quotes.new.tsx`, `settings.tsx`, `portal.$token.tsx`, `invoices.$quoteId.tsx`, `portal.c.$code.tsx`, `messages.tsx`, `app.tsx`, `clients.$clientId.tsx`, `chaser.tsx`, `MarketingShell.tsx`, `CookieBanner.tsx`, `BillingSection.tsx`, `SendQuoteDialog.tsx`, `MaterialListSheet.tsx`.
+Used for: secondary CTAs, "selected" states, dark icon chips currently using lime. Frees lime to mean *only* "money + primary action". Suggested: `oklch(0.42 0.08 195)` (slate teal) — sits behind lime visually, never competes.
 
-For each, apply the rules below. No layout or behavioural changes.
+### B. Use `--surface` properly
 
-### Rules
+Define a 3-tier dark scale (`--ink`, `--surface`, `--surface-2`) for nested dark panels (recorder, marketing hero, footer columns) so they read as layered, not flat.
 
-- **Amounts / totals / line-item prices**: always full-ink, weight 600+ (or display font). Strip any `/70`, `/80`, `opacity-*` wrappers around money.
-- **Dates, refs, "sent X ago"**: use `text-muted-foreground` (now darker) instead of `text-ink/60` or `/70`.
-- **Captions on dark surfaces** (footer, BottomNav, banners, MarketingShell): replace `text-paper/40`–`/60` with `text-paper/80` minimum; uppercase eyebrows go to `/85`.
-- **Inactive tabs / nav** (`messages.tsx` tab row, BottomNav): inactive label at `text-ink/75` (or `text-paper/75` on dark), not `/55`–`/60`.
-- **Disabled buttons**: keep `disabled:opacity-50` (intentional affordance) — not in scope.
-- **Status pills**: verify each pill's text token has AA contrast on its background; darken `--status-pending` if needed.
-- **Read messages** (`messages.tsx` line 252, 260, 246): bump secondary preview text from `text-ink/75` + `text-muted-foreground` to a single readable tier; unread emphasis stays via weight, not by making read items faint.
+### C. Split the status family into 2 clear groups
 
-### Out of scope
+- **Payment status** (lime=paid, amber=pending, red=overdue) — keep.
+- **Workflow status** (blue=waiting customer, teal=booked, ink=draft) — re-tone so they don't bleed into the payment palette. Move `--status-booked` from orange to a warm teal; this also breaks the orange-overload.
 
-- Layout, spacing, animation.
-- Renaming/refactoring components.
-- Marketing copy.
-- Dialog/Toggle shadcn `opacity-70` interaction affordances (those are hover states, not text legibility).
+### D. Pull `--status-paid` off `var(--lime)`
 
-## Verification
+Give "paid" its own slightly deeper green (`oklch(0.72 0.18 140)`) so paid pills don't read as "another CTA". Keeps lime sacred for actions.
 
-After changes:
-1. Playwright screenshot key screens at mobile width (375): `/`, `/messages`, `/quotes`, a quote detail, `/settings`, `/portal/<token>` (public preview), and the dark footer.
-2. Visually confirm: amounts pop, dates/labels are legible without squinting, no element reads as "faded".
-3. Spot-check contrast with a quick OKLCH-to-relative-luminance check on the new muted token vs `--paper` and `--card`.
+### E. Stronger borders on cream
 
-## Technical notes
+Bump `--border` from `0.86` to `0.82` chroma `0.015`. Cards lift without needing a shadow.
 
-- `text-muted-foreground` is the shadcn-wired token; bumping `--muted-foreground` cascades to inputs, labels, captions across all shadcn components automatically.
-- The grain overlay (`body::before`, opacity 0.03) slightly reduces effective contrast — accounted for by targeting AA with headroom (contrast ≥ 4.8 rather than 4.5).
-- No new dependencies; pure CSS + className edits.
+### F. Reserved `--danger`
+
+Introduce `--danger` for destructive UI (delete confirms, irreversible actions), distinct from `--status-overdue`. Same red family, slightly more saturated, used only on `<button>` not status pills.
+
+### G. Optional warm tint on `--paper`
+
+Push warmth a touch (`oklch(0.95 0.018 78)`) — closer to receipt paper, further from generic off-white. Subtle but reinforces the brand voice.
+
+## What I'd leave alone
+
+- Ink + paper relationship — core to the brand.
+- Lime hex — perfect for the tradesperson audience.
+- Tailwind token wiring through `@theme inline` — no churn there.
+
+## Suggested next step
+
+Pick which of A–G you want me to ship — I'd recommend **A, C, D, E** as the highest-impact bundle (clearer hierarchy, less colour overload, no visual redesign). Reply with the letters and I'll implement, take before/after screenshots of Inbox, Quote detail, and Chaser, and confirm contrast across the changed tokens.  - DO A-G 
