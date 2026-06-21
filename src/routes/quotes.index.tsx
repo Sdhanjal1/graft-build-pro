@@ -335,7 +335,7 @@ function QuotesPage() {
               <section key={section.key} className="space-y-2.5">
                 <div className="flex items-center justify-between pt-1">
                   <h2 className="font-display uppercase tracking-[0.08em] text-ink text-xs leading-none inline-flex items-center gap-1.5">
-                    <span className={`h-1.5 w-1.5 rounded-full ${section.key === "paid" ? "bg-lime" : TILE_DOT[section.key]}`} />
+                    <span className={`h-1.5 w-1.5 rounded-full ${section.key === "paid" ? "bg-paid" : TILE_DOT[section.key]}`} />
                     {section.label}
                   </h2>
                   <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground tabular-nums">
