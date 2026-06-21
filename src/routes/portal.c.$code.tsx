@@ -91,23 +91,7 @@ function formatGBP(n: number) {
   }).format(safe);
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  pending: "Quoted",
-  sent: "Quoted",
-  accepted: "Accepted",
-  declined: "Declined",
-  paid: "Paid",
-  overdue: "Overdue",
-};
-
-const STATUS_STYLE: Record<string, string> = {
-  pending: "bg-status-pending/15 text-status-pending",
-  sent: "bg-status-pending/15 text-status-pending",
-  accepted: "bg-status-accepted/15 text-status-accepted",
-  declined: "bg-muted text-muted-foreground",
-  paid: "bg-lime/30 text-ink",
-  overdue: "bg-status-overdue/15 text-status-overdue",
-};
+import { StatusBadge } from "@/components/StatusBadge";
 
 type Data = Awaited<ReturnType<typeof getClientPortalData>>;
 
@@ -403,13 +387,7 @@ function ClientPortalPage() {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${
-                            STATUS_STYLE[q.status] ?? "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {STATUS_LABEL[q.status] ?? q.status}
-                        </span>
+                        <StatusBadge status={q.status} />
                         <span className="bg-secondary text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-medium">
                           {new Date(q.created_at).toLocaleDateString("en-GB", {
                             day: "numeric",
