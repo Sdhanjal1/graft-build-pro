@@ -4,7 +4,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   mockQuotes, getClient, userProfile, formatGBP, buildChaserMessage,
   buildChaseMessageForOffset, chasesDueNow, upcomingChases, markChaseSent, skipChase,
-  setQuoteAutoChase, waLink, markOverdueQuotes, useHasHydrated, buildQuoteReplyNudge,
+  setQuoteAutoChase, waLink, markOverdueQuotes, useHasHydrated, useDataVersion, buildQuoteReplyNudge,
 } from "@/lib/user-data";
 
 import { MessageCircle, Phone, Mail, Clock, Check, X as XIcon, ThumbsUp, Pause, Play } from "lucide-react";
@@ -42,6 +42,7 @@ function ChaserPage() {
   // Include both completed (job done, awaiting payment) and overdue invoices —
   // these are the unpaid jobs the trader is waiting on.
   const hydrated = useHasHydrated();
+  useDataVersion();
   const overdue = mockQuotes.filter((q) => q.status === "completed" || q.status === "overdue");
   const total = overdue.reduce((s, q) => s + q.total, 0);
   const [, force] = useState(0);
