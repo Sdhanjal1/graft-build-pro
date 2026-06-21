@@ -350,7 +350,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
   }
 
   // Best-effort push to the trader (never throws)
-  await notifyTraderOfPayment({ userId, quoteId, amountCents, currency });
+  await notifyTraderOfPayment({ userId, quoteId, amountCents, currency, requestType });
 }
 
 
