@@ -151,7 +151,7 @@ function AppHomePage() {
           href: "/chaser",
           sub:
             s.acceptedTodayCount > 0 ? (
-              <span className="text-lime">Won today: {formatGBP(s.acceptedTodayAmount)}</span>
+              <span className="text-sent">Won today: {formatGBP(s.acceptedTodayAmount)}</span>
             ) : null,
         }
       : s.acceptedTodayCount > 0
@@ -396,9 +396,31 @@ function HeroNumber({
   href?: string;
   sub?: React.ReactNode;
 }) {
+  // Tone enforces the token rule: green/lime = money confirmed only.
+  // Owed = amber (--due), Won (accepted unpaid) = blue (--sent),
+  // Paid today = lime brand celebration.
+  const lower = label.toLowerCase();
+  const tone =
+    lower.includes("owed") || lower.includes("overdue")
+      ? "due"
+      : lower.includes("won")
+      ? "sent"
+      : "paid";
+  const numberCls =
+    tone === "due"
+      ? "text-due"
+      : tone === "sent"
+      ? "text-sent"
+      : "text-lime";
+  const labelCls =
+    tone === "due"
+      ? "text-due"
+      : tone === "sent"
+      ? "text-sent"
+      : "text-lime";
   const numberEl = (
     <p
-      className="money-hero text-lime leading-[0.82] tabular-nums"
+      className={`money-hero ${numberCls} leading-[0.82] tabular-nums`}
       style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.5rem, 18vw, 6rem)" }}
     >
       <span className="num-appear inline-block">{formatGBP(amount)}</span>
@@ -406,7 +428,7 @@ function HeroNumber({
   );
   return (
     <div className="relative mt-2">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-lime font-bold">{label}</p>
+      <p className={`text-[10px] uppercase tracking-[0.2em] ${labelCls} font-bold`}>{label}</p>
       <div className="mt-1">
         {href ? (
           <Link to={href} className="block active:opacity-80 transition">
@@ -446,20 +468,20 @@ function ActionCard({
       tone === "overdue"
         ? "bg-status-overdue text-paper"
         : tone === "accepted"
-        ? "bg-lime text-ink"
+        ? "bg-sent text-paper"
         : tone === "pending"
         ? "bg-ink text-paper"
         : "bg-paper text-ink ring-1 ring-border";
-    const onLight = tone === "accepted" || tone === "neutral";
-    const amountColor = onLight ? "text-ink" : "text-lime";
+    const onLight = tone === "neutral";
+    const amountColor = onLight ? "text-ink" : "text-paper";
     const subColor = onLight ? "text-ink/70" : "text-paper/65";
     const eyebrowColor =
       tone === "accepted"
-        ? "text-ink/60"
+        ? "text-paper/70"
         : tone === "neutral"
         ? "text-ink/50"
         : "text-lime";
-    const ctaColor = onLight ? "text-ink" : "text-lime";
+    const ctaColor = onLight ? "text-ink" : "text-paper";
     const iconColor = onLight ? "text-ink/70" : "text-paper/70";
     return (
       <Link
@@ -494,7 +516,7 @@ function ActionCard({
       : tone === "overdue"
       ? "border-l-4 border-status-overdue"
       : tone === "accepted"
-      ? "border-l-4 border-lime"
+      ? "border-l-4 border-sent"
       : "border-l-4 border-paper/30";
 
   const iconBg =
@@ -503,7 +525,7 @@ function ActionCard({
       : tone === "overdue"
       ? "bg-status-overdue/15"
       : tone === "accepted"
-      ? "bg-lime/15"
+      ? "bg-sent/15"
       : "bg-paper/10";
 
   const iconColor =

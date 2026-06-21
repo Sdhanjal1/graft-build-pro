@@ -797,12 +797,12 @@ function QuoteDetail() {
       {/* Money summary card — glance-level total + status at the top */}
       <div className="mx-5 mt-4 rounded-2xl bg-card border border-border overflow-hidden">
         {showSentBanner && (
-          <div className="bg-lime/15 px-4 py-3 flex items-center gap-3 border-b border-border/60">
-            <span className="h-8 w-8 rounded-full bg-lime/40 flex items-center justify-center shrink-0">
-              <Check className="h-4 w-4 text-ink" strokeWidth={3} />
+          <div className="bg-sent-bg px-4 py-3 flex items-center gap-3 border-b border-border/60">
+            <span className="h-8 w-8 rounded-full bg-sent flex items-center justify-center shrink-0">
+              <Check className="h-4 w-4 text-paper" strokeWidth={3} />
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-ink">Quote sent</p>
+              <p className="text-sm font-bold text-sent-text">Quote sent</p>
               <p className="text-[11px] text-muted-foreground">We'll let you know when they open it.</p>
             </div>
           </div>

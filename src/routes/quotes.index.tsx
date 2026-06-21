@@ -20,7 +20,7 @@ type TileKey = "pending" | "accepted" | "awaiting" | "overdue";
 
 const TILE_DOT: Record<TileKey, string> = {
   pending: "bg-status-pending",
-  accepted: "bg-lime",
+  accepted: "bg-sent",
   awaiting: "bg-status-sent",
   overdue: "bg-status-overdue",
 };
@@ -252,7 +252,7 @@ function QuotesPage() {
             const count = mockQuotes.filter(s.match).length;
             if (count === 0) return null;
             const active = sectionFilter === s.key;
-            const dot = s.key === "paid" ? "bg-lime" : TILE_DOT[s.key];
+            const dot = s.key === "paid" ? "bg-paid" : TILE_DOT[s.key];
             return (
               <button
                 key={s.key}
@@ -335,7 +335,7 @@ function QuotesPage() {
               <section key={section.key} className="space-y-2.5">
                 <div className="flex items-center justify-between pt-1">
                   <h2 className="font-display uppercase tracking-[0.08em] text-ink text-xs leading-none inline-flex items-center gap-1.5">
-                    <span className={`h-1.5 w-1.5 rounded-full ${section.key === "paid" ? "bg-lime" : TILE_DOT[section.key]}`} />
+                    <span className={`h-1.5 w-1.5 rounded-full ${section.key === "paid" ? "bg-paid" : TILE_DOT[section.key]}`} />
                     {section.label}
                   </h2>
                   <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground tabular-nums">
@@ -438,16 +438,16 @@ function QuoteCard({
   const activeTint = isOverdue
     ? "active:bg-status-overdue/90"
     : isPaid
-    ? "active:bg-lime/20"
-    : "active:bg-lime/15";
+    ? "active:bg-paid-bg"
+    : "active:bg-secondary";
 
   const className = `rounded-2xl py-4 px-4 flex items-center gap-3 transition-all duration-150 active:scale-[0.985] active:shadow-[0_0_0_3px_color-mix(in_oklab,var(--lime,#c8ff3e)_25%,transparent)] touch-manipulation ${activeTint} ${
     isOverdue
       ? "bg-ink text-paper border-l-4 border-status-overdue"
       : isPaid
-      ? "card-surface bg-card border-l-4 border-lime opacity-80"
+      ? "card-surface bg-card border-l-4 border-paid opacity-80"
       : isDraft
-      ? "card-surface bg-lime/10 border-l-4 border-lime"
+      ? "card-surface bg-card border-l-4 border-status-pending"
       : "card-surface bg-card"
   }`;
 
@@ -471,7 +471,7 @@ function QuoteCard({
     <>
       {/* Numbers lead — Bebas £ amount as the left anchor */}
       <div
-        className={`shrink-0 leading-none tabular-nums ${isOverdue ? "text-lime" : "text-ink"}`}
+        className={`shrink-0 leading-none tabular-nums ${isOverdue ? "text-paper" : "text-ink"}`}
         style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.875rem", letterSpacing: "0.01em", minWidth: "5.5rem" }}
       >
         {formatGBP(quote.total)}
