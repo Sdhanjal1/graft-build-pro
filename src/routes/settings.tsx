@@ -1157,7 +1157,7 @@ function QuoteLookPreview({
         <BusinessLogo logoUrl={profile.logo_url} businessName={businessName} size="md" />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold truncate">{businessName}</p>
-          <p className="text-[10px] text-paper/60 truncate">Quote Q-0001</p>
+          <p className="text-[10px] text-paper/85 truncate">Quote Q-0001</p>
         </div>
       </div>
 

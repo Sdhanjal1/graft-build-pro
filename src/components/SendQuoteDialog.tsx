@@ -209,7 +209,7 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
                 <ol className="mt-3 space-y-1.5">
                   {offsets.map((d, i) => (
                     <li key={d} className="flex items-center gap-3 text-xs">
-                      <span className="num text-[10px] uppercase tracking-widest font-bold text-ink/60 w-12 shrink-0">
+                      <span className="num text-[10px] uppercase tracking-widest font-bold text-ink/80 w-12 shrink-0">
                         Day {d}
                       </span>
                       <span className="text-ink font-semibold">{chaseLabels[i] ?? `${ORDINAL[i] ?? "next"} reminder`}</span>

@@ -52,7 +52,7 @@ function PricingPage() {
             <span className="text-[10px] uppercase tracking-widest font-semibold bg-lime text-ink px-3 py-1 rounded-full">
               Free for 14 days
             </span>
-            <span className="text-xs text-ink/60 font-medium">No card required</span>
+            <span className="text-xs text-ink/80 font-medium">No card required</span>
           </div>
 
           <div className="mt-7 text-center">
@@ -61,19 +61,19 @@ function PricingPage() {
               style={{ fontFamily: "'Bebas Neue', sans-serif" }}
             >
               <span className="text-7xl md:text-8xl">£29</span>
-              <span className="text-2xl md:text-3xl text-ink/60 ml-2">/ month</span>
+              <span className="text-2xl md:text-3xl text-ink/80 ml-2">/ month</span>
             </div>
-            <p className="mt-3 text-sm text-ink/60">
+            <p className="mt-3 text-sm text-ink/80">
               Free for 14 days. Then £29/month. Cancel any time.
             </p>
-            <p className="mt-2 text-xs text-ink/55">
+            <p className="mt-2 text-xs text-ink/80">
               Plus 0.5% on payments taken through Quottr (50p minimum, £25 cap), only when a customer pays you.
             </p>
           </div>
 
           <div className="mt-8 h-px bg-ink/10" />
 
-          <p className="mt-7 text-[11px] uppercase tracking-widest font-semibold text-ink/60 text-center">
+          <p className="mt-7 text-[11px] uppercase tracking-widest font-semibold text-ink/80 text-center">
             Everything included
           </p>
           <ul className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -95,7 +95,7 @@ function PricingPage() {
           </Link>
         </div>
 
-        <p className="mt-5 text-center text-xs text-ink/55 max-w-md mx-auto leading-relaxed">
+        <p className="mt-5 text-center text-xs text-ink/80 max-w-md mx-auto leading-relaxed">
           After your 14-day trial, £29/month. Cancel any time. No contracts, no per-quote fees, no setup costs.
         </p>
       </section>

@@ -150,7 +150,7 @@ function ChaserPage() {
       <section className="px-5 mt-3">
         <div className="bg-paper border-2 border-ink rounded-2xl p-5 shadow-brutal">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-ink/60 font-bold">You are owed</p>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-ink/80 font-bold">You are owed</p>
             {overdue.some((q) => q.status === "overdue") && (
               <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-status-overdue text-paper">
                 Urgent
@@ -203,7 +203,7 @@ function ChaserPage() {
                       Chase ready to send to {c?.name}, {formatGBP(quote.total)}, {chase.day_offset} days overdue
                     </p>
                     {autoIn !== null && (
-                      <p className="text-[10px] text-ink/60 mt-1">
+                      <p className="text-[10px] text-ink/80 mt-1">
                         Auto-sends in {autoIn >= 60 ? `${Math.floor(autoIn / 60)}h ${autoIn % 60}m` : `${autoIn}m`} if no action
                       </p>
                     )}

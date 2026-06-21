@@ -139,7 +139,7 @@ function NavItem({
           "relative flex items-center gap-1.5 rounded-full transition-colors duration-200 ease-out min-w-0",
           active
             ? "bg-lime text-ink px-3 py-2 ring-1 ring-ink/10"
-            : "text-paper/55 px-2.5 py-2 group-hover:text-paper/85",
+            : "text-paper/80 px-2.5 py-2 group-hover:text-paper/85",
         ].join(" ")}
       >
         <span className="relative inline-flex">

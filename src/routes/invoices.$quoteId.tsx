@@ -144,21 +144,21 @@ function InvoicePage() {
             <div className="min-w-0 flex-1">
               <p className="text-[10px] uppercase tracking-[0.3em] text-lime font-bold">Invoice</p>
               <h1 className="text-3xl mt-1 leading-none text-paper">{ref}</h1>
-              <p className="text-xs text-paper/60 mt-2 truncate">{userProfile.business_name}</p>
+              <p className="text-xs text-paper/85 mt-2 truncate">{userProfile.business_name}</p>
               {(() => {
                 const parts = [
                   userProfile.registration_number,
                   userProfile.vat_registered && userProfile.vat_number ? `VAT ${userProfile.vat_number}` : null,
                 ].filter(Boolean);
                 return parts.length > 0 ? (
-                  <p className="text-[10px] text-paper/50 truncate">{parts.join(" · ")}</p>
+                  <p className="text-[10px] text-paper/80 truncate">{parts.join(" · ")}</p>
                 ) : null;
               })()}
             </div>
           </div>
 
           <div className="px-6 py-6">
-            <p className="text-[10px] uppercase tracking-widest text-paper/60 font-bold">{depositPaid > 0 ? "Balance due" : "Amount due"}</p>
+            <p className="text-[10px] uppercase tracking-widest text-paper/85 font-bold">{depositPaid > 0 ? "Balance due" : "Amount due"}</p>
             <p className="num text-6xl text-lime leading-none mt-1">{formatGBP(balance)}</p>
             {dueDate && (
               <p className="text-xs text-paper/80 mt-2">

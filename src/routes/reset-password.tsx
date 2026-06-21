@@ -69,7 +69,7 @@ function ResetPasswordPage() {
         ) : (
           <form onSubmit={submit} className="space-y-3">
             <label className="block">
-              <span className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold">New password</span>
+              <span className="text-[10px] uppercase tracking-widest text-paper/85 font-semibold">New password</span>
               <input
                 type="password"
                 required
@@ -91,7 +91,7 @@ function ResetPasswordPage() {
           </form>
         )}
       </div>
-      <p className="text-center text-[11px] text-paper/40 pb-6">UK tradespeople · 2026</p>
+      <p className="text-center text-[11px] text-paper/75 pb-6">UK tradespeople · 2026</p>
     </div>
   );
 }

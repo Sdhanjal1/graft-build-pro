@@ -41,7 +41,7 @@ function AboutPage() {
       <section className="mx-auto max-w-5xl px-5 py-20 md:py-28">
         <div className="grid gap-16 md:gap-20">
           <div className="grid md:grid-cols-12 gap-8 items-start">
-            <p className="md:col-span-3 text-[11px] uppercase tracking-widest text-ink/50 font-semibold pt-2">The problem</p>
+            <p className="md:col-span-3 text-[11px] uppercase tracking-widest text-ink/75 font-semibold pt-2">The problem</p>
             <div className="md:col-span-9 space-y-5 text-lg md:text-xl text-ink/80 leading-relaxed">
               <p>
                 A plumber finishes a 10-hour day on the tools. He gets home, eats,
@@ -56,14 +56,14 @@ function AboutPage() {
           </div>
 
           <div className="grid md:grid-cols-12 gap-8 items-start">
-            <p className="md:col-span-3 text-[11px] uppercase tracking-widest text-ink/50 font-semibold pt-2">The fix</p>
+            <p className="md:col-span-3 text-[11px] uppercase tracking-widest text-ink/75 font-semibold pt-2">The fix</p>
             <div className="md:col-span-9">
               <p
                 className="text-3xl md:text-5xl leading-[1.05] text-ink"
                 style={{ fontFamily: "'Bebas Neue', sans-serif" }}
               >
                 One voice note from the van.<br />
-                <span className="text-ink/50">A professional quote, sent before the kettle boils.</span>
+                <span className="text-ink/75">A professional quote, sent before the kettle boils.</span>
               </p>
               <p className="mt-6 text-lg text-ink/70 leading-relaxed max-w-2xl">
                 We built Quottr around a single rule: if it can't be done in
@@ -78,7 +78,7 @@ function AboutPage() {
       <section className="bg-card border-y border-ink/10">
         <div className="mx-auto max-w-6xl px-5 py-20 md:py-28">
           <h2 className="text-4xl md:text-6xl leading-[0.95] max-w-3xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            Four promises. <span className="text-ink/40">No small print.</span>
+            Four promises. <span className="text-ink/70">No small print.</span>
           </h2>
 
           <div className="mt-14 grid gap-px bg-ink/10 md:grid-cols-2 rounded-3xl overflow-hidden">
@@ -114,7 +114,7 @@ function AboutPage() {
                 >
                   {s.n}
                 </div>
-                <p className="mt-3 text-sm uppercase tracking-widest text-paper/60 font-semibold">{s.l}</p>
+                <p className="mt-3 text-sm uppercase tracking-widest text-paper/85 font-semibold">{s.l}</p>
               </div>
             ))}
           </div>

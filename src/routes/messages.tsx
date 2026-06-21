@@ -143,7 +143,7 @@ function FilterTab({
       onClick={onClick}
       className={[
         "shrink-0 h-9 px-4 rounded-full text-[13px] font-semibold inline-flex items-center gap-1.5 transition",
-        active ? "bg-ink text-paper" : "text-ink/60 hover:text-ink",
+        active ? "bg-ink text-paper" : "text-ink/80 hover:text-ink",
       ].join(" ")}
     >
       <span>{label}</span>
