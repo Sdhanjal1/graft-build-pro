@@ -11,7 +11,7 @@ import {
   
   deleteQuote,
   materialsForQuote, cleanItemDescription, lineIsEstimate, parseMoney,
-  type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type LineItem, type LineItemCategory,
+  type PaymentMethod, type PaymentRequest, type PaymentRequestType, type Quote, type QuoteStatus, type LineItem, type LineItemCategory,
 } from "@/lib/user-data";
 import { createInvoiceCheckout, recordManualDeposit, removeManualDeposit, getQuotePaymentStatus } from "@/lib/payments.functions";
 import { sendInvoiceEmailForQuote } from "@/lib/invoice-email.functions";
