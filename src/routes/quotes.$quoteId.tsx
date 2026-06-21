@@ -296,8 +296,13 @@ function QuoteDetail() {
   };
 
   const setMethod = (m: PaymentMethod) => { quote.payment_method = m; setMethodState(m); };
+  // Track local status writes so the realtime subscription doesn't double-toast
+  // when the change originated from this tab.
+  const localChangeRef = useRef(0);
+  const markLocalChange = () => { localChangeRef.current = Date.now(); };
   const acceptQuote = async () => {
     try {
+      markLocalChange();
       await setQuoteStatus(quote.id, "accepted");
       setStatusState("accepted");
       if (timing === "deposit_then_balance" && configuredDeposit > 0) {
@@ -310,8 +315,21 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
     }
   };
+  // Manual accept from the overflow menu — shows a one-time tip explaining
+  // that portal-driven accepts happen automatically.
+  const manualAcceptQuote = async () => {
+    await acceptQuote();
+    try {
+      const KEY = "quottr.manual-accept-tip-seen";
+      if (typeof window !== "undefined" && !localStorage.getItem(KEY)) {
+        localStorage.setItem(KEY, "1");
+        toast.message("Marked as accepted. Tip: if your customer uses the link, this happens automatically.");
+      }
+    } catch { /* noop */ }
+  };
   const markSent = async () => {
     try {
+      markLocalChange();
       await setQuoteStatus(quote.id, "sent");
       setStatusState("sent");
       feedback("success"); toast.success("Marked sent");
@@ -321,6 +339,7 @@ function QuoteDetail() {
   };
   const declineQuote = async () => {
     try {
+      markLocalChange();
       await setQuoteStatus(quote.id, "declined");
       setStatusState("declined");
       feedback("success"); toast.success("Marked declined");
@@ -328,6 +347,38 @@ function QuoteDetail() {
       feedback("error"); toast.error(e instanceof Error ? e.message : "Couldn't update status");
     }
   };
+
+  // Realtime: when the customer accepts/declines/pays from the portal, sync
+  // this page without a refresh. Filter to this quote's id only.
+  const statusRef = useRef(status);
+  useEffect(() => { statusRef.current = status; }, [status]);
+  useEffect(() => {
+    const channel = supabase
+      .channel(`quote-${quote.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "quotes", filter: `id=eq.${quote.id}` },
+        (payload) => {
+          const next = (payload.new ?? {}) as Partial<Quote>;
+          if (!next.status) return;
+          const prev = statusRef.current;
+          if (next.status === prev) return;
+          setStatusState(next.status);
+          if (typeof next.invoiced_at !== "undefined") setInvoicedAt(next.invoiced_at ?? undefined);
+          if (typeof next.completed_at !== "undefined") setCompletedAt(next.completed_at ?? undefined);
+          const isLocal = Date.now() - localChangeRef.current < 1500;
+          if (isLocal) return;
+          if (prev === "sent" && next.status === "accepted") {
+            feedback("success");
+            toast.success("Customer accepted — nice one.");
+          } else if (prev === "sent" && next.status === "declined") {
+            toast.message("Customer declined.");
+          }
+        },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [quote.id]);
   const removeRecordedDeposit = () => setConfirmRemoveDeposit(true);
   const confirmRemoveRecordedDeposit = async () => {
     setConfirmRemoveDeposit(false);
