@@ -1093,6 +1093,9 @@ function QuoteDetail() {
                 {status === "pending" && (
                   <MoreItem icon={Send} label="Mark sent" onClick={markSent} />
                 )}
+                {status === "sent" && (
+                  <MoreItem icon={ThumbsUp} label="They said yes (mark accepted)" onClick={manualAcceptQuote} />
+                )}
                 {status !== "declined" && status !== "paid" && (
                   <MoreItem icon={XCircle} label="Mark declined" onClick={declineQuote} />
                 )}
