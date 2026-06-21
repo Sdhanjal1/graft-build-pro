@@ -49,7 +49,7 @@ function TradesPage() {
       <section className="mx-auto max-w-6xl px-5 py-20 md:py-24">
         <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-lime">Pick your trade</p>
         <h2 className="mt-3 text-4xl md:text-6xl leading-[0.95] max-w-2xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-          Eight trades. <span className="text-ink/40">One way to quote.</span>
+          Eight trades. <span className="text-ink/70">One way to quote.</span>
         </h2>
 
         <div className="mt-12 grid gap-px bg-ink/10 md:grid-cols-2 rounded-3xl overflow-hidden">
@@ -70,7 +70,7 @@ function TradesPage() {
         </div>
 
         <div className="mt-12 flex flex-col sm:flex-row sm:items-center gap-4">
-          <p className="text-ink/60 text-lg">Your trade not listed? Quottr works for any trade that sends quotes.</p>
+          <p className="text-ink/80 text-lg">Your trade not listed? Quottr works for any trade that sends quotes.</p>
           <Link to="/auth" className="inline-flex items-center gap-2 bg-ink text-paper font-semibold px-7 py-4 rounded-full hover:bg-ink/90 transition shrink-0">
             Start quoting free <ArrowRight className="h-4 w-4" />
           </Link>

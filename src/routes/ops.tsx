@@ -80,7 +80,7 @@ function fmtAgo(iso: string) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3">
-      <h2 className="text-xs uppercase tracking-[0.15em] text-ink/50 font-medium">
+      <h2 className="text-xs uppercase tracking-[0.15em] text-ink/75 font-medium">
         {title}
       </h2>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -109,13 +109,13 @@ function Stat({
         muted ? "opacity-80" : ""
       }`}
     >
-      <div className="text-[11px] uppercase tracking-wider text-ink/50">{label}</div>
+      <div className="text-[11px] uppercase tracking-wider text-ink/75">{label}</div>
       <div
         className={`font-display leading-none mt-2 ${hero ? "text-6xl" : "text-3xl"}`}
       >
         {value}
       </div>
-      {sub && <div className="mt-2 text-xs text-ink/60">{sub}</div>}
+      {sub && <div className="mt-2 text-xs text-ink/80">{sub}</div>}
     </div>
   );
 }
@@ -151,7 +151,7 @@ function ConnectClientIdPanel() {
       <div className="flex items-center justify-between mb-3 gap-3">
         <div>
           <h2 className="font-display text-2xl">Stripe Connect client id</h2>
-          <p className="text-xs text-ink/50 mt-0.5">
+          <p className="text-xs text-ink/75 mt-0.5">
             Probes Stripe to confirm STRIPE_CONNECT_CLIENT_ID matches the live platform key.
           </p>
         </div>
@@ -189,7 +189,7 @@ function OpsPage() {
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
           <div>
             <h1 className="font-display text-3xl tracking-wide">Quottr · Ops</h1>
-            <p className="text-xs text-ink/50 mt-1">
+            <p className="text-xs text-ink/75 mt-1">
               Admin-only · live data · refreshed {fmtAgo(data.generatedAt)}
             </p>
           </div>
@@ -304,10 +304,10 @@ function OpsPage() {
           <div className="card-surface p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display text-2xl">Recent errors</h2>
-              <span className="text-xs text-ink/50">last 20</span>
+              <span className="text-xs text-ink/75">last 20</span>
             </div>
             {data.recentErrors.length === 0 ? (
-              <p className="text-sm text-ink/60 py-6 text-center">No errors logged 🎉</p>
+              <p className="text-sm text-ink/80 py-6 text-center">No errors logged 🎉</p>
             ) : (
               <ul className="divide-y divide-ink/5 -mx-1">
                 {data.recentErrors.map((e) => (
@@ -316,7 +316,7 @@ function OpsPage() {
                       <span className="text-xs font-medium text-red-700/80">
                         {e.context}
                       </span>
-                      <span className="text-[11px] text-ink/40 shrink-0">
+                      <span className="text-[11px] text-ink/70 shrink-0">
                         {fmtAgo(e.createdAt)}
                       </span>
                     </div>
@@ -324,7 +324,7 @@ function OpsPage() {
                       {e.message}
                     </p>
                     {e.userLabel && (
-                      <p className="text-[11px] text-ink/40 mt-0.5">{e.userLabel}</p>
+                      <p className="text-[11px] text-ink/70 mt-0.5">{e.userLabel}</p>
                     )}
                   </li>
                 ))}
@@ -336,10 +336,10 @@ function OpsPage() {
           <div className="card-surface p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display text-2xl">Recent signups</h2>
-              <span className="text-xs text-ink/50">last 20</span>
+              <span className="text-xs text-ink/75">last 20</span>
             </div>
             {data.recentSignups.length === 0 ? (
-              <p className="text-sm text-ink/60 py-6 text-center">No signups yet.</p>
+              <p className="text-sm text-ink/80 py-6 text-center">No signups yet.</p>
             ) : (
               <ul className="divide-y divide-ink/5 -mx-1">
                 {data.recentSignups.map((s) => (
@@ -348,7 +348,7 @@ function OpsPage() {
                       <div className="text-sm font-medium truncate">
                         {s.businessName || s.email || "(no name)"}
                       </div>
-                      <div className="text-[11px] text-ink/50 truncate">
+                      <div className="text-[11px] text-ink/75 truncate">
                         {s.trade || "no trade set"} · {fmtAgo(s.createdAt)}
                       </div>
                     </div>
@@ -356,7 +356,7 @@ function OpsPage() {
                       className={`text-[11px] px-2 py-0.5 rounded-full shrink-0 ${
                         s.hasSentQuote
                           ? "bg-lime/40 text-ink"
-                          : "bg-ink/5 text-ink/50"
+                          : "bg-ink/5 text-ink/75"
                       }`}
                     >
                       {s.hasSentQuote ? "Sent ✓" : "—"}
@@ -371,7 +371,7 @@ function OpsPage() {
         <ConnectClientIdPanel />
 
 
-        <footer className="text-center text-[11px] text-ink/40 pt-6 pb-12">
+        <footer className="text-center text-[11px] text-ink/70 pt-6 pb-12">
           Read-only · all financials across all users · do not share
         </footer>
       </main>

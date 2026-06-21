@@ -121,8 +121,8 @@ function QuotesPage() {
       <div className="px-4 mt-3">
         <div className="rounded-2xl bg-paper border border-ink/10 p-5">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-ink/55">Pipeline</p>
-            <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-ink/55 tabular-nums">
+            <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-ink/80">Pipeline</p>
+            <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-ink/80 tabular-nums">
               {pipelineCount} quote{pipelineCount === 1 ? "" : "s"}
             </p>
           </div>
@@ -137,7 +137,7 @@ function QuotesPage() {
             <>
               <div className="mt-5 pt-4 border-t border-ink/10 grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-ink/55">Awaiting</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-ink/80">Awaiting</p>
                   <p
                     className="mt-1 leading-none tabular-nums text-ink"
                     style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "1.75rem" }}
@@ -190,7 +190,7 @@ function QuotesPage() {
                     <span className={`h-1.5 w-1.5 rounded-full shrink-0 mt-1 ${TILE_DOT[t.key]}`} />
                     <span className="leading-tight">{GROUP_LABEL[t.key]}</span>
                   </span>
-                  <span className={`text-[10px] font-bold tabular-nums shrink-0 ${active ? "bg-ink text-paper rounded-full px-1.5 min-w-[18px] text-center" : "text-ink/60"}`}>
+                  <span className={`text-[10px] font-bold tabular-nums shrink-0 ${active ? "bg-ink text-paper rounded-full px-1.5 min-w-[18px] text-center" : "text-ink/80"}`}>
                     {t.count}
                   </span>
                 </div>

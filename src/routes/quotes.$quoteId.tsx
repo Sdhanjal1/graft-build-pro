@@ -987,7 +987,7 @@ function QuoteDetail() {
                 {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
               </p>
             </div>
-            <ChevronDown className="h-4 w-4 text-ink/60 shrink-0" />
+            <ChevronDown className="h-4 w-4 text-ink/80 shrink-0" />
           </button>
         </section>
       )}
@@ -1227,7 +1227,7 @@ function QuoteDetail() {
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Deposit</p>
                 <div className="grid grid-cols-2 gap-2.5">
                   <label className="flex items-center bg-secondary rounded-2xl px-3 py-2.5 gap-1.5">
-                    <span className="text-ink/60 font-bold">£</span>
+                    <span className="text-ink/80 font-bold">£</span>
                     <input
                       type="text" inputMode="decimal"
                       value={depositAmtRaw}
@@ -1248,7 +1248,7 @@ function QuoteDetail() {
                       placeholder="0"
                       className="flex-1 min-w-0 bg-transparent text-sm font-semibold num outline-none text-right"
                     />
-                    <span className="text-ink/60 font-bold">%</span>
+                    <span className="text-ink/80 font-bold">%</span>
                   </label>
                 </div>
               </div>
@@ -1322,7 +1322,7 @@ function QuoteDetail() {
                 onClick={() => createPaymentRequest("full")}
               />
               <div className="bg-ink text-paper rounded-2xl p-4">
-                <p className="text-[10px] uppercase tracking-widest text-paper/60 font-semibold mb-2">Custom amount</p>
+                <p className="text-[10px] uppercase tracking-widest text-paper/85 font-semibold mb-2">Custom amount</p>
                 <div className="flex gap-2">
                   <div className="flex-1 flex items-center bg-paper/10 rounded-2xl px-4">
                     <span className="text-lime font-bold mr-1">£</span>
@@ -1333,7 +1333,7 @@ function QuoteDetail() {
                       value={customAmt}
                       onChange={(e) => setCustomAmt(e.target.value)}
                       onFocus={(e) => e.currentTarget.select()}
-                      className="flex-1 bg-transparent py-3 text-sm text-paper placeholder:text-paper/40 outline-none"
+                      className="flex-1 bg-transparent py-3 text-sm text-paper placeholder:text-paper/75 outline-none"
                     />
                   </div>
                   <button
@@ -1367,7 +1367,7 @@ function QuoteDetail() {
             </p>
             {configuredDeposit > 0 && (
               <div className="mt-4 rounded-2xl bg-ink text-paper p-4 flex items-baseline justify-between">
-                <span className="text-xs uppercase tracking-widest text-paper/60 font-semibold">
+                <span className="text-xs uppercase tracking-widest text-paper/85 font-semibold">
                   Deposit{configuredDepositPct ? ` (${configuredDepositPct}%)` : ""}
                 </span>
                 <span className="num text-3xl text-lime">{formatGBP(configuredDeposit)}</span>

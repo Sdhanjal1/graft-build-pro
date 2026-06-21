@@ -78,7 +78,7 @@ function HomePage() {
                 >
                   Start quoting free <ArrowRight className="h-4 w-4" />
                 </Link>
-                <span className="text-sm text-paper/55">14-day trial · no card</span>
+                <span className="text-sm text-paper/80">14-day trial · no card</span>
               </div>
             </div>
 
@@ -111,7 +111,7 @@ function HomePage() {
                 />
               </div>
 
-              <p className="mt-3 text-center md:text-left text-[11px] text-paper/50 uppercase tracking-widest font-semibold">
+              <p className="mt-3 text-center md:text-left text-[11px] text-paper/80 uppercase tracking-widest font-semibold">
                 From voice to paid, in seconds
               </p>
             </div>

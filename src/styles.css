@@ -80,7 +80,7 @@
   --secondary: oklch(0.92 0.01 80);
   --secondary-foreground: var(--ink);
   --muted: oklch(0.92 0.01 80);
-  --muted-foreground: oklch(0.42 0.008 80);
+  --muted-foreground: oklch(0.32 0.008 80); /* darkened for AA on cream/white */
   --accent: var(--lime);
   --accent-foreground: var(--ink);
   --destructive: var(--status-overdue);
