@@ -724,7 +724,17 @@ function QuoteDetail() {
       },
     };
   } else if (status === "sent") {
-    primary = { label: "Customer accepted", icon: ThumbsUp, onClick: acceptQuote };
+    // Primary becomes a "Nudge customer" share — manual mark-accepted moved
+    // into the overflow menu. If there's no contact to nudge, we render a
+    // calm "Waiting on customer" pill in place of the button (see below).
+    primary = {
+      label: "Nudge customer",
+      icon: Send,
+      onClick: () => {
+        setNudgedAt(Date.now());
+        setSendOpen(true);
+      },
+    };
   } else if (status === "accepted") {
     // ONE smart action — handles complete + invoice/balance/receipt together,
     // dispatched by jobDoneMode (derived from payment_timing).
