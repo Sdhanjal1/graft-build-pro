@@ -516,7 +516,7 @@ function ActionCard({
       : tone === "overdue"
       ? "border-l-4 border-status-overdue"
       : tone === "accepted"
-      ? "border-l-4 border-lime"
+      ? "border-l-4 border-sent"
       : "border-l-4 border-paper/30";
 
   const iconBg =
@@ -525,7 +525,7 @@ function ActionCard({
       : tone === "overdue"
       ? "bg-status-overdue/15"
       : tone === "accepted"
-      ? "bg-lime/15"
+      ? "bg-sent/15"
       : "bg-paper/10";
 
   const iconColor =
