@@ -334,6 +334,10 @@ const rowToQuote = (r: DbQuote): Quote => ({
   deposit_percent: Number(r.deposit_percent ?? 0),
   completed_at: r.completed_at ?? undefined,
   updated_at: r.updated_at ?? undefined,
+  invoice_email_sent_at: r.invoice_email_sent_at ?? undefined,
+  invoice_email_status: r.invoice_email_status ?? undefined,
+  invoice_email_to: r.invoice_email_to ?? undefined,
+
   materials_purchased: Array.isArray(r.materials_purchased) ? r.materials_purchased : [],
   materials_list: Array.isArray(r.materials_list)
     ? (r.materials_list as MaterialItem[]).map((m) => ({
