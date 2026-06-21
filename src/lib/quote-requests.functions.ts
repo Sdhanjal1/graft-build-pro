@@ -83,3 +83,18 @@ export const markRequestRead = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const deleteQuoteRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("quote_requests")
+      .delete()
+      .eq("id", data.id)
+      .eq("pro_user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
