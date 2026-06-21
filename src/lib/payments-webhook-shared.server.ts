@@ -7,21 +7,42 @@ async function notifyTraderOfPayment(opts: {
   quoteId: string;
   amountCents: number | undefined;
   currency: string;
+  requestType: string;
 }) {
   try {
     const { data: quote } = await supabaseAdmin
       .from("quotes")
-      .select("title, ref")
+      .select("title, ref, client_id")
       .eq("id", opts.quoteId)
       .maybeSingle();
-    const title = quote?.title ?? quote?.ref ?? "Invoice";
+    const jobTitle = quote?.title ?? quote?.ref ?? "Invoice";
+
+    let firstName: string | null = null;
+    if (quote?.client_id) {
+      const { data: client } = await supabaseAdmin
+        .from("clients")
+        .select("first_name")
+        .eq("id", quote.client_id)
+        .maybeSingle();
+      firstName = (client?.first_name ?? "").trim() || null;
+    }
+    const who = firstName ?? "Customer";
+
+    const what =
+      opts.requestType === "deposit"
+        ? "paid the deposit"
+        : opts.requestType === "balance"
+          ? "paid the balance"
+          : "paid";
+
     const amount = ((opts.amountCents ?? 0) / 100).toFixed(2);
     const symbol = (opts.currency || "gbp").toLowerCase() === "gbp" ? "£" : "";
+
     await notifyUser(opts.userId, {
-      title: "Paid. That's in the bank. 💰",
-      body: `${title} · ${symbol}${amount}`,
+      title: `${who} just ${what} · ${symbol}${amount} 💰`,
+      body: jobTitle,
       url: `/quotes/${opts.quoteId}`,
-      tag: `quote-${opts.quoteId}-paid`,
+      tag: `quote-${opts.quoteId}-${opts.requestType}`,
     });
   } catch (e) {
     console.error("[payments/webhook] paid push notify failed", e);
