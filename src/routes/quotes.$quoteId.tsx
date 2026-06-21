@@ -120,6 +120,9 @@ function QuoteDetail() {
   const [sendOpen, setSendOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [actioning, setActioning] = useState(false);
+  // Local-only timestamp set when the user taps "Nudge customer" so we can
+  // swap the bar to a calm "Waiting on customer" pill for ~60 minutes.
+  const [nudgedAt, setNudgedAt] = useState<number | null>(null);
   
   const [timingOpen, setTimingOpen] = useState(false);
   const [materialsOpen, setMaterialsOpen] = useState(false);
