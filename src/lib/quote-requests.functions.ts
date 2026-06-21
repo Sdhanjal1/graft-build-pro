@@ -84,6 +84,20 @@ export const markRequestRead = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const markRequestUnread = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("quote_requests")
+      .update({ read_at: null, status: "new" })
+      .eq("id", data.id)
+      .eq("pro_user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const deleteQuoteRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
