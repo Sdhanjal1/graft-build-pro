@@ -308,6 +308,11 @@ function MessagesInbox() {
   const [previewItem, setPreviewItem] = useState<FeedItem | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  /** Optimistic unread override: item.id → unread? */
+  const [optimisticUnread, setOptimisticUnread] = useState<Map<string, boolean>>(new Map());
+  /** Items pending deferred deletion (hidden from feed until timer fires or undo). */
+  const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(new Set());
+  const deleteTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const knownReqIds = useRef<Set<string>>(new Set());
   const initialized = useRef(false);
   const cancelledRef = useRef(false);
