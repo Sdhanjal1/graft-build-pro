@@ -767,10 +767,12 @@ function QuoteDetail() {
   const needsClient = status === "pending" && !client;
   const barVisible = needsClient || scrollWantsVisible;
 
-  // Secondary "chase" action: shown on the LEFT of the primary when the quote
-  // has been SENT but sitting idle > 3 days.
-  const sentMs = quote.created_at ? new Date(quote.created_at).getTime() : 0;
-  const showChaseSecondary = status === "sent" && client?.phone && sentMs && (Date.now() - sentMs) > 3 * 86_400_000;
+  // "Waiting on customer" pill replaces the primary button on sent quotes
+  // when there's nothing useful to do right now: no contact to nudge, or the
+  // user already nudged within the last hour.
+  const hasContact = !!(client?.phone || client?.email);
+  const recentlyNudged = nudgedAt !== null && (Date.now() - nudgedAt) < 60 * 60_000;
+  const showWaitingPill = status === "sent" && (!hasContact || recentlyNudged);
 
   // Wrap primary.onClick with the loading/disabled gate. Async handlers
   // (accept/complete/reopen) are awaited; sync ones (open sheets) just toggle
