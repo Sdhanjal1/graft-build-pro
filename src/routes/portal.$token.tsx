@@ -626,8 +626,8 @@ function PortalPage() {
 
       {!isPaidInFull && hasPaidDeposit && paymentResult !== "paid" && (
         <section className="px-5 mt-4">
-          <div className="card-surface p-5 border-2 border-status-accepted/40 bg-status-accepted/5">
-            <div className="flex items-center gap-2 text-status-accepted font-bold text-sm">
+          <div className="card-surface p-5 border-2 border-paid/40 bg-paid-bg">
+            <div className="flex items-center gap-2 text-paid-text font-bold text-sm">
               <Check className="h-4 w-4" /> Deposit paid
             </div>
             <p className="text-xs text-muted-foreground mt-1">
