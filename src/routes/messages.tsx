@@ -529,10 +529,124 @@ function MessagesInbox() {
   }, [requests, threads, notifications, optimisticUnread]);
 
   const visibleFeed = useMemo(() => {
-    if (filter === "unread") return feed.filter((i) => i.unread);
-    if (filter === "requests") return feed.filter((i) => i.kind === "request");
-    return feed;
-  }, [feed, filter]);
+    const base = feed.filter((i) => !pendingDeletes.has(i.id));
+    if (filter === "unread") return base.filter((i) => i.unread);
+    if (filter === "requests") return base.filter((i) => i.kind === "request");
+    return base;
+  }, [feed, filter, pendingDeletes]);
+
+  /* ---------- Optimistic + undo helpers ---------- */
+  const invalidate = useCallback((keys: string[][]) => {
+    for (const k of keys) void queryClient.invalidateQueries({ queryKey: k });
+  }, [queryClient]);
+
+  const setUnreadOverride = useCallback((id: string, value: boolean | null) => {
+    setOptimisticUnread((prev) => {
+      const next = new Map(prev);
+      if (value === null) next.delete(id);
+      else next.set(id, value);
+      return next;
+    });
+  }, []);
+
+  /** Toggle read state with optimistic UI, error rollback, and Undo toast. */
+  const runToggleRead = useCallback(async (item: FeedItem) => {
+    const wasUnread = item.unread;
+    const target = !wasUnread; // optimistic new state
+    setUnreadOverride(item.id, target);
+
+    try {
+      if (wasUnread) await item.serverMarkRead();
+      else await item.serverMarkUnread();
+      invalidate(item.invalidateKeys);
+      toast.success(wasUnread ? "Marked as read" : "Marked as unread", {
+        duration: 5000,
+        action: {
+          label: "Undo",
+          onClick: () => {
+            // Flip back optimistically, then call the opposite server fn.
+            setUnreadOverride(item.id, wasUnread);
+            const revert = wasUnread ? item.serverMarkUnread() : item.serverMarkRead();
+            Promise.resolve(revert)
+              .then(() => {
+                invalidate(item.invalidateKeys);
+                void load();
+              })
+              .catch(() => {
+                setUnreadOverride(item.id, target);
+                toast.error("Couldn't undo. Please try again.");
+              });
+          },
+        },
+      });
+      // Let the server-truth refresh take over once it lands.
+      void load();
+      // Clear override shortly after; load() will reflect the real state.
+      window.setTimeout(() => setUnreadOverride(item.id, null), 1500);
+    } catch (e) {
+      console.error("toggleRead failed", e);
+      setUnreadOverride(item.id, wasUnread); // rollback
+      toast.error("Couldn't update. Please try again.");
+    }
+  }, [invalidate, setUnreadOverride]);
+
+  const cancelPendingDelete = useCallback((id: string) => {
+    const t = deleteTimers.current.get(id);
+    if (t) {
+      clearTimeout(t);
+      deleteTimers.current.delete(id);
+    }
+    setPendingDeletes((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+
+  /** Hide row immediately; perform server delete after a short delay so Undo works. */
+  const runDelete = useCallback((item: FeedItem) => {
+    if (!item.serverDelete) return;
+    // Hide row immediately.
+    setPendingDeletes((prev) => {
+      const next = new Set(prev);
+      next.add(item.id);
+      return next;
+    });
+
+    const commit = () => {
+      deleteTimers.current.delete(item.id);
+      Promise.resolve(item.serverDelete!())
+        .then(() => {
+          invalidate(item.invalidateKeys);
+          void load();
+        })
+        .catch((e) => {
+          console.error("delete failed", e);
+          cancelPendingDelete(item.id);
+          toast.error("Couldn't delete. Restored.");
+        });
+    };
+
+    const timer = setTimeout(commit, 5000);
+    deleteTimers.current.set(item.id, timer);
+
+    toast("Deleted", {
+      duration: 5000,
+      action: {
+        label: "Undo",
+        onClick: () => cancelPendingDelete(item.id),
+      },
+    });
+  }, [invalidate, cancelPendingDelete]);
+
+  // Clean up any pending timers on unmount — fire-and-forget so deletes still commit.
+  useEffect(() => {
+    return () => {
+      for (const [, t] of deleteTimers.current) clearTimeout(t);
+      deleteTimers.current.clear();
+    };
+  }, []);
 
   // Group visible feed by day
   const grouped = useMemo(() => {
