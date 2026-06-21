@@ -835,31 +835,31 @@ function QuoteDetail() {
           {timing === "deposit_then_balance" && configuredDeposit > 0 && (
             <div className="pt-4 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="t-body text-muted-foreground">Deposit due</span>
+                <span className="t-body text-paper/75">Deposit due</span>
                 <span className="t-amount font-bold tabular-nums text-status-pending">{formatGBP(configuredDeposit)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="t-body text-muted-foreground">Balance</span>
-                <span className="t-amount font-bold tabular-nums">{formatGBP((quote.total || 0) - Math.max(configuredDeposit, depositPaid))}</span>
+                <span className="t-body text-paper/75">Balance</span>
+                <span className="t-amount font-bold tabular-nums text-paper">{formatGBP((quote.total || 0) - Math.max(configuredDeposit, depositPaid))}</span>
               </div>
               {status !== "paid" && depositPaid === 0 && (
                 <button
                   type="button"
                   onClick={() => setRecordDepositOpen(true)}
-                  className="mt-2 w-full flex items-center justify-between gap-3 rounded-2xl border border-dashed border-ink/20 bg-muted/40 px-4 py-3 text-left active:bg-muted"
+                  className="mt-2 w-full flex items-center justify-between gap-3 rounded-2xl border border-dashed border-paper/25 bg-paper/5 px-4 py-3 text-left active:bg-paper/10"
                 >
                   <span className="flex items-center gap-2 text-sm">
-                    <Banknote className="h-4 w-4 text-muted-foreground" />
+                    <Banknote className="h-4 w-4 text-paper/70" />
                     <span>
-                      <span className="font-semibold text-ink">Deposit not yet received</span>
-                      <span className="block text-xs text-muted-foreground">Tap to record a bank or cash payment</span>
+                      <span className="font-semibold text-paper">Deposit not yet received</span>
+                      <span className="block text-xs text-paper/70">Tap to record a bank or cash payment</span>
                     </span>
                   </span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-paper/70 shrink-0" />
                 </button>
               )}
               {status !== "paid" && depositPaid > 0 && (
-                <div className="mt-2 flex items-center justify-between rounded-2xl bg-status-paid/10 px-4 py-3 text-sm">
+                <div className="mt-2 flex items-center justify-between rounded-2xl bg-status-paid/15 px-4 py-3 text-sm">
                   <span className="inline-flex items-center gap-2 font-semibold text-status-paid">
                     <Check className="h-4 w-4" strokeWidth={3} />
                     Deposit received
