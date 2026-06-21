@@ -15,7 +15,7 @@ export function AppShell({
   const handleRefresh = onRefresh ?? (() => router.invalidate());
   return (
     <div className="min-h-screen bg-paper">
-      <div className="mx-auto max-w-md min-h-screen pb-nav">
+      <div className="mx-auto w-full max-w-md md:max-w-lg lg:max-w-xl min-h-screen pb-nav">
         <PullToRefresh onRefresh={handleRefresh}>{children}</PullToRefresh>
       </div>
     </div>
