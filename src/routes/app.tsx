@@ -396,9 +396,31 @@ function HeroNumber({
   href?: string;
   sub?: React.ReactNode;
 }) {
+  // Tone enforces the token rule: green/lime = money confirmed only.
+  // Owed = amber (--due), Won (accepted unpaid) = blue (--sent),
+  // Paid today = lime brand celebration.
+  const lower = label.toLowerCase();
+  const tone =
+    lower.includes("owed") || lower.includes("overdue")
+      ? "due"
+      : lower.includes("won")
+      ? "sent"
+      : "paid";
+  const numberCls =
+    tone === "due"
+      ? "text-due"
+      : tone === "sent"
+      ? "text-sent"
+      : "text-lime";
+  const labelCls =
+    tone === "due"
+      ? "text-due"
+      : tone === "sent"
+      ? "text-sent"
+      : "text-lime";
   const numberEl = (
     <p
-      className="money-hero text-lime leading-[0.82] tabular-nums"
+      className={`money-hero ${numberCls} leading-[0.82] tabular-nums`}
       style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.5rem, 18vw, 6rem)" }}
     >
       <span className="num-appear inline-block">{formatGBP(amount)}</span>
@@ -406,7 +428,7 @@ function HeroNumber({
   );
   return (
     <div className="relative mt-2">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-lime font-bold">{label}</p>
+      <p className={`text-[10px] uppercase tracking-[0.2em] ${labelCls} font-bold`}>{label}</p>
       <div className="mt-1">
         {href ? (
           <Link to={href} className="block active:opacity-80 transition">
