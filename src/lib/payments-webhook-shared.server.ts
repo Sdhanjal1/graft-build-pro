@@ -209,17 +209,29 @@ export async function handlePaidEvent(evt: any): Promise<void> {
       console.error("[payments/webhook] failed to mark quote accepted", e);
     }
   } else {
-    // "full" or "balance" — both settle the quote.
+    // "full" or "balance" — both settle the quote. Auto-complete it too,
+    // so the trader doesn't have to tap "Job done — send receipt" after
+    // Stripe has already confirmed payment. The receipt email + push are
+    // sent below; nothing else is left for the trader to do.
     try {
       // Only nudge forward — don't regress `completed` bookkeeping, and
       // don't resurrect a `declined` or already-`paid` quote on a Stripe
       // replay or out-of-order event.
       await supabaseAdmin
         .from("quotes")
-        .update({ status: "paid" })
+        .update({ status: "paid", completed_at: new Date().toISOString() })
         .eq("id", quoteId)
         .eq("user_id", userId)
         .in("status", ["pending", "sent", "accepted", "overdue"]);
+      // Idempotent backfill: if a prior replay already flipped status=paid
+      // but didn't stamp completed_at (older code path), stamp it now.
+      await supabaseAdmin
+        .from("quotes")
+        .update({ completed_at: new Date().toISOString() })
+        .eq("id", quoteId)
+        .eq("user_id", userId)
+        .eq("status", "paid")
+        .is("completed_at", null);
     } catch (e) {
       console.error("[payments/webhook] failed to mark quote paid", e);
     }
