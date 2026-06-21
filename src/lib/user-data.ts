@@ -1659,6 +1659,40 @@ export const setQuoteStatus = async (quoteId: string, status: QuoteStatus): Prom
   return q;
 };
 
+/**
+ * If a "sent" or "accepted" quote's total just changed materially, revert it
+ * to "sent" so the customer must re-accept. Refuses (throws) when a paid
+ * deposit would exceed the new total — there's no refund flow yet, so the
+ * trader must refund in Stripe before editing down.
+ *
+ * Deposit fields (`deposit_amount` / `deposit_percent`) are intentionally
+ * never written here — balance is derived live as (total − deposit).
+ *
+ * Returns true when the quote was reissued (caller tags `_reissued`).
+ */
+const maybeReissueOnTotalChange = async (q: Quote, newTotal: number): Promise<boolean> => {
+  if (q.status !== "sent" && q.status !== "accepted") return false;
+  if (Math.abs(newTotal - q.total) <= 0.005) return false;
+
+  const { data, error } = await supabase
+    .from("invoice_payments")
+    .select("amount_cents")
+    .eq("quote_id", q.id)
+    .eq("request_type", "deposit")
+    .eq("status", "paid");
+  if (error) throw error;
+  const depositPaid =
+    (data ?? []).reduce((s, r) => s + (r.amount_cents ?? 0), 0) / 100;
+
+  if (depositPaid > 0 && newTotal < depositPaid - 0.005) {
+    throw new Error(
+      `New total ${formatGBP(newTotal)} is below the ${formatGBP(depositPaid)} deposit already paid. Refund the difference in Stripe first, then edit.`,
+    );
+  }
+
+  return true;
+};
+
 /** Persist edited line items and recompute totals. */
 export const updateQuoteLineItems = async (
   quoteId: string,
@@ -1668,20 +1702,33 @@ export const updateQuoteLineItems = async (
   const q = getQuote(quoteId);
   if (!q) return null;
   const { subtotal, vat_amount, total } = computeQuoteTotals(line_items, vatRegistered);
-  const { error } = await supabase
-    .from("quotes")
-    .update({
-      line_items: line_items as never,
-      subtotal,
-      vat_amount,
-      total,
-    })
-    .eq("id", quoteId);
+
+  // Pre-check reissue (may throw if a paid deposit blocks the edit).
+  const reissued = await maybeReissueOnTotalChange(q, total);
+
+  const patch: Record<string, unknown> = {
+    line_items: line_items as never,
+    subtotal,
+    vat_amount,
+    total,
+  };
+  if (reissued) patch.status = "sent";
+
+  const { error } = await supabase.from("quotes").update(patch as never).eq("id", quoteId);
   if (error) throw error;
   q.line_items = line_items;
   q.subtotal = subtotal;
   q.vat_amount = vat_amount;
   q.total = total;
+  if (reissued) {
+    q.status = "sent";
+    Object.defineProperty(q, "_reissued", {
+      value: true,
+      enumerable: false,
+      configurable: true,
+      writable: true,
+    });
+  }
   bumpVersion();
   // Feed pricing memory with the corrected prices.
   try {
@@ -1700,6 +1747,7 @@ export const updateQuoteLineItems = async (
   }
   return q;
 };
+
 
 export const updateQuoteTitle = async (quoteId: string, title: string): Promise<Quote | null> => {
   const q = getQuote(quoteId);
