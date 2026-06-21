@@ -1780,7 +1780,7 @@ function NewQuotePage() {
                           className="w-24 bg-secondary rounded px-2 py-1 text-sm text-ink num outline-none"
                         />
                       </label>
-                      <p className="num text-sm ml-auto font-semibold w-full text-right sm:w-auto">{formatGBP(lineTotal)}</p>
+                      <p className="t-amount-md font-semibold tabular-nums ml-auto w-full text-right sm:w-auto">{formatGBP(lineTotal)}</p>
                     </div>
                   </li>
                 );
@@ -1798,12 +1798,12 @@ function NewQuotePage() {
             >
               <Plus className="h-3.5 w-3.5" /> Add line item
             </button>
-            <div className="px-4 py-3 border-t border-border bg-secondary/40 space-y-1.5">
+            <div className="px-4 py-3 border-t border-border bg-secondary/40 space-y-2">
               <Row label="Subtotal" value={formatGBP(subtotal)} />
               {vat && <Row label="VAT (20%)" value={formatGBP(vatAmt)} />}
               <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-border">
-                <span className="text-sm uppercase tracking-widest font-semibold">Total</span>
-                <span className="num text-3xl text-ink">{formatGBP(total)}</span>
+                <span className="t-eyebrow text-ink">Total</span>
+                <span className="t-amount-xl font-semibold tabular-nums">{formatGBP(total)}</span>
               </div>
             </div>
           </div>
@@ -2175,9 +2175,9 @@ function CustomerPicker({
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="num">{value}</span>
+    <div className="flex items-baseline justify-between">
+      <span className="t-body text-muted-foreground">{label}</span>
+      <span className="t-amount font-semibold tabular-nums">{value}</span>
     </div>
   );
 }

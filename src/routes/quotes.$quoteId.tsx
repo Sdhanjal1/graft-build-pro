@@ -811,36 +811,36 @@ function QuoteDetail() {
           <div className="pb-4 flex items-start justify-between gap-3">
             <div className="grid grid-cols-2 gap-4 flex-1 min-w-0">
               <div>
-                <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Subtotal</p>
-                <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP(quote.subtotal || 0)}</p>
+                <p className="t-eyebrow">Subtotal</p>
+                <p className="t-amount-md font-semibold tabular-nums mt-1">{formatGBP(quote.subtotal || 0)}</p>
               </div>
               {(quote.vat_registered ?? userProfile.vat_registered) && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">VAT (20%)</p>
-                  <p className="text-lg font-bold text-ink num mt-0.5">{formatGBP(Number(quote.vat_amount) || (quote.subtotal || 0) * 0.2)}</p>
+                  <p className="t-eyebrow">VAT (20%)</p>
+                  <p className="t-amount-md font-semibold tabular-nums mt-1">{formatGBP(Number(quote.vat_amount) || (quote.subtotal || 0) * 0.2)}</p>
                 </div>
               )}
             </div>
             <StatusBadge status={status === "paid" ? "paid" : invoicedAt ? "invoiced" : status} />
           </div>
           <div className="py-4 flex items-center justify-between">
-            <p className="text-sm font-semibold text-ink inline-flex items-center gap-1.5">
+            <p className="t-h3 inline-flex items-center gap-1.5">
               {status === "paid" && <Check className="h-4 w-4 text-status-paid" strokeWidth={3} />}
               Total
             </p>
-            <p className={`text-2xl font-bold num ${status === "paid" ? "text-status-paid" : "text-ink"}`}>
+            <p className={`t-amount-xl font-semibold tabular-nums ${status === "paid" ? "text-status-paid" : "text-ink"}`}>
               {formatGBP(quote.total || 0)}
             </p>
           </div>
           {timing === "deposit_then_balance" && configuredDeposit > 0 && (
             <div className="pt-4 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Deposit due</span>
-                <span className="font-bold text-status-pending num">{formatGBP(configuredDeposit)}</span>
+              <div className="flex items-center justify-between">
+                <span className="t-body text-muted-foreground">Deposit due</span>
+                <span className="t-amount font-bold tabular-nums text-status-pending">{formatGBP(configuredDeposit)}</span>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Balance</span>
-                <span className="font-bold text-ink num">{formatGBP((quote.total || 0) - Math.max(configuredDeposit, depositPaid))}</span>
+              <div className="flex items-center justify-between">
+                <span className="t-body text-muted-foreground">Balance</span>
+                <span className="t-amount font-bold tabular-nums">{formatGBP((quote.total || 0) - Math.max(configuredDeposit, depositPaid))}</span>
               </div>
               {status !== "paid" && depositPaid === 0 && (
                 <button
@@ -950,9 +950,9 @@ function QuoteDetail() {
               // to configure.
               <ul className="px-5 pb-4 divide-y divide-border/60">
                 {(quote.line_items ?? []).map((li, i) => (
-                  <li key={i} className="py-3 flex items-start justify-between gap-3 text-sm">
-                    <span className="min-w-0 text-ink">{cleanItemDescription(li.description)}</span>
-                    <span className="num font-semibold text-ink shrink-0">
+                  <li key={i} className="py-3 flex items-start justify-between gap-3">
+                    <span className="min-w-0 t-body-strong">{cleanItemDescription(li.description)}</span>
+                    <span className="t-amount font-semibold tabular-nums shrink-0">
                       {formatGBP((Number(li.qty) || 0) * (Number(li.unit_price) || 0))}
                     </span>
                   </li>
@@ -1656,9 +1656,9 @@ function RequestOption({ label, amount, onClick }: { label: string; amount: stri
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="num">{value}</span>
+    <div className="flex items-center justify-between">
+      <span className="t-body text-muted-foreground">{label}</span>
+      <span className="t-amount font-semibold tabular-nums">{value}</span>
     </div>
   );
 }
@@ -2050,7 +2050,7 @@ function LineItemsEditor({
                   </p>
                 )}
               </div>
-              <span className="num text-lg font-semibold text-ink tabular-nums">
+              <span className="t-amount-md font-semibold tabular-nums">
                 {formatGBP(li.qty * li.unit_price)}
               </span>
 
@@ -2072,8 +2072,8 @@ function LineItemsEditor({
 
 
       <div className="px-5 py-3 border-t border-border bg-secondary/40 flex items-center justify-between">
-        <span className="text-sm font-semibold text-ink">Total</span>
-        <span className="num text-lg font-bold text-ink">{formatGBP(total)}</span>
+        <span className="t-h3">Total</span>
+        <span className="t-amount-lg font-semibold tabular-nums">{formatGBP(total)}</span>
       </div>
       {saving && (
         <p className="px-5 py-1 text-[10px] text-muted-foreground border-t border-border bg-secondary/20">Saving…</p>

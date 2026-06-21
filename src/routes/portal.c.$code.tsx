@@ -454,15 +454,15 @@ function ClientPortalPage() {
                                 </p>
                               )}
                             </div>
-                            <p className="num text-sm">
+                            <p className="t-amount font-semibold tabular-nums shrink-0">
                               {formatGBP((li.qty || 0) * (li.unit_price || 0))}
                             </p>
                           </li>
                         ))}
                       </ul>
-                      <div className="px-4 py-3 flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Total</span>
-                        <span className="num text-lg">{formatGBP(q.total)}</span>
+                      <div className="px-4 py-3 flex items-center justify-between border-t border-border">
+                        <span className="t-eyebrow">Total</span>
+                        <span className="t-amount-lg font-semibold tabular-nums">{formatGBP(q.total)}</span>
                       </div>
                       <div className="px-4 py-3 bg-lime/10">
                         <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
