@@ -352,8 +352,8 @@ function PortalPage() {
         const isDepositOnly = !isPaid && status === "accepted" && isDepositFlow;
         return (
           <section className="px-5 mt-5">
-            <div className="card-surface p-6 text-center border-2 border-status-accepted/40 bg-status-accepted/5">
-              <div className="h-14 w-14 rounded-full bg-status-accepted text-paper inline-flex items-center justify-center mb-3">
+            <div className="card-surface p-6 text-center border-2 border-paid/40 bg-paid-bg">
+              <div className="h-14 w-14 rounded-full bg-paid text-paper inline-flex items-center justify-center mb-3">
                 <Check className="h-7 w-7" strokeWidth={3} />
               </div>
               <h2 className="text-2xl leading-tight">
