@@ -847,6 +847,8 @@ function MessagesInbox() {
                       onPreview={() => openPreview(it)}
                       onToggleSelect={() => toggleSelect(it)}
                       onLongPress={() => enterSelectionFor(it)}
+                      onToggleRead={runToggleRead}
+                      onDelete={runDelete}
                     />
                   </li>
                 ))}
