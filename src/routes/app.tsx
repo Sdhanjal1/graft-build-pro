@@ -468,20 +468,20 @@ function ActionCard({
       tone === "overdue"
         ? "bg-status-overdue text-paper"
         : tone === "accepted"
-        ? "bg-lime text-ink"
+        ? "bg-sent text-paper"
         : tone === "pending"
         ? "bg-ink text-paper"
         : "bg-paper text-ink ring-1 ring-border";
-    const onLight = tone === "accepted" || tone === "neutral";
-    const amountColor = onLight ? "text-ink" : "text-lime";
+    const onLight = tone === "neutral";
+    const amountColor = onLight ? "text-ink" : "text-paper";
     const subColor = onLight ? "text-ink/70" : "text-paper/65";
     const eyebrowColor =
       tone === "accepted"
-        ? "text-ink/60"
+        ? "text-paper/70"
         : tone === "neutral"
         ? "text-ink/50"
         : "text-lime";
-    const ctaColor = onLight ? "text-ink" : "text-lime";
+    const ctaColor = onLight ? "text-ink" : "text-paper";
     const iconColor = onLight ? "text-ink/70" : "text-paper/70";
     return (
       <Link
