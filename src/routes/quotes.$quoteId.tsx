@@ -2050,7 +2050,7 @@ function LineItemsEditor({
                   </p>
                 )}
               </div>
-              <span className="num text-lg font-semibold text-ink tabular-nums">
+              <span className="t-amount-md font-semibold tabular-nums">
                 {formatGBP(li.qty * li.unit_price)}
               </span>
 
