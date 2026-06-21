@@ -1752,11 +1752,13 @@ function LineItemsEditor({
   vatRegistered,
   depositPaid = 0,
   onChange,
+  onReissued,
 }: {
   quote: Quote;
   vatRegistered: boolean;
   depositPaid?: number;
   onChange?: (items: LineItem[]) => void;
+  onReissued?: (newStatus: QuoteStatus) => void;
 }) {
 
   const [items, setItems] = useState<LineItem[]>(quote.line_items.map((li) => ({ ...li })));
