@@ -528,7 +528,8 @@ function MessagesInbox() {
 
     items.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
     return items;
-  }, [requests, threads, notifications, handleRequestRead, handleThreadRead, handleNotifRead, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requests, threads, notifications]);
 
   const visibleFeed = useMemo(() => {
     if (filter === "unread") return feed.filter((i) => i.unread);
