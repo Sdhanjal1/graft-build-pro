@@ -913,35 +913,53 @@ function QuoteDetail() {
             <div className="px-5 pt-4 pb-2">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Itemised</p>
             </div>
-            <LineItemsEditor
-              quote={quote}
-              vatRegistered={userProfile.vat_registered}
-              depositPaid={status !== "paid" ? depositPaid : 0}
-              onChange={(items) => {
-                quote.line_items = items;
-              }}
-            />
+            {status === "paid" ? (
+              // Job's paid — show a read-only summary. No editor, no deposit
+              // banner, no payment terms below. The trader has nothing left
+              // to configure.
+              <ul className="px-5 pb-4 divide-y divide-border/60">
+                {(quote.line_items ?? []).map((li, i) => (
+                  <li key={i} className="py-3 flex items-start justify-between gap-3 text-sm">
+                    <span className="min-w-0 text-ink">{cleanItemDescription(li.description)}</span>
+                    <span className="num font-semibold text-ink shrink-0">
+                      {formatGBP((Number(li.qty) || 0) * (Number(li.unit_price) || 0))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <LineItemsEditor
+                quote={quote}
+                vatRegistered={userProfile.vat_registered}
+                depositPaid={depositPaid}
+                onChange={(items) => {
+                  quote.line_items = items;
+                }}
+              />
+            )}
           </div>
         </div>
       </section>
 
-      {/* Payment terms — visible at a glance, whole card is the tap target */}
-      <section className="px-5 mt-6">
-        <button
-          type="button"
-          onClick={() => setTimingOpen(true)}
-          className="w-full text-left rounded-2xl border-2 border-lime bg-lime/10 px-4 py-3 flex items-center justify-between gap-3 active:scale-[0.99] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="Change payment terms"
-        >
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
-            <p className="text-sm font-bold text-ink leading-tight">
-              {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
-            </p>
-          </div>
-          <ChevronDown className="h-4 w-4 text-ink/60 shrink-0" />
-        </button>
-      </section>
+      {/* Payment terms — hidden once paid in full (nothing left to configure). */}
+      {status !== "paid" && (
+        <section className="px-5 mt-6">
+          <button
+            type="button"
+            onClick={() => setTimingOpen(true)}
+            className="w-full text-left rounded-2xl border-2 border-lime bg-lime/10 px-4 py-3 flex items-center justify-between gap-3 active:scale-[0.99] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Change payment terms"
+          >
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">Payment terms</p>
+              <p className="text-sm font-bold text-ink leading-tight">
+                {paymentTimingLabel({ timing, total: quote.total, depositAmount: depositAmt, depositPercent: depositPct })}
+              </p>
+            </div>
+            <ChevronDown className="h-4 w-4 text-ink/60 shrink-0" />
+          </button>
+        </section>
+      )}
 
 
       {/* Materials — next step after payment terms */}
