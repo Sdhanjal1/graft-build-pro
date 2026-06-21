@@ -280,9 +280,12 @@ function MessagesInbox() {
   const fetchRequests = useServerFn(getMyIncomingRequests);
   const fetchNotifs = useServerFn(listMyNotifications);
   const markReqRead = useServerFn(markRequestRead);
+  const markReqUnread = useServerFn(markRequestUnread);
   const markNotifRead = useServerFn(markNotificationRead);
+  const markNotifUnread = useServerFn(markNotificationUnread);
   const markAllNotifsRead = useServerFn(markAllNotificationsRead);
   const markThread = useServerFn(markThreadRead);
+  const markThreadUn = useServerFn(markThreadUnread);
   const deleteNotif = useServerFn(deleteNotification);
   const deleteReq = useServerFn(deleteQuoteRequest);
   const queryClient = useQueryClient();
