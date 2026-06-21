@@ -966,6 +966,16 @@ function QuoteDetail() {
                 onChange={(items) => {
                   quote.line_items = items;
                 }}
+                onReissued={(newStatus) => {
+                  setStatusState(newStatus);
+                  quote.status = newStatus;
+                  const firstName = client?.name?.split(" ")[0] ?? "Your customer";
+                  toast(`Quote updated — total changed`, {
+                    description: `${firstName} needs to re-accept. Re-share the updated quote.`,
+                    duration: 10000,
+                    action: { label: "Re-share", onClick: () => setSendOpen(true) },
+                  });
+                }}
               />
             )}
           </div>
