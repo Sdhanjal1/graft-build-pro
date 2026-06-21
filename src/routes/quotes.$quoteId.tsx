@@ -950,9 +950,9 @@ function QuoteDetail() {
               // to configure.
               <ul className="px-5 pb-4 divide-y divide-border/60">
                 {(quote.line_items ?? []).map((li, i) => (
-                  <li key={i} className="py-3 flex items-start justify-between gap-3 text-sm">
-                    <span className="min-w-0 text-ink">{cleanItemDescription(li.description)}</span>
-                    <span className="num font-semibold text-ink shrink-0">
+                  <li key={i} className="py-3 flex items-start justify-between gap-3">
+                    <span className="min-w-0 t-body-strong">{cleanItemDescription(li.description)}</span>
+                    <span className="t-amount font-semibold tabular-nums shrink-0">
                       {formatGBP((Number(li.qty) || 0) * (Number(li.unit_price) || 0))}
                     </span>
                   </li>
