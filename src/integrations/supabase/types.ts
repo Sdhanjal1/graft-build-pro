@@ -608,6 +608,7 @@ export type Database = {
           materials_list: Json
           materials_purchased: boolean[]
           notes: string | null
+          paid_at: string | null
           paid_via: string | null
           payment_method: string | null
           payment_request: Json | null
@@ -644,6 +645,7 @@ export type Database = {
           materials_list?: Json
           materials_purchased?: boolean[]
           notes?: string | null
+          paid_at?: string | null
           paid_via?: string | null
           payment_method?: string | null
           payment_request?: Json | null
@@ -680,6 +682,7 @@ export type Database = {
           materials_list?: Json
           materials_purchased?: boolean[]
           notes?: string | null
+          paid_at?: string | null
           paid_via?: string | null
           payment_method?: string | null
           payment_request?: Json | null
