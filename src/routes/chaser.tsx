@@ -150,9 +150,9 @@ function ChaserPage() {
 
 
       <section className="px-5 mt-3">
-        <div className="bg-paper border-2 border-ink rounded-2xl p-5 shadow-brutal">
+        <div className="card-surface p-5">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-ink/60 font-bold">You are owed</p>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-bold">You are owed</p>
             {overdue.some((q) => q.status === "overdue") && (
               <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-status-overdue text-paper">
                 Urgent
@@ -160,7 +160,7 @@ function ChaserPage() {
             )}
           </div>
           <p
-            className="mt-1 leading-[0.85] tabular-nums text-ink"
+            className="mt-1 leading-[0.85] tabular-nums text-due-text"
             style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(3.25rem, 13vw, 4.75rem)" }}
           >
             {formatGBP(total)}
