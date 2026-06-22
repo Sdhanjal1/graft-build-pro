@@ -1,32 +1,89 @@
 ## Goal
-Show the chosen payment method (Card / Bank transfer / Cash) on the trader's quote detail screen so it's obvious which option the customer will see, without re-opening the Send dialog.
 
-## Where
-`src/routes/quotes.$quoteId.tsx` only. The state already exists (`method` / `setMethod` at lines 97 and 301), persistence and customer-portal rendering already work — this is purely a missing surface on the trader view.
+One place to see **every external service this app depends on**, who pays for it, where to top it up, and whether it's currently healthy — so a dead Anthropic balance or expired Stripe key never silently breaks voice quotes, payments, or emails again.
 
-## What to add
-A compact "How you'll be paid" row inside the existing summary card (just under the Total / deposit block around line 880, before the receipt/email status section). It shows:
+Two deliverables, kept in sync:
 
-- Icon + label for the active method (CreditCard "Card", Landmark "Bank transfer", Banknote "Cash")
-- A one-line sub:
-  - card + `connect.chargesEnabled` → "Customer pays via card link"
-  - card + not ready → amber "Set up card payments in Settings" with chevron → /settings
-  - bank + `userProfile.account_number` set → "Customer sees your bank details"
-  - bank + no bank → amber "Add your bank details in Settings" → /settings
-  - cash → "You'll mark this paid in person"
-- A right-aligned "Change" affordance that opens the existing `SendQuoteDialog` (sets `sendOpen=true`) — reusing the chooser already built there, no new picker.
+1. **`docs/STACK.md`** — a static reference doc (the source of truth)
+2. **`/ops/stack`** — an in-app dashboard tile (admin-only) that live-checks each service
 
-Hidden once `status === "paid"` (no longer actionable).
+---
 
-## Design tokens
-Reuse `rounded-2xl`, `bg-secondary` / `bg-card`, `text-ink`, `text-muted-foreground`, amber via existing `AlertTriangle` pattern from `PayMethodOption`. Same icon set already imported in the file (`CreditCard`, `Landmark`, `Banknote`, `AlertTriangle`, `ChevronRight`).
+## 1. `docs/STACK.md` — the inventory
 
-## Out of scope
-- No DB changes
-- No edits to SendQuoteDialog, user-data.ts, or the customer portal
-- No new component file — small inline block in the existing summary card
+A single markdown file grouping every dependency by category. For each service: what it does, which code paths use it, which secret name, where to manage billing / top up, and the failure symptom users see when it dies.
 
-## Verify
-- Typecheck clean
-- Toggle method in Send dialog → row updates immediately (state is already wired via `setMethod`)
-- Card-not-ready and bank-not-set states show the amber setup nudge linking to /settings
+Categories (based on what's actually in the codebase today):
+
+- **AI** — Anthropic (ai-capture-quote, ai-quote), OpenAI Whisper (transcribe), Lovable AI Gateway
+- **Payments** — Stripe Connect (payments.functions, webhooks), Stripe subscriptions
+- **Email** — Resend (invoice-email, notifications)
+- **Push** — web-push / VAPID
+- **Infra** — Lovable Cloud (Supabase: DB, Auth, Storage), Cloudflare Workers (runtime)
+- **Frontend deps with quotas** — fonts, map tiles if any
+
+Example row format:
+
+```text
+### Anthropic
+Used by:   src/lib/ai-capture-quote.functions.ts, src/lib/ai-quote.functions.ts
+Purpose:   Parses voice transcript -> structured quote
+Secret:    ANTHROPIC_API_KEY
+Top up:    https://console.anthropic.com/settings/billing
+Symptom:   Voice quote fails after recording; logs show "credit balance too low"
+Fallback:  Migrate to Lovable AI Gateway (LOVABLE_API_KEY, no top-up needed)
+```
+
+---
+
+## 2. `/ops/stack` — live health dashboard
+
+A new tab on the existing admin `/ops` route. Shows the same inventory but with a live status pill per service: **OK / Degraded / Down / Unknown**.
+
+Implementation:
+
+- New server fn `getStackHealth` (in `src/lib/ops.functions.ts`) gated by the existing admin role check.
+- For each service, run a cheap probe in parallel:
+  - **Anthropic** — `GET /v1/models` with the key (returns 401 if dead-but-valid, 200 if funded)
+  - **OpenAI** — `GET /v1/models`
+  - **Lovable AI Gateway** — small `models` list call
+  - **Stripe** — `GET /v1/balance` (also surfaces the available cash balance)
+  - **Resend** — `GET /domains`
+  - **Supabase** — `select 1` via admin client
+  - **Web Push** — verify VAPID env vars are present (no remote probe)
+- Each probe wrapped with a 3s timeout; failures captured, never thrown.
+- Returns `{ service, status, message, lastChecked, topUpUrl, docsAnchor }`.
+
+UI: a new `src/routes/ops.stack.tsx` (child of `/ops`) renders rows grouped by category, with a "Recheck" button and a link to the matching `docs/STACK.md` anchor for each row.
+
+Optional follow-up (not in this plan): nightly cron via `/api/public/hooks/stack-health` that emails you when any probe flips to Down.
+
+---
+
+## What this plan does NOT change
+
+- No migration of Anthropic -> Gateway (separate decision, still pending from previous turn)
+- No changes to existing voice/quote/payment logic
+- No new secrets — uses what's already configured
+- No public exposure — `/ops/stack` reuses the existing admin gate
+
+---
+
+## Files
+
+New:
+- `docs/STACK.md`
+- `src/routes/ops.stack.tsx`
+
+Edited:
+- `src/lib/ops.functions.ts` — add `getStackHealth` server fn
+- `src/routes/ops.tsx` — add "Stack" tab/link
+
+---
+
+## Acceptance
+
+- Opening `/ops/stack` shows every external service with a current status pill.
+- Each row links to its provider billing page and to the matching section in `docs/STACK.md`.
+- Killing the Anthropic key locally flips its pill to Down within one recheck.
+- `docs/STACK.md` lists every secret name currently in the project with no orphans.
