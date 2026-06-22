@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, isRedirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, isRedirect, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -193,12 +193,20 @@ function OpsPage() {
               Admin-only · live data · refreshed {fmtAgo(data.generatedAt)}
             </p>
           </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="text-xs px-3 py-1.5 rounded-full border border-ink/20 hover:bg-ink/5"
-          >
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/ops/stack"
+              className="text-xs px-3 py-1.5 rounded-full border border-ink/20 hover:bg-ink/5"
+            >
+              Stack health →
+            </Link>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-xs px-3 py-1.5 rounded-full border border-ink/20 hover:bg-ink/5"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
       </header>
 

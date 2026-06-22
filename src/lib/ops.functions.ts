@@ -451,3 +451,247 @@ export const getOpsDashboard = createServerFn({ method: "GET" })
       recentSignups,
     };
   });
+
+// ============================================================
+// Stack health — admin-only live probes for every external dep
+// ============================================================
+
+export type StackProbeStatus = "ok" | "degraded" | "down" | "unknown";
+
+export type StackProbe = {
+  id: string;
+  service: string;
+  category: "AI" | "Payments" | "Email" | "Push" | "Infra";
+  status: StackProbeStatus;
+  message: string;
+  httpStatus?: number;
+  latencyMs?: number;
+  topUpUrl?: string;
+  secretName?: string;
+  docsAnchor: string;
+};
+
+export type StackHealth = {
+  generatedAt: string;
+  probes: StackProbe[];
+};
+
+async function probe(
+  base: Omit<StackProbe, "status" | "message" | "httpStatus" | "latencyMs">,
+  run: () => Promise<{ status: StackProbeStatus; message: string; httpStatus?: number }>,
+): Promise<StackProbe> {
+  const t0 = Date.now();
+  try {
+    const r = await run();
+    return { ...base, ...r, latencyMs: Date.now() - t0 };
+  } catch (e) {
+    return {
+      ...base,
+      status: "down",
+      message: e instanceof Error ? e.message : String(e),
+      latencyMs: Date.now() - t0,
+    };
+  }
+}
+
+const TIMEOUT_MS = 4000;
+
+async function fetchWithTimeout(url: string, init?: RequestInit) {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
+}
+
+export const getStackHealth = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<StackHealth> => {
+    const { data: adminOk } = await context.supabase.rpc("is_admin", {
+      _uid: context.userId,
+    });
+    if (!adminOk) throw new Error("Forbidden");
+
+    const probes = await Promise.all([
+      // ---- AI ----
+      probe(
+        {
+          id: "anthropic",
+          service: "Anthropic (Claude)",
+          category: "AI",
+          secretName: "ANTHROPIC_API_KEY",
+          topUpUrl: "https://console.anthropic.com/settings/billing",
+          docsAnchor: "anthropic-claude",
+        },
+        async () => {
+          const key = process.env.ANTHROPIC_API_KEY;
+          if (!key) return { status: "unknown", message: "ANTHROPIC_API_KEY not set" };
+          const r = await fetchWithTimeout("https://api.anthropic.com/v1/models", {
+            headers: { "x-api-key": key, "anthropic-version": "2023-06-01" },
+          });
+          const body = await r.text();
+          if (r.ok) return { status: "ok", message: "API key valid, models reachable", httpStatus: r.status };
+          if (/credit balance/i.test(body))
+            return { status: "down", message: "Credit balance too low — top up", httpStatus: r.status };
+          if (r.status === 401)
+            return { status: "down", message: "Invalid API key (401)", httpStatus: r.status };
+          return { status: "degraded", message: body.slice(0, 200), httpStatus: r.status };
+        },
+      ),
+      probe(
+        {
+          id: "openai",
+          service: "OpenAI (Whisper)",
+          category: "AI",
+          secretName: "OPENAI_API_KEY",
+          topUpUrl: "https://platform.openai.com/account/billing",
+          docsAnchor: "openai-whisper",
+        },
+        async () => {
+          const key = process.env.OPENAI_API_KEY;
+          if (!key) return { status: "unknown", message: "OPENAI_API_KEY not set" };
+          const r = await fetchWithTimeout("https://api.openai.com/v1/models", {
+            headers: { Authorization: `Bearer ${key}` },
+          });
+          const body = await r.text();
+          if (r.ok) return { status: "ok", message: "API key valid", httpStatus: r.status };
+          if (/insufficient_quota/i.test(body))
+            return { status: "down", message: "Quota exhausted — top up", httpStatus: r.status };
+          if (r.status === 401)
+            return { status: "down", message: "Invalid API key (401)", httpStatus: r.status };
+          return { status: "degraded", message: body.slice(0, 200), httpStatus: r.status };
+        },
+      ),
+      probe(
+        {
+          id: "lovable-ai",
+          service: "Lovable AI Gateway",
+          category: "AI",
+          secretName: "LOVABLE_API_KEY",
+          topUpUrl: "https://lovable.dev/settings/plans",
+          docsAnchor: "lovable-ai-gateway",
+        },
+        async () => {
+          const key = process.env.LOVABLE_API_KEY;
+          if (!key) return { status: "unknown", message: "LOVABLE_API_KEY not set" };
+          const r = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/models", {
+            headers: { "Lovable-API-Key": key },
+          });
+          if (r.ok) return { status: "ok", message: "Gateway reachable", httpStatus: r.status };
+          if (r.status === 402)
+            return { status: "down", message: "Credits exhausted (402)", httpStatus: r.status };
+          if (r.status === 429)
+            return { status: "degraded", message: "Rate limited (429)", httpStatus: r.status };
+          return { status: "degraded", message: `HTTP ${r.status}`, httpStatus: r.status };
+        },
+      ),
+
+      // ---- Payments ----
+      probe(
+        {
+          id: "stripe-live",
+          service: "Stripe (live)",
+          category: "Payments",
+          secretName: "STRIPE_LIVE_API_KEY",
+          topUpUrl: "https://dashboard.stripe.com",
+          docsAnchor: "stripe--subscriptions-quottr-revenue",
+        },
+        async () => {
+          const key = process.env.STRIPE_LIVE_API_KEY;
+          if (!key) return { status: "unknown", message: "STRIPE_LIVE_API_KEY not set" };
+          const r = await fetchWithTimeout("https://api.stripe.com/v1/balance", {
+            headers: { Authorization: `Bearer ${key}` },
+          });
+          if (r.ok) return { status: "ok", message: "Live key valid", httpStatus: r.status };
+          if (r.status === 401)
+            return { status: "down", message: "Invalid live key (401)", httpStatus: r.status };
+          return { status: "degraded", message: `HTTP ${r.status}`, httpStatus: r.status };
+        },
+      ),
+      probe(
+        {
+          id: "stripe-connect",
+          service: "Stripe Connect (platform)",
+          category: "Payments",
+          secretName: "STRIPE_BYOK_SECRET_KEY",
+          topUpUrl: "https://dashboard.stripe.com/settings/connect",
+          docsAnchor: "stripe-connect-trader-invoice-payments",
+        },
+        async () => {
+          const key = process.env.STRIPE_BYOK_SECRET_KEY;
+          const clientId = process.env.STRIPE_CONNECT_CLIENT_ID;
+          if (!key || !clientId)
+            return {
+              status: "unknown",
+              message: `Missing ${!key ? "STRIPE_BYOK_SECRET_KEY" : "STRIPE_CONNECT_CLIENT_ID"}`,
+            };
+          const r = await fetchWithTimeout("https://api.stripe.com/v1/balance", {
+            headers: { Authorization: `Bearer ${key}` },
+          });
+          if (r.ok) return { status: "ok", message: "Platform key valid", httpStatus: r.status };
+          if (r.status === 401)
+            return { status: "down", message: "Invalid platform key (401)", httpStatus: r.status };
+          return { status: "degraded", message: `HTTP ${r.status}`, httpStatus: r.status };
+        },
+      ),
+
+      // ---- Email ----
+      probe(
+        {
+          id: "resend",
+          service: "Resend",
+          category: "Email",
+          secretName: "RESEND_API_KEY",
+          topUpUrl: "https://resend.com/settings/billing",
+          docsAnchor: "resend",
+        },
+        async () => {
+          const key = process.env.RESEND_API_KEY;
+          if (!key) return { status: "unknown", message: "RESEND_API_KEY not set" };
+          const r = await fetchWithTimeout("https://api.resend.com/domains", {
+            headers: { Authorization: `Bearer ${key}` },
+          });
+          if (r.ok) return { status: "ok", message: "API key valid", httpStatus: r.status };
+          if (r.status === 401 || r.status === 403)
+            return { status: "down", message: `Auth failed (${r.status})`, httpStatus: r.status };
+          return { status: "degraded", message: `HTTP ${r.status}`, httpStatus: r.status };
+        },
+      ),
+
+      // ---- Push ----
+      probe(
+        {
+          id: "vapid",
+          service: "Web Push (VAPID)",
+          category: "Push",
+          secretName: "VAPID_PRIVATE_KEY",
+          docsAnchor: "web-push-vapid",
+        },
+        async () => {
+          const ok =
+            !!process.env.VAPID_PUBLIC_KEY &&
+            !!process.env.VAPID_PRIVATE_KEY &&
+            !!process.env.VAPID_SUBJECT;
+          return ok
+            ? { status: "ok", message: "All 3 VAPID env vars set" }
+            : { status: "down", message: "Missing VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT" };
+        },
+      ),
+
+      // ---- Infra ----
+      probe(
+        {
+          id: "supabase",
+          service: "Lovable Cloud (Supabase)",
+          category: "Infra",
+          secretName: "SUPABASE_SERVICE_ROLE_KEY",
+          docsAnchor: "lovable-cloud-supabase",
+        },
+        async () => {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { error } = await supabaseAdmin.from("profiles").select("id", { head: true, count: "exact" }).limit(1);
+          if (error) return { status: "down", message: error.message };
+          return { status: "ok", message: "DB reachable via service role" };
+        },
+      ),
+    ]);
+
+    return { generatedAt: new Date().toISOString(), probes };
+  });
+
