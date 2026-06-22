@@ -9,13 +9,24 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * balance, Quottr never holds funds.
  */
 function platformKey() {
-  // Prefer the live BYOK platform key; fall back to the sandbox key so
-  // Connect onboarding keeps working in test mode (mirrors the
-  // subscription + invoice flows).
-  const key =
-    process.env.STRIPE_BYOK_SECRET_KEY ?? process.env.STRIPE_SANDBOX_API_KEY;
-  if (!key) throw new Error("Stripe Connect platform key not configured");
-  return key;
+  // Mirror getStripeEnv() in payments.functions.ts: sandbox is opt-in ONLY when
+  // the build has the explicit preview flag AND a sandbox key. Every other path —
+  // unset flag, missing sandbox key, production build — falls through to live.
+  // Live is the fail-safe default; never silently route real Connect onboarding
+  // to test keys (which would create sandbox-only accounts that can't receive payouts).
+  const flag = import.meta.env.VITE_PAYMENTS_MODE;
+  const sandboxKey = process.env.STRIPE_SANDBOX_API_KEY;
+  if (flag === "sandbox" && sandboxKey) {
+    return sandboxKey;
+  }
+  const liveKey =
+    process.env.STRIPE_BYOK_SECRET_KEY ?? process.env.STRIPE_LIVE_API_KEY;
+  if (!liveKey) {
+    throw new Error(
+      "Stripe Connect platform key not configured (no live key, and sandbox not explicitly enabled)",
+    );
+  }
+  return liveKey;
 }
 
 function toForm(params: Record<string, string | number | boolean>) {

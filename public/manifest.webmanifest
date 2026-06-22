@@ -28,13 +28,6 @@
       "icons": [{ "src": "/app-icon.png", "sizes": "512x512" }]
     },
     {
-      "name": "On-site capture",
-      "short_name": "Capture",
-      "description": "Photo + voice on site",
-      "url": "/capture/new",
-      "icons": [{ "src": "/app-icon.png", "sizes": "512x512" }]
-    },
-    {
       "name": "Chase unpaid",
       "short_name": "Chase",
       "description": "See who owes you money",

@@ -16,7 +16,7 @@
 function readVapidEnv() {
   const pub = process.env.VAPID_PUBLIC_KEY ?? "";
   const priv = process.env.VAPID_PRIVATE_KEY ?? "";
-  const sub = process.env.VAPID_SUBJECT || "mailto:hello@quottr.app";
+  const sub = process.env.VAPID_SUBJECT || "mailto:hello@quottr.co.uk";
   if (!pub || !priv) {
     throw new Error("VAPID keys are not configured (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY).");
   }
