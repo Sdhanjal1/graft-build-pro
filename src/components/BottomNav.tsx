@@ -16,7 +16,7 @@ const items = [
   { to: "/quotes", label: "Quotes", icon: FileText },
   { to: "/clients", label: "Customers", icon: Users },
   { to: "/messages", label: "Inbox", icon: Inbox },
-  { to: "/chaser", label: "Chasers", icon: Clock },
+  { to: "/chaser", label: "Chaser", icon: Clock },
 ] as const;
 
 export function BottomNav() {
