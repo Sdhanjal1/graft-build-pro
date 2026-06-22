@@ -1285,9 +1285,14 @@ function QuoteDetail() {
         customerName={client?.name}
         customerPhone={client?.phone}
         customerEmail={client?.email}
+        paymentMethod={method}
+        onPaymentMethodChange={setMethod}
+        cardReady={connect.chargesEnabled}
+        bankComplete={!!userProfile.account_number}
         onSent={() => { if (status === "pending") setStatusState("sent"); }}
         onUndo={() => { if (status === "sent") setStatusState("pending"); }}
       />
+
 
       <MaterialListSheet
         open={materialsOpen}
