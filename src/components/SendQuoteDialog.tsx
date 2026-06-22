@@ -26,6 +26,14 @@ type Props = {
   whatsappHref?: string;
   /** When set, dialog skips token creation and uses this client portal_code with "updated link" copy. */
   updatedLinkPortalCode?: string;
+  /** Current payment method on the quote (drives which option is selected in the chooser). */
+  paymentMethod?: PaymentMethod;
+  /** Persist the trader's chosen payment method on the quote. */
+  onPaymentMethodChange?: (m: PaymentMethod) => void;
+  /** Whether the trader has Stripe Connect ready to accept card payments. */
+  cardReady?: boolean;
+  /** Whether the trader has saved their bank details in settings. */
+  bankComplete?: boolean;
   /** Fired after the quote is marked as sent so the parent can sync local status to "sent". */
   onSent?: () => void;
   /** Fired after the quote is reverted to pending so the parent can sync local status to "pending". */
@@ -35,8 +43,11 @@ type Props = {
 export function SendQuoteDialog({
   open, onClose, quoteId, quoteRef, quoteTitle,
   customerName, customerPhone, customerEmail,
-  updatedLinkPortalCode, onSent, onUndo,
+  updatedLinkPortalCode,
+  paymentMethod, onPaymentMethodChange, cardReady, bankComplete,
+  onSent, onUndo,
 }: Props) {
+
 
   const ensureToken = useServerFn(ensurePortalToken);
   const [busy, setBusy] = useState<null | "sms" | "email" | "wa">(null);
