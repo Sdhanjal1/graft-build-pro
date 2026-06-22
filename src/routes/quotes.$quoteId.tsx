@@ -298,7 +298,14 @@ function QuoteDetail() {
     }
   };
 
-  const setMethod = (m: PaymentMethod) => { quote.payment_method = m; setMethodState(m); };
+  const setMethod = (m: PaymentMethod) => {
+    quote.payment_method = m;
+    setMethodState(m);
+    updateQuotePaymentMethod(quote.id, m).catch((e) => {
+      toast.error(e instanceof Error ? e.message : "Couldn't save payment method");
+    });
+  };
+
   // Track local status writes so the realtime subscription doesn't double-toast
   // when the change originated from this tab.
   const localChangeRef = useRef(0);
