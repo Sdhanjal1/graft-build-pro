@@ -255,6 +255,52 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
           One tap to share with {firstName}.
         </p>
 
+        {onPaymentMethodChange && paymentMethod && (
+          <div className="mb-4">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
+              How do you want to be paid?
+            </p>
+            <div className="space-y-1.5">
+              <PayMethodOption
+                icon={CreditCard}
+                label={cardReady ? "Card" : "Set up card payments"}
+                sub={
+                  cardReady
+                    ? "Recommended — auto-confirms when paid. Funds go straight to you."
+                    : "Connect payouts in Settings to take cards"
+                }
+                active={paymentMethod === "card" && !!cardReady}
+                recommended={!!cardReady}
+                setupHref={cardReady ? undefined : "/settings"}
+                onSetupClick={cardReady ? undefined : handleClose}
+                onClick={() => cardReady && onPaymentMethodChange("card")}
+              />
+              <PayMethodOption
+                icon={Landmark}
+                label={bankComplete ? "Bank transfer" : "Add your bank details"}
+                sub={
+                  bankComplete
+                    ? "Customer sees your bank details. You confirm when paid."
+                    : "Save your bank in Settings to offer transfers"
+                }
+                active={paymentMethod === "bank" && !!bankComplete}
+                setupHref={bankComplete ? undefined : "/settings"}
+                onSetupClick={bankComplete ? undefined : handleClose}
+                onClick={() => bankComplete && onPaymentMethodChange("bank")}
+              />
+              <PayMethodOption
+                icon={Banknote}
+                label="Cash"
+                sub="Customer pays in person. You mark it paid."
+                active={paymentMethod === "cash"}
+                onClick={() => onPaymentMethodChange("cash")}
+              />
+            </div>
+          </div>
+        )}
+
+
+
         <div className="space-y-2.5">
           {/* Single primary action — opens native share sheet */}
           <button
