@@ -392,6 +392,61 @@ export async function handlePaidEvent(evt: any): Promise<void> {
   }
 
 
+  // ===== ATOMIC SEND CLAIM =====
+  // Stripe normally fires TWO events for a single card payment
+  // (checkout.session.completed + payment_intent.succeeded), each with a
+  // distinct stripe_event_id, so the audit UNIQUE gate above doesn't dedupe
+  // them. The Connect webhook can also deliver a third event for the same
+  // payment. To guarantee exactly one email + one push per
+  // (quote_id, request_type) we claim the send via the unique partial index
+  // `payment_webhook_audit_receipt_once` (UNIQUE WHERE receipt_status='sent').
+  //
+  // Strategy: short-circuit if anyone has already stamped 'sent' or is
+  // currently 'sending' for the same (quote_id, request_type); otherwise
+  // optimistically stamp 'sending' on our own audit row and proceed. After
+  // a successful send we stamp 'sent' — the partial index ensures only one
+  // row can ever reach 'sent', so even a concurrent racer that also stamped
+  // 'sending' will fail to upgrade to 'sent' and we'll suppress its push.
+  let weOwnTheSend = false;
+  if (auditRowId) {
+    try {
+      const { data: priorSendForQuote } = await supabaseAdmin
+        .from("payment_webhook_audit")
+        .select("id, receipt_status")
+        .eq("quote_id", quoteId)
+        .eq("request_type", requestType)
+        .in("receipt_status", ["sent", "sending"])
+        .neq("id", auditRowId)
+        .limit(1)
+        .maybeSingle();
+      if (priorSendForQuote) {
+        // Another delivery already won the race (or is in flight). Stamp
+        // ours as suppressed and skip both email and push.
+        await supabaseAdmin
+          .from("payment_webhook_audit")
+          .update({ receipt_status: "duplicate_suppressed" })
+          .eq("id", auditRowId);
+        return;
+      }
+      // Claim the send.
+      await supabaseAdmin
+        .from("payment_webhook_audit")
+        .update({ receipt_status: "sending" })
+        .eq("id", auditRowId);
+      weOwnTheSend = true;
+    } catch (e) {
+      console.error("[payments/webhook] failed to claim send", e);
+      // Fall through; worst case we send a duplicate, which matches prior
+      // behaviour rather than silently dropping the receipt.
+      weOwnTheSend = true;
+    }
+  } else {
+    // No audit row (stripeEventId was missing) — proceed without dedupe.
+    weOwnTheSend = true;
+  }
+
+  if (!weOwnTheSend) return;
+
   // Best-effort branded invoice email (never throws)
   const emailOutcome = await sendBrandedInvoiceEmail({
     userId,
@@ -406,24 +461,39 @@ export async function handlePaidEvent(evt: any): Promise<void> {
   });
 
   // Stamp the audit row with the receipt outcome so the trader UI can show
-  // "Receipt sent · 14 Jun 16:02 · alex@example.com".
+  // "Receipt sent · 14 Jun 16:02 · alex@example.com". The partial unique
+  // index on (quote_id, request_type) WHERE receipt_status='sent' means a
+  // concurrent racer that also reaches this point will fail to upgrade —
+  // the update will raise 23505 and we treat it as "lost the race".
+  let lostRace = false;
   if (auditRowId) {
-    try {
-      await supabaseAdmin
-        .from("payment_webhook_audit")
-        .update({
-          receipt_status: emailOutcome.status,
-          receipt_sent_at: emailOutcome.status === "sent" ? new Date().toISOString() : null,
-          receipt_to: emailOutcome.to ?? null,
-          receipt_error: emailOutcome.error ?? null,
-        })
-        .eq("id", auditRowId);
-    } catch (e) {
-      console.error("[payments/webhook] failed to stamp audit row", e);
+    const { error: stampErr } = await supabaseAdmin
+      .from("payment_webhook_audit")
+      .update({
+        receipt_status: emailOutcome.status,
+        receipt_sent_at: emailOutcome.status === "sent" ? new Date().toISOString() : null,
+        receipt_to: emailOutcome.to ?? null,
+        receipt_error: emailOutcome.error ?? null,
+      })
+      .eq("id", auditRowId);
+    if (stampErr) {
+      if ((stampErr as any).code === "23505") {
+        // Another concurrent delivery won the 'sent' slot. Suppress our push.
+        lostRace = true;
+        await supabaseAdmin
+          .from("payment_webhook_audit")
+          .update({ receipt_status: "duplicate_suppressed" })
+          .eq("id", auditRowId);
+      } else {
+        console.error("[payments/webhook] failed to stamp audit row", stampErr);
+      }
     }
   }
 
-  // Best-effort push to the trader (never throws)
+  if (lostRace) return;
+
+  // Best-effort push to the trader (never throws). Gated behind the same
+  // claim as the email so we never push twice for one payment.
   await notifyTraderOfPayment({ userId, quoteId, amountCents, currency, requestType });
 }
 
