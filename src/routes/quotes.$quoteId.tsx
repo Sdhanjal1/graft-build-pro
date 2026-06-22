@@ -877,8 +877,55 @@ function QuoteDetail() {
             </div>
           )}
 
+          {status !== "paid" && (() => {
+            const isCard = method === "card";
+            const isBank = method === "bank";
+            const isCash = method === "cash";
+            const cardReady = connect.chargesEnabled;
+            const bankReady = !!userProfile.account_number;
+            const needsSetup = (isCard && !cardReady) || (isBank && !bankReady);
+            const Icon = isCard ? CreditCard : isBank ? Landmark : Banknote;
+            const label = isCard ? "Card" : isBank ? "Bank transfer" : "Cash";
+            const sub =
+              isCard && cardReady ? "Customer pays via card link" :
+              isCard && !cardReady ? "Set up card payments in Settings" :
+              isBank && bankReady ? "Customer sees your bank details" :
+              isBank && !bankReady ? "Add your bank details in Settings" :
+              "You'll mark this paid in person";
+            return (
+              <div className="pt-4">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
+                  How you'll be paid
+                </p>
+                <div className="rounded-2xl bg-secondary p-3 flex items-center gap-3">
+                  <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${needsSetup ? "bg-paper text-ink" : "bg-ink text-lime"}`}>
+                    {needsSetup ? <AlertTriangle className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-ink">{label}</p>
+                    <p className={`text-[11px] truncate ${needsSetup ? "text-amber-700" : "text-muted-foreground"}`}>{sub}</p>
+                  </div>
+                  {needsSetup ? (
+                    <Link to="/settings" className="text-xs font-bold text-ink inline-flex items-center gap-0.5">
+                      Set up <ChevronRight className="h-3.5 w-3.5" />
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setSendOpen(true)}
+                      className="text-xs font-bold text-ink underline underline-offset-2"
+                    >
+                      Change
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
         </div>
       </div>
+
 
       {status === "paid" && (quote.invoice_email_sent_at || quote.invoice_email_status) && (
         <section className="px-5 mt-3">
