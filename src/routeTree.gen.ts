@@ -40,6 +40,7 @@ import { Route as QuotesNewRouteImport } from './routes/quotes.new'
 import { Route as QuotesQuoteIdRouteImport } from './routes/quotes.$quoteId'
 import { Route as QCodeRouteImport } from './routes/q.$code'
 import { Route as PortalTokenRouteImport } from './routes/portal.$token'
+import { Route as OpsStackRouteImport } from './routes/ops.stack'
 import { Route as InvoicesQuoteIdRouteImport } from './routes/invoices.$quoteId'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
 import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
@@ -203,6 +204,11 @@ const PortalTokenRoute = PortalTokenRouteImport.update({
   path: '/portal/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OpsStackRoute = OpsStackRouteImport.update({
+  id: '/stack',
+  path: '/stack',
+  getParentRoute: () => OpsRoute,
+} as any)
 const InvoicesQuoteIdRoute = InvoicesQuoteIdRouteImport.update({
   id: '/invoices/$quoteId',
   path: '/invoices/$quoteId',
@@ -256,7 +262,7 @@ export interface FileRoutesByFullPath {
   '/messages': typeof MessagesRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
-  '/ops': typeof OpsRoute
+  '/ops': typeof OpsRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -267,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
+  '/ops/stack': typeof OpsStackRoute
   '/portal/$token': typeof PortalTokenRoute
   '/q/$code': typeof QCodeRoute
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
@@ -296,7 +303,7 @@ export interface FileRoutesByTo {
   '/messages': typeof MessagesRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
-  '/ops': typeof OpsRoute
+  '/ops': typeof OpsRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -306,6 +313,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
+  '/ops/stack': typeof OpsStackRoute
   '/portal/$token': typeof PortalTokenRoute
   '/q/$code': typeof QCodeRoute
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
@@ -336,7 +344,7 @@ export interface FileRoutesById {
   '/messages': typeof MessagesRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
-  '/ops': typeof OpsRoute
+  '/ops': typeof OpsRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -347,6 +355,7 @@ export interface FileRoutesById {
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/clients/new': typeof ClientsNewRoute
   '/invoices/$quoteId': typeof InvoicesQuoteIdRoute
+  '/ops/stack': typeof OpsStackRoute
   '/portal/$token': typeof PortalTokenRoute
   '/q/$code': typeof QCodeRoute
   '/quotes/$quoteId': typeof QuotesQuoteIdRoute
@@ -389,6 +398,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId'
     | '/clients/new'
     | '/invoices/$quoteId'
+    | '/ops/stack'
     | '/portal/$token'
     | '/q/$code'
     | '/quotes/$quoteId'
@@ -428,6 +438,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId'
     | '/clients/new'
     | '/invoices/$quoteId'
+    | '/ops/stack'
     | '/portal/$token'
     | '/q/$code'
     | '/quotes/$quoteId'
@@ -468,6 +479,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId'
     | '/clients/new'
     | '/invoices/$quoteId'
+    | '/ops/stack'
     | '/portal/$token'
     | '/q/$code'
     | '/quotes/$quoteId'
@@ -498,7 +510,7 @@ export interface RootRouteChildren {
   MessagesRoute: typeof MessagesRoute
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
-  OpsRoute: typeof OpsRoute
+  OpsRoute: typeof OpsRouteWithChildren
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -742,6 +754,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ops/stack': {
+      id: '/ops/stack'
+      path: '/stack'
+      fullPath: '/ops/stack'
+      preLoaderRoute: typeof OpsStackRouteImport
+      parentRoute: typeof OpsRoute
+    }
     '/invoices/$quoteId': {
       id: '/invoices/$quoteId'
       path: '/invoices/$quoteId'
@@ -794,6 +813,16 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface OpsRouteChildren {
+  OpsStackRoute: typeof OpsStackRoute
+}
+
+const OpsRouteChildren: OpsRouteChildren = {
+  OpsStackRoute: OpsStackRoute,
+}
+
+const OpsRouteWithChildren = OpsRoute._addFileChildren(OpsRouteChildren)
+
 interface TradesRouteChildren {
   TradesTradeSlugRoute: typeof TradesTradeSlugRoute
   TradesIndexRoute: typeof TradesIndexRoute
@@ -821,7 +850,7 @@ const rootRouteChildren: RootRouteChildren = {
   MessagesRoute: MessagesRoute,
   NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
-  OpsRoute: OpsRoute,
+  OpsRoute: OpsRouteWithChildren,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
