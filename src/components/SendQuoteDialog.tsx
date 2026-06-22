@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { Sparkles, Loader2, Copy, Check, CheckCircle2, Clock, BellOff, Bell, ArrowRight } from "lucide-react";
+import { Sparkles, Loader2, Copy, Check, CheckCircle2, Clock, BellOff, Bell, ArrowRight, CreditCard, Landmark, Banknote, AlertTriangle } from "lucide-react";
 import { ensurePortalToken } from "@/lib/messages.functions";
+import type { PaymentMethod } from "@/lib/user-data";
+
 
 import { toast } from "sonner";
 import { feedback, playSample } from "@/lib/feedback";
