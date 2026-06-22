@@ -336,10 +336,12 @@ export async function handlePaidEvent(evt: any): Promise<void> {
     try {
       // Only nudge forward — don't regress `completed` bookkeeping, and
       // don't resurrect a `declined` or already-`paid` quote on a Stripe
-      // replay or out-of-order event.
+      // replay or out-of-order event. Stamp paid_at so the invoice PDF
+      // "PAID" stamp + paid-date label fire (portal-pdf reads quote.paid_at).
+      const paidAtIso = new Date().toISOString();
       await supabaseAdmin
         .from("quotes")
-        .update({ status: "paid", completed_at: new Date().toISOString() })
+        .update({ status: "paid", completed_at: paidAtIso, paid_at: paidAtIso })
         .eq("id", quoteId)
         .eq("user_id", userId)
         .in("status", ["pending", "sent", "accepted", "overdue"]);
@@ -347,14 +349,25 @@ export async function handlePaidEvent(evt: any): Promise<void> {
       // but didn't stamp completed_at (older code path), stamp it now.
       await supabaseAdmin
         .from("quotes")
-        .update({ completed_at: new Date().toISOString() })
+        .update({ completed_at: paidAtIso })
         .eq("id", quoteId)
         .eq("user_id", userId)
         .eq("status", "paid")
         .is("completed_at", null);
+      // Idempotent backfill for paid_at (older rows / replays where the
+      // forward-flip already ran without paid_at). Only sets when null,
+      // so replays don't churn the timestamp.
+      await supabaseAdmin
+        .from("quotes")
+        .update({ paid_at: paidAtIso })
+        .eq("id", quoteId)
+        .eq("user_id", userId)
+        .eq("status", "paid")
+        .is("paid_at", null);
     } catch (e) {
       console.error("[payments/webhook] failed to mark quote paid", e);
     }
+
   }
 
   // For balance receipts, look up the already-credited deposit so the
