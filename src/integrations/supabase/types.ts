@@ -593,6 +593,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           deposit_amount: number
+          deposit_paid_at: string | null
           deposit_percent: number
           due_date: string | null
           id: string
@@ -628,6 +629,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           deposit_amount?: number
+          deposit_paid_at?: string | null
           deposit_percent?: number
           due_date?: string | null
           id?: string
@@ -663,6 +665,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           deposit_amount?: number
+          deposit_paid_at?: string | null
           deposit_percent?: number
           due_date?: string | null
           id?: string
