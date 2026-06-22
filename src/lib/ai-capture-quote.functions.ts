@@ -5,6 +5,42 @@ import { fetchTopPatterns, patternsForPrompt } from "@/lib/pricing-patterns.func
 import { tradeGuidance } from "@/lib/ai-trade-guidance";
 import { rankPatternsForJob } from "@/lib/pricing-patterns";
 
+/**
+ * Extract the FIRST brace-balanced JSON object from a model response.
+ * Prefers a ```json fenced block when present, then falls back to scanning
+ * from the first `{` and tracking string-aware brace depth so trailing
+ * prose, extra code blocks, or commentary after the JSON can't be swallowed
+ * into the parsed object.
+ */
+function extractFirstJsonObject(text: string): string | null {
+  const fence = text.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
+  if (fence && fence[1]) {
+    const inner = fence[1].trim();
+    if (inner.startsWith("{")) return inner;
+  }
+  const start = text.indexOf("{");
+  if (start < 0) return null;
+  let depth = 0;
+  let inStr = false;
+  let escape = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inStr) {
+      if (escape) { escape = false; continue; }
+      if (ch === "\\") { escape = true; continue; }
+      if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') { inStr = true; continue; }
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
 
 const InputSchema = z.object({
   items: z.array(z.string().min(1).max(500)).min(1).max(40),
@@ -235,12 +271,17 @@ Omit extracted_customer entirely if no customer details were mentioned. Unit pri
       throw new Error("That's a lot of detail — try splitting it into a couple of shorter recordings.");
     }
     const text = payload.content?.find((c) => c.type === "text")?.text ?? "";
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Claude returned no JSON");
+    // Prefer a ```json fenced block when Claude wraps the object; otherwise
+    // extract the FIRST brace-balanced object. The previous greedy regex
+    // `/\{[\s\S]*\}/` spans from the first `{` to the LAST `}`, which
+    // swallows trailing prose / extra blocks into the parse and can yield
+    // a superset object that QuoteSchema.parse accepts with garbage fields.
+    const jsonStr = extractFirstJsonObject(text);
+    if (!jsonStr) throw new Error("Claude returned no JSON");
 
     let parsed: unknown;
     try {
-      parsed = JSON.parse(jsonMatch[0]);
+      parsed = JSON.parse(jsonStr);
     } catch {
       throw new Error("Claude returned malformed JSON");
     }

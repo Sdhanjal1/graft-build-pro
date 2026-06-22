@@ -2,11 +2,24 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireActiveSubscription } from "@/lib/require-active-subscription";
 
-// Cap base64 payload at ~10 MB (≈ 7.5 MB raw audio) to bound per-call cost.
-const MAX_AUDIO_B64_BYTES = 10 * 1024 * 1024;
+// Cap decoded audio at ~7.5 MB (roughly 3 minutes of 320kbps audio). The
+// previous Zod `.max()` capped on STRING LENGTH (characters), which rejects
+// legitimate ~7.5 MB recordings with a cryptic ZodError because base64
+// inflates ~33%. Compute the real decoded byte size from base64 length.
+const MAX_AUDIO_BYTES = Math.floor(7.5 * 1024 * 1024);
+
+function decodedBase64Bytes(s: string): number {
+  const padding = s.endsWith("==") ? 2 : s.endsWith("=") ? 1 : 0;
+  return Math.floor((s.length * 3) / 4) - padding;
+}
 
 const InputSchema = z.object({
-  audioBase64: z.string().min(1).max(MAX_AUDIO_B64_BYTES),
+  audioBase64: z
+    .string()
+    .min(1)
+    .refine((s) => decodedBase64Bytes(s) <= MAX_AUDIO_BYTES, {
+      message: "Recording too long — please try a shorter clip (under ~3 minutes).",
+    }),
   mimeType: z.string().min(1).max(100),
 });
 

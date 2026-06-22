@@ -204,11 +204,19 @@ export const respondQuoteFromPortal = createServerFn({ method: "POST" })
       throw new Error(`Quote already ${quote.status}`);
     }
 
-    const { error } = await supabaseAdmin
+    // Race-safe status flip: keep the `status in (pending, sent)` guard on
+    // the UPDATE itself so two simultaneous accept/decline calls can't
+    // both commit. The losing call finds zero rows updated and is rejected.
+    const { data: updated, error } = await supabaseAdmin
       .from("quotes")
       .update({ status: data.response })
-      .eq("id", quote.id);
+      .eq("id", quote.id)
+      .in("status", ["pending", "sent"])
+      .select("id");
     if (error) throw new Error(error.message);
+    if (!updated || updated.length === 0) {
+      throw new Error("This quote was just updated — please refresh and try again.");
+    }
 
     const note =
       data.response === "accepted"

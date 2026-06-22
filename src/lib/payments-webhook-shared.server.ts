@@ -186,8 +186,7 @@ export async function handlePaidEvent(evt: any): Promise<void> {
     } else if (paymentIntent) {
       // The matching `payment_intent.succeeded` may have landed first and
       // inserted a paid row keyed only on stripe_payment_intent (no session
-      // id). Backfill the session id onto that row and short-circuit so we
-      // don't insert a duplicate paid row and re-fire email + push.
+      // id). Backfill the session id onto that row.
       const { data: existingByPi } = await supabaseAdmin
         .from("invoice_payments")
         .select("id")
@@ -204,7 +203,20 @@ export async function handlePaidEvent(evt: any): Promise<void> {
             ...(platformFeeCents !== null ? { platform_fee_cents: platformFeeCents } : {}),
           })
           .eq("id", existingByPi.id);
-        return;
+        // Only short-circuit if a receipt was actually sent on a prior
+        // event for this payment_intent. Without this check, a PI event
+        // that landed first but failed to email (or was skipped for any
+        // reason) would leave the customer without a receipt forever.
+        const { data: priorReceipt } = await supabaseAdmin
+          .from("payment_webhook_audit")
+          .select("id")
+          .eq("stripe_payment_intent", paymentIntent)
+          .eq("receipt_status", "sent")
+          .limit(1)
+          .maybeSingle();
+        if (priorReceipt) return;
+        // else fall through to status flip + email + push so the receipt
+        // is sent on this delivery instead.
       }
     }
     if (!existing) {
@@ -242,9 +254,21 @@ export async function handlePaidEvent(evt: any): Promise<void> {
           ...(platformFeeCents !== null ? { platform_fee_cents: platformFeeCents } : {}),
         })
         .eq("id", existingPi.id);
-      // Early return: the original session already fired email + push when
-      // it was first marked paid, so don't re-fire on retries.
-      return;
+      // Only short-circuit if a receipt was actually sent on a prior event
+      // for this payment_intent. Without this check, a row that exists but
+      // was never emailed (PI event arrived before a session was created,
+      // or the prior email send was skipped/failed) would leave the
+      // customer without a receipt on every subsequent retry.
+      const { data: priorReceipt } = await supabaseAdmin
+        .from("payment_webhook_audit")
+        .select("id")
+        .eq("stripe_payment_intent", paymentIntent)
+        .eq("receipt_status", "sent")
+        .limit(1)
+        .maybeSingle();
+      if (priorReceipt) return;
+      // else fall through to status flip + email + push so the receipt is
+      // sent on this delivery.
     }
     await supabaseAdmin.from("invoice_payments").insert({
       user_id: userId,
@@ -282,12 +306,25 @@ export async function handlePaidEvent(evt: any): Promise<void> {
     try {
       // Only nudge forward — don't regress a quote that's already accepted,
       // paid, completed, or declined (Stripe replays the same event).
+      // Stamp deposit_paid_at so downstream UI (chaser, invoice screen,
+      // quote detail) can read it directly from the quote without joining
+      // invoice_payments.
+      const depositPaidAt = new Date().toISOString();
       await supabaseAdmin
         .from("quotes")
-        .update({ status: "accepted" })
+        .update({ status: "accepted", deposit_paid_at: depositPaidAt })
         .eq("id", quoteId)
         .eq("user_id", userId)
         .in("status", ["pending", "sent"]);
+      // Idempotent backfill: if a prior replay already flipped status but
+      // didn't stamp deposit_paid_at (older code path), stamp it now.
+      await supabaseAdmin
+        .from("quotes")
+        .update({ deposit_paid_at: depositPaidAt })
+        .eq("id", quoteId)
+        .eq("user_id", userId)
+        .is("deposit_paid_at", null)
+        .in("status", ["accepted", "paid", "completed"]);
     } catch (e) {
       console.error("[payments/webhook] failed to mark quote accepted", e);
     }
