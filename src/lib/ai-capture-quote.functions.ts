@@ -5,6 +5,42 @@ import { fetchTopPatterns, patternsForPrompt } from "@/lib/pricing-patterns.func
 import { tradeGuidance } from "@/lib/ai-trade-guidance";
 import { rankPatternsForJob } from "@/lib/pricing-patterns";
 
+/**
+ * Extract the FIRST brace-balanced JSON object from a model response.
+ * Prefers a ```json fenced block when present, then falls back to scanning
+ * from the first `{` and tracking string-aware brace depth so trailing
+ * prose, extra code blocks, or commentary after the JSON can't be swallowed
+ * into the parsed object.
+ */
+function extractFirstJsonObject(text: string): string | null {
+  const fence = text.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
+  if (fence && fence[1]) {
+    const inner = fence[1].trim();
+    if (inner.startsWith("{")) return inner;
+  }
+  const start = text.indexOf("{");
+  if (start < 0) return null;
+  let depth = 0;
+  let inStr = false;
+  let escape = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inStr) {
+      if (escape) { escape = false; continue; }
+      if (ch === "\\") { escape = true; continue; }
+      if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') { inStr = true; continue; }
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
 
 const InputSchema = z.object({
   items: z.array(z.string().min(1).max(500)).min(1).max(40),
