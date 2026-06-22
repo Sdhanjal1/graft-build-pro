@@ -1,61 +1,52 @@
-Add `quotes.paid_at` and stamp it from both the webhook (card) and `markQuotePaid` (cash/bank), so the PDF "PAID" stamp and paid-date label fire correctly. Mirrors the `deposit_paid_at` fix.
+## Root cause
 
-## 1. Migration — add `quotes.paid_at`
+`handlePaidEvent` is called from **both** webhook endpoints (platform `webhook.ts` and `connect-webhook.ts`) and is matched by **three** event types: `checkout.session.completed`, `payment_intent.succeeded`, and `transaction.completed`. A single card payment normally fires **two distinct Stripe events** (session.completed + payment_intent.succeeded), each with a different `stripe_event_id`, so the audit-table UNIQUE gate on `stripe_event_id` does **not** dedupe them.
 
-New column, same shape as `deposit_paid_at`:
+There IS a secondary gate (`priorReceipt` lookup by `stripe_payment_intent` in `payment_webhook_audit`), but it has two holes:
 
-```sql
-ALTER TABLE public.quotes ADD COLUMN paid_at timestamp with time zone;
-```
+1. **Race window.** It's a SELECT-then-INSERT pattern. The two events typically arrive within ~100 ms; both pass `priorReceipt is null` before either has finished sending and stamping `receipt_status='sent'`. Both then send the receipt email and call `notifyTraderOfPayment` → 2 emails, 2 pushes.
+2. **Push isn't gated at all.** `priorReceipt` only short-circuits the function when an existing `invoice_payments` row is found AND receipt was previously stamped. On the first-ever delivery the code falls through to email + push without a per-`(quote_id, request_type)` lock.
 
-Applied to the Cloud DB.
+A third compounding source: when Stripe Connect is wired, the platform webhook and the connect webhook can both receive the same checkout completion for direct charges — same PI, different event IDs, same race.
 
-## 2. Webhook — `src/lib/payments-webhook-shared.server.ts` (full/balance branch, ~line 331–358)
+## Fix
 
-In the `else` branch (full/balance), mirror the deposit pattern:
+Move dedupe from "by stripe_event_id" to "by side-effect already performed for this `(quote_id, request_type)`" — and gate **both** the email and the push behind it, using a DB-level atomic claim so concurrent deliveries can't both win.
 
-- Forward-flip: add `paid_at: now` to the `status:"paid"` update (lines 340–345). Status guard already prevents regressing already-paid rows.
-- Idempotent backfill: extend the existing "stamp `completed_at` if null" backfill (lines 348–354) to also `coalesce(paid_at, now)` — i.e. only set `paid_at` when currently null. A separate `.is("paid_at", null)` update keeps it surgical, matching the deposit shape.
+### Steps
 
-Deposit branch untouched — deposits intentionally don't set `paid_at`.
+1. **Add a unique partial index** on `payment_webhook_audit` so only one row per `(quote_id, request_type)` can have `receipt_status='sent'`:
+   ```sql
+   CREATE UNIQUE INDEX payment_webhook_audit_receipt_once
+     ON public.payment_webhook_audit (quote_id, request_type)
+     WHERE receipt_status = 'sent';
+   ```
+   This is the durable lock — even across two webhook endpoints and two event types, only one row can flip to `sent`.
 
-`invoice_payments.paid_at` writes (lines ~181/201/234/252) stay as-is.
+2. **Atomic claim in `payments-webhook-shared.server.ts`** (just before the email send around line 396):
+   - Before sending, attempt `UPDATE payment_webhook_audit SET receipt_status='sending' WHERE id = auditRowId AND receipt_status IS NULL RETURNING id`. If no row returned, we lost the race — skip both email and push and return.
+   - After successful send, `UPDATE ... SET receipt_status='sent'`. The unique partial index then blocks any sibling event from also reaching `sent`.
+   - If the send fails, revert to `NULL` (or stamp `'failed'`) so a future retry can re-attempt.
 
-## 3. `markQuotePaid` — `src/lib/user-data.ts` ~line 1622
+3. **Gate `notifyTraderOfPayment` behind the same claim.** Move the push call to only fire when the email-claim attempt actually won. This is the line that's currently firing twice.
 
-Add `paid_at: completedAt` to the update:
+4. **Tighten the `priorReceipt` check** to also look up by `(quote_id, request_type)` (not just `stripe_payment_intent`), so the cheap short-circuit catches the platform-vs-connect-webhook case where PIs could differ in edge cases (e.g. Connect destination charges with separate platform/connect event PIs).
 
-```ts
-.update({ status: "paid", paid_via: paidVia, completed_at: completedAt, paid_at: completedAt })
-```
+5. **No changes** to `invoice_payments` insert logic, quote-status flips, or the audit row insert itself — those are already idempotent.
 
-So cash/bank manual-mark also stamps `paid_at`, and PDF behaves identically to card-paid.
+### Files touched
 
-## 4. `portal-pdf.ts` — verify only
+- `supabase/migrations/<new>.sql` — the unique partial index.
+- `src/lib/payments-webhook-shared.server.ts` — atomic claim + gated push + broadened `priorReceipt` lookup.
 
-Already reads `quote.paid_at` at lines 202, 297, 316. No edit. Will fire once column is populated.
+### Verification
 
-## 5. Types
+- Typecheck.
+- Manual: trigger a sandbox card payment in the preview and confirm the trader receives exactly one push and one invoice email. Inspect `payment_webhook_audit` to see one row stamped `receipt_status='sent'` and the sibling row left `NULL` or `'skipped'`.
+- Spot-check `invoice_email_status` on the quote — should be `sent` once, with one `invoice_email_sent_at`.
 
-`src/integrations/supabase/types.ts` regenerates after the migration runs; no manual edit.
+### Out of scope
 
-## Verification
-
-- Card full/balance payment → webhook stamps `quotes.paid_at` → PDF renders PAID stamp + correct paid date.
-- `markQuotePaid` (cash/bank) → `quotes.paid_at` set → PDF renders PAID stamp.
-- Webhook replay → forward-flip's status guard (`.in("status", ["pending", "sent", "accepted", "overdue"])`) blocks re-write; backfill's `.is("paid_at", null)` guard blocks churn.
-- Deposit payment → only `deposit_paid_at` set; `paid_at` stays null.
-- Run existing money-correctness suite (`tests/payments-money.test.ts`, `tests/invoice-pdf-golden.test.ts`, `tests/invoice-badge-matrix.test.ts`) to confirm no regression.
-
-## Out of scope
-
-- No edits to deposit branch, `invoice_payments` writes, or `portal-pdf.ts`.
-- No change to status state machine or any other field.
-
-One addition: the invoice-pdf-golden test will legitimately change once the PAID stamp fires
-
-(it wasn't rendering before). Re-baseline that golden deliberately and show me the before/after
-
-of the rendered PAID region, so we confirm the stamp appears correctly rather than just
-
-force-accepting a new snapshot.
+- No change to subscription billing or failed-payment paths.
+- No change to client-facing portal/PDF rendering.
+- No change to the email template or push payload.
