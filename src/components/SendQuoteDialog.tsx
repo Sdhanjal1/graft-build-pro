@@ -338,3 +338,51 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
     </div>
   );
 }
+
+function PayMethodOption({
+  icon: Icon, label, sub, active, recommended, setupHref, onSetupClick, onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  sub: string;
+  active: boolean;
+  recommended?: boolean;
+  setupHref?: string;
+  onSetupClick?: () => void;
+  onClick: () => void;
+}) {
+  const base = `w-full text-left rounded-2xl p-3 flex items-center gap-3 transition ${
+    active ? "bg-lime text-ink" : "bg-secondary hover:bg-secondary/80 text-ink"
+  }`;
+  const inner = (
+    <>
+      <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${active ? "bg-ink text-lime" : "bg-paper text-ink"}`}>
+        {setupHref ? <AlertTriangle className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold inline-flex items-center gap-1.5">
+          {label}
+          {recommended && !active && (
+            <span className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">Recommended</span>
+          )}
+        </p>
+        <p className={`text-[11px] truncate ${active ? "text-ink/70" : "text-muted-foreground"}`}>{sub}</p>
+      </div>
+      {active && <Check className="h-4 w-4 shrink-0" />}
+      {setupHref && <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+    </>
+  );
+  if (setupHref) {
+    return (
+      <Link to={setupHref} onClick={onSetupClick} className={base}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} className={base}>
+      {inner}
+    </button>
+  );
+}
+
