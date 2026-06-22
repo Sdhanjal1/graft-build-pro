@@ -1617,17 +1617,22 @@ export const markQuotePaid = async (quoteId: string, paidVia: PaymentMethod): Pr
   // Stamp completed_at at the same time so the paid quote view collapses to
   // the simple "Job complete · Paid" summary, with no follow-up tap needed.
   const completedAt = q.completed_at ?? new Date().toISOString();
+  // Stamp paid_at alongside completed_at so the invoice PDF "PAID" stamp +
+  // paid-date label fire for cash/bank manual-mark exactly like card pays.
+  const paidAt = (q as { paid_at?: string | null }).paid_at ?? completedAt;
   const { error } = await supabase
     .from("quotes")
-    .update({ status: "paid", paid_via: paidVia, completed_at: completedAt })
+    .update({ status: "paid", paid_via: paidVia, completed_at: completedAt, paid_at: paidAt })
     .eq("id", quoteId);
   if (error) throw error;
   q.status = "paid";
   q.paid_via = paidVia;
   q.completed_at = completedAt;
+  (q as { paid_at?: string | null }).paid_at = paidAt;
   bumpVersion();
   return q;
 };
+
 
 /** Update payment timing + deposit fields on a quote. */
 export const updateQuotePaymentTiming = async (
