@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { Sparkles, Loader2, Copy, Check, CheckCircle2, Clock, BellOff, Bell, ArrowRight } from "lucide-react";
+import { Sparkles, Loader2, Copy, Check, CheckCircle2, Clock, BellOff, Bell, ArrowRight, CreditCard, Landmark, Banknote, AlertTriangle } from "lucide-react";
 import { ensurePortalToken } from "@/lib/messages.functions";
+import type { PaymentMethod } from "@/lib/user-data";
+
 
 import { toast } from "sonner";
 import { feedback, playSample } from "@/lib/feedback";
@@ -24,6 +26,14 @@ type Props = {
   whatsappHref?: string;
   /** When set, dialog skips token creation and uses this client portal_code with "updated link" copy. */
   updatedLinkPortalCode?: string;
+  /** Current payment method on the quote (drives which option is selected in the chooser). */
+  paymentMethod?: PaymentMethod;
+  /** Persist the trader's chosen payment method on the quote. */
+  onPaymentMethodChange?: (m: PaymentMethod) => void;
+  /** Whether the trader has Stripe Connect ready to accept card payments. */
+  cardReady?: boolean;
+  /** Whether the trader has saved their bank details in settings. */
+  bankComplete?: boolean;
   /** Fired after the quote is marked as sent so the parent can sync local status to "sent". */
   onSent?: () => void;
   /** Fired after the quote is reverted to pending so the parent can sync local status to "pending". */
@@ -33,8 +43,11 @@ type Props = {
 export function SendQuoteDialog({
   open, onClose, quoteId, quoteRef, quoteTitle,
   customerName, customerPhone, customerEmail,
-  updatedLinkPortalCode, onSent, onUndo,
+  updatedLinkPortalCode,
+  paymentMethod, onPaymentMethodChange, cardReady, bankComplete,
+  onSent, onUndo,
 }: Props) {
+
 
   const ensureToken = useServerFn(ensurePortalToken);
   const [busy, setBusy] = useState<null | "sms" | "email" | "wa">(null);
@@ -242,6 +255,52 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
           One tap to share with {firstName}.
         </p>
 
+        {onPaymentMethodChange && paymentMethod && (
+          <div className="mb-4">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
+              How do you want to be paid?
+            </p>
+            <div className="space-y-1.5">
+              <PayMethodOption
+                icon={CreditCard}
+                label={cardReady ? "Card" : "Set up card payments"}
+                sub={
+                  cardReady
+                    ? "Recommended — auto-confirms when paid. Funds go straight to you."
+                    : "Connect payouts in Settings to take cards"
+                }
+                active={paymentMethod === "card" && !!cardReady}
+                recommended={!!cardReady}
+                setupHref={cardReady ? undefined : "/settings"}
+                onSetupClick={cardReady ? undefined : handleClose}
+                onClick={() => cardReady && onPaymentMethodChange("card")}
+              />
+              <PayMethodOption
+                icon={Landmark}
+                label={bankComplete ? "Bank transfer" : "Add your bank details"}
+                sub={
+                  bankComplete
+                    ? "Customer sees your bank details. You confirm when paid."
+                    : "Save your bank in Settings to offer transfers"
+                }
+                active={paymentMethod === "bank" && !!bankComplete}
+                setupHref={bankComplete ? undefined : "/settings"}
+                onSetupClick={bankComplete ? undefined : handleClose}
+                onClick={() => bankComplete && onPaymentMethodChange("bank")}
+              />
+              <PayMethodOption
+                icon={Banknote}
+                label="Cash"
+                sub="Customer pays in person. You mark it paid."
+                active={paymentMethod === "cash"}
+                onClick={() => onPaymentMethodChange("cash")}
+              />
+            </div>
+          </div>
+        )}
+
+
+
         <div className="space-y-2.5">
           {/* Single primary action — opens native share sheet */}
           <button
@@ -279,3 +338,51 @@ const shortQuotePortalUrl = (token: string) => `${SHARE_ORIGIN}/q/${token}`;
     </div>
   );
 }
+
+function PayMethodOption({
+  icon: Icon, label, sub, active, recommended, setupHref, onSetupClick, onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  sub: string;
+  active: boolean;
+  recommended?: boolean;
+  setupHref?: string;
+  onSetupClick?: () => void;
+  onClick: () => void;
+}) {
+  const base = `w-full text-left rounded-2xl p-3 flex items-center gap-3 transition ${
+    active ? "bg-lime text-ink" : "bg-secondary hover:bg-secondary/80 text-ink"
+  }`;
+  const inner = (
+    <>
+      <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${active ? "bg-ink text-lime" : "bg-paper text-ink"}`}>
+        {setupHref ? <AlertTriangle className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold inline-flex items-center gap-1.5">
+          {label}
+          {recommended && !active && (
+            <span className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">Recommended</span>
+          )}
+        </p>
+        <p className={`text-[11px] truncate ${active ? "text-ink/70" : "text-muted-foreground"}`}>{sub}</p>
+      </div>
+      {active && <Check className="h-4 w-4 shrink-0" />}
+      {setupHref && <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+    </>
+  );
+  if (setupHref) {
+    return (
+      <Link to={setupHref} onClick={onSetupClick} className={base}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} className={base}>
+      {inner}
+    </button>
+  );
+}
+

@@ -1767,6 +1767,25 @@ export const updateQuoteTitle = async (quoteId: string, title: string): Promise<
   return q;
 };
 
+export const updateQuotePaymentMethod = async (
+  quoteId: string,
+  method: PaymentMethod,
+): Promise<Quote | null> => {
+  const q = getQuote(quoteId);
+  if (!q) return null;
+  if (q.payment_method === method) return q;
+  const { error } = await supabase
+    .from("quotes")
+    .update({ payment_method: method })
+    .eq("id", quoteId);
+  if (error) throw error;
+  q.payment_method = method;
+  bumpVersion();
+  return q;
+};
+
+
+
 
 export const assignClientToQuote = async (quoteId: string, clientId: string): Promise<Quote | null> => {
   const q = getQuote(quoteId);

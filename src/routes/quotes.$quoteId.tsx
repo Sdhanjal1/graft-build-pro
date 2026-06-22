@@ -7,7 +7,7 @@ import {
   getQuote, getClient, userProfile, formatGBP, waLink,
   buildInvoiceMessage, buildJobDoneMessage, stripePaymentLink, buildPaymentRequest,
   duplicateQuote, buildDepositOnAcceptMessage, markInvoiced, ensureChasesFor, cancelChasesFor,
-  setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming, markQuotePaid,
+  setQuoteStatus, updateQuoteLineItems, markJobComplete, updateQuotePaymentTiming, markQuotePaid, updateQuotePaymentMethod,
   
   deleteQuote,
   materialsForQuote, cleanItemDescription, lineIsEstimate, parseMoney,
@@ -298,7 +298,14 @@ function QuoteDetail() {
     }
   };
 
-  const setMethod = (m: PaymentMethod) => { quote.payment_method = m; setMethodState(m); };
+  const setMethod = (m: PaymentMethod) => {
+    quote.payment_method = m;
+    setMethodState(m);
+    updateQuotePaymentMethod(quote.id, m).catch((e) => {
+      toast.error(e instanceof Error ? e.message : "Couldn't save payment method");
+    });
+  };
+
   // Track local status writes so the realtime subscription doesn't double-toast
   // when the change originated from this tab.
   const localChangeRef = useRef(0);
@@ -1278,9 +1285,14 @@ function QuoteDetail() {
         customerName={client?.name}
         customerPhone={client?.phone}
         customerEmail={client?.email}
+        paymentMethod={method}
+        onPaymentMethodChange={setMethod}
+        cardReady={connect.chargesEnabled}
+        bankComplete={!!userProfile.account_number}
         onSent={() => { if (status === "pending") setStatusState("sent"); }}
         onUndo={() => { if (status === "sent") setStatusState("pending"); }}
       />
+
 
       <MaterialListSheet
         open={materialsOpen}
