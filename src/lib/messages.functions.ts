@@ -295,19 +295,34 @@ export const respondToQuoteByToken = createServerFn({ method: "POST" })
 
     const { data: quote } = await supabaseAdmin
       .from("quotes")
-      .select("id, status, title, total, ref, client_id")
+      .select("id, status, title, total, ref, client_id, portal_visible")
       .eq("id", tk.quote_id)
       .maybeSingle();
     if (!quote) throw new Error("Quote not found");
+    // Parity with the portal-code path (respondQuoteFromPortal): a quote
+    // the trader has hidden from the portal must NOT be acceptable via its
+    // (older) token link either. Without this guard, a stale token link
+    // could be used to accept a quote the trader had pulled back.
+    if (!quote.portal_visible) {
+      throw new Error("This quote is no longer available.");
+    }
     if (!["pending", "sent"].includes(quote.status)) {
       throw new Error(`Quote already ${quote.status}`);
     }
 
-    const { error } = await supabaseAdmin
+    // Race-safe status flip: include the same `status in (pending, sent)`
+    // guard on the UPDATE so two simultaneous accept/decline calls can't
+    // both commit. The second one finds zero rows updated and is rejected.
+    const { data: updated, error } = await supabaseAdmin
       .from("quotes")
       .update({ status: data.response })
-      .eq("id", quote.id);
+      .eq("id", quote.id)
+      .in("status", ["pending", "sent"])
+      .select("id");
     if (error) throw new Error(error.message);
+    if (!updated || updated.length === 0) {
+      throw new Error("This quote was just updated — please refresh and try again.");
+    }
 
     let customerName = "Customer";
     if (quote.client_id) {

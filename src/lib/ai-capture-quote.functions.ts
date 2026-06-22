@@ -235,12 +235,17 @@ Omit extracted_customer entirely if no customer details were mentioned. Unit pri
       throw new Error("That's a lot of detail — try splitting it into a couple of shorter recordings.");
     }
     const text = payload.content?.find((c) => c.type === "text")?.text ?? "";
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Claude returned no JSON");
+    // Prefer a ```json fenced block when Claude wraps the object; otherwise
+    // extract the FIRST brace-balanced object. The previous greedy regex
+    // `/\{[\s\S]*\}/` spans from the first `{` to the LAST `}`, which
+    // swallows trailing prose / extra blocks into the parse and can yield
+    // a superset object that QuoteSchema.parse accepts with garbage fields.
+    const jsonStr = extractFirstJsonObject(text);
+    if (!jsonStr) throw new Error("Claude returned no JSON");
 
     let parsed: unknown;
     try {
-      parsed = JSON.parse(jsonMatch[0]);
+      parsed = JSON.parse(jsonStr);
     } catch {
       throw new Error("Claude returned malformed JSON");
     }

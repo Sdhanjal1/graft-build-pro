@@ -75,7 +75,16 @@ export async function sendAndRecordInvoiceEmail(opts: {
     }
 
     // Resolve mode — default to receipt when the quote is paid, else an
-    // invoice for the full total. Callers (Job done) pass mode explicitly.
+    // invoice for the full total. Callers (Job done, Stripe webhook) pass
+    // mode explicitly. Refuse to silently infer when a partial payment
+    // amount is provided: a deposit payment with mode omitted would
+    // otherwise be emailed as a full invoice, which is a user-facing bug.
+    if (!opts.mode && typeof opts.amountCents === "number") {
+      const errMsg =
+        "sendAndRecordInvoiceEmail requires explicit `mode` when `amountCents` is provided — refusing to infer deposit/balance/receipt from quote.status alone";
+      console.error("[invoice-email]", errMsg, { quoteId: opts.quoteId, amountCents: opts.amountCents });
+      return { status: "failed", error: errMsg };
+    }
     const mode: SendInvoiceEmailMode = opts.mode ?? (quote.status === "paid" ? "receipt" : "invoice");
 
     const paidAt = new Date().toISOString();
@@ -133,8 +142,14 @@ export async function sendAndRecordInvoiceEmail(opts: {
     const balanceDueFormatted = fmt(amounts.balanceDueCents / 100);
 
     // Date label: receipt/deposit-received → date paid; invoice/balance → due date.
+    // Fallback anchors on the quote's created_at (not send-time) so a quote
+    // sent weeks after creation doesn't email a "due in 14 days" date that's
+    // contractually wrong. Only fall back to now() if created_at is missing.
+    const dueFallbackAnchor = quote.created_at
+      ? new Date(quote.created_at).getTime()
+      : Date.now();
     const dueDateIso = quote.invoice_due_date
-      ?? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+      ?? new Date(dueFallbackAnchor + 14 * 24 * 60 * 60 * 1000).toISOString();
     const dateForLabel = (mode === "receipt" || mode === "deposit-received") ? paidAt : dueDateIso;
     const dateFormatted = new Date(dateForLabel).toLocaleDateString("en-GB", {
       day: "2-digit",

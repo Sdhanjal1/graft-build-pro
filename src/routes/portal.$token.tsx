@@ -7,7 +7,7 @@ import { BusinessLogo } from "@/components/BusinessLogo";
 import { WalletBadges } from "@/components/WalletBadges";
 import { downloadPortalPdf } from "@/lib/portal-pdf";
 import { Loader2, Check, X, Download, Copy, Landmark, CreditCard } from "lucide-react";
-import { acceptButtonLabel, paymentTimingLabel, type PaymentTiming } from "@/lib/payment-timing";
+import { acceptButtonLabel, paymentTimingLabel, DEFAULT_DEPOSIT_FRACTION, type PaymentTiming } from "@/lib/payment-timing";
 import { feedback } from "@/lib/feedback";
 import { toast } from "sonner";
 import {
@@ -250,12 +250,14 @@ function PortalPage() {
   const total = Number(quote.total) || 0;
   const depositExplicit = Number(quote.deposit_amount) || 0;
   const depositPct = Number(quote.deposit_percent) || 0;
+  // Use the shared DEFAULT_DEPOSIT_FRACTION so the customer-facing UI can
+  // never drift from what payments.functions.ts actually charges via Stripe.
   const depositAmount =
     depositExplicit > 0
       ? depositExplicit
       : depositPct > 0
       ? +(total * (depositPct / 100)).toFixed(2)
-      : +(total * 0.3).toFixed(2);
+      : +(total * DEFAULT_DEPOSIT_FRACTION).toFixed(2);
   const hasCard = !!(profile as any)?.stripe_connect_charges_enabled;
   const bankAccount = ((profile as any)?.account_number ?? "").toString().trim();
   const bankSort = ((profile as any)?.sort_code ?? "").toString().trim();
