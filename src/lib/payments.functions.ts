@@ -16,16 +16,15 @@ import { computeInvoiceAmounts } from "@/lib/invoice-amounts";
 // falls through to live. Live is the fail-safe default; we never silently
 // route real customers to test keys.
 function getStripeEnv() {
-  const flag = import.meta.env.VITE_PAYMENTS_MODE;
-  const sandboxKey = process.env.STRIPE_SANDBOX_API_KEY;
-  if (flag === "sandbox" && sandboxKey) {
-    return { key: sandboxKey, env: "sandbox" as const };
-  }
-  const liveKey =
-    process.env.STRIPE_BYOK_SECRET_KEY ?? process.env.STRIPE_LIVE_API_KEY;
-  if (!liveKey) throw new Error("Stripe is not configured");
-  return { key: liveKey, env: "live" as const };
+  // Direct api.stripe.com calls require a real Stripe secret key (sk_...).
+  // STRIPE_SANDBOX_API_KEY / STRIPE_LIVE_API_KEY are Lovable gateway
+  // connector identifiers (lovc_...) and will be rejected by Stripe.
+  const byok = process.env.STRIPE_BYOK_SECRET_KEY;
+  if (!byok) throw new Error("Stripe is not configured (missing STRIPE_BYOK_SECRET_KEY)");
+  const env = byok.startsWith("sk_live_") ? ("live" as const) : ("sandbox" as const);
+  return { key: byok, env };
 }
+
 
 // Origins we'll accept as success/cancel return URLs for both pro-facing
 // and customer-portal checkout flows. Prevents open-redirect via Stripe.

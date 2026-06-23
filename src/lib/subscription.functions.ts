@@ -9,16 +9,15 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 // in a published build can't silently route real subscription customers
 // to test keys, and a missing live key in preview can't be papered over.
 function getStripeEnv() {
-  const flag = import.meta.env.VITE_PAYMENTS_MODE;
-  const sandboxKey = process.env.STRIPE_SANDBOX_API_KEY;
-  if (flag === "sandbox" && sandboxKey) {
-    return { key: sandboxKey, env: "sandbox" as const };
-  }
-  const liveKey =
-    process.env.STRIPE_BYOK_SECRET_KEY ?? process.env.STRIPE_LIVE_API_KEY;
-  if (!liveKey) throw new Error("Stripe is not configured");
-  return { key: liveKey, env: "live" as const };
+  // Direct api.stripe.com calls require a real Stripe secret key (sk_...).
+  // STRIPE_SANDBOX_API_KEY / STRIPE_LIVE_API_KEY are Lovable gateway
+  // connector identifiers (lovc_...) and will be rejected by Stripe.
+  const byok = process.env.STRIPE_BYOK_SECRET_KEY;
+  if (!byok) throw new Error("Stripe is not configured (missing STRIPE_BYOK_SECRET_KEY)");
+  const env = byok.startsWith("sk_live_") ? ("live" as const) : ("sandbox" as const);
+  return { key: byok, env };
 }
+
 
 // Origins we'll accept as success/cancel return URLs for the subscription
 // checkout flow — same allowlist used in payments.functions.ts to prevent
