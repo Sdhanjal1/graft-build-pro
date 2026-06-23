@@ -597,14 +597,20 @@ export const updateClientPhone = async (clientId: string, phone: string): Promis
  */
 export const updateClientFields = async (
   clientId: string,
-  patch: { name?: string; phone?: string; email?: string },
+  patch: { name?: string; phone?: string; email?: string; address?: string; property_type?: string },
 ): Promise<void> => {
   const existing = userClients.find((c) => c.id === clientId);
   if (!existing) return;
 
-  type ClientPatch = { name?: string; phone?: string | null; email?: string | null };
+  type ClientPatch = {
+    name?: string;
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+    property_type?: string | null;
+  };
   const next: ClientPatch = {};
-  const localPatch: Partial<{ name: string; phone: string; email: string }> = {};
+  const localPatch: Partial<{ name: string; phone: string; email: string; address: string; property_type: string }> = {};
 
   if (patch.name !== undefined) {
     const v = patch.name.trim();
@@ -626,6 +632,20 @@ export const updateClientFields = async (
     if (v !== (existing.email ?? "")) {
       next.email = v || null;
       localPatch.email = v;
+    }
+  }
+  if (patch.address !== undefined) {
+    const v = patch.address.trim();
+    if (v !== (existing.address ?? "")) {
+      next.address = v || null;
+      localPatch.address = v;
+    }
+  }
+  if (patch.property_type !== undefined) {
+    const v = patch.property_type.trim();
+    if (v !== (existing.property_type ?? "")) {
+      next.property_type = v || null;
+      localPatch.property_type = v;
     }
   }
 
