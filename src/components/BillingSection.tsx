@@ -28,7 +28,7 @@ export function BillingSection({ show = "both" }: { show?: "both" | "subscriptio
   const hasPm = !!sub?.has_payment_method;
 
   const subLabel = (() => {
-    if (status === "active") return "Active subscription, £29 / month";
+    if (status === "active") return "Active subscription, £34.99 / month";
     if (status === "trialing") {
       return hasPm
         ? `Trial, ${trialDaysLeft} days left · billing starts after`
