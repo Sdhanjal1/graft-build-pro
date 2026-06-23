@@ -20,12 +20,15 @@ const opsQueryOptions = (fn: () => Promise<OpsDashboard>) =>
 export const Route = createFileRoute("/ops")({
   ssr: false,
   beforeLoad: async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw redirect({ to: "/auth" });
     try {
       const { isAdmin } = await getIsAdmin();
       if (!isAdmin) throw redirect({ to: "/app" });
     } catch (e) {
       if (isRedirect(e)) throw e;
-      throw redirect({ to: "/auth" });
+      throw redirect({ to: "/app" });
     }
   },
   component: OpsPage,
