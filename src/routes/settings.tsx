@@ -154,6 +154,9 @@ function SettingsPage() {
   } = useAutoSave<void>({
     debounceMs: 600,
     onSave: async () => {
+      // Skip while a logo upload is in flight — the upload's own
+      // saveProfile({ logo_url }) is the authoritative writer.
+      if (uploadingRef.current) return;
       await saveProfileToCloud({
         ...profile,
         vat_registered: vatRegistered,
