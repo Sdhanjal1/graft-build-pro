@@ -15,7 +15,9 @@ import {
   CheckCircle2, FileText, MessageSquare, AlertTriangle, Trash2,
   Camera, Pencil, PenLine, ChevronRight,
   Briefcase, PoundSterling, Landmark, FileSignature, Bell, CreditCard, AlertOctagon,
+  Loader2, RefreshCw, X,
 } from "lucide-react";
+
 import { useServerFn } from "@tanstack/react-start";
 import { PushPermissionCard } from "@/components/CustomerQRCard";
 import { BusinessLogo } from "@/components/BusinessLogo";
