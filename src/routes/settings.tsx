@@ -189,6 +189,10 @@ function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   const uploadingRef = useRef(false);
+  type UploadStage = "idle" | "reading" | "converting" | "uploading" | "finalizing";
+  const [uploadStage, setUploadStage] = useState<UploadStage>("idle");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const lastFileRef = useRef<File | null>(null);
 
   const withTimeout = <T,>(p: Promise<T>, ms: number, label: string): Promise<T> =>
     Promise.race([
@@ -212,16 +216,13 @@ function SettingsPage() {
       allowedMime.includes(mime) || (!mime && allowedExt.includes(ext));
 
     if (!isHeic && !looksLikeImage) {
-      toast.error("Use a PNG, JPG or WebP image", { duration: 6000 });
-      return;
+      throw new Error("Use a PNG, JPG or WebP image");
     }
     if (input.size > 8 * 1024 * 1024) {
-      toast.error("Logo must be 8MB or smaller", { duration: 6000 });
-      return;
+      throw new Error("Logo must be 8MB or smaller");
     }
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      toast.error("You're offline. Reconnect to upload.", { duration: 6000 });
-      return;
+      throw new Error("You're offline. Reconnect to upload.");
     }
 
     console.info("[logo] validated");
@@ -231,25 +232,17 @@ function SettingsPage() {
     let uploadType = mime || "image/png";
 
     if (isHeic) {
+      setUploadStage("converting");
       console.info("[logo] converting HEIC");
-      try {
-        const { default: heic2any } = await import("heic2any");
-        const converted = await withTimeout(
-          heic2any({ blob: input, toType: "image/jpeg", quality: 0.9 }) as Promise<Blob | Blob[]>,
-          30000,
-          "HEIC conversion",
-        );
-        workingBlob = Array.isArray(converted) ? converted[0] : converted;
-        uploadExt = "jpg";
-        uploadType = "image/jpeg";
-      } catch (convErr) {
-        console.error("[logo] HEIC conversion failed", convErr);
-        toast.error(
-          "Couldn't convert that iPhone photo. In Camera settings choose 'Most Compatible', or pick a PNG/JPG.",
-          { duration: 8000 },
-        );
-        return;
-      }
+      const { default: heic2any } = await import("heic2any");
+      const converted = await withTimeout(
+        heic2any({ blob: input, toType: "image/jpeg", quality: 0.9 }) as Promise<Blob | Blob[]>,
+        30000,
+        "HEIC conversion",
+      );
+      workingBlob = Array.isArray(converted) ? converted[0] : converted;
+      uploadExt = "jpg";
+      uploadType = "image/jpeg";
     } else {
       uploadExt = ext === "jpeg" ? "jpg" : (ext || (mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg"));
       uploadType =
@@ -257,10 +250,7 @@ function SettingsPage() {
         uploadExt === "webp" ? "image/webp" : "image/jpeg";
     }
 
-    // Re-pack into a clean File with explicit type + safe ASCII name.
-    // supabase-js v2 has been observed to stall when File.type is empty,
-    // and odd characters in name (spaces, parens, unicode) can break
-    // multipart parsing on certain CDNs.
+    setUploadStage("reading");
     const safeName = `logo-${Date.now()}.${uploadExt}`;
     const buf = await withTimeout(workingBlob.arrayBuffer(), 15000, "Read file");
     const file = new File([buf], safeName, { type: uploadType });
@@ -272,6 +262,7 @@ function SettingsPage() {
     const path = `${userData.user.id}/${safeName}`;
     console.info("[logo] uploading →", path);
 
+    setUploadStage("uploading");
     const { error: upErr } = await withTimeout(
       supabase.storage.from("branding").upload(path, file, {
         upsert: true,
@@ -284,6 +275,7 @@ function SettingsPage() {
     if (upErr) throw upErr;
     console.info("[logo] uploaded ok");
 
+    setUploadStage("finalizing");
     const { data: pub } = supabase.storage.from("branding").getPublicUrl(path);
     if (!pub?.publicUrl) throw new Error("Couldn't get public URL");
     console.info("[logo] public url", pub.publicUrl);
@@ -295,25 +287,44 @@ function SettingsPage() {
 
   const handleLogoFile = async (input: File) => {
     if (!input) return;
+    lastFileRef.current = input;
+    setUploadError(null);
     setUploading(true);
+    setUploadStage("reading");
     uploadingRef.current = true;
     try {
-      // Hard outer safety net: even if every inner promise stalls,
-      // we always release the button and surface an error toast.
       await withTimeout(runLogoUpload(input), 45000, "Logo upload");
+      setUploadError(null);
+      lastFileRef.current = null;
     } catch (e) {
       console.error("[logo] upload failed", e);
-      const msg = e instanceof Error ? e.message : String(e);
-      if (/timed out/i.test(msg)) {
-        toast.error("Upload didn't respond — check your connection and try again", { duration: 6000 });
-      } else {
-        toast.error(`Couldn't upload logo: ${msg || "unknown error"}`, { duration: 8000 });
-      }
+      const raw = e instanceof Error ? e.message : String(e);
+      const friendly = /timed out/i.test(raw)
+        ? "Upload didn't respond — check your connection and try again."
+        : raw || "Something went wrong. Please try again.";
+      setUploadError(friendly);
+      toast.error("Logo upload failed", { description: friendly, duration: 6000 });
     } finally {
       setUploading(false);
+      setUploadStage("idle");
       uploadingRef.current = false;
     }
   };
+
+  const retryLogoUpload = () => {
+    if (lastFileRef.current) {
+      void handleLogoFile(lastFileRef.current);
+    } else {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const dismissUploadError = () => {
+    setUploadError(null);
+    lastFileRef.current = null;
+  };
+
+
 
 
   const removeLogo = () => saveProfile({ logo_url: "" });
