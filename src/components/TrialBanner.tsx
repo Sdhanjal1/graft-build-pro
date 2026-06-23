@@ -60,7 +60,7 @@ export function TrialBanner() {
     },
     expired: {
       title: "Trial's up.",
-      body: "Add a card to keep quoting — £29/month.",
+      body: "Add a card to keep quoting — £34.99/month.",
       action: "Add a card",
       onClick: sub.stripe_customer_id ? manage : addCard,
       tone: "destructive" as const,
