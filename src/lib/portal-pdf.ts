@@ -28,6 +28,11 @@ export type PortalPdfProfile = {
   logo_url?: string | null;
   /** Optional precomputed data URL for the trader's logo (preferred — sync render). */
   logoDataUrl?: string | null;
+  /** Bank details — reused for the unpaid "How to pay" section on bank-transfer invoices. */
+  bank_account_name?: string | null;
+  bank_name?: string | null;
+  sort_code?: string | null;
+  account_number?: string | null;
 } | null;
 
 
@@ -55,6 +60,8 @@ export type PortalPdfQuote = {
   payment_method?: string | null;
   /** For invoice variant: Stripe payment intent or session id */
   stripe_payment_intent?: string | null;
+  /** Card-pay link (Stripe payment-request URL or portal pay URL) for the unpaid "How to pay" section. */
+  payment_link?: string | null;
 };
 
 type Variant = "quote" | "invoice";
@@ -293,7 +300,59 @@ export function generatePortalPdf(
     doc.text("VAT not applicable — supplier is not VAT registered.", 40, noteY);
   }
 
-  // PAID stamp + payment reference (invoice only)
+  // "How to pay" section — unpaid invoice only. Mirrors the per-method
+  // content in user-data.ts buildInvoiceMessage so the standalone PDF
+  // (downloaded and sent outside the portal) never disagrees with the
+  // portal/email body. Once paid_at is set the PAID stamp below replaces this.
+  if (variant === "invoice" && !quote.paid_at) {
+    const rawMethod = (quote.payment_method ?? "card").toLowerCase();
+    const lines: string[] = [];
+    if (rawMethod === "card") {
+      const link = quote.payment_link ?? "";
+      lines.push(link ? `Pay by card: ${link}` : "Pay by card — link to follow.");
+    } else if (rawMethod === "bank" || rawMethod === "bank_transfer" || rawMethod === "transfer") {
+      lines.push(
+        `Account name: ${profile?.bank_account_name ?? "—"}`,
+        `Bank: ${profile?.bank_name ?? "—"}`,
+        `Sort code: ${profile?.sort_code ?? "—"}`,
+        `Account number: ${profile?.account_number ?? "—"}`,
+        `Reference: ${quote.ref ?? "—"}`,
+      );
+    } else if (rawMethod === "cash") {
+      lines.push("Payable in cash on completion.");
+    } else {
+      lines.push("Contact the trader for payment instructions.");
+    }
+
+    const labelMap: Record<string, string> = {
+      card: "How to pay — card",
+      bank: "How to pay — bank transfer",
+      bank_transfer: "How to pay — bank transfer",
+      transfer: "How to pay — bank transfer",
+      cash: "How to pay — cash",
+    };
+    const heading = labelMap[rawMethod] ?? "How to pay";
+
+    const blockX = 40;
+    const blockW = w - 240 - 40 - 16; // left margin → start of totals box, minus gutter
+    const blockY = afterTable;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(MUTED);
+    doc.text(heading.toUpperCase(), blockX, blockY + 10);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(INK);
+    let ly = blockY + 26;
+    for (const ln of lines) {
+      const wrapped = doc.splitTextToSize(ln, blockW);
+      doc.text(wrapped, blockX, ly);
+      ly += wrapped.length * 12;
+    }
+  }
+
+
   if (variant === "invoice" && quote.paid_at) {
     const stampX = 40;
     const stampY = afterTable;
