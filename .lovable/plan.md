@@ -1,20 +1,12 @@
-# Switch to live Stripe
+**Goal**
+Fix the Add payment method flow so the Stripe checkout server function accepts the actual preview/project return origin instead of throwing `Return URL origin not allowed`.
 
-Stripe go-live is already complete:
+**Plan**
+1. Update the return URL allowlist used by subscription checkout to include the currently rejected project origin:
+   - `https://e4be6907-c837-4e5e-9461-63fadfdad91e.lovableproject.com`
+2. Apply the same allowlist update to invoice/payment checkout validation so the same domain does not fail elsewhere.
+3. Keep the existing protection against open redirects: only known Quottr, published, preview, localhost, and project origins will be accepted.
+4. Verify by re-running the Add payment method path and confirming the error moves past URL validation instead of showing `Return URL origin not allowed`.
 
-- Sandbox claimed ✓
-- Live account onboarding submitted ✓
-- Lovable app installed on live account ✓
-- Live API keys provisioned ✓
-- Readiness check passed ✓
-
-The live publishable token (`pk_live_...`) is already written to `.env.production`. The preview always runs the sandbox token (`pk_test_...`) by design, so the only remaining step is to publish so the live build goes out to your custom domains (quottr.co.uk, graft-build-pro.lovable.app).
-
-## Plan
-
-1. **Publish the app** so the production bundle picks up `VITE_PAYMENTS_CLIENT_TOKEN` from `.env.production` and live checkout activates on your published URLs.
-2. **Verify after publish**: load the published site (not the preview), open a checkout flow, and confirm the test-mode orange banner is gone — that confirms the live token is in use.
-
-No code changes. The preview will continue to use test mode (cards `4242 4242 4242 4242` etc.); only the published site will charge real cards.
-
-what does publish mean ?
+**Technical detail**
+The failing URL comes from `window.location.origin` in `BillingSection.tsx`; the server validates it in `assertAllowedReturnUrl()` inside `src/lib/subscription.functions.ts`. The current allowlist includes the `.lovable.app` preview URL but not the `.lovableproject.com` runtime origin, which is why this specific preview environment is rejected.
