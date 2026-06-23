@@ -15,7 +15,9 @@ import {
   CheckCircle2, FileText, MessageSquare, AlertTriangle, Trash2,
   Camera, Pencil, PenLine, ChevronRight,
   Briefcase, PoundSterling, Landmark, FileSignature, Bell, CreditCard, AlertOctagon,
+  Loader2, RefreshCw, X,
 } from "lucide-react";
+
 import { useServerFn } from "@tanstack/react-start";
 import { PushPermissionCard } from "@/components/CustomerQRCard";
 import { BusinessLogo } from "@/components/BusinessLogo";
@@ -189,6 +191,10 @@ function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   const uploadingRef = useRef(false);
+  type UploadStage = "idle" | "reading" | "converting" | "uploading" | "finalizing";
+  const [uploadStage, setUploadStage] = useState<UploadStage>("idle");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const lastFileRef = useRef<File | null>(null);
 
   const withTimeout = <T,>(p: Promise<T>, ms: number, label: string): Promise<T> =>
     Promise.race([
@@ -212,16 +218,13 @@ function SettingsPage() {
       allowedMime.includes(mime) || (!mime && allowedExt.includes(ext));
 
     if (!isHeic && !looksLikeImage) {
-      toast.error("Use a PNG, JPG or WebP image", { duration: 6000 });
-      return;
+      throw new Error("Use a PNG, JPG or WebP image");
     }
     if (input.size > 8 * 1024 * 1024) {
-      toast.error("Logo must be 8MB or smaller", { duration: 6000 });
-      return;
+      throw new Error("Logo must be 8MB or smaller");
     }
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      toast.error("You're offline. Reconnect to upload.", { duration: 6000 });
-      return;
+      throw new Error("You're offline. Reconnect to upload.");
     }
 
     console.info("[logo] validated");
@@ -231,25 +234,17 @@ function SettingsPage() {
     let uploadType = mime || "image/png";
 
     if (isHeic) {
+      setUploadStage("converting");
       console.info("[logo] converting HEIC");
-      try {
-        const { default: heic2any } = await import("heic2any");
-        const converted = await withTimeout(
-          heic2any({ blob: input, toType: "image/jpeg", quality: 0.9 }) as Promise<Blob | Blob[]>,
-          30000,
-          "HEIC conversion",
-        );
-        workingBlob = Array.isArray(converted) ? converted[0] : converted;
-        uploadExt = "jpg";
-        uploadType = "image/jpeg";
-      } catch (convErr) {
-        console.error("[logo] HEIC conversion failed", convErr);
-        toast.error(
-          "Couldn't convert that iPhone photo. In Camera settings choose 'Most Compatible', or pick a PNG/JPG.",
-          { duration: 8000 },
-        );
-        return;
-      }
+      const { default: heic2any } = await import("heic2any");
+      const converted = await withTimeout(
+        heic2any({ blob: input, toType: "image/jpeg", quality: 0.9 }) as Promise<Blob | Blob[]>,
+        30000,
+        "HEIC conversion",
+      );
+      workingBlob = Array.isArray(converted) ? converted[0] : converted;
+      uploadExt = "jpg";
+      uploadType = "image/jpeg";
     } else {
       uploadExt = ext === "jpeg" ? "jpg" : (ext || (mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg"));
       uploadType =
@@ -257,10 +252,7 @@ function SettingsPage() {
         uploadExt === "webp" ? "image/webp" : "image/jpeg";
     }
 
-    // Re-pack into a clean File with explicit type + safe ASCII name.
-    // supabase-js v2 has been observed to stall when File.type is empty,
-    // and odd characters in name (spaces, parens, unicode) can break
-    // multipart parsing on certain CDNs.
+    setUploadStage("reading");
     const safeName = `logo-${Date.now()}.${uploadExt}`;
     const buf = await withTimeout(workingBlob.arrayBuffer(), 15000, "Read file");
     const file = new File([buf], safeName, { type: uploadType });
@@ -272,6 +264,7 @@ function SettingsPage() {
     const path = `${userData.user.id}/${safeName}`;
     console.info("[logo] uploading →", path);
 
+    setUploadStage("uploading");
     const { error: upErr } = await withTimeout(
       supabase.storage.from("branding").upload(path, file, {
         upsert: true,
@@ -284,6 +277,7 @@ function SettingsPage() {
     if (upErr) throw upErr;
     console.info("[logo] uploaded ok");
 
+    setUploadStage("finalizing");
     const { data: pub } = supabase.storage.from("branding").getPublicUrl(path);
     if (!pub?.publicUrl) throw new Error("Couldn't get public URL");
     console.info("[logo] public url", pub.publicUrl);
@@ -295,25 +289,44 @@ function SettingsPage() {
 
   const handleLogoFile = async (input: File) => {
     if (!input) return;
+    lastFileRef.current = input;
+    setUploadError(null);
     setUploading(true);
+    setUploadStage("reading");
     uploadingRef.current = true;
     try {
-      // Hard outer safety net: even if every inner promise stalls,
-      // we always release the button and surface an error toast.
       await withTimeout(runLogoUpload(input), 45000, "Logo upload");
+      setUploadError(null);
+      lastFileRef.current = null;
     } catch (e) {
       console.error("[logo] upload failed", e);
-      const msg = e instanceof Error ? e.message : String(e);
-      if (/timed out/i.test(msg)) {
-        toast.error("Upload didn't respond — check your connection and try again", { duration: 6000 });
-      } else {
-        toast.error(`Couldn't upload logo: ${msg || "unknown error"}`, { duration: 8000 });
-      }
+      const raw = e instanceof Error ? e.message : String(e);
+      const friendly = /timed out/i.test(raw)
+        ? "Upload didn't respond — check your connection and try again."
+        : raw || "Something went wrong. Please try again.";
+      setUploadError(friendly);
+      toast.error("Logo upload failed", { description: friendly, duration: 6000 });
     } finally {
       setUploading(false);
+      setUploadStage("idle");
       uploadingRef.current = false;
     }
   };
+
+  const retryLogoUpload = () => {
+    if (lastFileRef.current) {
+      void handleLogoFile(lastFileRef.current);
+    } else {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const dismissUploadError = () => {
+    setUploadError(null);
+    lastFileRef.current = null;
+  };
+
+
 
 
   const removeLogo = () => saveProfile({ logo_url: "" });
@@ -373,18 +386,30 @@ function SettingsPage() {
           summary={profile.business_name || "Finish your business details"}
         >
           <FieldGroup label="Business logo">
-            {profile.logo_url ? (
+            {uploading ? (
+              <LogoUploadProgress stage={uploadStage} />
+            ) : uploadError ? (
+              <LogoUploadError
+                message={uploadError}
+                canRetry={!!lastFileRef.current}
+                onRetry={retryLogoUpload}
+                onPickNew={() => {
+                  dismissUploadError();
+                  fileInputRef.current?.click();
+                }}
+                onDismiss={dismissUploadError}
+              />
+            ) : profile.logo_url ? (
               <div className="flex items-center gap-4">
                 <BusinessLogo logoUrl={profile.logo_url} businessName={profile.business_name} size="lg" />
                 <div className="flex flex-col gap-2">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5 disabled:opacity-50"
+                    className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5"
                   >
                     <Pencil className="h-3.5 w-3.5" />
-                    {uploading ? "Uploading…" : "Change"}
+                    Change
                   </button>
                   <button
                     type="button"
@@ -400,19 +425,19 @@ function SettingsPage() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="w-full rounded-2xl border border-dashed border-border bg-card/40 px-5 py-6 flex flex-col items-center gap-2 hover:border-ink/30 hover:bg-card/60 transition disabled:opacity-50"
+                className="w-full rounded-2xl border border-dashed border-border bg-card/40 px-5 py-6 flex flex-col items-center gap-2 hover:border-ink/30 hover:bg-card/60 transition"
               >
                 <div className="h-11 w-11 rounded-full bg-lime text-ink flex items-center justify-center">
                   <Camera className="h-5 w-5" />
                 </div>
-                <p className="font-bold text-sm text-ink">{uploading ? "Uploading…" : "Add your logo"}</p>
+                <p className="font-bold text-sm text-ink">Add your logo</p>
                 <p className="text-xs text-muted-foreground text-center max-w-[260px]">
                   Appears on all quotes, invoices and PDFs.
                 </p>
               </button>
             )}
           </FieldGroup>
+
 
           <FieldGroup label="Business details">
             <FieldList>
@@ -1287,3 +1312,109 @@ function QuoteLookPreview({
     </div>
   );
 }
+
+/* ============================================================ */
+/*  Logo upload progress / error states                           */
+/* ============================================================ */
+
+type LogoStage = "idle" | "reading" | "converting" | "uploading" | "finalizing";
+
+function LogoUploadProgress({ stage }: { stage: LogoStage }) {
+  const stageLabel: Record<LogoStage, string> = {
+    idle: "Preparing…",
+    reading: "Preparing image…",
+    converting: "Converting photo…",
+    uploading: "Uploading to your account…",
+    finalizing: "Finishing up…",
+  };
+  const stagePct: Record<LogoStage, number> = {
+    idle: 5,
+    reading: 25,
+    converting: 40,
+    uploading: 75,
+    finalizing: 95,
+  };
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="w-full rounded-2xl border border-border bg-card/40 px-5 py-5 flex flex-col gap-3"
+    >
+      <div className="flex items-center gap-3">
+        <div className="h-11 w-11 rounded-full bg-lime/30 text-ink flex items-center justify-center shrink-0">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-sm text-ink">Uploading logo</p>
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">{stageLabel[stage]}</p>
+        </div>
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+        <div
+          className="h-full bg-lime transition-all duration-500 ease-out"
+          style={{ width: `${stagePct[stage]}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function LogoUploadError({
+  message,
+  canRetry,
+  onRetry,
+  onPickNew,
+  onDismiss,
+}: {
+  message: string;
+  canRetry: boolean;
+  onRetry: () => void;
+  onPickNew: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="w-full rounded-2xl border border-status-overdue/30 bg-status-overdue/5 px-5 py-4 flex flex-col gap-3"
+    >
+      <div className="flex items-start gap-3">
+        <div className="h-10 w-10 rounded-full bg-status-overdue/10 text-status-overdue flex items-center justify-center shrink-0">
+          <AlertTriangle className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-sm text-ink">Logo upload failed</p>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{message}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss"
+          className="h-7 w-7 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground shrink-0"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {canRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Retry upload
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onPickNew}
+          className="text-xs font-bold bg-secondary text-ink px-4 py-2 rounded-full flex items-center gap-1.5"
+        >
+          <Camera className="h-3.5 w-3.5" />
+          Choose another file
+        </button>
+      </div>
+    </div>
+  );
+}
+
