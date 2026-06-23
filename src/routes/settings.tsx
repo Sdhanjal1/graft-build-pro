@@ -787,7 +787,8 @@ function Section({
 /* ============================================================ */
 
 const fieldInputClass =
-  "mt-2 w-full bg-paper border border-border rounded-xl px-4 text-sm font-medium text-ink outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30";
+  "mt-2 w-full bg-transparent border border-border rounded-lg px-3 py-2.5 text-base font-medium text-ink outline-none transition-colors focus:border-ink/40 focus:bg-background placeholder:text-muted-foreground/60 min-h-[44px]";
+
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
