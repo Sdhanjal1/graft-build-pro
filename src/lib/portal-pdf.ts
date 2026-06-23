@@ -28,6 +28,11 @@ export type PortalPdfProfile = {
   logo_url?: string | null;
   /** Optional precomputed data URL for the trader's logo (preferred — sync render). */
   logoDataUrl?: string | null;
+  /** Bank details — reused for the unpaid "How to pay" section on bank-transfer invoices. */
+  bank_account_name?: string | null;
+  bank_name?: string | null;
+  sort_code?: string | null;
+  account_number?: string | null;
 } | null;
 
 
@@ -55,6 +60,8 @@ export type PortalPdfQuote = {
   payment_method?: string | null;
   /** For invoice variant: Stripe payment intent or session id */
   stripe_payment_intent?: string | null;
+  /** Card-pay link (Stripe payment-request URL or portal pay URL) for the unpaid "How to pay" section. */
+  payment_link?: string | null;
 };
 
 type Variant = "quote" | "invoice";
