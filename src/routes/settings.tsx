@@ -776,10 +776,9 @@ function Section({
         )}
         <div className="min-w-0 flex-1">
           <h2
-            className={`leading-tight flex items-center gap-2 flex-wrap ${
-              open ? "text-2xl" : "text-[17px] font-bold"
+            className={`leading-tight flex items-center gap-2 flex-wrap font-semibold ${
+              open ? "text-lg" : "text-[17px]"
             } ${danger ? (open ? "text-status-overdue" : "text-status-overdue/85") : "text-ink"}`}
-            style={open ? { fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.01em" } : undefined}
           >
             <span>{title}</span>
             {incomplete && !open && (
