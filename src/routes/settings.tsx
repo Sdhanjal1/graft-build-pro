@@ -660,6 +660,7 @@ function SettingsPage() {
         </Section>
       </div>
 
+
       <div className="h-6" />
 
       {/* Delete account dialog */}
