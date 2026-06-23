@@ -279,36 +279,7 @@ function ClientDetail() {
   );
 }
 
-function Row({
-  icon: Icon,
-  label,
-  value,
-  href,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-  href?: string;
-}) {
-  const content = (
-    <div className="flex items-start gap-3">
-      <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-        <Icon className="h-3.5 w-3.5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</p>
-        <p className={`text-sm font-medium truncate ${href ? "text-ink underline-offset-2 hover:underline" : ""}`}>{value || "—"}</p>
-      </div>
-    </div>
-  );
-  return href ? (
-    <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noreferrer" : undefined} className="block active:opacity-70">
-      {content}
-    </a>
-  ) : (
-    content
-  );
-}
+const PROPERTY_OPTIONS = ["Homeowner", "Landlord", "Letting agent", "Commercial", "Other"] as const;
 
 function EditableRow({
   icon: Icon,
@@ -316,6 +287,8 @@ function EditableRow({
   initial,
   placeholder,
   type = "text",
+  kind = "input",
+  options,
   href,
   onSave,
 }: {
@@ -324,6 +297,8 @@ function EditableRow({
   initial: string;
   placeholder?: string;
   type?: "text" | "tel" | "email";
+  kind?: "input" | "select";
+  options?: readonly string[];
   href?: string;
   onSave: (value: string) => Promise<void>;
 }) {
@@ -334,9 +309,13 @@ function EditableRow({
     errorTitle: `Couldn't save ${label.toLowerCase()}`,
   });
 
+  // Comfortable mobile tap target: 16px text (no iOS zoom), ~44px tall.
+  const fieldClass =
+    "mt-1 w-full bg-transparent border border-border rounded-lg focus:border-ink/40 px-3 py-2.5 pr-9 text-base font-medium outline-none transition-colors placeholder:text-muted-foreground/60 min-h-[44px]";
+
   return (
     <div className="flex items-start gap-3">
-      <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+      <div className="h-8 w-8 mt-1 rounded-full bg-secondary flex items-center justify-center shrink-0">
         <Icon className="h-3.5 w-3.5" />
       </div>
       <div className="min-w-0 flex-1">
@@ -345,6 +324,8 @@ function EditableRow({
           {href && value && !focused && (
             <a
               href={href}
+              target={href.startsWith("http") ? "_blank" : undefined}
+              rel={href.startsWith("http") ? "noreferrer" : undefined}
               onClick={(e) => e.stopPropagation()}
               className="text-ink/60 hover:text-ink normal-case tracking-normal text-[11px] font-medium underline-offset-2 hover:underline"
             >
@@ -353,19 +334,37 @@ function EditableRow({
           )}
         </p>
         <div className="relative">
-          <input
-            type={type}
-            value={value}
-            placeholder={placeholder}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            onChange={(e) => {
-              setValue(e.target.value);
-              handleChange(e.target.value);
-            }}
-            className="mt-0.5 w-full bg-transparent border-0 border-b border-dashed border-border focus:border-solid focus:border-ink/40 px-0 py-1 pr-7 text-sm font-medium outline-none transition-colors placeholder:text-muted-foreground/60"
-          />
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none">
+          {kind === "select" ? (
+            <select
+              value={value}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              onChange={(e) => {
+                setValue(e.target.value);
+                handleChange(e.target.value);
+              }}
+              className={fieldClass + " appearance-none"}
+            >
+              <option value="">{placeholder ?? "Select…"}</option>
+              {(options ?? []).map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type={type}
+              value={value}
+              placeholder={placeholder}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              onChange={(e) => {
+                setValue(e.target.value);
+                handleChange(e.target.value);
+              }}
+              className={fieldClass}
+            />
+          )}
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
             <SaveIndicator isSaving={isSaving} isSaved={isSaved} error={error} />
           </div>
         </div>
