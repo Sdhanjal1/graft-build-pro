@@ -33,13 +33,14 @@ const ALLOWED_RETURN_ORIGINS = new Set([
 ]);
 
 function assertAllowedReturnUrl(url: string) {
+  let u: URL;
   try {
-    const u = new URL(url);
-    if (!ALLOWED_RETURN_ORIGINS.has(u.origin)) {
-      throw new Error("Return URL origin not allowed");
-    }
+    u = new URL(url);
   } catch {
-    throw new Error("Invalid return URL");
+    throw new Error(`Invalid return URL (unparseable): ${url}`);
+  }
+  if (!ALLOWED_RETURN_ORIGINS.has(u.origin)) {
+    throw new Error(`Return URL origin not allowed: ${u.origin}`);
   }
 }
 
