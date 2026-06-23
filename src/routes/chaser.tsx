@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RouteError, RouteNotFound } from "@/components/RouteBoundary";
 import { useEffect, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
@@ -25,6 +26,8 @@ function chaseTone(offset: number, offsets: number[]) {
 
 export const Route = createFileRoute("/chaser")({
   component: ChaserPage,
+  errorComponent: RouteError,
+  notFoundComponent: () => <RouteNotFound />,
 });
 
 function daysOverdue(due?: string) {

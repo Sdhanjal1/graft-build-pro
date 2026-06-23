@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { RouteError, RouteNotFound } from "@/components/RouteBoundary";
 import { useEffect, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -39,6 +40,8 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/notifications")({
   validateSearch: zodValidator(searchSchema),
   component: NotificationsPage,
+  errorComponent: RouteError,
+  notFoundComponent: () => <RouteNotFound />,
   head: () => ({
     meta: [
       { title: "Notifications · Quottr" },

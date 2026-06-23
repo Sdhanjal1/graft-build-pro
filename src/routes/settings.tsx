@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { RouteError, RouteNotFound } from "@/components/RouteBoundary";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
@@ -38,6 +39,8 @@ import {
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
+  errorComponent: RouteError,
+  notFoundComponent: () => <RouteNotFound />,
 });
 
 type LucideIcon = React.ComponentType<{ className?: string }>;

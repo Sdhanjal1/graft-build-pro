@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { RouteError, RouteNotFound } from "@/components/RouteBoundary";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { userClients, quotesForClient, formatGBP, useHasHydrated } from "@/lib/user-data";
 import { Search, ArrowRight, UserPlus, Users, Inbox, AlertTriangle } from "lucide-react";
@@ -26,6 +27,8 @@ function findDuplicatesMap(clients: typeof userClients): Map<string, string> {
 
 export const Route = createFileRoute("/clients/")({
   component: ClientsPage,
+  errorComponent: RouteError,
+  notFoundComponent: () => <RouteNotFound />,
 });
 
 function ClientsPage() {

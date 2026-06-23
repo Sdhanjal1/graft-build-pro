@@ -1,4 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { RouteError, RouteNotFound } from "@/components/RouteBoundary";
 import { useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -15,7 +16,10 @@ import { SaveIndicator } from "@/components/SaveIndicator";
 
 export const Route = createFileRoute("/clients/$clientId")({
   component: ClientDetail,
-  notFoundComponent: () => <div className="p-8 text-center">Customer not found</div>,
+  errorComponent: RouteError,
+  notFoundComponent: () => (
+    <RouteNotFound title="Customer not found" body="This customer may have been deleted." />
+  ),
 });
 
 function relativeFromNow(iso: string): string {
