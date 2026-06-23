@@ -1312,3 +1312,109 @@ function QuoteLookPreview({
     </div>
   );
 }
+
+/* ============================================================ */
+/*  Logo upload progress / error states                           */
+/* ============================================================ */
+
+type LogoStage = "idle" | "reading" | "converting" | "uploading" | "finalizing";
+
+function LogoUploadProgress({ stage }: { stage: LogoStage }) {
+  const stageLabel: Record<LogoStage, string> = {
+    idle: "Preparing…",
+    reading: "Preparing image…",
+    converting: "Converting photo…",
+    uploading: "Uploading to your account…",
+    finalizing: "Finishing up…",
+  };
+  const stagePct: Record<LogoStage, number> = {
+    idle: 5,
+    reading: 25,
+    converting: 40,
+    uploading: 75,
+    finalizing: 95,
+  };
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="w-full rounded-2xl border border-border bg-card/40 px-5 py-5 flex flex-col gap-3"
+    >
+      <div className="flex items-center gap-3">
+        <div className="h-11 w-11 rounded-full bg-lime/30 text-ink flex items-center justify-center shrink-0">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-sm text-ink">Uploading logo</p>
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">{stageLabel[stage]}</p>
+        </div>
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+        <div
+          className="h-full bg-lime transition-all duration-500 ease-out"
+          style={{ width: `${stagePct[stage]}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function LogoUploadError({
+  message,
+  canRetry,
+  onRetry,
+  onPickNew,
+  onDismiss,
+}: {
+  message: string;
+  canRetry: boolean;
+  onRetry: () => void;
+  onPickNew: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="w-full rounded-2xl border border-status-overdue/30 bg-status-overdue/5 px-5 py-4 flex flex-col gap-3"
+    >
+      <div className="flex items-start gap-3">
+        <div className="h-10 w-10 rounded-full bg-status-overdue/10 text-status-overdue flex items-center justify-center shrink-0">
+          <AlertTriangle className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-sm text-ink">Logo upload failed</p>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{message}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss"
+          className="h-7 w-7 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground shrink-0"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {canRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Retry upload
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onPickNew}
+          className="text-xs font-bold bg-secondary text-ink px-4 py-2 rounded-full flex items-center gap-1.5"
+        >
+          <Camera className="h-3.5 w-3.5" />
+          Choose another file
+        </button>
+      </div>
+    </div>
+  );
+}
+
