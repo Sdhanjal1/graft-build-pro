@@ -204,10 +204,14 @@ export const getQuotePaymentStatus = createServerFn({ method: "POST" })
   .inputValidator(z.object({ quoteId: z.string().min(1).max(128) }))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    // RLS already scopes invoice_payments to the owning user; the explicit
+    // user_id filter is defence-in-depth so a future RLS change can't
+    // silently leak rows across traders.
     const { data: rows, error } = await supabase
       .from("invoice_payments")
       .select("*")
       .eq("quote_id", data.quoteId)
+      .eq("user_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw error;
     return { payments: rows ?? [] };
@@ -448,7 +452,7 @@ export const createPortalCheckoutFromCode = createServerFn({ method: "POST" })
     z.object({
       code: z.string().min(8).max(64),
       quoteId: z.string().uuid(),
-      requestType: z.enum(["deposit", "full"]),
+      requestType: z.enum(["deposit", "full", "balance"]),
       returnOrigin: z.string().url(),
     }),
   )
@@ -473,7 +477,7 @@ export const createPortalCheckoutFromCode = createServerFn({ method: "POST" })
 
     const { data: quote } = await supabaseAdmin
       .from("quotes")
-      .select("id, ref, title, total, deposit_amount, deposit_percent, status")
+      .select("id, ref, title, total, deposit_amount, deposit_percent, payment_timing, status")
       .eq("id", data.quoteId)
       .eq("client_id", client.id)
       .eq("portal_visible", true)
@@ -482,7 +486,9 @@ export const createPortalCheckoutFromCode = createServerFn({ method: "POST" })
     if (quote.status === "paid") throw new Error("This quote is already paid");
 
     const total = Number(quote.total) || 0;
+    const totalCents = Math.round(total * 100);
     let amount = total;
+    let amountCents = totalCents;
     if (data.requestType === "deposit") {
       const explicit = Number(quote.deposit_amount) || 0;
       const pct = Number(quote.deposit_percent) || 0;
@@ -491,8 +497,39 @@ export const createPortalCheckoutFromCode = createServerFn({ method: "POST" })
         : pct > 0
         ? +(total * (pct / 100)).toFixed(2)
         : +(total * DEFAULT_DEPOSIT_FRACTION).toFixed(2);
+      amountCents = Math.round(amount * 100);
+    } else if (data.requestType === "balance") {
+      // Mirror the createPortalCheckout balance branch: total − sum of paid
+      // deposit rows, computed server-side from the same invoice_payments
+      // rows the invoice/email read. The client hub never sends the amount.
+      if (quote.payment_timing !== "deposit_then_balance") {
+        throw new Error("This quote isn't a deposit-then-balance quote.");
+      }
+      const { data: depositRows } = await supabaseAdmin
+        .from("invoice_payments")
+        .select("amount_cents")
+        .eq("quote_id", quote.id)
+        .eq("request_type", "deposit")
+        .eq("status", "paid");
+      const depositPaidCents = (depositRows ?? []).reduce(
+        (acc, r) => acc + (Number(r.amount_cents) || 0),
+        0,
+      );
+      const amounts = computeInvoiceAmounts({
+        mode: "balance",
+        totalCents,
+        depositPaidCents,
+      });
+      if (!amounts.ok) {
+        throw new Error(
+          depositPaidCents <= 0
+            ? "No deposit recorded for this quote yet."
+            : "Balance is already settled.",
+        );
+      }
+      amountCents = amounts.headlineCents;
+      amount = +(amountCents / 100).toFixed(2);
     }
-    const amountCents = Math.round(amount * 100);
     if (amountCents < 30) {
       throw new Error("Quote total is too low to request payment (minimum 30p).");
     }
