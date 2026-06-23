@@ -149,7 +149,7 @@ function ClientDetail() {
 
       {/* Contact block */}
       <section className="px-5 mt-5">
-        <div className="card-surface p-4 space-y-2.5">
+        <div className="card-surface p-4 space-y-3">
           <EditableRow
             icon={User}
             label="Name"
