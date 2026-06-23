@@ -28,6 +28,7 @@ const ALLOWED_RETURN_ORIGINS = new Set([
   "https://www.quottr.co.uk",
   "https://graft-build-pro.lovable.app",
   "https://id-preview--e4be6907-c837-4e5e-9461-63fadfdad91e.lovable.app",
+  "https://e4be6907-c837-4e5e-9461-63fadfdad91e.lovableproject.com",
   "http://localhost:8080",
   "https://localhost:8080",
 ]);
