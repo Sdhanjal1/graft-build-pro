@@ -1,12 +1,27 @@
-**Goal**
-Fix the Add payment method flow so the Stripe checkout server function accepts the actual preview/project return origin instead of throwing `Return URL origin not allowed`.
+# Create the `quottr_monthly` price in Stripe
 
-**Plan**
-1. Update the return URL allowlist used by subscription checkout to include the currently rejected project origin:
-   - `https://e4be6907-c837-4e5e-9461-63fadfdad91e.lovableproject.com`
-2. Apply the same allowlist update to invoice/payment checkout validation so the same domain does not fail elsewhere.
-3. Keep the existing protection against open redirects: only known Quottr, published, preview, localhost, and project origins will be accepted.
-4. Verify by re-running the Add payment method path and confirming the error moves past URL validation instead of showing `Return URL origin not allowed`.
+Your `STRIPE_BYOK_SECRET_KEY` is a **test** key (it starts with `sk_test_`, which is why `getStripeEnv()` is resolving to sandbox mode). So you need to create the product/price in **Stripe's test mode**.
 
-**Technical detail**
-The failing URL comes from `window.location.origin` in `BillingSection.tsx`; the server validates it in `assertAllowedReturnUrl()` inside `src/lib/subscription.functions.ts`. The current allowlist includes the `.lovable.app` preview URL but not the `.lovableproject.com` runtime origin, which is why this specific preview environment is rejected.
+## Direct URLs (test mode)
+
+1. Create the product + price:
+  [https://dashboard.stripe.com/test/products/create](https://dashboard.stripe.com/test/products/create)
+  - Name: `Quottr subscription`
+  - Pricing model: **Recurring**
+  - Price: `29.00` GBP
+  - Billing period: **Monthly**
+  - Click **Add product**
+2. After saving, you'll land on the product page. Click the price row, then **... → Edit price**, and set:
+  - **Lookup key**: `quottr_monthly`
+  - Save
+   (If "Lookup key" isn't visible on the edit modal, open the price directly from the product page URL — it's a field under "Advanced".)
+
+## When you eventually go live
+
+Repeat the same steps at [https://dashboard.stripe.com/products/create](https://dashboard.stripe.com/products/create) (no `/test/`) using the same lookup key `quottr_monthly`, so the code keeps working when you swap in a live `sk_live_...` key.
+
+## Verifying
+
+Once saved, click **Add payment method** in Settings again — the checkout should open instead of erroring.
+
+ok done also can update the monthly pricing to £34.99 on the website and any other places that show our pricing
