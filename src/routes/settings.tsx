@@ -362,7 +362,7 @@ function SettingsPage() {
         }}
       />
 
-      <div className="border-y border-border/60 divide-y divide-border/60 bg-paper">
+      <div className="px-5 mt-5 space-y-4">
         {/* 1. YOUR BUSINESS */}
         <Section
           id="business"
@@ -660,6 +660,7 @@ function SettingsPage() {
         </Section>
       </div>
 
+
       <div className="h-6" />
 
       {/* Delete account dialog */}
@@ -732,18 +733,16 @@ function Section({
 }) {
   const danger = tone === "danger";
   return (
-    <section className={open ? "bg-card/30" : ""}>
+    <section className={`card-surface overflow-hidden ${danger ? "border-status-overdue/20" : ""}`}>
       <button
         type="button"
         onClick={() => onToggle(id)}
-        className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors ${
-          open ? "" : "hover:bg-card/40"
-        }`}
+        className="w-full flex items-center gap-3 px-4 py-4 min-h-[64px] text-left transition-colors hover:bg-card/40"
         aria-expanded={open}
       >
         {Icon && (
           <div
-            className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${
+            className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
               danger ? "bg-status-overdue/10 text-status-overdue" : "bg-secondary text-ink"
             }`}
           >
@@ -752,20 +751,20 @@ function Section({
         )}
         <div className="min-w-0 flex-1">
           <h2
-            className={`leading-tight ${
-              open ? "text-2xl" : "text-base font-bold"
+            className={`leading-tight flex items-center gap-2 flex-wrap ${
+              open ? "text-2xl" : "text-[17px] font-bold"
             } ${danger ? (open ? "text-status-overdue" : "text-status-overdue/85") : "text-ink"}`}
             style={open ? { fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.01em" } : undefined}
           >
-            {title}
+            <span>{title}</span>
             {incomplete && !open && (
-              <span className="ml-2 inline-flex items-center align-middle text-[10px] font-bold uppercase tracking-wider bg-status-pending/15 text-status-pending px-1.5 py-0.5 rounded-full">
+              <span className="inline-flex items-center text-[11px] font-bold uppercase tracking-wider bg-status-pending/15 text-status-pending px-2 py-0.5 rounded-full">
                 Set up
               </span>
             )}
           </h2>
           {!open && summary && (
-            <p className="text-xs text-muted-foreground mt-0.5 truncate">{summary}</p>
+            <p className="text-[13px] text-muted-foreground mt-1 truncate">{summary}</p>
           )}
         </div>
         <ChevronRight
@@ -774,8 +773,7 @@ function Section({
         />
       </button>
       {open && (
-        <div className="px-5 pb-7 pt-1 space-y-7 border-t border-border/40">
-          <div className="h-1" />
+        <div className="px-4 pb-6 pt-2 space-y-7 border-t border-border/40">
           {children}
         </div>
       )}
@@ -783,12 +781,14 @@ function Section({
   );
 }
 
+
 /* ============================================================ */
 /*  Field primitives                                              */
 /* ============================================================ */
 
 const fieldInputClass =
-  "mt-2 w-full bg-paper border border-border rounded-xl px-4 text-sm font-medium text-ink outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-lime/30";
+  "mt-2 w-full bg-transparent border border-border rounded-lg px-3 py-2.5 text-base font-medium text-ink outline-none transition-colors focus:border-ink/40 focus:bg-background placeholder:text-muted-foreground/60 min-h-[44px]";
+
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
