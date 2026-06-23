@@ -1,4 +1,5 @@
 import { createFileRoute, Link, Navigate, notFound, useNavigate } from "@tanstack/react-router";
+import { RouteError } from "@/components/RouteBoundary";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
@@ -58,6 +59,7 @@ function celebratePaid(amount: number) {
 
 export const Route = createFileRoute("/quotes/$quoteId")({
   component: QuoteDetail,
+  errorComponent: RouteError,
   notFoundComponent: () => (
     <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center gap-4">
       <p className="text-base font-semibold text-ink">Quote not found</p>

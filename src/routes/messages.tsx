@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { RouteError, RouteNotFound } from "@/components/RouteBoundary";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -65,6 +66,8 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/messages")({
   validateSearch: zodValidator(searchSchema),
   component: MessagesInbox,
+  errorComponent: RouteError,
+  notFoundComponent: () => <RouteNotFound />,
 });
 
 function formatRelativeShort(iso: string): string {

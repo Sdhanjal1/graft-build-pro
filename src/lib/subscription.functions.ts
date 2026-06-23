@@ -2,16 +2,43 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-// Reuse the same env-picking logic as invoice checkout: prefer the live
-// BYOK key when claimed, otherwise sandbox. Must match the env-var name
-// used by payments.functions.ts / connect.functions.ts — using a
-// different var here silently routes live subs to sandbox.
+// Mirror payments.functions.ts: sandbox is opt-in ONLY when the build was
+// produced with the explicit preview flag AND a sandbox key is present.
+// Every other path (unset flag, missing sandbox key, production build)
+// falls through to live. Live is the fail-safe default so a sandbox flag
+// in a published build can't silently route real subscription customers
+// to test keys, and a missing live key in preview can't be papered over.
 function getStripeEnv() {
-  const liveKey = process.env.STRIPE_BYOK_SECRET_KEY;
-  if (liveKey) return { key: liveKey, env: "live" as const };
+  const flag = import.meta.env.VITE_PAYMENTS_MODE;
   const sandboxKey = process.env.STRIPE_SANDBOX_API_KEY;
-  if (!sandboxKey) throw new Error("Stripe is not configured");
-  return { key: sandboxKey, env: "sandbox" as const };
+  if (flag === "sandbox" && sandboxKey) {
+    return { key: sandboxKey, env: "sandbox" as const };
+  }
+  const liveKey =
+    process.env.STRIPE_BYOK_SECRET_KEY ?? process.env.STRIPE_LIVE_API_KEY;
+  if (!liveKey) throw new Error("Stripe is not configured");
+  return { key: liveKey, env: "live" as const };
+}
+
+// Origins we'll accept as success/cancel return URLs for the subscription
+// checkout flow — same allowlist used in payments.functions.ts to prevent
+// open-redirect via a forged subscription checkout request.
+const ALLOWED_RETURN_ORIGINS = new Set([
+  "https://quottr.co.uk",
+  "https://www.quottr.co.uk",
+  "https://graft-build-pro.lovable.app",
+  "https://id-preview--e4be6907-c837-4e5e-9461-63fadfdad91e.lovable.app",
+]);
+
+function assertAllowedReturnUrl(url: string) {
+  try {
+    const u = new URL(url);
+    if (!ALLOWED_RETURN_ORIGINS.has(u.origin)) {
+      throw new Error("Return URL origin not allowed");
+    }
+  } catch {
+    throw new Error("Invalid return URL");
+  }
 }
 
 function toFormBody(params: Record<string, string | number>) {
@@ -73,6 +100,11 @@ export const startSubscriptionCheckout = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data, context }) => {
+    // Restrict success/cancel URLs to known Quottr origins so Stripe can't
+    // be used as an open redirect via a forged subscription checkout.
+    assertAllowedReturnUrl(data.successUrl);
+    assertAllowedReturnUrl(data.cancelUrl);
+
     const { key, env } = getStripeEnv();
     const { supabase, userId } = context;
 

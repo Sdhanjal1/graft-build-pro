@@ -6,11 +6,13 @@ export const Route = createFileRoute("/features")({
   component: FeaturesPage,
   head: () => ({
     meta: [
-      { title: "Features, Quottr" },
+      { title: "Features — Quottr" },
       { name: "description", content: "Voice quoting, WhatsApp send, a customer portal, in-app payments and automatic chasers. Everything Quottr does for tradespeople." },
-      { property: "og:title", content: "Features, Quottr" },
+      { property: "og:title", content: "Features — Quottr" },
       { property: "og:description", content: "Voice to quote, WhatsApp send, customer portal, instant payments and auto chasers, built for tradespeople." },
+      { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.quottr.co.uk/features" },
+      { property: "og:image", content: "https://quottr.co.uk/og-quottr.jpg" },
     ],
     links: [{ rel: "canonical", href: "https://www.quottr.co.uk/features" }],
   }),

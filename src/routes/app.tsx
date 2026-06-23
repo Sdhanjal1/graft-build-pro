@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { RouteError, RouteNotFound } from "@/components/RouteBoundary";
 import { useEffect, useRef, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
@@ -36,6 +37,8 @@ function buzz(ms = 10) {
 
 export const Route = createFileRoute("/app")({
   component: AppHomePage,
+  errorComponent: RouteError,
+  notFoundComponent: () => <RouteNotFound />,
   validateSearch: (s: Record<string, unknown>) => ({
     firstRun: s.firstRun === 1 || s.firstRun === "1" ? 1 : undefined,
   }),

@@ -6,11 +6,13 @@ export const Route = createFileRoute("/about")({
   component: AboutPage,
   head: () => ({
     meta: [
-      { title: "About, Quottr" },
+      { title: "About — Quottr" },
       { name: "description", content: "Quottr is built by tradespeople, for tradespeople. Our mission: kill the evening admin." },
-      { property: "og:title", content: "About, Quottr" },
+      { property: "og:title", content: "About — Quottr" },
       { property: "og:description", content: "Built by tradespeople, for tradespeople." },
+      { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.quottr.co.uk/about" },
+      { property: "og:image", content: "https://quottr.co.uk/og-quottr.jpg" },
     ],
     links: [{ rel: "canonical", href: "https://www.quottr.co.uk/about" }],
   }),

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { RouteError, RouteNotFound } from "@/components/RouteBoundary";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
@@ -30,6 +31,8 @@ const UNPAID: QuoteStatus[] = ["completed", "overdue"];
 
 export const Route = createFileRoute("/quotes/")({
   component: QuotesPage,
+  errorComponent: RouteError,
+  notFoundComponent: () => <RouteNotFound />,
 });
 
 const tileMatches = (tile: TileKey, q: Quote): boolean => {

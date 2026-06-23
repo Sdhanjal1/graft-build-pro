@@ -1,4 +1,5 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
+import { RouteError } from "@/components/RouteBoundary";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import {
   getQuote, getClient, userProfile, formatGBP, waLink,
@@ -18,6 +19,7 @@ import { getInvoiceEmailStatus, sendInvoiceEmailForQuote } from "@/lib/invoice-e
 
 export const Route = createFileRoute("/invoices/$quoteId")({
   component: InvoicePage,
+  errorComponent: RouteError,
   notFoundComponent: () => (
     <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center gap-4">
       <p className="text-base font-semibold text-ink">Invoice not found</p>

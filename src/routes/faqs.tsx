@@ -6,11 +6,13 @@ export const Route = createFileRoute("/faqs")({
   component: FaqsPage,
   head: () => ({
     meta: [
-      { title: "FAQs, Quottr" },
+      { title: "FAQs — Quottr" },
       { name: "description", content: "Common questions about Quottr, pricing, voice quoting, payments, data and more." },
-      { property: "og:title", content: "FAQs, Quottr" },
+      { property: "og:title", content: "FAQs — Quottr" },
       { property: "og:description", content: "Everything you wanted to ask about Quottr." },
+      { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.quottr.co.uk/faqs" },
+      { property: "og:image", content: "https://quottr.co.uk/og-quottr.jpg" },
     ],
     links: [{ rel: "canonical", href: "https://www.quottr.co.uk/faqs" }],
   }),
