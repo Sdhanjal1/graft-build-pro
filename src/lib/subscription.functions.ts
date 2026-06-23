@@ -67,8 +67,9 @@ async function stripe(
   });
   const json = (await res.json()) as any;
   if (!res.ok) {
-    console.error("Stripe API error", path, json);
-    throw new Error("Payment service error. Please try again or contact support.");
+    console.error("Stripe API error", path, JSON.stringify(json));
+    const msg = json?.error?.message ?? json?.error?.code ?? `HTTP ${res.status}`;
+    throw new Error(`Stripe ${path} failed: ${msg}`);
   }
   return json;
 }
