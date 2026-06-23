@@ -14,6 +14,7 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "The voice-first quoting app for UK trades. Speak the job, send the quote, get paid." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.quottr.co.uk/" },
+      { property: "og:image", content: "https://quottr.co.uk/og-quottr.jpg" },
     ],
     links: [{ rel: "canonical", href: "https://www.quottr.co.uk/" }],
   }),
