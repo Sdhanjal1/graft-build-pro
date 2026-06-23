@@ -175,13 +175,23 @@ function ClientDetail() {
             href={client.email ? `mailto:${client.email}` : undefined}
             onSave={(v) => updateClientFields(clientId, { email: v })}
           />
-          <Row
+          <EditableRow
             icon={MapPin}
             label="Address"
-            value={client.address}
+            initial={client.address}
+            placeholder="Street, town, postcode"
             href={client.address ? `https://maps.google.com/?q=${encodeURIComponent(client.address)}` : undefined}
+            onSave={(v) => updateClientFields(clientId, { address: v })}
           />
-          <Row icon={Home} label="Property" value={client.property_type} />
+          <EditableRow
+            icon={Home}
+            label="Property"
+            kind="select"
+            initial={client.property_type}
+            placeholder="Select type"
+            options={PROPERTY_OPTIONS}
+            onSave={(v) => updateClientFields(clientId, { property_type: v })}
+          />
         </div>
       </section>
 
