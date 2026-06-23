@@ -362,7 +362,7 @@ function SettingsPage() {
         }}
       />
 
-      <div className="border-y border-border/60 divide-y divide-border/60 bg-paper">
+      <div className="px-5 mt-5 space-y-4">
         {/* 1. YOUR BUSINESS */}
         <Section
           id="business"
