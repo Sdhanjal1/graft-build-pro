@@ -386,18 +386,30 @@ function SettingsPage() {
           summary={profile.business_name || "Finish your business details"}
         >
           <FieldGroup label="Business logo">
-            {profile.logo_url ? (
+            {uploading ? (
+              <LogoUploadProgress stage={uploadStage} />
+            ) : uploadError ? (
+              <LogoUploadError
+                message={uploadError}
+                canRetry={!!lastFileRef.current}
+                onRetry={retryLogoUpload}
+                onPickNew={() => {
+                  dismissUploadError();
+                  fileInputRef.current?.click();
+                }}
+                onDismiss={dismissUploadError}
+              />
+            ) : profile.logo_url ? (
               <div className="flex items-center gap-4">
                 <BusinessLogo logoUrl={profile.logo_url} businessName={profile.business_name} size="lg" />
                 <div className="flex flex-col gap-2">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5 disabled:opacity-50"
+                    className="text-xs font-bold bg-ink text-paper px-4 py-2 rounded-full flex items-center gap-1.5"
                   >
                     <Pencil className="h-3.5 w-3.5" />
-                    {uploading ? "Uploading…" : "Change"}
+                    Change
                   </button>
                   <button
                     type="button"
@@ -413,19 +425,19 @@ function SettingsPage() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="w-full rounded-2xl border border-dashed border-border bg-card/40 px-5 py-6 flex flex-col items-center gap-2 hover:border-ink/30 hover:bg-card/60 transition disabled:opacity-50"
+                className="w-full rounded-2xl border border-dashed border-border bg-card/40 px-5 py-6 flex flex-col items-center gap-2 hover:border-ink/30 hover:bg-card/60 transition"
               >
                 <div className="h-11 w-11 rounded-full bg-lime text-ink flex items-center justify-center">
                   <Camera className="h-5 w-5" />
                 </div>
-                <p className="font-bold text-sm text-ink">{uploading ? "Uploading…" : "Add your logo"}</p>
+                <p className="font-bold text-sm text-ink">Add your logo</p>
                 <p className="text-xs text-muted-foreground text-center max-w-[260px]">
                   Appears on all quotes, invoices and PDFs.
                 </p>
               </button>
             )}
           </FieldGroup>
+
 
           <FieldGroup label="Business details">
             <FieldList>
