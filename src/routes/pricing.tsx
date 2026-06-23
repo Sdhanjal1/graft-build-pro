@@ -7,7 +7,7 @@ export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
       { title: "Pricing — Quottr" },
-      { name: "description", content: "One simple plan. £29/month after a 14-day free trial. No card required to start. Cancel any time." },
+      { name: "description", content: "One simple plan. £34.99/month after a 14-day free trial. No card required to start. Cancel any time." },
       { property: "og:title", content: "Pricing — Quottr" },
       { property: "og:description", content: "One price. Everything included. No contracts." },
       { property: "og:type", content: "website" },
@@ -62,11 +62,11 @@ function PricingPage() {
               className="leading-none"
               style={{ fontFamily: "'Bebas Neue', sans-serif" }}
             >
-              <span className="text-7xl md:text-8xl">£29</span>
+              <span className="text-7xl md:text-8xl">£34.99</span>
               <span className="text-2xl md:text-3xl text-ink/60 ml-2">/ month</span>
             </div>
             <p className="mt-3 text-sm text-ink/60">
-              Free for 14 days. Then £29/month. Cancel any time.
+              Free for 14 days. Then £34.99/month. Cancel any time.
             </p>
             <p className="mt-2 text-xs text-ink/55">
               Plus 0.5% on payments taken through Quottr (50p minimum, £25 cap), only when a customer pays you.
@@ -98,7 +98,7 @@ function PricingPage() {
         </div>
 
         <p className="mt-5 text-center text-xs text-ink/55 max-w-md mx-auto leading-relaxed">
-          After your 14-day trial, £29/month. Cancel any time. No contracts, no per-quote fees, no setup costs.
+          After your 14-day trial, £34.99/month. Cancel any time. No contracts, no per-quote fees, no setup costs.
         </p>
       </section>
 
